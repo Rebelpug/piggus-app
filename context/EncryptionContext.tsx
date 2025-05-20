@@ -38,7 +38,7 @@ interface EncryptionContextType {
     resetEncryption: () => void;
 
     // Data encryption
-    encrypt: (data: any) => Promise<string | null>;
+    encrypt: (data: any) => Promise<string>;
     decrypt: (encryptedData: string) => Promise<any>;
 
     // Recipient-specific encryption
@@ -154,17 +154,17 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     }, []);
 
     // Encrypt data with current encryption key
-    const encrypt = useCallback(async (data: any): Promise<string | null> => {
+    const encrypt = useCallback(async (data: any): Promise<string> => {
         if (!encryptionKey) {
             console.error('Cannot encrypt: encryption not initialized');
-            return null;
+            return '';
         }
 
         try {
             return encryptData(data, encryptionKey);
         } catch (error) {
             console.error('Encryption failed:', error);
-            return null;
+            return '';
         }
     }, [encryptionKey]);
 

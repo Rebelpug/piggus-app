@@ -4,7 +4,7 @@ import { User } from '@supabase/supabase-js';
 
 export const apiFetchProfile = async (
   user: User,
-  encryptData: (data: any) => Promise<string>,
+  encryptData: (data: any) => Promise<string | null>,
   decryptData: (encryptedData: string) => Promise<any>
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
@@ -15,6 +15,8 @@ export const apiFetchProfile = async (
         error: 'User credentials or encryption functions are invalid',
       };
     }
+
+    console.log('Fetching profile for user:', user.id);
 
     // Fetch profile directly from the database
     const { data: profiles, error: profileError } = await supabase
@@ -29,6 +31,8 @@ export const apiFetchProfile = async (
         error: profileError.message || 'Failed to load profile',
       };
     }
+
+    console.log('Fetched profile:', profiles);
 
     if (!profiles || profiles.length === 0) {
       return {
@@ -62,7 +66,7 @@ export const apiFetchProfile = async (
 export const apiCreateProfile = async (
   user: User,
   username: string,
-  encryptData: (data: any) => Promise<string>,
+  encryptData: (data: any) => Promise<string | null>,
   decryptData: (encryptedData: string) => Promise<any>
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
@@ -97,6 +101,13 @@ export const apiCreateProfile = async (
 
     // Encrypt the profile data
     const encryptedProfile = await encryptData(profileData);
+
+    if (!encryptedProfile) {
+      return {
+        success: false,
+        error: 'Cannot create profile: Failed to encrypt profile data',
+      };
+    }
 
     // Insert directly into the profiles table
     const { data: newProfile, error: insertError } = await supabase.from('profiles').insert({
@@ -143,7 +154,7 @@ export const apiUpdateProfile = async (
   user: User,
   profileData: Partial<Profile['profile']>,
   currentProfile: Profile,
-  encryptData: (data: any) => Promise<string>,
+  encryptData: (data: any) => Promise<string | null>,
   decryptData: (encryptedData: string) => Promise<any>
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
@@ -163,6 +174,13 @@ export const apiUpdateProfile = async (
 
     // Encrypt the updated profile data
     const encryptedProfile = await encryptData(updatedProfileData);
+
+    if (!encryptedProfile) {
+      return {
+        success: false,
+        error: 'Cannot update profile: Failed to encrypt profile data',
+      };
+    }
 
     // Update the profile in the database
     const { data: updatedProfile, error: updateError } = await supabase

@@ -27,8 +27,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [profileInitialized, setProfileInitialized] = useState(false);
 
-    const initialisePersonalExpensesGroup = async () => {
-        if (!user || !publicKey || !userProfile) {
+    const initialisePersonalExpensesGroup = async (username: string) => {
+        if (!user || !publicKey || !username) {
+            console.log('User', user);
+            console.log('publicKey', publicKey);
+            console.log('username', username);
             console.error('User is not authenticated, cannot create personal group');
             return;
         }
@@ -39,7 +42,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             .eq('user_id', user.id);
 
         if (!groups || groups.length === 0) {
-            await apiCreateExpensesGroup(user, userProfile.username, publicKey, {
+            await apiCreateExpensesGroup(user, username, publicKey, {
                 name: 'Personal Expenses',
                 description: 'personal',
                 private: true,
@@ -85,7 +88,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 console.log('Profile found and loaded');
                 setUserProfile(result.data);
             } else {
-                console.log('No profile found for user, will need to create one');
+                console.log('No profile found for user, will need to create one', result.error);
                 // We'll let the UI handle profile creation rather than doing it automatically
                 // This ensures the user sees what's happening
             }
@@ -126,7 +129,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 if (!result.success || !result.data) {
                     throw new Error(result.error || 'Failed to create profile');
                 }
-                await initialisePersonalExpensesGroup();
+                await initialisePersonalExpensesGroup(username);
                 await initialisePersonalPortfolio(username);
                 setUserProfile(result.data);
                 setLoading(false);

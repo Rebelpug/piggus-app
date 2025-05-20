@@ -123,16 +123,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Initialize encryption key from password
   const initializeEncryptionKey = useCallback(
-      async (userId: string, password: string): Promise<void> => {
+      async (user: User, password: string): Promise<void> => {
         try {
-          // Get the current user to access metadata
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-
-          if (!user) {
-            throw new Error('No user found. Cannot initialize encryption key.');
-          }
 
           // Retrieve keys from user metadata
           const { publicKey, encryptedPrivateKey } = await retrieveKeysFromUserMetadata(user);
@@ -176,7 +168,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
             setNewEncryptionKeyGenerated(true);
             setEncryptionInitialized(true);
-            console.log('Created new encryption keys for user:', userId);
+            console.log('Created new encryption keys for user:', user.id);
           }
         } catch (error) {
           console.error('Error initializing encryption key:', error);
@@ -194,7 +186,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         }
 
         try {
-          await initializeEncryptionKey(user.id, password);
+          await initializeEncryptionKey(user, password);
           setNeedsPasswordPrompt(false);
         } catch (error) {
           console.error('Failed to initialize encryption with password:', error);
@@ -219,7 +211,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
           // If we have a saved password from signup, use it to initialize encryption
           if (signupPassword.current) {
-            initializeEncryptionKey(currentUser.id, signupPassword.current)
+            initializeEncryptionKey(currentUser, signupPassword.current)
                 .then(() => {
                   // Clear the password
                   signupPassword.current = null;
@@ -262,7 +254,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
           // If we have a saved password from signup, use it to initialize encryption
           if (signupPassword.current) {
-            initializeEncryptionKey(session.user.id, signupPassword.current)
+            initializeEncryptionKey(session.user, signupPassword.current)
                 .then(() => {
                   // Clear the password
                   signupPassword.current = null;
@@ -316,7 +308,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       // User is now authenticated, initialize encryption
       if (data.user) {
         try {
-          await initializeEncryptionKey(data.user.id, password);
+          await initializeEncryptionKey(data.user, password);
           setUser(data.user);
           setNeedsPasswordPrompt(false);
         } catch (error) {
@@ -403,6 +395,16 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       );
     }
 
+    if (isGeneratingKeys) {
+      return (
+          <ThemedView>
+            <ThemedView className="flex flex-col items-center gap-2">
+              <ThemedText>Doing some magic to get you setup...</ThemedText>
+            </ThemedView>
+          </ThemedView>
+      );
+    }
+
     // If user is not logged in, render the children (sign-in/sign-up pages)
     if (!user) {
       return children;
@@ -420,7 +422,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
 
     // If user is logged in and encryption is initialized, render the children
-    if (user && encryptionInitialized) {
+    if (user && encryptionInitialized && encryption.isEncryptionInitialized() && encryption.getPublicKey()) {
       console.log('Encryption initialized successfully');
       return children;
     }
