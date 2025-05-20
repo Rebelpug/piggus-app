@@ -2,6 +2,7 @@
  * React Native encryption utilities
  * Using expo-crypto, aes-js, and react-native-rsa-native
  */
+import 'react-native-get-random-values';
 import * as Crypto from 'expo-crypto';
 import aesjs from 'aes-js';
 import * as forge from 'node-forge';

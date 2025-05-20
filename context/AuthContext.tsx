@@ -232,6 +232,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           } else {
             console.log("Found user but need to sign out");
             // No saved password, prompt the user
+            signOut(); //TODO add password prompt
             setNeedsPasswordPrompt(true);
           }
         } else {
@@ -274,6 +275,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           } else {
             // No saved password, prompt the user
             console.log('No saved password after sign in, need to prompt user for password');
+            signOut(); //TODO add password prompt
             setNeedsPasswordPrompt(true);
           }
         } else if (event === 'SIGNED_OUT') {
