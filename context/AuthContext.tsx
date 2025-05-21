@@ -258,6 +258,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
                 .then(() => {
                   // Clear the password
                   signupPassword.current = null;
+                  setNeedsPasswordPrompt(false);
                 })
                 .catch(error => {
                   console.error('Failed to initialize encryption key from auth state change:', error);
@@ -267,7 +268,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           } else {
             // No saved password, prompt the user
             console.log('No saved password after sign in, need to prompt user for password');
-            signOut(); //TODO add password prompt
+            // We'll show the password prompt instead of immediately signing out
             setNeedsPasswordPrompt(true);
           }
         } else if (event === 'SIGNED_OUT') {
@@ -308,6 +309,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       // User is now authenticated, initialize encryption
       if (data.user) {
         try {
+          // Save the password temporarily for auth listener to use
+          signupPassword.current = password;
           await initializeEncryptionKey(data.user, password);
           setUser(data.user);
           setNeedsPasswordPrompt(false);
@@ -421,20 +424,20 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       );
     }
 
-    // If user is logged in and encryption is initialized, render the children
-    if (user && encryptionInitialized && encryption.isEncryptionInitialized() && encryption.getPublicKey()) {
-      console.log('Encryption initialized successfully');
-      return children;
+    // Check if we have a valid session with Supabase
+    // Only render children when both user and encryption are fully initialized
+    if (!user || !encryptionInitialized || !encryption.isEncryptionInitialized() || !encryption.getPublicKey()) {
+      return (
+          <ThemedView>
+            <ThemedView className="flex flex-col items-center gap-2">
+              <ThemedText>Initializing encryption</ThemedText>
+            </ThemedView>
+          </ThemedView>
+      );
     }
 
-    // If user is logged in but encryption is not initialized yet, show loading
-    return (
-        <ThemedView>
-          <ThemedView>
-            <ThemedText>Initializing encryption</ThemedText>
-          </ThemedView>
-        </ThemedView>
-    );
+    // All checks passed, render the children
+    return children;
   };
 
   return (
