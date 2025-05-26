@@ -51,7 +51,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   // Helper function to encrypt data using the encryption context
   const encryptData = useCallback(
       async (data: any): Promise<string | null> => {
-        if (!encryption.isEncryptionInitialized()) {
+        if (!encryption.isEncryptionInitialized) {
           console.error('Encryption not initialized when trying to encrypt data');
           throw new Error('Encryption not initialized. Please sign in again.');
         }
@@ -64,12 +64,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   // Helper function to decrypt data using the encryption context
   const decryptData = useCallback(
       async (encryptedData: string): Promise<any> => {
-        if (!encryption.isEncryptionInitialized()) {
+        if (!encryption.isEncryptionInitialized) {
           console.error('Encryption not initialized when trying to decrypt data');
           throw new Error('Encryption not initialized. Please sign in again.');
         }
 
-        return await encryption.decrypt(encryptedData);
+        return await encryption.decryptWithEncryptionKey(encryptedData);
       },
       [encryption]
   );
@@ -426,7 +426,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     // Check if we have a valid session with Supabase
     // Only render children when both user and encryption are fully initialized
-    if (!user || !encryptionInitialized || !encryption.isEncryptionInitialized() || !encryption.getPublicKey()) {
+    if (!user || !encryptionInitialized || !encryption.isEncryptionInitialized || !encryption.getPublicKey()) {
       return (
           <ThemedView>
             <ThemedView className="flex flex-col items-center gap-2">

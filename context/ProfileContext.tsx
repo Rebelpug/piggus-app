@@ -8,6 +8,7 @@ import ProfileCreationForm from '@/components/account/ProfileCreationForm'; // T
 import { apiCreatePortfolio } from '@/client/investment';
 import { apiCreateExpensesGroup } from '@/client/expense';
 import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/client/profile';
+import {useEncryption} from "@/context/EncryptionContext";
 
 type ProfileContextType = {
     userProfile: Profile | null;
@@ -22,6 +23,7 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const { user, publicKey, encryptData, decryptData, authInitialized, encryptionInitialized } = useAuth();
+    const { encryptWithExternalPublicKey } = useEncryption();
     const [userProfile, setUserProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             .eq('user_id', user.id);
 
         if (!groups || groups.length === 0) {
-            await apiCreateExpensesGroup(user, username, publicKey, {
+            await apiCreateExpensesGroup(user, username, publicKey, encryptWithExternalPublicKey, {
                 name: 'Personal Expenses',
                 description: 'personal',
                 private: true,

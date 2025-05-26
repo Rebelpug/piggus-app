@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
+import React, {createContext, useState, useContext, useCallback, ReactNode, useMemo} from 'react';
 import {
     deriveKeyFromPassword,
     generateKeyPair,
@@ -6,17 +6,17 @@ import {
     decryptPrivateKey,
     encryptData,
     decryptData,
-    encryptForRecipient,
     decryptFromSender,
+    encryptWithPublicKey,
     signData,
-    verifySignature,
+    verifySignature, decryptWithRSA, base64ToArrayBuffer,
 } from '@/lib/encryption';
 
 // Types
 interface EncryptionContextType {
     // State getters
     getPublicKey: () => string | null;
-    isEncryptionInitialized: () => boolean;
+    isEncryptionInitialized: boolean;
 
     // Core functions
     initializeFromPassword: (password: string) => Promise<{
@@ -39,11 +39,14 @@ interface EncryptionContextType {
 
     // Data encryption
     encrypt: (data: any) => Promise<string>;
-    decrypt: (encryptedData: string) => Promise<any>;
+    decryptWithEncryptionKey: (encryptedData: string) => Promise<any>;
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>;
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>;
 
     // Recipient-specific encryption
-    encryptForRecipient: (recipientPublicKey: string, data: any) => Promise<string | null>;
-    decryptFromSender: (encryptedPackage: string) => Promise<any>;
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>;
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<{ encryptedKey: string, encryptedData: string } | null>;
+    decryptFromSender: (encryptedKey: string, encryptedData: string) => Promise<any>;
 
     // Key export
     exportEncryptedPrivateKey: (
@@ -153,6 +156,11 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         setIsInitialized(false);
     }, []);
 
+    // Check if encryption is initialized
+    const isEncryptionInitialized = useMemo((): boolean => {
+        return isInitialized;
+    }, [isInitialized]);
+
     // Encrypt data with current encryption key
     const encrypt = useCallback(async (data: any): Promise<string> => {
         if (!encryptionKey) {
@@ -169,8 +177,8 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     }, [encryptionKey]);
 
     // Decrypt data with current encryption key
-    const decrypt = useCallback(async (encryptedData: string): Promise<any> => {
-        if (!encryptionKey) {
+    const decryptWithEncryptionKey = useCallback(async (encryptedData: string): Promise<any> => {
+        if (!isEncryptionInitialized || !encryptionKey) {
             console.error('Cannot decrypt: encryption not initialized');
             throw new Error('Encryption not initialized');
         }
@@ -181,15 +189,46 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             console.error('Decryption failed:', error);
             throw error;
         }
-    }, [encryptionKey]);
+    }, [isEncryptionInitialized, encryptionKey]);
+
+    // Encrypt data with current encryption key
+    const encryptWithExternalEncryptionKey = useCallback(async (encryptionKey: string, data: any): Promise<string> => {
+        if (!encryptionKey) {
+            console.error('Cannot encrypt: encryption not initialized');
+            return '';
+        }
+
+        try {
+            const convertedEncryptionKey = base64ToArrayBuffer(encryptionKey);
+            return encryptData(data, convertedEncryptionKey);
+        } catch (error) {
+            console.error('Encryption failed:', error);
+            return '';
+        }
+    }, []);
+
+    const decryptWithExternalEncryptionKey = useCallback(async (encryptionKey: string, encryptedData: string): Promise<any> => {
+        if (!encryptionKey) {
+            console.error('Cannot decrypt: encryption not initialized');
+            throw new Error('Encryption not initialized');
+        }
+
+        try {
+            const convertedEncryptionKey = base64ToArrayBuffer(encryptionKey);
+            return decryptData(encryptedData, convertedEncryptionKey);
+        } catch (error) {
+            console.error('Decryption failed:', error);
+            throw error;
+        }
+    }, []);
 
     // Encrypt data for a recipient using their public key
-    const encryptForRecipientFn = useCallback(async (
+    const encryptWithExternalPublicKey = useCallback(async (
         recipientPublicKey: string,
         data: any
-    ): Promise<string | null> => {
+    ): Promise<{ encryptedKey: string, encryptedData: string } | null> => {
         try {
-            return await encryptForRecipient(data, recipientPublicKey);
+            return await encryptWithPublicKey(data, recipientPublicKey);
         } catch (error) {
             console.error('Error encrypting for recipient:', error);
             return null;
@@ -198,7 +237,8 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
     // Decrypt data that was encrypted for you
     const decryptFromSenderFn = useCallback(async (
-        encryptedPackage: string
+        encryptedKey: string,
+        encryptedData: string
     ): Promise<any> => {
         if (!privateKey) {
             console.error('Cannot decrypt: private key not available');
@@ -206,9 +246,25 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         }
 
         try {
-            return await decryptFromSender(encryptedPackage, privateKey);
+            return await decryptFromSender(encryptedKey, encryptedData, privateKey);
         } catch (error) {
             console.error('Error decrypting from sender:', error);
+            throw error;
+        }
+    }, [privateKey]);
+
+    const decryptWithPrivateKey = useCallback(async (
+        encryptedData: string
+    ): Promise<any> => {
+        if (!privateKey) {
+            console.error('Cannot decrypt: private key not available');
+            throw new Error('Private key not available');
+        }
+
+        try {
+            return await decryptWithRSA(privateKey, encryptedData);
+        } catch (error) {
+            console.error('Error decrypting with private key:', error);
             throw error;
         }
     }, [privateKey]);
@@ -264,11 +320,6 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         return publicKey;
     }, [publicKey]);
 
-    // Check if encryption is initialized
-    const isEncryptionInitialized = useCallback((): boolean => {
-        return isInitialized;
-    }, [isInitialized]);
-
     // Context value
     const value: EncryptionContextType = {
         getPublicKey,
@@ -277,9 +328,12 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         importExistingKeys,
         resetEncryption,
         encrypt,
-        decrypt,
-        encryptForRecipient: encryptForRecipientFn,
+        decryptWithEncryptionKey,
+        encryptWithExternalEncryptionKey,
+        decryptWithExternalEncryptionKey,
+        encryptWithExternalPublicKey,
         decryptFromSender: decryptFromSenderFn,
+        decryptWithPrivateKey,
         exportEncryptedPrivateKey,
         sign,
         verify

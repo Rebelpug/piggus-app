@@ -12,7 +12,7 @@ import { Buffer } from 'buffer';
 // Constants and Utility Functions
 // =====================================================================
 
-const PBKDF2_ITERATIONS = 5000; // Lower for better performance on mobile
+const PBKDF2_ITERATIONS = 20000; // Balance should be between 10k and 100k, higher is better but slow down app
 const AES_KEY_LENGTH = 32; // 256 bits
 const AES_COUNTER_LENGTH = 16;
 const RSA_KEY_SIZE = 2048;
@@ -267,10 +267,10 @@ export async function decryptWithRSA(privateKey: string, encryptedData: string):
  * Encrypt data for a recipient using hybrid encryption
  * Generates a random AES key, encrypts data with AES, and encrypts the AES key with RSA
  */
-export async function encryptForRecipient(
+export async function encryptWithPublicKey(
     data: any,
     recipientPublicKey: string
-): Promise<string> {
+): Promise<{ encryptedKey: string, encryptedData: string }> {
   try {
     // Generate a random AES key
     const aesKey = generateRandomBytes(AES_KEY_LENGTH);
@@ -282,12 +282,10 @@ export async function encryptForRecipient(
     const encryptedKey = await encryptWithRSA(recipientPublicKey, arrayBufferToBase64(aesKey));
 
     // Combine everything into a single package
-    const result = {
+    return {
       encryptedKey,
       encryptedData
     };
-
-    return JSON.stringify(result);
   } catch (error) {
     console.error('Error in hybrid encryption:', error);
     throw new Error('Failed to encrypt for recipient');
@@ -298,13 +296,11 @@ export async function encryptForRecipient(
  * Decrypt data received from a sender using hybrid encryption
  */
 export async function decryptFromSender(
-    encryptedPackage: string,
+    encryptedKey: string,
+    encryptedData: string,
     privateKey: string
 ): Promise<any> {
   try {
-    // Parse the package
-    const { encryptedKey, encryptedData } = JSON.parse(encryptedPackage);
-
     // Decrypt the AES key with your private key
     const aesKeyBase64 = await decryptWithRSA(privateKey, encryptedKey);
     const aesKey = base64ToArrayBuffer(aesKeyBase64);

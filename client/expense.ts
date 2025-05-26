@@ -1,13 +1,3 @@
-import {
-  arrayBufferToBase64,
-  base64ToArrayBuffer,
-  decryptData,
-  decryptFromSender,
-  decryptWithRSA,
-  encryptData,
-  encryptForRecipient,
-  encryptWithRSA, generateRandomBytes
-} from '@/lib/encryption';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
@@ -21,10 +11,11 @@ import { User } from '@supabase/supabase-js';
 
 export const apiFetchExpenses = async (
     user: User,
-    privateKey: string // Changed from CryptoKey to string
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
 ): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData[]; error?: string }> => {
   try {
-    if (!user || !privateKey) {
+    if (!user || !decryptWithExternalEncryptionKey || !decryptWithPrivateKey) {
       console.error('User credentials are invalid');
       return {
         success: false,
@@ -55,15 +46,11 @@ export const apiFetchExpenses = async (
     const decryptedGroups = await Promise.all(
         memberships.map(async membership => {
           const group = membership.expenses_groups;
-
-          // First decrypt the group key using the private key
-          const groupKeyRaw = await decryptWithRSA(privateKey, membership.encrypted_group_key);
-
-          // Convert the group key to Uint8Array for AES decryption
-          const groupKey = base64ToArrayBuffer(groupKeyRaw);
-
+          const decryptedGroupKey = await decryptWithPrivateKey(membership.encrypted_group_key);
           // Now decrypt the group data using the decrypted group key
-          const decryptedExpenseGroupData = decryptData(group.encrypted_data, groupKey);
+          const decryptedExpenseGroupData = await decryptWithExternalEncryptionKey(decryptedGroupKey, group.encrypted_data);
+
+          console.log(decryptedExpenseGroupData)
 
           const { data: expenses, error: expensesError } = await supabase
               .from('expenses')
@@ -78,7 +65,7 @@ export const apiFetchExpenses = async (
           const decryptedExpenses = await Promise.all(
               expenses.map(async expense => ({
                 ...expense,
-                data: decryptData(expense.encrypted_data, groupKey),
+                data: await decryptWithExternalEncryptionKey(decryptedGroupKey, expense.encrypted_data),
               }))
           );
 
@@ -149,10 +136,11 @@ export const apiCreateExpensesGroup = async (
     user: User,
     username: string,
     publicKey: string,
-    groupData: ExpenseGroupData
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<{ encryptedKey: string, encryptedData: string } | null>,
+    groupData: ExpenseGroupData,
 ): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !publicKey) {
+    if (!user || !encryptWithExternalPublicKey) {
       console.error('You must be logged in to create an expense group');
       return {
         success: false,
@@ -160,17 +148,15 @@ export const apiCreateExpensesGroup = async (
       };
     }
 
-    // 1. Generate a random group encryption key (32 bytes for AES-256)
-    const groupKey = generateRandomBytes(32);
+    const encryptedResult = await encryptWithExternalPublicKey(publicKey, groupData);
 
-    // 2. Convert the key to base64 for encryption with RSA
-    const groupKeyBase64 = arrayBufferToBase64(groupKey);
-
-    // 3. Encrypt the group key with the user's public key
-    const encryptedGroupKey = encryptWithRSA(publicKey, groupKeyBase64);
-
-    // 4. Encrypt the group data with the group key
-    const encryptedData = encryptData(groupData, groupKey);
+    if (!encryptedResult) {
+      console.error('Failed to encrypt group data');
+      return {
+        success: false,
+        error: 'Failed to encrypt group data',
+      };
+    }
 
     // 5. Create the group in the database
     const newGroupId = uuidv4();
@@ -178,7 +164,7 @@ export const apiCreateExpensesGroup = async (
         .from('expenses_groups')
         .insert({
           id: newGroupId,
-          encrypted_data: encryptedData,
+          encrypted_data: encryptedResult?.encryptedData,
         })
         .single();
 
@@ -196,7 +182,7 @@ export const apiCreateExpensesGroup = async (
         .insert({
           group_id: newGroupId,
           user_id: user.id,
-          encrypted_group_key: encryptedGroupKey,
+          encrypted_group_key: encryptedResult.encryptedKey,
           status: 'confirmed',
         })
         .select()
@@ -217,7 +203,7 @@ export const apiCreateExpensesGroup = async (
       updated_at: new Date().toISOString(),
       data: groupData,
       membership_status: 'confirmed',
-      encrypted_key: encryptedGroupKey,
+      encrypted_key: encryptedResult.encryptedKey,
       expenses: [],
       members: [
         {
@@ -227,7 +213,7 @@ export const apiCreateExpensesGroup = async (
           status: 'confirmed',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          encrypted_group_key: encryptedGroupKey,
+          encrypted_group_key: encryptedResult.encryptedKey,
           username: username,
         },
       ],
@@ -248,13 +234,14 @@ export const apiCreateExpensesGroup = async (
 
 export const apiAddExpense = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     groupId: string,
     encryptedGroupKey: string,
-    expenseData: ExpenseData
+    expenseData: ExpenseData,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; data?: ExpenseWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !privateKey || !groupId) {
+    if (!user || !decryptWithPrivateKey || !groupId) {
       console.error('You must be logged in and have access to this expense group');
       return {
         success: false,
@@ -263,13 +250,9 @@ export const apiAddExpense = async (
     }
 
     // First decrypt the group key using the private key
-    const groupKeyRaw = await decryptWithRSA(privateKey, encryptedGroupKey);
-
-    // Convert the group key to Uint8Array for AES encryption
-    const groupKey = base64ToArrayBuffer(groupKeyRaw);
-
+    const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
     // Encrypt the expense data with the group key
-    const encryptedData = encryptData(expenseData, groupKey);
+    const encryptedData = encryptWithExternalEncryptionKey(groupKey, expenseData);
 
     // Generate a unique ID for the new expense
     const newExpenseId = uuidv4();
@@ -317,13 +300,14 @@ export const apiAddExpense = async (
 
 export const apiUpdateExpense = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     groupId: string,
     encryptedGroupKey: string,
-    updatedExpense: ExpenseWithDecryptedData
+    updatedExpense: ExpenseWithDecryptedData,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; data?: ExpenseWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !privateKey || !groupId) {
+    if (!user || !decryptWithPrivateKey || !groupId || !encryptWithExternalEncryptionKey) {
       console.error('You must be logged in and have access to this expense group');
       return {
         success: false,
@@ -332,13 +316,9 @@ export const apiUpdateExpense = async (
     }
 
     // First decrypt the group key using the private key
-    const groupKeyRaw = await decryptWithRSA(privateKey, encryptedGroupKey);
-
-    // Convert the group key to Uint8Array for AES encryption
-    const groupKey = base64ToArrayBuffer(groupKeyRaw);
-
+    const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
     // Encrypt the expense data with the group key
-    const encryptedData = encryptData(updatedExpense.data, groupKey);
+    const encryptedData = encryptWithExternalEncryptionKey(groupKey, updatedExpense.data);
 
     // Update in database
     const { error } = await supabase
@@ -414,12 +394,13 @@ export const apiDeleteExpense = async (
 
 export const apiInviteUserToGroup = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     groupId: string,
-    username: string
+    username: string,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<{ encryptedKey: string, encryptedData: string } | null>
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    if (!user || !privateKey) {
+    if (!user) {
       console.error('You must be logged in to invite a user');
       return { success: false, error: 'Not authenticated' };
     }
@@ -470,14 +451,13 @@ export const apiInviteUserToGroup = async (
     }
 
     // 4. Decrypt the group key with the current user's private key
-    const encryptedGroupKeyBase64 = membership.encrypted_group_key;
-    const groupKeyBase64 = await decryptWithRSA(privateKey, encryptedGroupKeyBase64);
+    const groupKey = await decryptWithPrivateKey(membership.encrypted_group_key);
 
     // 5. Re-encrypt the group key with the target user's public key
     const targetUserPublicKey = targetUser.encryption_public_key;
-    const encryptedGroupKeyForNewUser = encryptWithRSA(
+    const encryptedGroupKeyForNewUser = encryptWithExternalPublicKey(
         targetUserPublicKey,
-        groupKeyBase64
+        groupKey
     );
 
     // 6. Create the membership for the invited user
@@ -536,13 +516,14 @@ export const apiHandleGroupInvitation = async (
 
 export const apiUpdateExpenseGroup = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     groupId: string,
     encryptedGroupKey: string,
-    updatedGroupData: ExpenseGroupData
+    updatedGroupData: ExpenseGroupData,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !privateKey || !groupId) {
+    if (!user || !groupId) {
       console.error('You must be logged in and have access to this expense group');
       return {
         success: false,
@@ -551,13 +532,9 @@ export const apiUpdateExpenseGroup = async (
     }
 
     // First decrypt the group key using the private key
-    const groupKeyRaw = await decryptWithRSA(privateKey, encryptedGroupKey);
-
-    // Convert the group key to Uint8Array for AES encryption
-    const groupKey = base64ToArrayBuffer(groupKeyRaw);
-
+    const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
     // Encrypt the group data with the group key
-    const encryptedData = encryptData(updatedGroupData, groupKey);
+    const encryptedData = encryptWithExternalEncryptionKey(groupKey, updatedGroupData);
 
     // Update in database
     const { error } = await supabase
@@ -624,7 +601,7 @@ export const apiUpdateExpenseGroup = async (
     // Decrypt each expense
     const decryptedExpenses = await Promise.all(
         expenses.map(async (expense): Promise<ExpenseWithDecryptedData> => {
-          const decryptedExpenseData = decryptData(expense.encrypted_data, groupKey);
+          const decryptedExpenseData = encryptWithExternalEncryptionKey(groupKey, expense.encrypted_data);
           return {
             ...expense,
             data: decryptedExpenseData,
