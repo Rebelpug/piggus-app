@@ -9,6 +9,7 @@ export type ExpenseGroupData = {
   name: string;
   description: string;
   private: boolean;
+  currency: string; // Added currency field
 };
 
 export type ExpenseGroupMember = {

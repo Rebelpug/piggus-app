@@ -680,3 +680,51 @@ export const apiUpdateExpenseGroup = async (
     };
   }
 };
+
+export const apiRemoveUserFromGroup = async (
+    user: User,
+    groupId: string,
+    userIdToRemove: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    if (!user) {
+      console.error('You must be logged in to remove a user');
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Check if the current user has permission to remove members (is confirmed member)
+    const { data: currentMembership, error: membershipError } = await supabase
+        .from('expenses_group_memberships')
+        .select('status')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .single();
+
+    if (membershipError || !currentMembership || currentMembership.status !== 'confirmed') {
+      console.error('Access denied:', membershipError);
+      return { success: false, error: 'Access denied' };
+    }
+
+    // Prevent users from removing themselves
+    if (userIdToRemove === user.id) {
+      return { success: false, error: 'Cannot remove yourself from the group' };
+    }
+
+    // Remove the user from the group
+    const { error: removeError } = await supabase
+        .from('expenses_group_memberships')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userIdToRemove);
+
+    if (removeError) {
+      console.error('Failed to remove user:', removeError);
+      return { success: false, error: 'Failed to remove user' };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to remove user from group:', error);
+    return { success: false, error: error.message || 'Failed to remove user' };
+  }
+};

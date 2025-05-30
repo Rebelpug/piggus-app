@@ -16,6 +16,7 @@ import {
   apiInviteUserToGroup,
   apiHandleGroupInvitation,
   apiUpdateExpenseGroup,
+  apiRemoveUserFromGroup,
 } from '@/client/expense';
 import {useEncryption} from "@/context/EncryptionContext";
 
@@ -39,6 +40,10 @@ interface ExpenseContextType {
   inviteUserToGroup: (
       groupId: string,
       username: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  removeUserFromGroup: (
+      groupId: string,
+      userId: string
   ) => Promise<{ success: boolean; error?: string }>;
   updateExpenseGroup: (
       groupId: string,
@@ -272,6 +277,41 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const removeUserFromGroup = async (groupId: string, userId: string) => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        console.error('You must be logged in to remove a user');
+        setError('You must be logged in to remove a user');
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      const result = await apiRemoveUserFromGroup(user, groupId, userId);
+
+      if (result.success) {
+        // Update local state to remove the user from the group
+        setExpensesGroups(prev =>
+            prev.map(group => {
+              if (group.id === groupId) {
+                return {
+                  ...group,
+                  members: group.members.filter(member => member.user_id !== userId),
+                };
+              }
+              return group;
+            })
+        );
+      } else {
+        setError(result.error || 'Failed to remove user');
+      }
+
+      return result;
+    } catch (error: any) {
+      console.error('Failed to remove user from group:', error);
+      setError(error.message || 'Failed to remove user');
+      return { success: false, error: error.message || 'Failed to remove user' };
+    }
+  };
+
   const handleGroupInvitation = async (groupId: string, accept: boolean) => {
     try {
       if (!user || !isEncryptionInitialized) {
@@ -383,6 +423,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             deleteExpense,
             createExpensesGroup,
             inviteUserToGroup,
+            removeUserFromGroup,
             updateExpenseGroup,
             handleGroupInvitation,
             getPendingInvitations,

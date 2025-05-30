@@ -24,7 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function GroupDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const { expensesGroups, inviteUserToGroup, handleGroupInvitation } = useExpense();
+    const { expensesGroups, inviteUserToGroup, handleGroupInvitation, removeUserFromGroup } = useExpense();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [inviteModalVisible, setInviteModalVisible] = useState(false);
@@ -72,6 +72,34 @@ export default function GroupDetailScreen() {
         }
     };
 
+    const handleRemoveUser = async (userId: string, username: string) => {
+        if (!group) return;
+
+        Alert.alert(
+            'Remove Member',
+            `Are you sure you want to remove ${username} from this group?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const result = await removeUserFromGroup(group.id, userId);
+                            if (result.success) {
+                                Alert.alert('Success', 'Member removed successfully');
+                            } else {
+                                Alert.alert('Error', result.error || 'Failed to remove member');
+                            }
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to remove member');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleInvitation = async (accept: boolean) => {
         if (!group) return;
 
@@ -99,7 +127,7 @@ export default function GroupDetailScreen() {
                 currency: currency,
             }).format(amount);
         } catch {
-            return `$${amount.toFixed(2)}`;
+            return `${amount.toFixed(2)}`;
         }
     };
 
@@ -178,6 +206,9 @@ export default function GroupDetailScreen() {
             }
         };
 
+        const isCurrentUser = item.user_id === group?.members?.find(m => m.status === 'confirmed')?.user_id;
+        const canRemove = item.status === 'confirmed' && !isCurrentUser;
+
         return (
             <ListItem
                 title={item.username || 'Unknown User'}
@@ -186,9 +217,26 @@ export default function GroupDetailScreen() {
                     <Layout style={[styles.statusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
                 )}
                 accessoryRight={() => (
-                    <Text category='c1' style={[styles.memberStatus, { color: getStatusColor(item.status) }]}>
-                        {item.status}
-                    </Text>
+                    <Layout style={styles.memberAccessory}>
+                        <Layout style={styles.memberStatus}>
+                            <Text category='c1' style={[styles.memberStatusText, { color: getStatusColor(item.status) }]}>
+                                {item.status}
+                            </Text>
+                            {isCurrentUser && (
+                                <Text category='c1' style={styles.currentUserText}>
+                                    (You)
+                                </Text>
+                            )}
+                        </Layout>
+                        {canRemove && (
+                            <TouchableOpacity
+                                onPress={() => handleRemoveUser(item.user_id, item.username)}
+                                style={styles.removeButton}
+                            >
+                                <Ionicons name="person-remove-outline" size={20} color="#F44336" />
+                            </TouchableOpacity>
+                        )}
+                    </Layout>
                 )}
             />
         );
@@ -283,10 +331,16 @@ export default function GroupDetailScreen() {
                                     {group.data.description}
                                 </Text>
                             )}
+                            <Layout style={styles.currencyInfo}>
+                                <Ionicons name="card-outline" size={16} color="#8F9BB3" />
+                                <Text category='c1' appearance='hint' style={styles.currencyText}>
+                                    Default Currency: {group.data?.currency || 'USD'}
+                                </Text>
+                            </Layout>
                             <Layout style={styles.summaryRow}>
                                 <Layout style={styles.summaryItem}>
                                     <Text category='h5' style={styles.summaryNumber}>
-                                        {formatCurrency(totalAmount)}
+                                        {formatCurrency(totalAmount, group.data?.currency)}
                                     </Text>
                                     <Text category='c1' appearance='hint'>Total Expenses</Text>
                                 </Layout>
@@ -298,7 +352,7 @@ export default function GroupDetailScreen() {
                                 </Layout>
                                 <Layout style={styles.summaryItem}>
                                     <Text category='h5' style={styles.summaryNumber}>
-                                        {group.members?.length || 0}
+                                        {group.members?.filter(m => m.status === 'confirmed').length || 0}
                                     </Text>
                                     <Text category='c1' appearance='hint'>Members</Text>
                                 </Layout>
@@ -322,11 +376,56 @@ export default function GroupDetailScreen() {
                                     />
                                 ) : (
                                     <Layout style={styles.emptyState}>
+                                        <Ionicons name="document-text-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
+                                        <Text category='h6' style={styles.emptyTitle}>No expenses yet</Text>
+                                        <Text category='s1' appearance='hint' style={styles.emptyDescription}>
+                                            Start tracking expenses for this group
+                                        </Text>
+                                        <Button
+                                            style={styles.addButton}
+                                            accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                                            onPress={handleAddExpense}
+                                        >
+                                            Add Expense
+                                        </Button>
+                                    </Layout>
+                                )}
+                            </Layout>
+                        </Tab>
+                        <Tab title='Members'>
+                            <Layout style={styles.tabContent}>
+                                <Layout style={styles.membersHeader}>
+                                    <Text category='h6' style={styles.membersTitle}>Group Members</Text>
+                                    <Button
+                                        style={styles.inviteButton}
+                                        size='small'
+                                        accessoryLeft={(props) => <Ionicons name="person-add-outline" size={16} color={props?.style?.tintColor || '#FFFFFF'} />}
+                                        onPress={() => setInviteModalVisible(true)}
+                                    >
+                                        Invite
+                                    </Button>
+                                </Layout>
+                                {group.members && group.members.length > 0 ? (
+                                    <List
+                                        style={styles.membersList}
+                                        data={group.members}
+                                        renderItem={renderMemberItem}
+                                        ItemSeparatorComponent={Divider}
+                                    />
+                                ) : (
+                                    <Layout style={styles.emptyState}>
                                         <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
                                         <Text category='h6' style={styles.emptyTitle}>No members</Text>
                                         <Text category='s1' appearance='hint' style={styles.emptyDescription}>
                                             Invite others to join this group
                                         </Text>
+                                        <Button
+                                            style={styles.addButton}
+                                            accessoryLeft={(props) => <Ionicons name="person-add-outline" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                                            onPress={() => setInviteModalVisible(true)}
+                                        >
+                                            Invite Member
+                                        </Button>
                                     </Layout>
                                 )}
                             </Layout>
@@ -423,7 +522,16 @@ const styles = StyleSheet.create({
     },
     groupDescription: {
         textAlign: 'center',
+        marginBottom: 8,
+    },
+    currencyInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 16,
+    },
+    currencyText: {
+        marginLeft: 4,
     },
     summaryRow: {
         flexDirection: 'row',
@@ -502,18 +610,39 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginRight: 12,
     },
+    memberAccessory: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     memberStatus: {
+        alignItems: 'flex-end',
+        marginRight: 8,
+    },
+    memberStatusText: {
         fontSize: 12,
         fontWeight: '500',
         textTransform: 'capitalize',
+    },
+    currentUserText: {
+        fontSize: 10,
+        fontStyle: 'italic',
+    },
+    removeButton: {
+        padding: 4,
     },
     membersHeader: {
         padding: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    membersTitle: {
+        flex: 1,
     },
     inviteButton: {
-        alignSelf: 'flex-end',
+        paddingHorizontal: 16,
     },
     membersList: {
         flex: 1,

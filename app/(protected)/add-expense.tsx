@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import {
     Layout,
@@ -52,6 +52,21 @@ export default function AddExpenseScreen() {
             return [];
         }
     }, [expensesGroups]);
+
+    // Update currency when group is selected
+    useEffect(() => {
+        if (selectedGroupIndex && availableGroups.length > 0) {
+            const selectedGroup = availableGroups[selectedGroupIndex.row];
+            if (selectedGroup && selectedGroup.data.currency) {
+                const currencyIndex = CURRENCIES.findIndex(currency =>
+                    currency.value === selectedGroup.data.currency
+                );
+                if (currencyIndex !== -1) {
+                    setSelectedCurrencyIndex(new IndexPath(currencyIndex));
+                }
+            }
+        }
+    }, [selectedGroupIndex, availableGroups]);
 
     const navigateBack = () => {
         router.back();
@@ -199,11 +214,33 @@ export default function AddExpenseScreen() {
 
                     <Select
                         style={styles.input}
+                        label='Expense Group'
+                        placeholder='Select expense group'
+                        value={selectedGroupIndex ? availableGroups[selectedGroupIndex.row]?.data?.name : ''}
+                        selectedIndex={selectedGroupIndex}
+                        onSelect={(index) => setSelectedGroupIndex(index as IndexPath)}
+                        status={selectedGroupIndex ? 'basic' : 'danger'}
+                        caption='Selecting a group will set its default currency'
+                    >
+                        {availableGroups.map((group) => (
+                            <SelectItem
+                                key={group.id}
+                                title={`${group.data?.name || 'Unnamed Group'} (${group.data?.currency || 'USD'})`}
+                            />
+                        ))}
+                    </Select>
+
+                    <Select
+                        style={styles.input}
                         label='Currency'
                         placeholder='Select currency'
                         value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
+                        caption={selectedGroupIndex ?
+                            `Default: ${availableGroups[selectedGroupIndex.row]?.data?.currency || 'USD'}` :
+                            'Select a group first to use its default currency'
+                        }
                     >
                         {CURRENCIES.map((currency) => (
                             <SelectItem key={currency.value} title={currency.label} />
@@ -229,20 +266,6 @@ export default function AddExpenseScreen() {
                     >
                         {EXPENSE_CATEGORIES.map((category) => (
                             <SelectItem key={category.value} title={category.label} />
-                        ))}
-                    </Select>
-
-                    <Select
-                        style={styles.input}
-                        label='Expense Group'
-                        placeholder='Select expense group'
-                        value={selectedGroupIndex ? availableGroups[selectedGroupIndex.row]?.data?.name : ''}
-                        selectedIndex={selectedGroupIndex}
-                        onSelect={(index) => setSelectedGroupIndex(index as IndexPath)}
-                        status={selectedGroupIndex ? 'basic' : 'danger'}
-                    >
-                        {availableGroups.map((group) => (
-                            <SelectItem key={group.id} title={group.data?.name || 'Unnamed Group'} />
                         ))}
                     </Select>
 

@@ -48,6 +48,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 name: 'Personal Expenses',
                 description: 'personal',
                 private: true,
+                currency: 'EUR'
             });
         }
     };

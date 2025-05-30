@@ -5,6 +5,9 @@ import {
     Text,
     Input,
     Button,
+    Select,
+    SelectItem,
+    IndexPath,
     Toggle,
     TopNavigation,
     Card,
@@ -13,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
-import { ExpenseGroupData } from '@/types/expense';
+import { ExpenseGroupData, CURRENCIES } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CreateGroupScreen() {
@@ -25,6 +28,7 @@ export default function CreateGroupScreen() {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0)); // Default to USD
 
     const navigateBack = () => {
         router.back();
@@ -43,10 +47,13 @@ export default function CreateGroupScreen() {
 
         setLoading(true);
         try {
+            const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
+
             const groupData: ExpenseGroupData = {
                 name: name.trim(),
                 description: description.trim(),
                 private: isPrivate,
+                currency: selectedCurrency.value,
             };
 
             await createExpensesGroup(groupData);
@@ -103,6 +110,20 @@ export default function CreateGroupScreen() {
                         caption='Describe the purpose of this group'
                     />
 
+                    <Select
+                        style={styles.input}
+                        label='Default Currency'
+                        placeholder='Select currency'
+                        value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
+                        selectedIndex={selectedCurrencyIndex}
+                        onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
+                        caption='This will be the default currency for expenses in this group'
+                    >
+                        {CURRENCIES.map((currency) => (
+                            <SelectItem key={currency.value} title={currency.label} />
+                        ))}
+                    </Select>
+
                     <Layout style={styles.toggleContainer}>
                         <Layout style={styles.toggleLabelContainer}>
                             <Text category='s1'>Private Group</Text>
@@ -146,6 +167,16 @@ export default function CreateGroupScreen() {
                             <Text category='s1'>Expense Analytics</Text>
                             <Text category='c1' appearance='hint'>
                                 View spending patterns and summaries
+                            </Text>
+                        </Layout>
+                    </Layout>
+
+                    <Layout style={styles.featureItem}>
+                        <Ionicons name="card-outline" size={20} color="#8F9BB3" style={styles.featureIcon} />
+                        <Layout style={styles.featureText}>
+                            <Text category='s1'>Multi-Currency Support</Text>
+                            <Text category='c1' appearance='hint'>
+                                Default currency with option to change per expense
                             </Text>
                         </Layout>
                     </Layout>
