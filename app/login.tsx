@@ -16,16 +16,14 @@ import {
     Alert
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import {useRouter} from "expo-router";
 
-interface LoginScreenProps {
-    navigation: any; // For navigation between screens
-}
-
-const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
+const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { signIn } = useAuth();
+    const router = useRouter();
 
     const handleLogin = async () => {
         // Validate inputs
@@ -103,7 +101,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Do not have an account?</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                        <TouchableOpacity onPress={() => router.push('/register')}>
                             <Text style={styles.link}>Sign Up</Text>
                         </TouchableOpacity>
                     </View>

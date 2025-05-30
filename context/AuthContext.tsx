@@ -2,7 +2,7 @@
  * AuthContext.tsx
  * Authentication and encryption management for React Native
  */
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, {createContext, useContext, useEffect, useState, useCallback, useRef, useMemo} from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ThemedView } from "@/components/ThemedView";
@@ -13,6 +13,7 @@ import {
   useEncryption,
   EncryptionProvider
 } from '@/context/EncryptionContext';
+import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 
 // Define the AuthContext type
 type AuthContextType = {
@@ -27,6 +28,7 @@ type AuthContextType = {
   decryptData: (encryptedData: string) => Promise<any>;
   newEncryptionKeyGenerated: boolean;
   initializeEncryptionWithPassword: (password: string) => Promise<void>;
+  isAuthenticated: boolean;
 };
 
 // Create the context with a default undefined value
@@ -400,11 +402,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     if (isGeneratingKeys) {
       return (
-          <ThemedView>
-            <ThemedView className="flex flex-col items-center gap-2">
-              <ThemedText>Doing some magic to get you setup...</ThemedText>
-            </ThemedView>
-          </ThemedView>
+          <AuthSetupLoader />
       );
     }
 
@@ -440,6 +438,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     return children;
   };
 
+  const isAuthenticated = useMemo(() => {
+    return !!(user && authInitialized && encryptionInitialized && encryption.isEncryptionInitialized && encryption.getPublicKey() && !isGeneratingKeys);
+  }, [authInitialized, encryption, encryptionInitialized, isGeneratingKeys, user])
+
   return (
       <AuthContext.Provider
           value={{
@@ -454,6 +456,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             decryptData,
             newEncryptionKeyGenerated,
             initializeEncryptionWithPassword,
+            isAuthenticated
           }}
       >
         {renderContent()}

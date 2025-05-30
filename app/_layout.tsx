@@ -1,16 +1,9 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
 import {AuthProvider} from "@/context/AuthContext";
-import AppNavigation from "@/app/AppNavigation";
-import {ProfileProvider} from "@/context/ProfileContext";
-import {ExpenseProvider} from "@/context/ExpenseContext";
+import {Stack} from "expo-router";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -19,6 +12,14 @@ export default function RootLayout() {
     return null;
   }
 
+  return (
+      <AuthProvider>
+        <Stack screenOptions={{
+          headerShown: false,
+        }} />;
+      </AuthProvider>
+  );
+/*
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
@@ -30,5 +31,5 @@ export default function RootLayout() {
             </ProfileProvider>
         </AuthProvider>
     </ThemeProvider>
-  );
+  );*/
 }

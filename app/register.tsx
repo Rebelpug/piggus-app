@@ -16,21 +16,15 @@ import {
     Alert
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import {useRouter} from "expo-router";
 
-/**
- * RegisterScreen.tsx
- * A complete registration screen with account creation
- */
-interface RegisterScreenProps {
-    navigation: any; // For navigation between screens
-}
-
-const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
+const RegisterScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { signUp } = useAuth();
+    const router = useRouter();
 
     const handleRegister = async () => {
         // Validate inputs
@@ -61,7 +55,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             Alert.alert(
                 'Registration Successful',
                 'Your account has been created. Please check your email to confirm your account.',
-                [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+                [{ text: 'OK', onPress: () => router.push('/login') }]
             );
         } catch (error: any) {
             const errorMessage = error?.message || 'Failed to create account. Please try again.';
@@ -126,7 +120,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Already have an account?</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                        <TouchableOpacity onPress={() => router.push('/login')}>
                             <Text style={styles.link}>Sign In</Text>
                         </TouchableOpacity>
                     </View>
