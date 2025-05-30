@@ -61,6 +61,10 @@ export default function ExpensesScreen() {
         router.push('/(protected)/add-expense');
     };
 
+    const handleViewGroups = () => {
+        router.push('/(protected)/groups');
+    };
+
     const formatCurrency = (amount: number, currency: string = 'USD') => {
         try {
             return new Intl.NumberFormat('en-US', {
@@ -176,10 +180,15 @@ export default function ExpensesScreen() {
         </Layout>
     );
 
-    const renderRightAction = () => (
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={24} color="#8F9BB3" />
-        </TouchableOpacity>
+    const renderRightActions = () => (
+        <Layout style={styles.headerActions}>
+            <TouchableOpacity onPress={handleViewGroups} style={styles.groupsButton}>
+                <Ionicons name="people-outline" size={24} color="#8F9BB3" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+                <Ionicons name="refresh" size={24} color="#8F9BB3" />
+            </TouchableOpacity>
+        </Layout>
     );
 
     if (isLoading && !refreshing) {
@@ -188,7 +197,7 @@ export default function ExpensesScreen() {
                 <TopNavigation
                     title='Expenses'
                     alignment='center'
-                    accessoryRight={renderRightAction}
+                    accessoryRight={renderRightActions}
                 />
                 <Layout style={styles.loadingContainer}>
                     <Spinner size='large' />
@@ -204,7 +213,7 @@ export default function ExpensesScreen() {
                 <TopNavigation
                     title='Expenses'
                     alignment='center'
-                    accessoryRight={renderRightAction}
+                    accessoryRight={renderRightActions}
                 />
                 <Layout style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
@@ -229,7 +238,7 @@ export default function ExpensesScreen() {
             <TopNavigation
                 title='Expenses'
                 alignment='center'
-                accessoryRight={renderRightAction}
+                accessoryRight={renderRightActions}
             />
 
             {allExpenses.length === 0 ? (
@@ -368,6 +377,14 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.3,
         shadowRadius: 6,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    groupsButton: {
+        padding: 8,
+        marginRight: 8,
     },
     refreshButton: {
         padding: 8,

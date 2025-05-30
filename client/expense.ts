@@ -251,8 +251,8 @@ export const apiAddExpense = async (
 
     // First decrypt the group key using the private key
     const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
-    // Encrypt the expense data with the group key
-    const encryptedData = encryptWithExternalEncryptionKey(groupKey, expenseData);
+    // Encrypt the expense data with the group key - FIXED: Await the encryption
+    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, expenseData);
 
     // Generate a unique ID for the new expense
     const newExpenseId = uuidv4();
@@ -317,8 +317,8 @@ export const apiUpdateExpense = async (
 
     // First decrypt the group key using the private key
     const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
-    // Encrypt the expense data with the group key
-    const encryptedData = encryptWithExternalEncryptionKey(groupKey, updatedExpense.data);
+    // Encrypt the expense data with the group key - FIXED: Await the encryption
+    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, updatedExpense.data);
 
     // Update in database
     const { error } = await supabase
@@ -455,16 +455,21 @@ export const apiInviteUserToGroup = async (
 
     // 5. Re-encrypt the group key with the target user's public key
     const targetUserPublicKey = targetUser.encryption_public_key;
-    const encryptedGroupKeyForNewUser = encryptWithExternalPublicKey(
+    const encryptedGroupKeyForNewUser = await encryptWithExternalPublicKey(
         targetUserPublicKey,
         groupKey
     );
+
+    if (!encryptedGroupKeyForNewUser) {
+      console.error('Failed to encrypt group key for new user');
+      return { success: false, error: 'Failed to encrypt group key for new user' };
+    }
 
     // 6. Create the membership for the invited user
     const { error: inviteError } = await supabase.from('expenses_group_memberships').insert({
       group_id: groupId,
       user_id: targetUser.id,
-      encrypted_group_key: encryptedGroupKeyForNewUser,
+      encrypted_group_key: encryptedGroupKeyForNewUser.encryptedKey,
       status: 'pending',
     });
 
@@ -533,8 +538,8 @@ export const apiUpdateExpenseGroup = async (
 
     // First decrypt the group key using the private key
     const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
-    // Encrypt the group data with the group key
-    const encryptedData = encryptWithExternalEncryptionKey(groupKey, updatedGroupData);
+    // Encrypt the group data with the group key - FIXED: Await the encryption
+    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, updatedGroupData);
 
     // Update in database
     const { error } = await supabase
@@ -601,7 +606,7 @@ export const apiUpdateExpenseGroup = async (
     // Decrypt each expense
     const decryptedExpenses = await Promise.all(
         expenses.map(async (expense): Promise<ExpenseWithDecryptedData> => {
-          const decryptedExpenseData = encryptWithExternalEncryptionKey(groupKey, expense.encrypted_data);
+          const decryptedExpenseData = await encryptWithExternalEncryptionKey(groupKey, expense.encrypted_data);
           return {
             ...expense,
             data: decryptedExpenseData,
