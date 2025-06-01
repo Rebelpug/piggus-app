@@ -46,77 +46,88 @@ export const apiFetchExpenses = async (
 
     const decryptedGroups = await Promise.all(
         memberships.map(async membership => {
-          const group = membership.expenses_groups;
-          const decryptedGroupKey = await decryptWithPrivateKey(membership.encrypted_group_key);
-          // Now decrypt the group data using the decrypted group key
-          const decryptedExpenseGroupData = await decryptWithExternalEncryptionKey(decryptedGroupKey, group.encrypted_data);
+          try {
+            const group = membership.expenses_groups;
+            // Decrypt the group key with the user's private key
+            const decryptedGroupKey = await decryptWithPrivateKey(membership.encrypted_group_key);
+            // Ensure the decrypted key is a string (base64)
+            const groupKeyString = typeof decryptedGroupKey === 'string' ? decryptedGroupKey : JSON.stringify(decryptedGroupKey);
+            // Validate that this looks like a base64 string
+            if (!/^[A-Za-z0-9+/]*={0,2}$/.test(groupKeyString)) {
+              console.error('Decrypted group key does not appear to be valid base64:', groupKeyString.substring(0, 50));
+              throw new Error('Invalid group key format');
+            }
+            // Now decrypt the group data using the decrypted group key
+            const decryptedExpenseGroupData = await decryptWithExternalEncryptionKey(groupKeyString, group.encrypted_data);
+            const { data: expenses, error: expensesError } = await supabase
+                .from('expenses')
+                .select('*')
+                .eq('group_id', group.id);
 
-          console.log(decryptedExpenseGroupData)
+            if (expensesError) {
+              console.error('Error fetching expenses:', expensesError);
+              return (await Promise.reject(expensesError)) as any;
+            }
 
-          const { data: expenses, error: expensesError } = await supabase
-              .from('expenses')
-              .select('*')
-              .eq('group_id', group.id);
+            const decryptedExpenses = await Promise.all(
+                expenses.map(async expense => ({
+                  ...expense,
+                  data: await decryptWithExternalEncryptionKey(groupKeyString, expense.encrypted_data),
+                }))
+            );
 
-          if (expensesError) {
-            console.error('Error fetching expenses:', expensesError);
-            return (await Promise.reject(expensesError)) as any;
+            // Get members for this group
+            const { data: members, error: membersError } = await supabase
+                .from('expenses_group_memberships')
+                .select('*')
+                .eq('group_id', group.id);
+
+            if (membersError) {
+              console.error('Error fetching members:', membersError);
+              return (await Promise.reject(membersError)) as any;
+            }
+
+            // Fetch usernames separately
+            const userIds = members.map(member => member.user_id);
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .in('id', userIds);
+
+            if (profilesError) {
+              console.error('Error fetching profiles:', profilesError);
+              return (await Promise.reject(profilesError)) as any;
+            }
+
+            const usernameMap = new Map(profiles?.map(profile => [profile.id, profile.username]) || []);
+
+            const groupMembers = members.map(member => ({
+              id: member.id,
+              group_id: member.group_id,
+              user_id: member.user_id,
+              status: member.status,
+              created_at: member.created_at,
+              updated_at: member.updated_at,
+              encrypted_group_key: member.encrypted_group_key,
+              username: usernameMap.get(member.user_id) || '',
+            }));
+
+            return {
+              id: group.id,
+              created_at: group.created_at,
+              updated_at: group.updated_at,
+              data: decryptedExpenseGroupData,
+              membership_id: membership.id,
+              membership_status: membership.status,
+              encrypted_key: membership.encrypted_group_key,
+              expenses: decryptedExpenses.filter(Boolean),
+              members: groupMembers.filter(Boolean),
+            };
+          } catch (error) {
+            console.error('Error processing group:', membership?.id, error);
+            // Return null for failed groups rather than throwing
+            return null;
           }
-
-          const decryptedExpenses = await Promise.all(
-              expenses.map(async expense => ({
-                ...expense,
-                data: await decryptWithExternalEncryptionKey(decryptedGroupKey, expense.encrypted_data),
-              }))
-          );
-
-          // Get members for this group
-          const { data: members, error: membersError } = await supabase
-              .from('expenses_group_memberships')
-              .select('*')
-              .eq('group_id', group.id);
-
-          if (membersError) {
-            console.error('Error fetching members:', membersError);
-            return (await Promise.reject(membersError)) as any;
-          }
-
-          // Fetch usernames separately
-          const userIds = members.map(member => member.user_id);
-          const { data: profiles, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, username')
-              .in('id', userIds);
-
-          if (profilesError) {
-            console.error('Error fetching profiles:', profilesError);
-            return (await Promise.reject(profilesError)) as any;
-          }
-
-          const usernameMap = new Map(profiles?.map(profile => [profile.id, profile.username]) || []);
-
-          const groupMembers = members.map(member => ({
-            id: member.id,
-            group_id: member.group_id,
-            user_id: member.user_id,
-            status: member.status,
-            created_at: member.created_at,
-            updated_at: member.updated_at,
-            encrypted_group_key: member.encrypted_group_key,
-            username: usernameMap.get(member.user_id) || '',
-          }));
-
-          return {
-            id: group.id,
-            created_at: group.created_at,
-            updated_at: group.updated_at,
-            data: decryptedExpenseGroupData,
-            membership_id: membership.id,
-            membership_status: membership.status,
-            encrypted_key: membership.encrypted_group_key,
-            expenses: decryptedExpenses.filter(Boolean),
-            members: groupMembers.filter(Boolean),
-          };
         })
     );
 
@@ -153,6 +164,7 @@ export const apiCreateExpensesGroup = async (
 
     const groupEncryptionKey = await createEncryptionKey();
     const stringedGroupEncryptionKey = arrayBufferToBase64(groupEncryptionKey);
+    // Encrypt the group key with the creator's public key
     const encryptedGroupKey = await encryptWithExternalPublicKey(publicKey, stringedGroupEncryptionKey);
     const encryptedGroupData = await encryptWithExternalEncryptionKey(stringedGroupEncryptionKey, groupData);
 
@@ -257,8 +269,10 @@ export const apiAddExpense = async (
 
     // First decrypt the group key using the private key
     const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
-    // Encrypt the expense data with the group key - FIXED: Await the encryption
-    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, expenseData);
+    // Ensure the decrypted key is a string
+    const groupKeyString = typeof groupKey === 'string' ? groupKey : JSON.stringify(groupKey);
+    // Encrypt the expense data with the group key
+    const encryptedData = await encryptWithExternalEncryptionKey(groupKeyString, expenseData);
 
     // Generate a unique ID for the new expense
     const newExpenseId = uuidv4();
@@ -323,8 +337,10 @@ export const apiUpdateExpense = async (
 
     // First decrypt the group key using the private key
     const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
-    // Encrypt the expense data with the group key - FIXED: Await the encryption
-    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, updatedExpense.data);
+    // Ensure the decrypted key is a string
+    const groupKeyString = typeof groupKey === 'string' ? groupKey : JSON.stringify(groupKey);
+    // Encrypt the expense data with the group key
+    const encryptedData = await encryptWithExternalEncryptionKey(groupKeyString, updatedExpense.data);
 
     // Update in database
     const { error } = await supabase
@@ -458,18 +474,28 @@ export const apiInviteUserToGroup = async (
 
     // 4. Decrypt the group key with the current user's private key
     const groupKey = await decryptWithPrivateKey(membership.encrypted_group_key);
+    // Ensure the decrypted key is a string (base64)
+    const groupKeyString = typeof groupKey === 'string' ? groupKey : JSON.stringify(groupKey);
+    // Validate that this looks like a base64 string
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(groupKeyString)) {
+      console.error('Decrypted group key does not appear to be valid base64:', groupKeyString.substring(0, 50));
+      return { success: false, error: 'Invalid group key format' };
+    }
 
     // 5. Re-encrypt the group key with the target user's public key
     const targetUserPublicKey = targetUser.encryption_public_key;
     const encryptedGroupKeyForNewUser = await encryptWithExternalPublicKey(
         targetUserPublicKey,
-        groupKey
+        groupKeyString
     );
 
     if (!encryptedGroupKeyForNewUser) {
       console.error('Failed to encrypt group key for new user');
       return { success: false, error: 'Failed to encrypt group key for new user' };
     }
+
+    console.log('Successfully encrypted group key for new user');
+    console.log('New encrypted group key length:', encryptedGroupKeyForNewUser.length);
 
     // 6. Create the membership for the invited user
     const { error: inviteError } = await supabase.from('expenses_group_memberships').insert({
@@ -544,8 +570,10 @@ export const apiUpdateExpenseGroup = async (
 
     // First decrypt the group key using the private key
     const groupKey = await decryptWithPrivateKey(encryptedGroupKey);
-    // Encrypt the group data with the group key - FIXED: Await the encryption
-    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, updatedGroupData);
+    // Ensure the decrypted key is a string
+    const groupKeyString = typeof groupKey === 'string' ? groupKey : JSON.stringify(groupKey);
+    // Encrypt the group data with the group key
+    const encryptedData = await encryptWithExternalEncryptionKey(groupKeyString, updatedGroupData);
 
     // Update in database
     const { error } = await supabase
@@ -612,7 +640,7 @@ export const apiUpdateExpenseGroup = async (
     // Decrypt each expense
     const decryptedExpenses = await Promise.all(
         expenses.map(async (expense): Promise<ExpenseWithDecryptedData> => {
-          const decryptedExpenseData = await encryptWithExternalEncryptionKey(groupKey, expense.encrypted_data);
+          const decryptedExpenseData = await encryptWithExternalEncryptionKey(groupKeyString, expense.encrypted_data);
           return {
             ...expense,
             data: decryptedExpenseData,
