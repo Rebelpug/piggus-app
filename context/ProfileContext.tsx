@@ -23,7 +23,7 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const { user, publicKey, encryptData, decryptData, authInitialized, encryptionInitialized } = useAuth();
-    const { encryptWithExternalPublicKey } = useEncryption();
+    const { encryptWithExternalPublicKey, createEncryptionKey, encryptWithExternalEncryptionKey } = useEncryption();
     const [userProfile, setUserProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             .eq('user_id', user.id);
 
         if (!groups || groups.length === 0) {
-            await apiCreateExpensesGroup(user, username, publicKey, encryptWithExternalPublicKey, {
+            await apiCreateExpensesGroup(user, username, publicKey, createEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey, {
                 name: 'Personal Expenses',
                 description: 'personal',
                 private: true,

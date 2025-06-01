@@ -106,6 +106,13 @@ export async function deriveKeyFromPassword(
 // =====================================================================
 // Symmetric Encryption (AES)
 // =====================================================================
+/**
+ * Generate AES Key
+ */
+export function generateEncryptionKey() {
+  return generateRandomBytes(AES_KEY_LENGTH);
+}
+
 
 /**
  * Encrypt data using AES-CTR
@@ -267,25 +274,12 @@ export async function decryptWithRSA(privateKey: string, encryptedData: string):
  * Encrypt data for a recipient using hybrid encryption
  * Generates a random AES key, encrypts data with AES, and encrypts the AES key with RSA
  */
-export async function encryptWithPublicKey(
+export function encryptWithPublicKey(
     data: any,
     recipientPublicKey: string
-): Promise<{ encryptedKey: string, encryptedData: string }> {
+): string {
   try {
-    // Generate a random AES key
-    const aesKey = generateRandomBytes(AES_KEY_LENGTH);
-
-    // Encrypt the data with AES
-    const encryptedData = encryptWithAES(data, aesKey);
-
-    // Encrypt the AES key with the recipient's public key
-    const encryptedKey = await encryptWithRSA(recipientPublicKey, arrayBufferToBase64(aesKey));
-
-    // Combine everything into a single package
-    return {
-      encryptedKey,
-      encryptedData
-    };
+    return encryptWithRSA(recipientPublicKey, data);
   } catch (error) {
     console.error('Error in hybrid encryption:', error);
     throw new Error('Failed to encrypt for recipient');

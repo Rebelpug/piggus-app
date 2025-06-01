@@ -9,7 +9,7 @@ import {
     decryptFromSender,
     encryptWithPublicKey,
     signData,
-    verifySignature, decryptWithRSA, base64ToArrayBuffer,
+    verifySignature, decryptWithRSA, base64ToArrayBuffer, generateEncryptionKey,
 } from '@/lib/encryption';
 
 // Types
@@ -38,6 +38,7 @@ interface EncryptionContextType {
     resetEncryption: () => void;
 
     // Data encryption
+    createEncryptionKey: () => Promise<Uint8Array<ArrayBufferLike>>;
     encrypt: (data: any) => Promise<string>;
     decryptWithEncryptionKey: (encryptedData: string) => Promise<any>;
     decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>;
@@ -45,7 +46,7 @@ interface EncryptionContextType {
 
     // Recipient-specific encryption
     encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>;
-    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<{ encryptedKey: string, encryptedData: string } | null>;
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<string>;
     decryptFromSender: (encryptedKey: string, encryptedData: string) => Promise<any>;
 
     // Key export
@@ -161,6 +162,10 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         return isInitialized;
     }, [isInitialized]);
 
+    const createEncryptionKey = useCallback(async (): Promise<Uint8Array<ArrayBufferLike>> => {
+        return generateEncryptionKey();
+    }, []);
+
     // Encrypt data with current encryption key
     const encrypt = useCallback(async (data: any): Promise<string> => {
         if (!encryptionKey) {
@@ -226,12 +231,12 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const encryptWithExternalPublicKey = useCallback(async (
         recipientPublicKey: string,
         data: any
-    ): Promise<{ encryptedKey: string, encryptedData: string } | null> => {
+    ): Promise<string> => {
         try {
-            return await encryptWithPublicKey(data, recipientPublicKey);
+            return encryptWithPublicKey(data, recipientPublicKey);
         } catch (error) {
             console.error('Error encrypting for recipient:', error);
-            return null;
+            return '';
         }
     }, []);
 
@@ -327,6 +332,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         initializeFromPassword,
         importExistingKeys,
         resetEncryption,
+        createEncryptionKey,
         encrypt,
         decryptWithEncryptionKey,
         encryptWithExternalEncryptionKey,

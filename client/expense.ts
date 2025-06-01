@@ -8,6 +8,7 @@ import {
   ExpenseWithDecryptedData,
 } from '@/types/expense';
 import { User } from '@supabase/supabase-js';
+import {arrayBufferToBase64} from "@/lib/encryption";
 
 export const apiFetchExpenses = async (
     user: User,
@@ -136,7 +137,9 @@ export const apiCreateExpensesGroup = async (
     user: User,
     username: string,
     publicKey: string,
-    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<{ encryptedKey: string, encryptedData: string } | null>,
+    createEncryptionKey: () => Promise<Uint8Array<ArrayBufferLike>>,
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<string>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
     groupData: ExpenseGroupData,
 ): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData; error?: string }> => {
   try {
@@ -148,9 +151,12 @@ export const apiCreateExpensesGroup = async (
       };
     }
 
-    const encryptedResult = await encryptWithExternalPublicKey(publicKey, groupData);
+    const groupEncryptionKey = await createEncryptionKey();
+    const stringedGroupEncryptionKey = arrayBufferToBase64(groupEncryptionKey);
+    const encryptedGroupKey = await encryptWithExternalPublicKey(publicKey, stringedGroupEncryptionKey);
+    const encryptedGroupData = await encryptWithExternalEncryptionKey(stringedGroupEncryptionKey, groupData);
 
-    if (!encryptedResult) {
+    if (!encryptedGroupKey || !encryptedGroupData) {
       console.error('Failed to encrypt group data');
       return {
         success: false,
@@ -164,7 +170,7 @@ export const apiCreateExpensesGroup = async (
         .from('expenses_groups')
         .insert({
           id: newGroupId,
-          encrypted_data: encryptedResult?.encryptedData,
+          encrypted_data: encryptedGroupData,
         })
         .single();
 
@@ -182,7 +188,7 @@ export const apiCreateExpensesGroup = async (
         .insert({
           group_id: newGroupId,
           user_id: user.id,
-          encrypted_group_key: encryptedResult.encryptedKey,
+          encrypted_group_key: encryptedGroupKey,
           status: 'confirmed',
         })
         .select()
@@ -203,7 +209,7 @@ export const apiCreateExpensesGroup = async (
       updated_at: new Date().toISOString(),
       data: groupData,
       membership_status: 'confirmed',
-      encrypted_key: encryptedResult.encryptedKey,
+      encrypted_key: encryptedGroupKey,
       expenses: [],
       members: [
         {
@@ -213,7 +219,7 @@ export const apiCreateExpensesGroup = async (
           status: 'confirmed',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          encrypted_group_key: encryptedResult.encryptedKey,
+          encrypted_group_key: encryptedGroupKey,
           username: username,
         },
       ],
@@ -397,7 +403,7 @@ export const apiInviteUserToGroup = async (
     groupId: string,
     username: string,
     decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
-    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<{ encryptedKey: string, encryptedData: string } | null>
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     if (!user) {
@@ -469,7 +475,7 @@ export const apiInviteUserToGroup = async (
     const { error: inviteError } = await supabase.from('expenses_group_memberships').insert({
       group_id: groupId,
       user_id: targetUser.id,
-      encrypted_group_key: encryptedGroupKeyForNewUser.encryptedKey,
+      encrypted_group_key: encryptedGroupKeyForNewUser,
       status: 'pending',
     });
 

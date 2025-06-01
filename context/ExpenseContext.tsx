@@ -60,7 +60,7 @@ const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 export function ExpenseProvider({ children }: { children: ReactNode }) {
   const { user, publicKey } = useAuth(); // Added encryptionInitialized
-  const { isEncryptionInitialized, decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
+  const { isEncryptionInitialized, createEncryptionKey ,decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
   const { userProfile } = useProfile();
   const [expensesGroups, setExpensesGroups] = useState<ExpenseGroupWithDecryptedData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +103,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         console.error('You must be logged in to create an expense group');
         return;
       }
-      const result = await apiCreateExpensesGroup(user, userProfile.username, publicKey, encryptWithExternalPublicKey, groupData);
+      const result = await apiCreateExpensesGroup(user, userProfile.username, publicKey, createEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey, groupData);
       const newGroup = result.data;
       if (result.success && newGroup) {
         setExpensesGroups(prev => [...prev, newGroup]);
