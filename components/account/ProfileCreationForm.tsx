@@ -6,23 +6,26 @@ import {
     TextInput,
     TouchableOpacity,
     ActivityIndicator,
-    Alert
+    Alert,
+    ScrollView
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useProfile } from '@/context/ProfileContext';
+import { CURRENCIES } from '@/types/expense';
 
 interface ProfileCreationProps {
     onComplete: () => void;
+    onCreateProfile: (username: string, defaultCurrency: string) => Promise<any>;
 }
 
-export default function ProfileCreationForm({ onComplete }: ProfileCreationProps) {
-    const { user, encryptData } = useAuth();
-    const { createUserProfile } = useProfile();
+export default function ProfileCreationForm({ onComplete, onCreateProfile }: ProfileCreationProps) {
+    const { user } = useAuth();
     const [customName, setCustomName] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('EUR'); // Default to EUR
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isCheckingName, setIsCheckingName] = useState(false);
+    const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
     // Generate a random human-readable name
     const generateRandomName = () => {
@@ -130,8 +133,8 @@ export default function ProfileCreationForm({ onComplete }: ProfileCreationProps
                 }
             }
 
-            // Create the profile with the username
-            const profile = await createUserProfile(finalUsername);
+            // Create the profile with the username and default currency
+            const profile = await onCreateProfile(finalUsername, selectedCurrency);
 
             if (!profile) {
                 setError('Failed to create profile');
@@ -143,8 +146,8 @@ export default function ProfileCreationForm({ onComplete }: ProfileCreationProps
             showToast(
                 'Profile Created',
                 finalUsername
-                    ? 'Your profile has been created with your chosen name.'
-                    : `Your profile has been created with the name: ${finalUsername}`
+                    ? `Your profile has been created with the name: ${finalUsername} and default currency: ${selectedCurrency}`
+                    : `Your profile has been created with the name: ${finalUsername} and default currency: ${selectedCurrency}`
             );
 
             onComplete();
@@ -156,59 +159,114 @@ export default function ProfileCreationForm({ onComplete }: ProfileCreationProps
         }
     };
 
+    const selectedCurrencyLabel = CURRENCIES.find(c => c.value === selectedCurrency)?.label || selectedCurrency;
+
     return (
-        <View style={styles.card}>
-            <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>Complete Your Registration</Text>
-                <Text style={styles.cardDescription}>
-                    One more step! We need to create your profile to store your encrypted data.
-                </Text>
-            </View>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>Complete Your Registration</Text>
+                    <Text style={styles.cardDescription}>
+                        One more step! We need to create your profile to store your encrypted data.
+                    </Text>
+                </View>
 
-            <View style={styles.cardContent}>
-                {error && (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{error}</Text>
-                    </View>
-                )}
-
-                <Text style={styles.paragraph}>
-                    You can share your things with family and friends. This means that they will need to be
-                    able to find you. Unless you choose a unique name, you will be assigned something random.
-                </Text>
-
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter a custom name (optional)"
-                    value={customName}
-                    onChangeText={setCustomName}
-                />
-
-                <TouchableOpacity
-                    style={[
-                        styles.button,
-                        (isCreating || isCheckingName) && styles.buttonDisabled
-                    ]}
-                    onPress={handleCreateProfile}
-                    disabled={isCreating || isCheckingName}
-                >
-                    {isCreating || isCheckingName ? (
-                        <View style={styles.buttonContent}>
-                            <ActivityIndicator size="small" color="#FFFFFF" style={styles.spinner} />
-                            <Text style={styles.buttonText}>
-                                {isCheckingName ? 'Checking name...' : 'Creating Profile...'}
-                            </Text>
+                <View style={styles.cardContent}>
+                    {error && (
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.errorText}>{error}</Text>
                         </View>
-                    ) : (
-                        <Text style={styles.buttonText}>Create Profile</Text>
                     )}
-                </TouchableOpacity>
+
+                    <Text style={styles.paragraph}>
+                        You can share your things with family and friends. This means that they will need to be
+                        able to find you. Unless you choose a unique name, you will be assigned something random.
+                    </Text>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Username (Optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter a custom name (optional)"
+                            value={customName}
+                            onChangeText={setCustomName}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Default Currency</Text>
+                        <TouchableOpacity
+                            style={styles.currencySelector}
+                            onPress={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
+                        >
+                            <Text style={styles.currencyText}>{selectedCurrencyLabel}</Text>
+                            <Text style={styles.dropdownArrow}>▼</Text>
+                        </TouchableOpacity>
+
+                        {showCurrencyDropdown && (
+                            <View style={styles.currencyDropdown}>
+                                <ScrollView style={styles.currencyList} nestedScrollEnabled>
+                                    {CURRENCIES.map((currency) => (
+                                        <TouchableOpacity
+                                            key={currency.value}
+                                            style={[
+                                                styles.currencyOption,
+                                                selectedCurrency === currency.value && styles.selectedCurrencyOption
+                                            ]}
+                                            onPress={() => {
+                                                setSelectedCurrency(currency.value);
+                                                setShowCurrencyDropdown(false);
+                                            }}
+                                        >
+                                            <Text style={[
+                                                styles.currencyOptionText,
+                                                selectedCurrency === currency.value && styles.selectedCurrencyText
+                                            ]}>
+                                                {currency.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )}
+                        <Text style={styles.helperText}>
+                            This will be your default currency for expenses and budgets
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            (isCreating || isCheckingName) && styles.buttonDisabled
+                        ]}
+                        onPress={handleCreateProfile}
+                        disabled={isCreating || isCheckingName}
+                    >
+                        {isCreating || isCheckingName ? (
+                            <View style={styles.buttonContent}>
+                                <ActivityIndicator size="small" color="#FFFFFF" style={styles.spinner} />
+                                <Text style={styles.buttonText}>
+                                    {isCheckingName ? 'Checking name...' : 'Creating Profile...'}
+                                </Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.buttonText}>Create Profile</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        padding: 20,
+    },
     card: {
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
@@ -219,6 +277,7 @@ const styles = StyleSheet.create({
         elevation: 3,
         width: '100%',
         maxWidth: 400,
+        alignSelf: 'center',
     },
     cardHeader: {
         padding: 16,
@@ -253,13 +312,81 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
     },
+    inputGroup: {
+        marginBottom: 16,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#333',
+        marginBottom: 8,
+    },
     input: {
         borderWidth: 1,
         borderColor: '#D1D5DB',
         borderRadius: 4,
         padding: 12,
-        marginBottom: 16,
         fontSize: 16,
+    },
+    currencySelector: {
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 4,
+        padding: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+    },
+    currencyText: {
+        fontSize: 16,
+        color: '#333',
+        flex: 1,
+    },
+    dropdownArrow: {
+        fontSize: 12,
+        color: '#666',
+    },
+    currencyDropdown: {
+        position: 'absolute',
+        top: 60,
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 4,
+        maxHeight: 200,
+        zIndex: 1000,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    currencyList: {
+        maxHeight: 200,
+    },
+    currencyOption: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    selectedCurrencyOption: {
+        backgroundColor: '#E7F3FF',
+    },
+    currencyOptionText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    selectedCurrencyText: {
+        color: '#3B82F6',
+        fontWeight: '500',
+    },
+    helperText: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 4,
     },
     button: {
         backgroundColor: '#3B82F6',
@@ -267,6 +394,7 @@ const styles = StyleSheet.create({
         padding: 12,
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: 8,
     },
     buttonDisabled: {
         backgroundColor: '#93C5FD',

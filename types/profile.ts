@@ -2,6 +2,12 @@ export type ProfileData = {
   name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  defaultCurrency?: string;
+  budget?: {
+    amount: number;
+    currency: string;
+    period: 'monthly' | 'weekly' | 'yearly';
+  } | null;
 };
 
 export type Profile = {

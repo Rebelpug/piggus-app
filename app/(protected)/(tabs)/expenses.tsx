@@ -172,7 +172,7 @@ export default function ExpensesScreen() {
             </Text>
             <Button
                 style={styles.addButton}
-                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleAddExpense}
             >
                 Add Expense
@@ -262,7 +262,7 @@ export default function ExpensesScreen() {
             {allExpenses.length > 0 && (
                 <Button
                     style={styles.fab}
-                    accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                    accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                     onPress={handleAddExpense}
                     size='large'
                     status='primary'

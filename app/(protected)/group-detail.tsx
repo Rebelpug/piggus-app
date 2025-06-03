@@ -300,7 +300,7 @@ export default function GroupDetailScreen() {
                             <Ionicons name="mail-outline" size={48} color="#FF9800" style={styles.pendingIcon} />
                             <Text category='h6' style={styles.pendingTitle}>Invitation Pending</Text>
                             <Text category='s1' appearance='hint' style={styles.pendingDescription}>
-                                You&apos;ve been invited to join &#34;{group.data?.name}&#34;. Would you like to accept this invitation?
+                                You've been invited to join "{group.data?.name}". Would you like to accept this invitation?
                             </Text>
                         </Layout>
                         <Layout style={styles.pendingActions}>
@@ -383,7 +383,7 @@ export default function GroupDetailScreen() {
                                         </Text>
                                         <Button
                                             style={styles.addButton}
-                                            accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                                            accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                             onPress={handleAddExpense}
                                         >
                                             Add Expense
@@ -399,7 +399,7 @@ export default function GroupDetailScreen() {
                                     <Button
                                         style={styles.inviteButton}
                                         size='small'
-                                        accessoryLeft={(props) => <Ionicons name="person-add-outline" size={16} color={props?.style?.tintColor || '#FFFFFF'} />}
+                                        accessoryLeft={(props) => <Ionicons name="person-add-outline" size={16} color={props?.tintColor || '#FFFFFF'} />}
                                         onPress={() => setInviteModalVisible(true)}
                                     >
                                         Invite
@@ -421,7 +421,7 @@ export default function GroupDetailScreen() {
                                         </Text>
                                         <Button
                                             style={styles.addButton}
-                                            accessoryLeft={(props) => <Ionicons name="person-add-outline" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                                            accessoryLeft={(props) => <Ionicons name="person-add-outline" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                             onPress={() => setInviteModalVisible(true)}
                                         >
                                             Invite Member
@@ -434,7 +434,7 @@ export default function GroupDetailScreen() {
 
                     <Button
                         style={styles.fab}
-                        accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                        accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                         onPress={handleAddExpense}
                         size='large'
                         status='primary'

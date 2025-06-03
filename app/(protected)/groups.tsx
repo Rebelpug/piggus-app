@@ -160,7 +160,7 @@ export default function GroupsScreen() {
             </Text>
             <Button
                 style={styles.addButton}
-                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleCreateGroup}
             >
                 Create Group
@@ -257,7 +257,7 @@ export default function GroupsScreen() {
 
             <Button
                 style={styles.fab}
-                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.style?.tintColor || '#FFFFFF'} />}
+                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleCreateGroup}
                 size='large'
                 status='primary'

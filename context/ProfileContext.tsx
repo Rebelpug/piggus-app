@@ -4,17 +4,19 @@ import type { Profile } from '@/types/profile';
 
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import ProfileCreationForm from '@/components/account/ProfileCreationForm'; // This component will need to be converted to RN too
 import { apiCreatePortfolio } from '@/client/investment';
 import { apiCreateExpensesGroup } from '@/client/expense';
 import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/client/profile';
 import {useEncryption} from "@/context/EncryptionContext";
 
+// Import the form component normally since we fixed the circular dependency
+import ProfileCreationForm from '@/components/account/ProfileCreationForm';
+
 type ProfileContextType = {
     userProfile: Profile | null;
     loading: boolean;
     error: string | null;
-    createUserProfile: (username: string) => Promise<Profile | null>;
+    createUserProfile: (username: string, defaultCurrency?: string) => Promise<Profile | null>;
     refreshProfile: () => Promise<void>;
     updateProfile: (profileData: Partial<Profile['profile']>) => Promise<void>;
 };
@@ -29,7 +31,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [profileInitialized, setProfileInitialized] = useState(false);
 
-    const initialisePersonalExpensesGroup = async (username: string) => {
+    const initialisePersonalExpensesGroup = async (username: string, defaultCurrency: string = 'EUR') => {
         if (!user || !publicKey || !username) {
             console.log('User', user);
             console.log('publicKey', publicKey);
@@ -48,7 +50,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 name: 'Personal Expenses',
                 description: 'personal',
                 private: true,
-                currency: 'EUR'
+                currency: defaultCurrency
             });
         }
     };
@@ -106,12 +108,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     // Create a profile for the user
     const createUserProfile = useCallback(
-        async (username: string): Promise<Profile | null> => {
+        async (username: string, defaultCurrency: string = 'EUR'): Promise<Profile | null> => {
             if (!authInitialized || !encryptionInitialized || !user || !encryptData || !decryptData) {
                 setError('Cannot create profile: Auth/Encryption not fully initialized or missing user/encryption');
                 return null;
             }
-            console.log('Creating user');
+            console.log('Creating user with currency:', defaultCurrency);
 
             if (!username) {
                 setError('Cannot create profile: No name provided');
@@ -132,12 +134,26 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 if (!result.success || !result.data) {
                     throw new Error(result.error || 'Failed to create profile');
                 }
-                await initialisePersonalExpensesGroup(username);
+
+                // Initialize with default currency in profile
+                const profileWithCurrency = {
+                    ...result.data,
+                    profile: {
+                        ...result.data.profile,
+                        defaultCurrency: defaultCurrency
+                    }
+                };
+
+                await initialisePersonalExpensesGroup(username, defaultCurrency);
                 await initialisePersonalPortfolio(username);
-                setUserProfile(result.data);
+
+                // Update the profile with the default currency
+                await updateProfile({ defaultCurrency: defaultCurrency });
+
+                setUserProfile(profileWithCurrency);
                 setLoading(false);
                 setProfileInitialized(true);
-                return result.data;
+                return profileWithCurrency;
             } catch (error: any) {
                 console.error('Error creating profile:', error);
                 setError(error.message || 'Failed to create profile');
@@ -238,7 +254,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             return (
                 <View style={styles.container}>
                     <View style={styles.formContainer}>
-                        <ProfileCreationForm onComplete={() => refreshProfile()} />
+                        <ProfileCreationForm
+                            onComplete={() => refreshProfile()}
+                            onCreateProfile={createUserProfile}
+                        />
                     </View>
                 </View>
             );
