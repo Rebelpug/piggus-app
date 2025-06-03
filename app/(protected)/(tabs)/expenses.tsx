@@ -129,10 +129,13 @@ export default function ExpensesScreen() {
                     </Layout>
                 )}
                 onPress={() => {
-                    Alert.alert(
-                        'Expense Details',
-                        `${item.data.name || 'Unnamed'}\n${item.data.description || 'No description'}`
-                    );
+                    router.push({
+                        pathname: '/(protected)/expense-detail',
+                        params: {
+                            expenseId: item.id,
+                            groupId: item.group_id
+                        }
+                    });
                 }}
             />
         );
