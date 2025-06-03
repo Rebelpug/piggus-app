@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { ExpenseGroupWithDecryptedData } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
+import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 
 export default function GroupsScreen() {
     const router = useRouter();
@@ -193,10 +194,7 @@ export default function GroupsScreen() {
                     accessoryLeft={renderBackAction}
                     accessoryRight={renderRightAction}
                 />
-                <Layout style={styles.loadingContainer}>
-                    <Spinner size='large' />
-                    <Text category='s1' style={styles.loadingText}>Loading groups...</Text>
-                </Layout>
+                <AuthSetupLoader />
             </SafeAreaView>
         );
     }

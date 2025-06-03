@@ -7,6 +7,7 @@ import {
     Platform,
     SafeAreaView,
 } from 'react-native';
+import {Spinner} from "@ui-kitten/components";
 
 const AuthSetupLoader = () => {
     return (
@@ -16,6 +17,7 @@ const AuthSetupLoader = () => {
                 style={styles.keyboardView}
             >
                 <View style={styles.contentContainer}>
+                    <Spinner size='large' />
                     <Text style={styles.title}>Loading</Text>
                     <Text style={styles.subtitle}>Doing some magic to set you up</Text>
                 </View>
@@ -34,8 +36,8 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         flex: 1,
-        padding: 20,
         justifyContent: 'center',
+        alignItems: 'center',
     },
     title: {
         fontSize: 28,

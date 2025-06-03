@@ -16,6 +16,8 @@ import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { ExpenseWithDecryptedData } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
+import ProfileHeader from '@/components/ProfileHeader';
+import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 
 export default function ExpensesScreen() {
     const router = useRouter();
@@ -180,6 +182,10 @@ export default function ExpensesScreen() {
         </Layout>
     );
 
+    const renderLeftActions = () => (
+        <ProfileHeader />
+    );
+
     const renderRightActions = () => (
         <Layout style={styles.headerActions}>
             <TouchableOpacity onPress={handleViewGroups} style={styles.groupsButton}>
@@ -197,12 +203,10 @@ export default function ExpensesScreen() {
                 <TopNavigation
                     title='Expenses'
                     alignment='center'
+                    accessoryLeft={renderLeftActions}
                     accessoryRight={renderRightActions}
                 />
-                <Layout style={styles.loadingContainer}>
-                    <Spinner size='large' />
-                    <Text category='s1' style={styles.loadingText}>Loading expenses...</Text>
-                </Layout>
+                <AuthSetupLoader />
             </SafeAreaView>
         );
     }
@@ -213,6 +217,7 @@ export default function ExpensesScreen() {
                 <TopNavigation
                     title='Expenses'
                     alignment='center'
+                    accessoryLeft={renderLeftActions}
                     accessoryRight={renderRightActions}
                 />
                 <Layout style={styles.errorContainer}>
@@ -238,6 +243,7 @@ export default function ExpensesScreen() {
             <TopNavigation
                 title='Expenses'
                 alignment='center'
+                accessoryLeft={renderLeftActions}
                 accessoryRight={renderRightActions}
             />
 
@@ -329,6 +335,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 16,
     },
+    headerActions: {
+        flexDirection: 'row',
+    },
     summaryCard: {
         marginBottom: 16,
     },
@@ -377,16 +386,5 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.3,
         shadowRadius: 6,
-    },
-    headerActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    groupsButton: {
-        padding: 8,
-        marginRight: 8,
-    },
-    refreshButton: {
-        padding: 8,
     },
 });

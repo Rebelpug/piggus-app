@@ -19,6 +19,8 @@ import { useExpense } from '@/context/ExpenseContext';
 import { useProfile } from '@/context/ProfileContext';
 import { Ionicons } from '@expo/vector-icons';
 import { CURRENCIES } from '@/types/expense';
+import ProfileHeader from '@/components/ProfileHeader';
+import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -138,6 +140,10 @@ export default function HomeScreen() {
         return { color: '#F44336', status: 'Over Budget' };
     };
 
+    const renderLeftActions = () => (
+        <ProfileHeader />
+    );
+
     const renderRightActions = () => (
         <Layout style={styles.headerActions}>
             <TouchableOpacity onPress={handleViewGroups} style={styles.groupsButton}>
@@ -155,12 +161,10 @@ export default function HomeScreen() {
                 <TopNavigation
                     title='Dashboard'
                     alignment='center'
+                    accessoryLeft={renderLeftActions}
                     accessoryRight={renderRightActions}
                 />
-                <Layout style={styles.loadingContainer}>
-                    <Spinner size='large' />
-                    <Text category='s1' style={styles.loadingText}>Loading dashboard...</Text>
-                </Layout>
+                <AuthSetupLoader />
             </SafeAreaView>
         );
     }
@@ -172,6 +176,7 @@ export default function HomeScreen() {
             <TopNavigation
                 title='Dashboard'
                 alignment='center'
+                accessoryLeft={renderLeftActions}
                 accessoryRight={renderRightActions}
             />
 
@@ -185,16 +190,6 @@ export default function HomeScreen() {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {/* Welcome Section */}
-                <Layout style={styles.section}>
-                    <Text category='h4' style={styles.welcomeText}>
-                        Hello, {userProfile?.username || 'User'}! 👋
-                    </Text>
-                    <Text category='s1' appearance='hint' style={styles.subtitle}>
-                        Here's your expense overview for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </Text>
-                </Layout>
-
                 {/* Budget Overview Card */}
                 <Card style={styles.budgetCard}>
                     <Layout style={styles.budgetHeader}>
@@ -427,6 +422,9 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 24,
     },
+    headerActions: {
+        flexDirection: 'row',
+    },
     welcomeText: {
         marginBottom: 8,
     },
@@ -563,17 +561,6 @@ const styles = StyleSheet.create({
     },
     secondaryAction: {
         // Default styling
-    },
-    headerActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    groupsButton: {
-        padding: 8,
-        marginRight: 8,
-    },
-    refreshButton: {
-        padding: 8,
     },
     backdrop: {
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
