@@ -5,7 +5,6 @@ import {
     Text,
     Card,
     Button,
-    Spinner,
     TopNavigation,
     List,
     ListItem,
@@ -335,9 +334,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 16,
     },
-    headerActions: {
-        flexDirection: 'row',
-    },
     summaryCard: {
         marginBottom: 16,
     },
@@ -386,5 +382,16 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.3,
         shadowRadius: 6,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    groupsButton: {
+        padding: 8,
+        marginRight: 8,
+    },
+    refreshButton: {
+        padding: 8,
     },
 });

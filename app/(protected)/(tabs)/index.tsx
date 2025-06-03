@@ -28,8 +28,8 @@ export default function HomeScreen() {
     const { userProfile, updateProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [budgetModalVisible, setBudgetModalVisible] = useState(false);
-    const [budgetAmount, setBudgetAmount] = useState('');
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
+    const [budgetAmount, setBudgetAmount] = useState(userProfile?.profile?.budget?.amount?.toString() || '0');
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(CURRENCIES.findIndex((cur) => cur.value === userProfile?.profile?.budget?.currency)));
     const [savingBudget, setSavingBudget] = useState(false);
 
     // Calculate current month's expenses
@@ -422,9 +422,6 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 24,
     },
-    headerActions: {
-        flexDirection: 'row',
-    },
     welcomeText: {
         marginBottom: 8,
     },
@@ -585,5 +582,16 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         flex: 1,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    groupsButton: {
+        padding: 8,
+        marginRight: 8,
+    },
+    refreshButton: {
+        padding: 8,
     },
 });
