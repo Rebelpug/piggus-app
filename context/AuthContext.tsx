@@ -5,8 +5,7 @@
 import React, {createContext, useContext, useEffect, useState, useCallback, useRef, useMemo} from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { ThemedView } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
+import { StyleSheet } from 'react-native';
 
 // Import the encryption context and provider
 import {
@@ -392,11 +391,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // If auth check is not complete, show loading
     if (!authInitialized) {
       return (
-          <ThemedView>
-            <ThemedView className="flex flex-col items-center gap-2">
-              <ThemedText>Loading authentication...</ThemedText>
-            </ThemedView>
-          </ThemedView>
+        <AuthSetupLoader />
       );
     }
 
@@ -414,11 +409,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // If user is logged in but needs to enter password for encryption
     if (user && needsPasswordPrompt && !encryptionInitialized) {
       return (
-          <ThemedView>
-            <ThemedView>
-              <ThemedText>Enter password to initialize encryption</ThemedText>
-            </ThemedView>
-          </ThemedView>
+          <AuthSetupLoader />
       );
     }
 
@@ -426,11 +417,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // Only render children when both user and encryption are fully initialized
     if (!user || !encryptionInitialized || !encryption.isEncryptionInitialized || !encryption.getPublicKey()) {
       return (
-          <ThemedView>
-            <ThemedView className="flex flex-col items-center gap-2">
-              <ThemedText>Initializing encryption</ThemedText>
-            </ThemedView>
-          </ThemedView>
+          <AuthSetupLoader />
       );
     }
 
@@ -483,3 +470,30 @@ export function useAuth() {
   }
   return context;
 }
+
+// Styles for loading screens
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 30,
+  },
+});
