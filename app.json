@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "piggus-app",
-    "slug": "piggus-app",
+    "name": "piggus",
+    "slug": "piggus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0665849d-720c-495e-9fbf-e8ffa5cd7d9e"
+      }
+    },
+    "owner": "rebelpug"
   }
 }
