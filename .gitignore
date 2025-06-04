@@ -9,6 +9,10 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Native folders - let EAS Build handle these
+android/
+ios/
+
 # Native
 .kotlin/
 *.orig.*
