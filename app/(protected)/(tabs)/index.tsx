@@ -17,13 +17,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { CURRENCIES } from '@/types/expense';
+import { CURRENCIES, calculateUserShare, calculateUserBalance } from '@/types/expense';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 
 export default function HomeScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const { expensesGroups, isLoading } = useExpense();
     const { userProfile, updateProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +34,7 @@ export default function HomeScreen() {
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(CURRENCIES.findIndex((cur) => cur.value === userProfile?.profile?.budget?.currency)));
     const [savingBudget, setSavingBudget] = useState(false);
 
-    // Calculate current month's expenses
+    // Calculate current month's expenses - only user's share
     const currentMonthData = useMemo(() => {
         const now = new Date();
         const currentMonth = now.getMonth();
@@ -47,11 +49,15 @@ export default function HomeScreen() {
                 group.expenses.forEach(expense => {
                     const expenseDate = new Date(expense.data.date);
                     if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
-                        totalSpent += expense.data.amount || 0;
-                        transactionCount++;
+                        // Only count user's share of the expense
+                        const userShare = calculateUserShare(expense, user?.id || '');
+                        if (userShare > 0) {
+                            totalSpent += userShare;
+                            transactionCount++;
 
-                        const category = expense.data.category || 'other';
-                        categories[category] = (categories[category] || 0) + (expense.data.amount || 0);
+                            const category = expense.data.category || 'other';
+                            categories[category] = (categories[category] || 0) + userShare;
+                        }
                     }
                 });
             }
@@ -68,7 +74,20 @@ export default function HomeScreen() {
             transactionCount,
             topCategory: topCategory.category !== 'none' ? topCategory : null
         };
-    }, [expensesGroups]);
+    }, [expensesGroups, user?.id]);
+
+    // Calculate balances for each group
+    const groupBalances = useMemo(() => {
+        const balances: { [groupId: string]: number } = {};
+
+        expensesGroups.forEach(group => {
+            if (group.membership_status === 'confirmed' && user?.id) {
+                balances[group.id] = calculateUserBalance(group.expenses, user.id);
+            }
+        });
+
+        return balances;
+    }, [expensesGroups, user?.id]);
 
     // Get budget information from profile
     const budget = userProfile?.profile?.budget;
@@ -208,7 +227,7 @@ export default function HomeScreen() {
                                     <Text category='h5' style={styles.spentAmount}>
                                         {formatCurrency(currentMonthData.totalSpent)}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>Spent</Text>
+                                    <Text category='c1' appearance='hint'>Your Share</Text>
                                 </Layout>
                                 <Layout style={styles.budgetDivider} />
                                 <Layout style={styles.budgetItem}>
@@ -266,7 +285,7 @@ export default function HomeScreen() {
                         <Layout style={styles.statContent}>
                             <Ionicons name="receipt-outline" size={24} color="#4ECDC4" />
                             <Text category='h6' style={styles.statNumber}>{currentMonthData.transactionCount}</Text>
-                            <Text category='c1' appearance='hint'>Transactions</Text>
+                            <Text category='c1' appearance='hint'>Your Expenses</Text>
                         </Layout>
                     </Card>
 
@@ -280,6 +299,53 @@ export default function HomeScreen() {
                         </Layout>
                     </Card>
                 </Layout>
+
+                {/* Group Balances */}
+                {Object.keys(groupBalances).length > 0 && (
+                    <Card style={styles.balancesCard}>
+                        <Layout style={styles.balancesHeader}>
+                            <Text category='h6'>Group Balances</Text>
+                            <TouchableOpacity onPress={handleViewGroups}>
+                                <Text category='s1' style={styles.viewAllText}>View All</Text>
+                            </TouchableOpacity>
+                        </Layout>
+
+                        {expensesGroups
+                            .filter(group => group.membership_status === 'confirmed')
+                            .slice(0, 3)
+                            .map((group) => {
+                                const balance = groupBalances[group.id] || 0;
+                                const isPositive = balance > 0;
+                                const isZero = Math.abs(balance) < 0.01;
+
+                                return (
+                                    <Layout key={group.id} style={styles.balanceItem}>
+                                        <Layout style={styles.balanceInfo}>
+                                            <Text category='s1' style={styles.groupName}>{group.data?.name}</Text>
+                                            <Text category='c1' appearance='hint'>
+                                                {group.expenses?.length || 0} expenses
+                                            </Text>
+                                        </Layout>
+                                        <Layout style={styles.balanceAmount}>
+                                            <Text
+                                                category='s1'
+                                                style={[
+                                                    styles.balanceText,
+                                                    { color: isZero ? '#666' : isPositive ? '#4CAF50' : '#F44336' }
+                                                ]}
+                                            >
+                                                {isPositive ? '+' : ''}{formatCurrency(balance, group.data?.currency)}
+                                            </Text>
+                                            <Text category='c1' appearance='hint' style={styles.balanceStatus}>
+                                                {isZero ? 'Settled' : isPositive ? 'You are owed' : 'You owe'}
+                                            </Text>
+                                        </Layout>
+                                    </Layout>
+                                );
+                            })
+                        }
+                    </Card>
+                )}
 
                 {/* Recent Activity */}
                 <Card style={styles.activityCard}>
@@ -295,21 +361,26 @@ export default function HomeScreen() {
                             {expensesGroups
                                 .filter(group => group.membership_status === 'confirmed')
                                 .slice(0, 2)
-                                .map((group) => (
-                                    <Layout key={group.id} style={styles.groupItem}>
-                                        <Layout style={styles.groupInfo}>
-                                            <Text category='s1' style={styles.groupName}>{group.data?.name}</Text>
-                                            <Text category='c1' appearance='hint'>
-                                                {group.expenses?.length || 0} expenses
+                                .map((group) => {
+                                    // Calculate user's total share in this group
+                                    const userTotalShare = group.expenses?.reduce((sum, expense) => {
+                                        return sum + calculateUserShare(expense, user?.id || '');
+                                    }, 0) || 0;
+
+                                    return (
+                                        <Layout key={group.id} style={styles.groupItem}>
+                                            <Layout style={styles.groupInfo}>
+                                                <Text category='s1' style={styles.groupName}>{group.data?.name}</Text>
+                                                <Text category='c1' appearance='hint'>
+                                                    {group.expenses?.length || 0} expenses
+                                                </Text>
+                                            </Layout>
+                                            <Text category='s1' style={styles.groupTotal}>
+                                                {formatCurrency(userTotalShare, group.data?.currency)}
                                             </Text>
                                         </Layout>
-                                        <Text category='s1' style={styles.groupTotal}>
-                                            {formatCurrency(
-                                                group.expenses?.reduce((sum, expense) => sum + (expense.data?.amount || 0), 0) || 0
-                                            )}
-                                        </Text>
-                                    </Layout>
-                                ))
+                                    );
+                                })
                             }
                         </Layout>
                     ) : (
@@ -407,26 +478,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FAFAFA',
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 16,
-    },
     content: {
         flex: 1,
         padding: 16,
-    },
-    section: {
-        marginBottom: 24,
-    },
-    welcomeText: {
-        marginBottom: 8,
-    },
-    subtitle: {
-        lineHeight: 20,
     },
     budgetCard: {
         marginBottom: 16,
@@ -511,6 +565,38 @@ const styles = StyleSheet.create({
     statNumber: {
         marginVertical: 8,
         textAlign: 'center',
+    },
+    balancesCard: {
+        marginBottom: 16,
+        padding: 20,
+    },
+    balancesHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    balanceItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    balanceInfo: {
+        flex: 1,
+    },
+    balanceAmount: {
+        alignItems: 'flex-end',
+    },
+    balanceText: {
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    balanceStatus: {
+        fontSize: 12,
+        marginTop: 2,
     },
     activityCard: {
         marginBottom: 16,

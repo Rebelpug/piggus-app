@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, ScrollView, Alert, TouchableOpacity, View } from 'react-native';
 import {
     Layout,
     Text,
@@ -12,16 +12,27 @@ import {
     Toggle,
     TopNavigation,
     Card,
-    Spinner
+    Spinner,
+    CheckBox
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
-import { ExpenseData, EXPENSE_CATEGORIES, PAYMENT_METHODS, CURRENCIES } from '@/types/expense';
+import { useAuth } from '@/context/AuthContext';
+import {
+    ExpenseData,
+    EXPENSE_CATEGORIES,
+    PAYMENT_METHODS,
+    CURRENCIES,
+    SPLIT_METHODS,
+    ExpenseParticipant,
+    calculateEqualSplit
+} from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AddExpenseScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const { expensesGroups, addExpense } = useExpense();
     const [loading, setLoading] = useState(false);
 
@@ -32,11 +43,17 @@ export default function AddExpenseScreen() {
     const [date, setDate] = useState(new Date());
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<IndexPath | undefined>();
     const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] = useState<IndexPath | undefined>();
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0)); // Default to USD
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedGroupIndex, setSelectedGroupIndex] = useState<IndexPath | undefined>();
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState('');
     const [tags, setTags] = useState('');
+
+    // Sharing state
+    const [selectedPayerIndex, setSelectedPayerIndex] = useState<IndexPath | undefined>();
+    const [selectedSplitMethodIndex, setSelectedSplitMethodIndex] = useState<IndexPath>(new IndexPath(0)); // Default to equal split
+    const [participants, setParticipants] = useState<ExpenseParticipant[]>([]);
+    const [customAmounts, setCustomAmounts] = useState<{ [userId: string]: string }>({});
 
     // Filter out groups that are confirmed
     const availableGroups = React.useMemo(() => {
@@ -53,6 +70,13 @@ export default function AddExpenseScreen() {
         }
     }, [expensesGroups]);
 
+    // Get current group members
+    const currentGroupMembers = React.useMemo(() => {
+        if (!selectedGroupIndex || !availableGroups.length) return [];
+        const selectedGroup = availableGroups[selectedGroupIndex.row];
+        return selectedGroup?.members || [];
+    }, [selectedGroupIndex, availableGroups]);
+
     // Update currency when group is selected
     useEffect(() => {
         if (selectedGroupIndex && availableGroups.length > 0) {
@@ -67,6 +91,59 @@ export default function AddExpenseScreen() {
             }
         }
     }, [selectedGroupIndex, availableGroups]);
+
+    // Initialize participants when group is selected
+    useEffect(() => {
+        if (currentGroupMembers.length > 0) {
+            // Set default payer to current user
+            const currentUserMember = currentGroupMembers.find(member => member.user_id === user?.id);
+            if (currentUserMember) {
+                const payerIndex = currentGroupMembers.findIndex(member => member.user_id === user?.id);
+                setSelectedPayerIndex(new IndexPath(payerIndex));
+            }
+
+            // Initialize all members as participants for multi-member groups
+            if (currentGroupMembers.length > 1) {
+                const initialParticipants: ExpenseParticipant[] = currentGroupMembers.map(member => ({
+                    user_id: member.user_id,
+                    username: member.username,
+                    share_amount: 0
+                }));
+                setParticipants(initialParticipants);
+            } else {
+                // For single-member groups, only include that member
+                const singleParticipant: ExpenseParticipant[] = [{
+                    user_id: currentGroupMembers[0].user_id,
+                    username: currentGroupMembers[0].username,
+                    share_amount: 0
+                }];
+                setParticipants(singleParticipant);
+            }
+        }
+    }, [currentGroupMembers, user?.id]);
+
+    // Recalculate shares when amount or split method changes
+    useEffect(() => {
+        if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return;
+
+        const totalAmount = Number(amount);
+        const splitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || 'equal';
+
+        if (splitMethod === 'equal') {
+            const activeParticipants = participants.filter(p => p.share_amount >= 0 || participants.length === 1);
+            if (activeParticipants.length > 0) {
+                const sharePerPerson = calculateEqualSplit(totalAmount, activeParticipants.length);
+                setParticipants(prev =>
+                    prev.map(p => {
+                        if (activeParticipants.find(ap => ap.user_id === p.user_id)) {
+                            return { ...p, share_amount: sharePerPerson };
+                        }
+                        return { ...p, share_amount: 0 };
+                    })
+                );
+            }
+        }
+    }, [amount, selectedSplitMethodIndex, participants.length]);
 
     const navigateBack = () => {
         router.back();
@@ -89,6 +166,25 @@ export default function AddExpenseScreen() {
             Alert.alert('Validation Error', 'Please select an expense group');
             return false;
         }
+        if (!selectedPayerIndex) {
+            Alert.alert('Validation Error', 'Please select who paid for this expense');
+            return false;
+        }
+
+        // Validate participants and shares
+        const activeParticipants = participants.filter(p => p.share_amount > 0);
+        if (activeParticipants.length === 0) {
+            Alert.alert('Validation Error', 'Please select at least one participant');
+            return false;
+        }
+
+        const totalShares = activeParticipants.reduce((sum, p) => sum + p.share_amount, 0);
+        const totalAmount = Number(amount);
+        if (Math.abs(totalShares - totalAmount) > 0.01) {
+            Alert.alert('Validation Error', `Total shares (${totalShares.toFixed(2)}) must equal the expense amount (${totalAmount.toFixed(2)})`);
+            return false;
+        }
+
         return true;
     };
 
@@ -102,12 +198,16 @@ export default function AddExpenseScreen() {
             const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
             const selectedPaymentMethod = selectedPaymentMethodIndex ?
                 PAYMENT_METHODS[selectedPaymentMethodIndex.row] : undefined;
+            const selectedPayer = currentGroupMembers[selectedPayerIndex!.row];
+            const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
+
+            const activeParticipants = participants.filter(p => p.share_amount > 0);
 
             const expenseData: ExpenseData = {
                 name: name.trim(),
                 description: description.trim(),
                 amount: Number(amount),
-                date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+                date: date.toISOString().split('T')[0],
                 category: selectedCategory.value,
                 is_recurring: isRecurring,
                 recurring_interval: isRecurring ? recurringInterval : undefined,
@@ -115,6 +215,10 @@ export default function AddExpenseScreen() {
                 currency: selectedCurrency.value,
                 tags: tags.trim() ? tags.split(',').map(tag => tag.trim()) : [],
                 status: 'completed',
+                payer_user_id: selectedPayer.user_id,
+                payer_username: selectedPayer.username,
+                participants: activeParticipants,
+                split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
             };
 
             const result = await addExpense(selectedGroup.id, expenseData);
@@ -136,6 +240,56 @@ export default function AddExpenseScreen() {
         }
     };
 
+    const toggleParticipant = (userId: string) => {
+        const splitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || 'equal';
+
+        setParticipants(prev => {
+            const updated = prev.map(p => {
+                if (p.user_id === userId) {
+                    const isCurrentlyActive = p.share_amount > 0;
+                    if (isCurrentlyActive) {
+                        return { ...p, share_amount: 0 };
+                    } else {
+                        // When activating, calculate share based on split method
+                        if (splitMethod === 'equal') {
+                            const totalAmount = Number(amount) || 0;
+                            const activeCount = prev.filter(participant =>
+                                participant.share_amount > 0 || participant.user_id === userId
+                            ).length;
+                            return { ...p, share_amount: calculateEqualSplit(totalAmount, activeCount) };
+                        }
+                        return { ...p, share_amount: 0 };
+                    }
+                }
+                return p;
+            });
+
+            // Recalculate equal split for all active participants
+            if (splitMethod === 'equal' && amount) {
+                const totalAmount = Number(amount);
+                const activeParticipants = updated.filter(p => p.share_amount > 0);
+                if (activeParticipants.length > 0) {
+                    const sharePerPerson = calculateEqualSplit(totalAmount, activeParticipants.length);
+                    return updated.map(p =>
+                        p.share_amount > 0 ? { ...p, share_amount: sharePerPerson } : p
+                    );
+                }
+            }
+
+            return updated;
+        });
+    };
+
+    const updateCustomAmount = (userId: string, amountStr: string) => {
+        const newAmount = parseFloat(amountStr) || 0;
+        setParticipants(prev =>
+            prev.map(p =>
+                p.user_id === userId ? { ...p, share_amount: newAmount } : p
+            )
+        );
+        setCustomAmounts(prev => ({ ...prev, [userId]: amountStr }));
+    };
+
     const renderBackAction = () => (
         <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#8F9BB3" />
@@ -145,6 +299,102 @@ export default function AddExpenseScreen() {
     const CalendarIcon = (props: any) => (
         <Ionicons name="calendar-outline" size={20} color="#8F9BB3" />
     );
+
+    const renderSharingSection = () => {
+        if (currentGroupMembers.length <= 1) return null;
+
+        const splitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || 'equal';
+        const totalShares = participants.reduce((sum, p) => sum + p.share_amount, 0);
+        const totalAmount = Number(amount) || 0;
+        const isBalanced = Math.abs(totalShares - totalAmount) < 0.01;
+
+        return (
+            <Card style={styles.card}>
+                <Text category='h6' style={styles.sectionTitle}>Expense Sharing</Text>
+
+                <Select
+                    style={styles.input}
+                    label='Who Paid?'
+                    placeholder='Select who paid for this expense'
+                    value={selectedPayerIndex ? currentGroupMembers[selectedPayerIndex.row]?.username : ''}
+                    selectedIndex={selectedPayerIndex}
+                    onSelect={(index) => setSelectedPayerIndex(index as IndexPath)}
+                    status={selectedPayerIndex ? 'basic' : 'danger'}
+                >
+                    {currentGroupMembers.map((member) => (
+                        <SelectItem key={member.user_id} title={member.username} />
+                    ))}
+                </Select>
+
+                <Select
+                    style={styles.input}
+                    label='Split Method'
+                    placeholder='How to split this expense'
+                    value={selectedSplitMethodIndex ? SPLIT_METHODS[selectedSplitMethodIndex.row]?.label : ''}
+                    selectedIndex={selectedSplitMethodIndex}
+                    onSelect={(index) => setSelectedSplitMethodIndex(index as IndexPath)}
+                >
+                    {SPLIT_METHODS.map((method) => (
+                        <SelectItem key={method.value} title={method.label} />
+                    ))}
+                </Select>
+
+                <Layout style={styles.participantsContainer}>
+                    <Text category='s1' style={styles.participantsTitle}>
+                        Share with ({participants.filter(p => p.share_amount > 0).length} of {currentGroupMembers.length})
+                    </Text>
+
+                    {currentGroupMembers.map((member) => {
+                        const participant = participants.find(p => p.user_id === member.user_id);
+                        const isActive = participant && participant.share_amount > 0;
+                        const shareAmount = participant?.share_amount || 0;
+
+                        return (
+                            <Layout key={member.user_id} style={styles.participantRow}>
+                                <CheckBox
+                                    checked={!!isActive}
+                                    onChange={() => toggleParticipant(member.user_id)}
+                                    style={styles.participantCheckbox}
+                                />
+                                <Layout style={styles.participantInfo}>
+                                    <Text category='s1'>{member.username}</Text>
+                                    {member.user_id === user?.id && (
+                                        <Text category='c1' appearance='hint'>(You)</Text>
+                                    )}
+                                </Layout>
+                                {splitMethod === 'custom' && isActive && (
+                                    <Input
+                                        style={styles.customAmountInput}
+                                        placeholder='0.00'
+                                        value={customAmounts[member.user_id] || shareAmount.toString()}
+                                        onChangeText={(text) => updateCustomAmount(member.user_id, text)}
+                                        keyboardType='decimal-pad'
+                                        size='small'
+                                    />
+                                )}
+                                {splitMethod !== 'custom' && isActive && (
+                                    <Text category='s1' style={styles.shareAmount}>
+                                        {shareAmount.toFixed(2)}
+                                    </Text>
+                                )}
+                            </Layout>
+                        );
+                    })}
+
+                    <Layout style={styles.totalRow}>
+                        <Text category='s1' style={[styles.totalText, !isBalanced && styles.errorText]}>
+                            Total: {totalShares.toFixed(2)} / {totalAmount.toFixed(2)}
+                        </Text>
+                        {!isBalanced && (
+                            <Text category='c1' style={styles.errorText}>
+                                Shares don't match expense amount
+                            </Text>
+                        )}
+                    </Layout>
+                </Layout>
+            </Card>
+        );
+    };
 
     if (availableGroups.length === 0) {
         return (
@@ -292,6 +542,8 @@ export default function AddExpenseScreen() {
                     />
                 </Card>
 
+                {renderSharingSection()}
+
                 <Card style={styles.card}>
                     <Text category='h6' style={styles.sectionTitle}>Additional Options</Text>
 
@@ -393,5 +645,50 @@ const styles = StyleSheet.create({
     },
     backButton: {
         padding: 8,
+    },
+    participantsContainer: {
+        marginTop: 8,
+    },
+    participantsTitle: {
+        marginBottom: 12,
+        fontWeight: '500',
+    },
+    participantRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    participantCheckbox: {
+        marginRight: 12,
+    },
+    participantInfo: {
+        flex: 1,
+    },
+    customAmountInput: {
+        width: 80,
+        marginLeft: 8,
+    },
+    shareAmount: {
+        marginLeft: 8,
+        minWidth: 60,
+        textAlign: 'right',
+        color: '#2E7D32',
+        fontWeight: '500',
+    },
+    totalRow: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+        alignItems: 'center',
+    },
+    totalText: {
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    errorText: {
+        color: '#F44336',
     },
 });

@@ -1,3 +1,5 @@
+// types/expense.ts - Updated with sharing functionality
+
 export type ExpenseGroup = {
   id: string;
   created_at: string;
@@ -9,7 +11,7 @@ export type ExpenseGroupData = {
   name: string;
   description: string;
   private: boolean;
-  currency: string; // Added currency field
+  currency: string;
 };
 
 export type ExpenseGroupMember = {
@@ -44,6 +46,14 @@ export type Expense = {
   encrypted_data: ExpenseData;
 };
 
+// Updated ExpenseParticipant type
+export type ExpenseParticipant = {
+  user_id: string;
+  username: string;
+  share_amount: number; // Individual share amount
+  share_percentage?: number; // Optional: percentage of total
+};
+
 export type ExpenseData = {
   name: string;
   description: string;
@@ -51,17 +61,17 @@ export type ExpenseData = {
   date: string;
   category: string;
   is_recurring: boolean;
-  // recurring_interval?: 'daily' | 'weekly' | 'monthly' | 'yearly';
   recurring_interval?: string;
   recurring_end_date?: string;
   payment_method?: string;
   currency?: string;
   tags?: string[];
   receipt_url?: string;
-  // status?: 'pending' | 'completed' | 'cancelled';
   status?: string;
-  payer?: string; // User who paid
-  participants?: { id: string; share: number }[]; // For split expenses
+  payer_user_id: string; // Who actually paid for this expense
+  payer_username?: string; // Username of the payer (for display)
+  participants: ExpenseParticipant[]; // Who shares this expense and their amounts
+  split_method: 'equal' | 'custom' | 'percentage'; // How the expense is split
 };
 
 export type ExpenseWithDecryptedData = {
@@ -86,8 +96,10 @@ export type ExpenseFormData = {
   tags?: string[];
   receipt_url?: string;
   status?: string;
-  payer?: string;
-  participants?: { id: string; share: number }[];
+  payer_user_id: string;
+  payer_username?: string;
+  participants: ExpenseParticipant[];
+  split_method: 'equal' | 'custom' | 'percentage';
 };
 
 export const EXPENSE_CATEGORIES = [
@@ -132,3 +144,70 @@ export const CURRENCIES = [
   { value: 'INR', label: 'INR (₹)' },
   { value: 'BRL', label: 'BRL (R$)' },
 ];
+
+export const SPLIT_METHODS = [
+  { value: 'equal', label: 'Split Equally' },
+  { value: 'custom', label: 'Custom Amounts' },
+  { value: 'percentage', label: 'By Percentage' },
+];
+
+// Utility functions for expense calculations
+export const calculateEqualSplit = (amount: number, participantCount: number): number => {
+  return Math.round((amount / participantCount) * 100) / 100;
+};
+
+export const calculateUserShare = (expense: ExpenseWithDecryptedData, userId: string): number => {
+  const participant = expense.data.participants.find(p => p.user_id === userId);
+  return participant ? participant.share_amount : 0;
+};
+
+export const calculateUserBalance = (expenses: ExpenseWithDecryptedData[], userId: string): number => {
+  let balance = 0;
+
+  expenses.forEach(expense => {
+    // If user paid, they get credit for the full amount
+    if (expense.data.payer_user_id === userId) {
+      balance += expense.data.amount;
+    }
+
+    // Subtract what they owe
+    const userShare = calculateUserShare(expense, userId);
+    balance -= userShare;
+  });
+
+  return Math.round(balance * 100) / 100;
+};
+
+export const calculateGroupBalances = (
+    expenses: ExpenseWithDecryptedData[],
+    members: ExpenseGroupMember[]
+): { [userId: string]: number } => {
+  const balances: { [userId: string]: number } = {};
+
+  // Initialize balances
+  members.forEach(member => {
+    balances[member.user_id] = 0;
+  });
+
+  // Calculate balances
+  expenses.forEach(expense => {
+    // Credit the payer
+    if (balances.hasOwnProperty(expense.data.payer_user_id)) {
+      balances[expense.data.payer_user_id] += expense.data.amount;
+    }
+
+    // Debit participants
+    expense.data.participants.forEach(participant => {
+      if (balances.hasOwnProperty(participant.user_id)) {
+        balances[participant.user_id] -= participant.share_amount;
+      }
+    });
+  });
+
+  // Round to 2 decimal places
+  Object.keys(balances).forEach(userId => {
+    balances[userId] = Math.round(balances[userId] * 100) / 100;
+  });
+
+  return balances;
+};

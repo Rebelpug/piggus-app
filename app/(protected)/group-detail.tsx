@@ -18,11 +18,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
-import { ExpenseWithDecryptedData } from '@/types/expense';
+import { useAuth } from '@/context/AuthContext';
+import { ExpenseWithDecryptedData, calculateGroupBalances, calculateUserShare } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function GroupDetailScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { expensesGroups, inviteUserToGroup, handleGroupInvitation, removeUserFromGroup } = useExpense();
     const [refreshing, setRefreshing] = useState(false);
@@ -34,6 +36,12 @@ export default function GroupDetailScreen() {
     const group = useMemo(() => {
         return expensesGroups.find(g => g.id === id);
     }, [expensesGroups, id]);
+
+    // Calculate group balances
+    const groupBalances = useMemo(() => {
+        if (!group) return {};
+        return calculateGroupBalances(group.expenses, group.members);
+    }, [group]);
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -165,28 +173,56 @@ export default function GroupDetailScreen() {
             return null;
         }
 
+        const userShare = calculateUserShare(item, user?.id || '');
+        const isPayer = item.data.payer_user_id === user?.id;
+        const isSharedExpense = item.data.participants.length > 1;
+
         return (
             <ListItem
                 title={item.data.name || 'Unnamed Expense'}
-                description={formatDate(item.data.date)}
+                description={`${formatDate(item.data.date)} • ${item.data.participants.length} participant${item.data.participants.length !== 1 ? 's' : ''}`}
                 accessoryLeft={() => (
                     <Layout style={[styles.categoryIndicator, { backgroundColor: getCategoryColor(item.data.category) }]} />
                 )}
                 accessoryRight={() => (
-                    <Layout style={styles.amountContainer}>
-                        <Text category='s1' style={styles.amount}>
-                            {formatCurrency(item.data.amount || 0, item.data.currency)}
-                        </Text>
+                    <Layout style={styles.expenseAmountContainer}>
+                        {isSharedExpense ? (
+                            <Layout style={styles.sharedAmountInfo}>
+                                <Text category='s1' style={styles.userShareAmount}>
+                                    {formatCurrency(userShare, item.data.currency)}
+                                </Text>
+                                <Text category='c1' appearance='hint' style={styles.totalAmountHint}>
+                                    of {formatCurrency(item.data.amount, item.data.currency)}
+                                </Text>
+                                {isPayer && (
+                                    <Text category='c1' style={styles.payerBadgeSmall}>
+                                        You paid
+                                    </Text>
+                                )}
+                            </Layout>
+                        ) : (
+                            <Layout style={styles.personalAmountInfo}>
+                                <Text category='s1' style={styles.amount}>
+                                    {formatCurrency(item.data.amount || 0, item.data.currency)}
+                                </Text>
+                                <Text category='c1' appearance='hint' style={styles.personalLabel}>
+                                    Personal
+                                </Text>
+                            </Layout>
+                        )}
                         <Text category='c1' appearance='hint' style={styles.category}>
                             {item.data.category || 'other'}
                         </Text>
                     </Layout>
                 )}
                 onPress={() => {
-                    Alert.alert(
-                        'Expense Details',
-                        `${item.data.name || 'Unnamed'}\n${item.data.description || 'No description'}`
-                    );
+                    router.push({
+                        pathname: '/(protected)/expense-detail',
+                        params: {
+                            expenseId: item.id,
+                            groupId: item.group_id
+                        }
+                    });
                 }}
             />
         );
@@ -206,8 +242,11 @@ export default function GroupDetailScreen() {
             }
         };
 
-        const isCurrentUser = item.user_id === group?.members?.find(m => m.status === 'confirmed')?.user_id;
+        const isCurrentUser = item.user_id === user?.id;
         const canRemove = item.status === 'confirmed' && !isCurrentUser;
+        const balance = groupBalances[item.user_id] || 0;
+        const isPositive = balance > 0;
+        const isZero = Math.abs(balance) < 0.01;
 
         return (
             <ListItem
@@ -218,14 +257,32 @@ export default function GroupDetailScreen() {
                 )}
                 accessoryRight={() => (
                     <Layout style={styles.memberAccessory}>
-                        <Layout style={styles.memberStatus}>
-                            <Text category='c1' style={[styles.memberStatusText, { color: getStatusColor(item.status) }]}>
-                                {item.status}
-                            </Text>
-                            {isCurrentUser && (
-                                <Text category='c1' style={styles.currentUserText}>
-                                    (You)
+                        <Layout style={styles.memberInfo}>
+                            <Layout style={styles.memberStatus}>
+                                <Text category='c1' style={[styles.memberStatusText, { color: getStatusColor(item.status) }]}>
+                                    {item.status}
                                 </Text>
+                                {isCurrentUser && (
+                                    <Text category='c1' style={styles.currentUserText}>
+                                        (You)
+                                    </Text>
+                                )}
+                            </Layout>
+                            {item.status === 'confirmed' && (
+                                <Layout style={styles.balanceInfo}>
+                                    <Text
+                                        category='s1'
+                                        style={[
+                                            styles.balanceAmount,
+                                            { color: isZero ? '#666' : isPositive ? '#4CAF50' : '#F44336' }
+                                        ]}
+                                    >
+                                        {isPositive ? '+' : ''}{formatCurrency(balance, group?.data?.currency)}
+                                    </Text>
+                                    <Text category='c1' appearance='hint' style={styles.balanceStatus}>
+                                        {isZero ? 'Settled' : isPositive ? 'Is owed' : 'Owes'}
+                                    </Text>
+                                </Layout>
                             )}
                         </Layout>
                         {canRemove && (
@@ -239,6 +296,69 @@ export default function GroupDetailScreen() {
                     </Layout>
                 )}
             />
+        );
+    };
+
+    const renderBalancesTab = () => {
+        const confirmedMembers = group?.members?.filter(m => m.status === 'confirmed') || [];
+        const sortedBalances = confirmedMembers
+            .map(member => ({
+                ...member,
+                balance: groupBalances[member.user_id] || 0
+            }))
+            .sort((a, b) => b.balance - a.balance);
+
+        return (
+            <Layout style={styles.tabContent}>
+                <Layout style={styles.balancesHeader}>
+                    <Text category='h6' style={styles.balancesTitle}>Group Balances</Text>
+                    <Text category='c1' appearance='hint' style={styles.balancesSubtitle}>
+                        Who owes what in this group
+                    </Text>
+                </Layout>
+
+                {sortedBalances.length > 0 ? (
+                    <List
+                        style={styles.balancesList}
+                        data={sortedBalances}
+                        renderItem={({ item }) => {
+                            const isCurrentUser = item.user_id === user?.id;
+                            const isPositive = item.balance > 0;
+                            const isZero = Math.abs(item.balance) < 0.01;
+
+                            return (
+                                <ListItem
+                                    title={item.username + (isCurrentUser ? ' (You)' : '')}
+                                    accessoryRight={() => (
+                                        <Layout style={styles.balanceItemRight}>
+                                            <Text
+                                                category='h6'
+                                                style={[
+                                                    styles.balanceAmountLarge,
+                                                    { color: isZero ? '#666' : isPositive ? '#4CAF50' : '#F44336' }
+                                                ]}
+                                            >
+                                                {isPositive ? '+' : ''}{formatCurrency(item.balance, group?.data?.currency)}
+                                            </Text>
+                                            <Text category='c1' appearance='hint' style={styles.balanceStatusLarge}>
+                                                {isZero ? 'Settled up' : isPositive ? 'gets back' : 'owes'}
+                                            </Text>
+                                        </Layout>
+                                    )}
+                                />
+                            );
+                        }}
+                        ItemSeparatorComponent={Divider}
+                    />
+                ) : (
+                    <Layout style={styles.emptyBalances}>
+                        <Ionicons name="calculator-outline" size={48} color="#8F9BB3" style={styles.emptyIcon} />
+                        <Text category='s1' appearance='hint' style={styles.emptyText}>
+                            No balances to show
+                        </Text>
+                    </Layout>
+                )}
+            </Layout>
         );
     };
 
@@ -277,6 +397,14 @@ export default function GroupDetailScreen() {
     const totalAmount = group.expenses?.reduce((sum, expense) => {
         try {
             return sum + (expense.data?.amount || 0);
+        } catch {
+            return sum;
+        }
+    }, 0) || 0;
+
+    const userTotalShare = group.expenses?.reduce((sum, expense) => {
+        try {
+            return sum + calculateUserShare(expense, user?.id || '');
         } catch {
             return sum;
         }
@@ -340,9 +468,9 @@ export default function GroupDetailScreen() {
                             <Layout style={styles.summaryRow}>
                                 <Layout style={styles.summaryItem}>
                                     <Text category='h5' style={styles.summaryNumber}>
-                                        {formatCurrency(totalAmount, group.data?.currency)}
+                                        {formatCurrency(userTotalShare, group.data?.currency)}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>Total Expenses</Text>
+                                    <Text category='c1' appearance='hint'>Your Share</Text>
                                 </Layout>
                                 <Layout style={styles.summaryItem}>
                                     <Text category='h5' style={styles.summaryNumber}>
@@ -391,6 +519,9 @@ export default function GroupDetailScreen() {
                                     </Layout>
                                 )}
                             </Layout>
+                        </Tab>
+                        <Tab title='Balances'>
+                            {renderBalancesTab()}
                         </Tab>
                         <Tab title='Members'>
                             <Layout style={styles.tabContent}>
@@ -593,16 +724,43 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginRight: 12,
     },
-    amountContainer: {
+    expenseAmountContainer: {
         alignItems: 'flex-end',
+        minWidth: 100,
+    },
+    sharedAmountInfo: {
+        alignItems: 'flex-end',
+    },
+    personalAmountInfo: {
+        alignItems: 'flex-end',
+    },
+    userShareAmount: {
+        fontWeight: '600',
+        color: '#2E7D32',
+        fontSize: 16,
+    },
+    totalAmountHint: {
+        fontSize: 11,
+        marginTop: 1,
+    },
+    payerBadgeSmall: {
+        color: '#4CAF50',
+        fontSize: 10,
+        fontWeight: '500',
+        marginTop: 2,
     },
     amount: {
         fontWeight: '600',
         color: '#2E7D32',
     },
+    personalLabel: {
+        fontSize: 11,
+        marginTop: 1,
+    },
     category: {
         textTransform: 'capitalize',
-        marginTop: 2,
+        marginTop: 4,
+        fontSize: 12,
     },
     statusIndicator: {
         width: 12,
@@ -614,9 +772,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    memberStatus: {
+    memberInfo: {
         alignItems: 'flex-end',
         marginRight: 8,
+    },
+    memberStatus: {
+        alignItems: 'flex-end',
     },
     memberStatusText: {
         fontSize: 12,
@@ -627,8 +788,56 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontStyle: 'italic',
     },
+    balanceInfo: {
+        alignItems: 'flex-end',
+        marginTop: 4,
+    },
+    balanceAmount: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    balanceStatus: {
+        fontSize: 10,
+        marginTop: 1,
+    },
     removeButton: {
         padding: 4,
+    },
+    balancesHeader: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    balancesTitle: {
+        marginBottom: 4,
+    },
+    balancesSubtitle: {
+        lineHeight: 18,
+    },
+    balancesList: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+    },
+    balanceItemRight: {
+        alignItems: 'flex-end',
+    },
+    balanceAmountLarge: {
+        fontWeight: '700',
+        fontSize: 18,
+    },
+    balanceStatusLarge: {
+        marginTop: 2,
+        fontSize: 12,
+    },
+    emptyBalances: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 16,
     },
     membersHeader: {
         padding: 16,

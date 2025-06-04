@@ -13,13 +13,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
-import { ExpenseWithDecryptedData } from '@/types/expense';
+import { useAuth } from '@/context/AuthContext';
+import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 
 export default function ExpensesScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const { expensesGroups, isLoading, error } = useExpense();
     const [refreshing, setRefreshing] = useState(false);
 
@@ -35,10 +37,16 @@ export default function ExpensesScreen() {
                     return [];
                 }
 
-                return group.expenses.map(expense => ({
-                    ...expense,
-                    groupName: group.data?.name || 'Unknown Group'
-                }));
+                return group.expenses
+                    .filter(expense => {
+                        // Only include expenses where the user is a participant
+                        const userShare = calculateUserShare(expense, user?.id || '');
+                        return userShare > 0;
+                    })
+                    .map(expense => ({
+                        ...expense,
+                        groupName: group.data?.name || 'Unknown Group'
+                    }));
             }).sort((a, b) => {
                 try {
                     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
@@ -50,7 +58,7 @@ export default function ExpensesScreen() {
             console.error('Error processing expenses:', error);
             return [];
         }
-    }, [expensesGroups]);
+    }, [expensesGroups, user?.id]);
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -73,7 +81,7 @@ export default function ExpensesScreen() {
                 currency: currency,
             }).format(amount);
         } catch {
-            return `$${amount.toFixed(2)}`;
+            return `${amount.toFixed(2)}`;
         }
     };
 
@@ -111,6 +119,11 @@ export default function ExpensesScreen() {
             return null;
         }
 
+        const userShare = calculateUserShare(item, user?.id || '');
+        const totalAmount = item.data.amount || 0;
+        const isPayer = item.data.payer_user_id === user?.id;
+        const isSharedExpense = item.data.participants.length > 1;
+
         return (
             <ListItem
                 title={item.data.name || 'Unnamed Expense'}
@@ -120,9 +133,32 @@ export default function ExpensesScreen() {
                 )}
                 accessoryRight={() => (
                     <Layout style={styles.amountContainer}>
-                        <Text category='s1' style={styles.amount}>
-                            {formatCurrency(item.data.amount || 0, item.data.currency)}
-                        </Text>
+                        {isSharedExpense ? (
+                            <Layout style={styles.sharedAmountContainer}>
+                                <Text category='s1' style={styles.userShare}>
+                                    {formatCurrency(userShare, item.data.currency)}
+                                </Text>
+                                <Text category='c1' appearance='hint' style={styles.totalAmount}>
+                                    of {formatCurrency(totalAmount, item.data.currency)}
+                                </Text>
+                                {isPayer && (
+                                    <Layout style={styles.payerBadge}>
+                                        <Text category='c1' style={styles.payerText}>You paid</Text>
+                                    </Layout>
+                                )}
+                            </Layout>
+                        ) : (
+                            <Layout style={styles.singleAmountContainer}>
+                                <Text category='s1' style={styles.amount}>
+                                    {formatCurrency(userShare, item.data.currency)}
+                                </Text>
+                                {isPayer && (
+                                    <Text category='c1' appearance='hint' style={styles.personalExpense}>
+                                        Personal
+                                    </Text>
+                                )}
+                            </Layout>
+                        )}
                         <Text category='c1' appearance='hint' style={styles.category}>
                             {item.data.category || 'other'}
                         </Text>
@@ -142,9 +178,10 @@ export default function ExpensesScreen() {
     };
 
     const renderHeader = () => {
-        const totalAmount = allExpenses.reduce((sum, expense) => {
+        const totalUserSpent = allExpenses.reduce((sum, expense) => {
             try {
-                return sum + (expense.data?.amount || 0);
+                const userShare = calculateUserShare(expense, user?.id || '');
+                return sum + userShare;
             } catch {
                 return sum;
             }
@@ -154,12 +191,12 @@ export default function ExpensesScreen() {
             <Layout style={styles.header}>
                 <Layout style={styles.summaryCard}>
                     <Card style={styles.card}>
-                        <Text category='h6' style={styles.summaryTitle}>Total Expenses</Text>
+                        <Text category='h6' style={styles.summaryTitle}>Your Total Expenses</Text>
                         <Text category='h4' style={styles.summaryAmount}>
-                            {formatCurrency(totalAmount)}
+                            {formatCurrency(totalUserSpent)}
                         </Text>
                         <Text category='c1' appearance='hint'>
-                            {allExpenses.length} transaction{allExpenses.length !== 1 ? 's' : ''}
+                            {allExpenses.length} transaction{allExpenses.length !== 1 ? 's' : ''} you're part of
                         </Text>
                     </Card>
                 </Layout>
@@ -285,14 +322,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FAFAFA',
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 16,
-    },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -364,14 +393,47 @@ const styles = StyleSheet.create({
     },
     amountContainer: {
         alignItems: 'flex-end',
+        minWidth: 100,
+    },
+    sharedAmountContainer: {
+        alignItems: 'flex-end',
+    },
+    singleAmountContainer: {
+        alignItems: 'flex-end',
+    },
+    userShare: {
+        fontWeight: '600',
+        color: '#2E7D32',
+        fontSize: 16,
+    },
+    totalAmount: {
+        fontSize: 12,
+        marginTop: 2,
     },
     amount: {
         fontWeight: '600',
         color: '#2E7D32',
     },
+    payerBadge: {
+        backgroundColor: '#E3F2FD',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        marginTop: 4,
+    },
+    payerText: {
+        color: '#1976D2',
+        fontSize: 10,
+        fontWeight: '500',
+    },
+    personalExpense: {
+        fontSize: 12,
+        marginTop: 2,
+    },
     category: {
         textTransform: 'capitalize',
-        marginTop: 2,
+        marginTop: 4,
+        fontSize: 12,
     },
     fab: {
         position: 'absolute',

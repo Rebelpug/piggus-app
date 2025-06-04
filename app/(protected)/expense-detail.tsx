@@ -13,15 +13,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpense } from '@/context/ExpenseContext';
-import { ExpenseWithDecryptedData } from '@/types/expense';
+import { useAuth } from '@/context/AuthContext';
+import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS, CURRENCIES } from '@/types/expense';
 
 export default function ExpenseDetailScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
     const { expensesGroups, deleteExpense } = useExpense();
     const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
     const [groupName, setGroupName] = useState<string>('');
+    const [groupMembers, setGroupMembers] = useState<any[]>([]);
 
     useEffect(() => {
         if (!expenseId || !groupId || !expensesGroups) return;
@@ -30,6 +33,7 @@ export default function ExpenseDetailScreen() {
         if (!group) return;
 
         setGroupName(group.data?.name || 'Unknown Group');
+        setGroupMembers(group.members || []);
 
         const foundExpense = group.expenses.find(e => e.id === expenseId);
         if (foundExpense) {
@@ -147,6 +151,11 @@ export default function ExpenseDetailScreen() {
         );
     }
 
+    const userShare = calculateUserShare(expense, user?.id || '');
+    const isPayer = expense.data.payer_user_id === user?.id;
+    const isSharedExpense = expense.data.participants.length > 1;
+    const payerMember = groupMembers.find(member => member.user_id === expense.data.payer_user_id);
+
     return (
         <SafeAreaView style={styles.container}>
             <TopNavigation
@@ -166,6 +175,24 @@ export default function ExpenseDetailScreen() {
                         {formatCurrency(expense.data.amount, expense.data.currency)}
                     </Text>
 
+                    {/* User's Share Section */}
+                    {isSharedExpense && (
+                        <Card style={styles.shareCard}>
+                            <Text category="h6" style={styles.shareTitle}>Your Share</Text>
+                            <Layout style={styles.shareInfo}>
+                                <Text category="h4" style={[styles.userShareAmount, { color: isPayer ? '#4CAF50' : '#2E7D32' }]}>
+                                    {formatCurrency(userShare, expense.data.currency)}
+                                </Text>
+                                {isPayer && (
+                                    <Layout style={styles.payerBadge}>
+                                        <Ionicons name="card-outline" size={16} color="#4CAF50" />
+                                        <Text style={styles.payerText}>You paid this expense</Text>
+                                    </Layout>
+                                )}
+                            </Layout>
+                        </Card>
+                    )}
+
                     <Layout style={styles.detailRow}>
                         <Text appearance="hint">Category:</Text>
                         <Text>{getCategoryLabel(expense.data.category)}</Text>
@@ -181,12 +208,30 @@ export default function ExpenseDetailScreen() {
                         <Text>{groupName}</Text>
                     </Layout>
 
+                    <Layout style={styles.detailRow}>
+                        <Text appearance="hint">Paid by:</Text>
+                        <Text>
+                            {payerMember?.username || expense.data.payer_username || 'Unknown'}
+                            {isPayer && ' (You)'}
+                        </Text>
+                    </Layout>
+
                     {expense.data.payment_method && (
                         <Layout style={styles.detailRow}>
                             <Text appearance="hint">Payment Method:</Text>
                             <Text>{getPaymentMethodLabel(expense.data.payment_method)}</Text>
                         </Layout>
                     )}
+
+                    <Layout style={styles.detailRow}>
+                        <Text appearance="hint">Split Method:</Text>
+                        <Text style={styles.splitMethodText}>
+                            {expense.data.split_method === 'equal' ? 'Split Equally' :
+                                expense.data.split_method === 'custom' ? 'Custom Amounts' :
+                                    expense.data.split_method === 'percentage' ? 'By Percentage' :
+                                        'Equal Split'}
+                        </Text>
+                    </Layout>
 
                     {expense.data.is_recurring && (
                         <Layout style={styles.detailRow}>
@@ -198,17 +243,10 @@ export default function ExpenseDetailScreen() {
                         </Layout>
                     )}
 
-                    {expense.data.payer && (
-                        <Layout style={styles.detailRow}>
-                            <Text appearance="hint">Paid by:</Text>
-                            <Text>{expense.data.payer}</Text>
-                        </Layout>
-                    )}
-
                     {expense.data.status && (
                         <Layout style={styles.detailRow}>
                             <Text appearance="hint">Status:</Text>
-                            <Text>{expense.data.status}</Text>
+                            <Text style={styles.statusText}>{expense.data.status}</Text>
                         </Layout>
                     )}
 
@@ -225,7 +263,47 @@ export default function ExpenseDetailScreen() {
                             <Text style={styles.description}>{expense.data.description}</Text>
                         </Layout>
                     )}
+                </Card>
 
+                {/* Participants Section */}
+                {isSharedExpense && (
+                    <Card style={styles.card}>
+                        <Text category="h6" style={styles.participantsTitle}>
+                            Shared with ({expense.data.participants.length} participants)
+                        </Text>
+                        {expense.data.participants.map((participant, index) => {
+                            const member = groupMembers.find(m => m.user_id === participant.user_id);
+                            const isCurrentUser = participant.user_id === user?.id;
+
+                            return (
+                                <Layout key={participant.user_id} style={styles.participantRow}>
+                                    <Layout style={styles.participantInfo}>
+                                        <Text category="s1" style={styles.participantName}>
+                                            {member?.username || participant.username || 'Unknown User'}
+                                            {isCurrentUser && ' (You)'}
+                                        </Text>
+                                    </Layout>
+                                    <Text category="s1" style={[styles.participantShare, { color: isCurrentUser ? '#2E7D32' : '#666' }]}>
+                                        {formatCurrency(participant.share_amount, expense.data.currency)}
+                                    </Text>
+                                </Layout>
+                            );
+                        })}
+
+                        <Layout style={styles.totalShareRow}>
+                            <Text category="s1" style={styles.totalShareLabel}>Total:</Text>
+                            <Text category="s1" style={styles.totalShareAmount}>
+                                {formatCurrency(
+                                    expense.data.participants.reduce((sum, p) => sum + p.share_amount, 0),
+                                    expense.data.currency
+                                )}
+                            </Text>
+                        </Layout>
+                    </Card>
+                )}
+
+                {/* Metadata */}
+                <Card style={styles.card}>
                     <Layout style={styles.metaContainer}>
                         <Text appearance="hint" category="c1">Created: {new Date(expense.created_at).toLocaleString()}</Text>
                         <Text appearance="hint" category="c1">Last updated: {new Date(expense.updated_at).toLocaleString()}</Text>
@@ -270,6 +348,7 @@ const styles = StyleSheet.create({
     },
     card: {
         margin: 16,
+        marginBottom: 0,
         borderRadius: 8,
     },
     headerContainer: {
@@ -289,6 +368,36 @@ const styles = StyleSheet.create({
     amount: {
         marginBottom: 24,
         color: '#2E7D32',
+        textAlign: 'center',
+    },
+    shareCard: {
+        backgroundColor: '#F8F9FA',
+        marginBottom: 16,
+        padding: 16,
+    },
+    shareTitle: {
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    shareInfo: {
+        alignItems: 'center',
+    },
+    userShareAmount: {
+        marginBottom: 8,
+    },
+    payerBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E8F5E8',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    payerText: {
+        color: '#4CAF50',
+        marginLeft: 4,
+        fontSize: 12,
+        fontWeight: '500',
     },
     detailRow: {
         flexDirection: 'row',
@@ -296,6 +405,13 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
+    },
+    splitMethodText: {
+        textTransform: 'capitalize',
+    },
+    statusText: {
+        textTransform: 'capitalize',
+        color: '#4CAF50',
     },
     descriptionContainer: {
         marginTop: 16,
@@ -306,11 +422,46 @@ const styles = StyleSheet.create({
     description: {
         lineHeight: 20,
     },
+    participantsTitle: {
+        marginBottom: 16,
+    },
+    participantRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    participantInfo: {
+        flex: 1,
+    },
+    participantName: {
+        fontWeight: '500',
+    },
+    participantShare: {
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    totalShareRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        marginTop: 8,
+        borderTopWidth: 2,
+        borderTopColor: '#E0E0E0',
+    },
+    totalShareLabel: {
+        fontWeight: '600',
+    },
+    totalShareAmount: {
+        fontWeight: '700',
+        color: '#2E7D32',
+        fontSize: 16,
+    },
     metaContainer: {
-        marginTop: 24,
-        paddingTop: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
+        paddingVertical: 16,
     },
     actionsContainer: {
         flexDirection: 'row',
