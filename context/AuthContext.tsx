@@ -203,6 +203,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     const checkSession = async () => {
       try {
+        console.log('Starting session check...');
         const { data } = await supabase.auth.getSession();
         const currentUser = data.session?.user || null;
 
@@ -210,23 +211,42 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           setUser(currentUser);
           console.log('User session found:', currentUser.email);
 
-          // If we have a saved password from signup, use it to initialize encryption
+          // First, try to initialize from secure storage
+          const initFromStorage = await encryption.initializeFromSecureStorage(currentUser.id);
+
+          if (initFromStorage) {
+            console.log('Successfully initialized encryption from secure storage');
+            setEncryptionInitialized(true);
+            setNeedsPasswordPrompt(false);
+            return;
+          }
+
+          console.log('No keys in secure storage, checking user metadata...');
+
+          // If secure storage fails, check if we have a saved password from signup
           if (signupPassword.current) {
-            initializeEncryptionKey(currentUser, signupPassword.current)
-                .then(() => {
-                  // Clear the password
-                  signupPassword.current = null;
-                })
-                .catch(error => {
-                  console.error('Failed to initialize encryption key from signup password:', error);
-                  // If we can't initialize with the saved password, prompt the user
-                  setNeedsPasswordPrompt(true);
-                });
-          } else {
-            console.log("Found user but need to sign out");
-            // No saved password, prompt the user
-            signOut(); //TODO add password prompt
+            console.log('Using saved signup password');
+            try {
+              await initializeEncryptionKey(currentUser, signupPassword.current);
+              signupPassword.current = null;
+              setNeedsPasswordPrompt(false);
+            } catch (error) {
+              console.error('Failed to initialize encryption key from signup password:', error);
+              setNeedsPasswordPrompt(true);
+            }
+            return;
+          }
+
+          // Check for keys in user metadata and prompt for password if needed
+          const { publicKey, encryptedPrivateKey } = await retrieveKeysFromUserMetadata(currentUser);
+
+          if (publicKey && encryptedPrivateKey) {
+            console.log('Found keys in metadata, need password');
             setNeedsPasswordPrompt(true);
+            await supabase.auth.signOut();
+          } else {
+            console.log('No keys found anywhere, signing out');
+            await supabase.auth.signOut();
           }
         } else {
           console.log('No active session found');

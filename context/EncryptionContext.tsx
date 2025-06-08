@@ -11,6 +11,7 @@ import {
     signData,
     verifySignature, decryptWithRSA, base64ToArrayBuffer, generateEncryptionKey,
 } from '@/lib/encryption';
+import {SecureKeyManager} from "@/lib/secureKeyManager";
 
 // Types
 interface EncryptionContextType {
@@ -19,6 +20,7 @@ interface EncryptionContextType {
     isEncryptionInitialized: boolean;
 
     // Core functions
+    initializeFromSecureStorage: (userId: string) => Promise<boolean>;
     initializeFromPassword: (password: string) => Promise<{
         publicKey: string;
         privateKey: string;
@@ -73,8 +75,45 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const [salt, setSalt] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-    // Initialize encryption from a password
-    const initializeFromPassword = useCallback(async (password: string) => {
+    const initializeFromSecureStorage = useCallback(async (userId: string): Promise<boolean> => {
+        try {
+            console.log('Attempting to initialize from secure storage...');
+
+            // Check if we have stored keys
+            const hasKeys = await SecureKeyManager.hasStoredKeys(userId);
+            if (!hasKeys) {
+                console.log('No keys found in secure storage');
+                return false;
+            }
+
+            // Retrieve keys from secure storage
+            const storedEncryptionKey = await SecureKeyManager.getEncryptionKey(userId);
+            const storedPrivateKey = await SecureKeyManager.getPrivateKey(userId);
+
+            if (!storedEncryptionKey || !storedPrivateKey) {
+                console.log('Failed to retrieve keys from secure storage');
+                return false;
+            }
+
+            // Get public key from user metadata (this doesn't need to be stored securely)
+            // You'll need to pass the user object here or get it from context
+            // For now, we'll assume you have access to it
+
+            // Update state with the retrieved keys
+            setEncryptionKey(storedEncryptionKey);
+            setPrivateKey(storedPrivateKey);
+            // setPublicKey(publicKeyFromMetadata); // You'll need to get this
+            setIsInitialized(true);
+
+            console.log('Successfully initialized from secure storage');
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize from secure storage:', error);
+            return false;
+        }
+    }, []);
+
+    const initializeFromPassword = useCallback(async (password: string, userId?: string) => {
         try {
             // 1. Derive encryption key from password for encrypting the private key
             const { key, salt: newSalt } = await deriveKeyFromPassword(password);
@@ -89,6 +128,12 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setPrivateKey(newPrivateKey);
             setIsInitialized(true);
 
+            // 4. Store keys securely if userId is provided
+            if (userId) {
+                await SecureKeyManager.storeEncryptionKey(userId, key);
+                await SecureKeyManager.storePrivateKey(userId, newPrivateKey);
+            }
+
             console.log('Encryption initialized successfully');
             return {
                 publicKey: newPublicKey,
@@ -102,11 +147,11 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         }
     }, []);
 
-    // Import existing keys with password
     const importExistingKeys = useCallback(async (
         importedPublicKey: string,
         encryptedPrivateKeyData: string,
-        password: string
+        password: string,
+        userId?: string
     ): Promise<{
         publicKey: string;
         privateKey: string;
@@ -136,6 +181,12 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setSalt(storedSalt);
             setIsInitialized(true);
 
+            // Store keys securely if userId is provided
+            if (userId) {
+                await SecureKeyManager.storeEncryptionKey(userId, key);
+                await SecureKeyManager.storePrivateKey(userId, decryptedPrivateKey);
+            }
+
             return {
                 publicKey: importedPublicKey,
                 privateKey: decryptedPrivateKey,
@@ -148,13 +199,17 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         }
     }, []);
 
-    // Reset all encryption state
-    const resetEncryption = useCallback(() => {
+    const resetEncryption = useCallback(async (userId?: string) => {
         setPublicKey(null);
         setPrivateKey(null);
         setEncryptionKey(null);
         setSalt(null);
         setIsInitialized(false);
+
+        // Clear secure storage if userId is provided
+        if (userId) {
+            await SecureKeyManager.clearUserKeys(userId);
+        }
     }, []);
 
     // Check if encryption is initialized
@@ -329,6 +384,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const value: EncryptionContextType = {
         getPublicKey,
         isEncryptionInitialized,
+        initializeFromSecureStorage,
         initializeFromPassword,
         importExistingKeys,
         resetEncryption,
