@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler'; // MUST be at the very top
 import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
 import { AuthProvider } from "@/context/AuthContext";
@@ -10,23 +11,24 @@ import * as Sentry from "@sentry/react-native";
 import {isRunningInExpoGo} from "expo";
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
-    //enableTimeToInitialDisplay: !isRunningInExpoGo(),
-    enableNativeFramesTracking: true
+    enableTimeToInitialDisplay: !isRunningInExpoGo(),
+    enableNativeFramesTracking: !isRunningInExpoGo()
 });
 
 Sentry.init({
     dsn: "https://0e618e20f650efdfb2b74f775991966b@o4509462178955264.ingest.de.sentry.io/4509462198091856",
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-    // We recommend adjusting this value in production.
-    // Learn more at
-    // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
     sendDefaultPii: false,
-    debug: true,
-    tracesSampleRate: 1.0,
-    profilesSampleRate: 1.0,
+    debug: __DEV__,
+    tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+    profilesSampleRate: __DEV__ ? 1.0 : 0.1,
     integrations: [navigationIntegration],
-    enableNativeFramesTracking: true
-    //enableNativeFramesTracking: !isRunningInExpoGo(),
+    enableNativeFramesTracking: !isRunningInExpoGo(),
+    beforeSend(event) {
+        if (__DEV__) {
+            console.log('Sentry event:', event);
+        }
+        return event;
+    }
 });
 
 function RootLayout() {
