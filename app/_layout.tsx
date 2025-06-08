@@ -7,31 +7,19 @@ import React from 'react';
 import * as eva from '@eva-design/eva';
 import { ApplicationProvider } from '@ui-kitten/components';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import * as Sentry from "@sentry/react-native";
-import {isRunningInExpoGo} from "expo";
+import { LogBox } from 'react-native';
 
-const navigationIntegration = Sentry.reactNavigationIntegration({
-    enableTimeToInitialDisplay: !isRunningInExpoGo(),
-    enableNativeFramesTracking: !isRunningInExpoGo()
-});
+if (!__DEV__) {
+    LogBox.ignoreAllLogs();
 
-Sentry.init({
-    dsn: "https://0e618e20f650efdfb2b74f775991966b@o4509462178955264.ingest.de.sentry.io/4509462198091856",
-    sendDefaultPii: false,
-    debug: __DEV__,
-    tracesSampleRate: __DEV__ ? 1.0 : 0.1,
-    profilesSampleRate: __DEV__ ? 1.0 : 0.1,
-    integrations: [navigationIntegration],
-    enableNativeFramesTracking: !isRunningInExpoGo(),
-    beforeSend(event) {
-        if (__DEV__) {
-            console.log('Sentry event:', event);
-        }
-        return event;
-    }
-});
+    // Add global error handler
+    ErrorUtils.setGlobalHandler((error, isFatal) => {
+        // Log to Sentry or another service
+        console.error('Global error:', error, isFatal);
+    });
+}
 
-function RootLayout() {
+export default function RootLayout() {
     const [loaded] = useFonts({
         SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     });
@@ -53,5 +41,3 @@ function RootLayout() {
         </ApplicationProvider>
     );
 }
-
-export default Sentry.wrap(RootLayout);
