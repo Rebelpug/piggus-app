@@ -288,7 +288,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         data: any
     ): Promise<string> => {
         try {
-            return encryptWithPublicKey(data, recipientPublicKey);
+            return await encryptWithPublicKey(data, recipientPublicKey);
         } catch (error) {
             console.error('Error encrypting for recipient:', error);
             return '';

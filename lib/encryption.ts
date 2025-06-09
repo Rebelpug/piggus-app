@@ -5,7 +5,7 @@
 import 'react-native-get-random-values';
 import * as Crypto from 'expo-crypto';
 import aesjs from 'aes-js';
-import * as forge from 'node-forge';
+import { RSA } from 'react-native-rsa-native';
 import { Buffer } from 'buffer';
 
 // =====================================================================
@@ -194,46 +194,27 @@ export function decryptWithAES(
  * Generate a new RSA key pair
  */
 export async function generateKeyPair(): Promise<{ publicKey: string; privateKey: string }> {
-  return new Promise((resolve, reject) => {
-    try {
-      console.log('Generating RSA key pair with forge...');
-
-      // Generate key pair (this is CPU intensive and will block the JS thread)
-      const keypair = forge.pki.rsa.generateKeyPair({ bits: RSA_KEY_SIZE });
-
-      // Convert to PEM format
-      const publicKey = forge.pki.publicKeyToPem(keypair.publicKey);
-      const privateKey = forge.pki.privateKeyToPem(keypair.privateKey);
-
-      console.log('RSA key pair generated successfully');
-      resolve({ publicKey, privateKey });
-    } catch (error) {
-      console.error('Error generating RSA key pair:', error);
-      reject(new Error('Failed to generate RSA key pair'));
-    }
-  });
+  try {
+    const keys = await RSA.generateKeys(RSA_KEY_SIZE); // 2048 bits
+    return {
+      publicKey: keys.public,
+      privateKey: keys.private,
+    };
+  } catch (error) {
+    console.error('RSA key generation failed:', error);
+    throw new Error('Failed to generate RSA key pair');
+  }
 }
 
 /**
  * Encrypt data with RSA public key
  */
-export function encryptWithRSA(publicKey: string, data: any): string {
+export async function encryptWithRSA(publicKey: string, data: any): Promise<string> {
+  const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
   try {
-    // Convert data to string if it's an object
-    const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
-
-    // Parse the public key
-    const key = forge.pki.publicKeyFromPem(publicKey);
-
-    // RSA can only encrypt limited amounts of data, so we use encryption with PKCS#1 v1.5 padding
-    const encrypted = key.encrypt(dataStr, 'RSA-OAEP', {
-      md: forge.md.sha256.create()
-    });
-
-    // Convert to base64 for storage/transmission
-    return forge.util.encode64(encrypted);
-  } catch (error) {
-    console.error('Error encrypting with RSA:', error);
+    return await RSA.encrypt(dataStr, publicKey);
+  } catch (err) {
+    console.error('Error encrypting with RSA', err);
     throw new Error('Failed to encrypt with RSA');
   }
 }
@@ -243,25 +224,10 @@ export function encryptWithRSA(publicKey: string, data: any): string {
  */
 export async function decryptWithRSA(privateKey: string, encryptedData: string): Promise<any> {
   try {
-    // Parse the private key
-    const key = forge.pki.privateKeyFromPem(privateKey);
-
-    // Decode from base64
-    const encrypted = forge.util.decode64(encryptedData);
-
-    // Decrypt the data
-    const decrypted = key.decrypt(encrypted, 'RSA-OAEP', {
-      md: forge.md.sha256.create()
-    });
-
-    // Try to parse as JSON if possible
-    try {
-      return JSON.parse(decrypted);
-    } catch {
-      return decrypted;
-    }
-  } catch (error) {
-    console.error('Error decrypting with RSA:', error);
+    const decrypted = await RSA.decrypt(encryptedData, privateKey);
+    try { return JSON.parse(decrypted); } catch { return decrypted; }
+  } catch (err) {
+    console.error('Error decrypting with RSA', err);
     throw new Error('Failed to decrypt with RSA');
   }
 }
@@ -274,12 +240,12 @@ export async function decryptWithRSA(privateKey: string, encryptedData: string):
  * Encrypt data for a recipient using hybrid encryption
  * Generates a random AES key, encrypts data with AES, and encrypts the AES key with RSA
  */
-export function encryptWithPublicKey(
+export async function encryptWithPublicKey(
     data: any,
     recipientPublicKey: string
-): string {
+): Promise<string> {
   try {
-    return encryptWithRSA(recipientPublicKey, data);
+    return await encryptWithRSA(recipientPublicKey, data);
   } catch (error) {
     console.error('Error in hybrid encryption:', error);
     throw new Error('Failed to encrypt for recipient');
@@ -379,24 +345,11 @@ export function decryptData(encryptedData: string, key: Uint8Array): any {
  * Sign data with a private key
  */
 export async function signData(privateKey: string, data: string): Promise<string> {
+  const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
   try {
-    // Convert data to string if it's an object
-    const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
-
-    // Create a message digest
-    const md = forge.md.sha256.create();
-    md.update(dataStr, 'utf8');
-
-    // Parse the private key
-    const key = forge.pki.privateKeyFromPem(privateKey);
-
-    // Sign the digest
-    const signature = key.sign(md);
-
-    // Convert to base64
-    return forge.util.encode64(signature);
-  } catch (error) {
-    console.error('Error signing with RSA:', error);
+    return await RSA.sign(dataStr, privateKey);
+  } catch (err) {
+    console.error('Error signing with RSA', err);
     throw new Error('Failed to sign with RSA');
   }
 }
@@ -404,29 +357,12 @@ export async function signData(privateKey: string, data: string): Promise<string
 /**
  * Verify a signature
  */
-export async function verifySignature(
-    publicKey: string,
-    data: string,
-    signature: string
-): Promise<boolean> {
+export async function verifySignature(publicKey: string, data: string, signature: string): Promise<boolean> {
+  const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
   try {
-    // Convert data to string if it's an object
-    const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
-
-    // Create a message digest
-    const md = forge.md.sha256.create();
-    md.update(dataStr, 'utf8');
-
-    // Parse the public key
-    const key = forge.pki.publicKeyFromPem(publicKey);
-
-    // Decode the signature from base64
-    const sig = forge.util.decode64(signature);
-
-    // Verify the signature
-    return key.verify(md.digest().getBytes(), sig);
-  } catch (error) {
-    console.error('Error verifying with RSA:', error);
+    return await RSA.verify(signature, dataStr, publicKey);
+  } catch (err) {
+    console.error('Error verifying RSA signature', err);
     return false;
   }
 }
