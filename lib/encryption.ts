@@ -7,6 +7,7 @@ import * as Crypto from 'expo-crypto';
 import aesjs from 'aes-js';
 import { RSA } from 'react-native-rsa-native';
 import { Buffer } from 'buffer';
+import {InteractionManager} from "react-native";
 
 // =====================================================================
 // Constants and Utility Functions
@@ -58,49 +59,103 @@ export async function hash(value: string): Promise<string> {
  */
 export async function deriveKeyFromPassword(
     password: string,
-    saltInput?: string
+    saltInput?: string,
+    onProgress?: (progress: number) => void
 ): Promise<{ key: Uint8Array; salt: string }> {
-  try {
-    // Generate salt if not provided
-    const salt = saltInput || arrayBufferToBase64(generateRandomBytes(16));
 
-    // Initial key material
-    let key = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        password + salt,
-        { encoding: Crypto.CryptoEncoding.BASE64 }
-    );
+  return new Promise((resolve, reject) => {
+    // Ensure this runs after any pending UI interactions
+    InteractionManager.runAfterInteractions(async () => {
+      try {
+        console.log('🔑 Starting async PBKDF2 derivation...');
+        const startTime = Date.now();
 
-    // Convert base64 to buffer for initial key
-    let keyBuffer = base64ToArrayBuffer(key);
+        const CHUNK_SIZE = 500;
+        const TOTAL_ITERATIONS = 20000;
+        const YIELD_INTERVAL = 10;
 
-    // Multi-round key stretching (simulating PBKDF2)
-    for (let i = 0; i < PBKDF2_ITERATIONS; i++) {
-      // Combine with salt and iteration for each round
-      const combinedBuffer = Buffer.concat([
-        keyBuffer,
-        base64ToArrayBuffer(salt),
-        new Uint8Array([i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff])
-      ]);
+        // Generate salt if not provided
+        const salt = saltInput || arrayBufferToBase64(generateRandomBytes(16));
+        console.log('🧂 Salt:', salt.substring(0, 10) + '...');
 
-      // Hash the combined buffer
-      key = await Crypto.digestStringAsync(
-          Crypto.CryptoDigestAlgorithm.SHA256,
-          arrayBufferToBase64(combinedBuffer),
-          { encoding: Crypto.CryptoEncoding.BASE64 }
-      );
+        // Initial key material
+        console.log('🔧 Creating initial key material...');
+        let key = await Crypto.digestStringAsync(
+            Crypto.CryptoDigestAlgorithm.SHA256,
+            password + salt,
+            { encoding: Crypto.CryptoEncoding.BASE64 }
+        );
 
-      keyBuffer = base64ToArrayBuffer(key);
-    }
+        if (!key) {
+          throw new Error('Failed to create initial key material');
+        }
 
-    // Ensure it's the right length for AES
-    const finalKey = keyBuffer.slice(0, AES_KEY_LENGTH);
+        let keyBuffer = base64ToArrayBuffer(key);
+        console.log('✅ Initial key created, starting iterations...');
 
-    return { key: finalKey, salt };
-  } catch (error) {
-    console.error('Error deriving key from password:', error);
-    throw new Error('Failed to derive encryption key');
-  }
+        // Process in chunks to avoid blocking
+        for (let chunk = 0; chunk < TOTAL_ITERATIONS; chunk += CHUNK_SIZE) {
+          const chunkEnd = Math.min(chunk + CHUNK_SIZE, TOTAL_ITERATIONS);
+
+          // Process this chunk synchronously
+          for (let i = chunk; i < chunkEnd; i++) {
+            try {
+              const combinedBuffer = Buffer.concat([
+                keyBuffer,
+                base64ToArrayBuffer(salt),
+                new Uint8Array([i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff])
+              ]);
+
+              key = await Crypto.digestStringAsync(
+                  Crypto.CryptoDigestAlgorithm.SHA256,
+                  arrayBufferToBase64(combinedBuffer),
+                  { encoding: Crypto.CryptoEncoding.BASE64 }
+              );
+
+              if (!key) {
+                throw new Error(`Failed to hash at iteration ${i}`);
+              }
+
+              keyBuffer = base64ToArrayBuffer(key);
+            } catch (iterError) {
+              console.error(`❌ Error at iteration ${i}:`, iterError);
+              throw iterError;
+            }
+          }
+
+          // Update progress
+          const progress = chunkEnd / TOTAL_ITERATIONS;
+          onProgress?.(progress);
+
+          // Log progress every 25%
+          if (chunkEnd % 5000 === 0) {
+            const elapsed = Date.now() - startTime;
+            console.log(`⏳ PBKDF2 progress: ${Math.round(progress * 100)}% (${elapsed}ms elapsed)`);
+          }
+
+          // Yield control to the UI thread
+          await new Promise(resolve => setTimeout(resolve, YIELD_INTERVAL));
+        }
+
+        const endTime = Date.now();
+        console.log(`✅ Async PBKDF2 completed in ${endTime - startTime}ms`);
+
+        // Ensure it's the right length for AES
+        const finalKey = keyBuffer.slice(0, AES_KEY_LENGTH);
+
+        if (finalKey.length !== AES_KEY_LENGTH) {
+          throw new Error(`Invalid key length: ${finalKey.length}, expected: ${AES_KEY_LENGTH}`);
+        }
+
+        console.log('🎉 Key derivation successful');
+        resolve({ key: finalKey, salt });
+
+      } catch (error) {
+        console.error('❌ Error in async key derivation:', error);
+        reject(new Error(`Failed to derive encryption key: ${(error as Error)?.message}`));
+      }
+    });
+  });
 }
 
 // =====================================================================

@@ -22,6 +22,8 @@ const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [encryptionProgress, setEncryptionProgress] = useState(0);
+    const [encryptionStep, setEncryptionStep] = useState('');
     const { signIn } = useAuth();
     const router = useRouter();
 
@@ -43,15 +45,42 @@ const LoginScreen = () => {
         }
 
         setLoading(true);
+        setEncryptionProgress(0);
+        setEncryptionStep('');
 
         try {
-            await signIn(email, password);
-            // No need to navigate - the AuthProvider will handle rendering the main app
+            console.log('Attempting login for:', email);
+
+            await signIn(email, password, (progress, step) => {
+                setEncryptionProgress(progress);
+                setEncryptionStep(step);
+                console.log(`Login progress: ${Math.round(progress * 100)}% - ${step}`);
+            });
+
+            console.log('Login successful');
+
         } catch (error: any) {
-            const errorMessage = error?.message || 'Failed to sign in. Please check your credentials.';
+            console.error('Login failed:', error);
+            let errorMessage = 'Failed to sign in. Please check your credentials.';
+
+            if (error?.message?.includes('Invalid login credentials')) {
+                errorMessage = 'Invalid email or password. Please try again.';
+            } else if (error?.message?.includes('Too many requests')) {
+                errorMessage = 'Too many login attempts. Please wait a moment and try again.';
+            } else if (error?.message?.includes('Network')) {
+                errorMessage = 'Network error. Please check your connection and try again.';
+            } else if (error?.message?.includes('encryption')) {
+                errorMessage = 'Authentication succeeded but failed to initialize encryption. Please try again.';
+            }
+
             Alert.alert('Sign In Error', errorMessage);
         } finally {
             setLoading(false);
+            // Keep progress visible for a moment after completion
+            setTimeout(() => {
+                setEncryptionProgress(0);
+                setEncryptionStep('');
+            }, 1500);
         }
     };
 
@@ -75,6 +104,7 @@ const LoginScreen = () => {
                             keyboardType="email-address"
                             autoCapitalize="none"
                             autoCorrect={false}
+                            editable={!loading}
                         />
 
                         <Text style={styles.label}>Password</Text>
@@ -84,6 +114,7 @@ const LoginScreen = () => {
                             onChangeText={setPassword}
                             placeholder="Enter your password"
                             secureTextEntry
+                            editable={!loading}
                         />
 
                         <TouchableOpacity
@@ -92,7 +123,27 @@ const LoginScreen = () => {
                             disabled={loading}
                         >
                             {loading ? (
-                                <ActivityIndicator color="#FFF" />
+                                <View style={styles.progressContainer}>
+                                    <ActivityIndicator color="#FFF" size="small" />
+                                    <Text style={styles.progressText}>
+                                        {encryptionStep || 'Signing In...'}
+                                    </Text>
+                                    {encryptionProgress > 0 && (
+                                        <>
+                                            <View style={styles.progressBar}>
+                                                <View
+                                                    style={[
+                                                        styles.progressFill,
+                                                        { width: `${encryptionProgress * 100}%` }
+                                                    ]}
+                                                />
+                                            </View>
+                                            <Text style={styles.progressPercentage}>
+                                                {Math.round(encryptionProgress * 100)}%
+                                            </Text>
+                                        </>
+                                    )}
+                                </View>
                             ) : (
                                 <Text style={styles.buttonText}>Sign In</Text>
                             )}
@@ -101,8 +152,8 @@ const LoginScreen = () => {
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Do not have an account?</Text>
-                        <TouchableOpacity onPress={() => router.push('/register')}>
-                            <Text style={styles.link}>Sign Up</Text>
+                        <TouchableOpacity onPress={() => router.push('/register')} disabled={loading}>
+                            <Text style={[styles.link, loading && { opacity: 0.5 }]}>Sign Up</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -183,6 +234,35 @@ const styles = StyleSheet.create({
     link: {
         color: '#4A69FF',
         fontWeight: '600',
+    },
+    progressContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    progressBar: {
+        width: '100%',
+        height: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        borderRadius: 2,
+        marginTop: 12,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 2,
+    },
+    progressText: {
+        color: '#FFF',
+        fontSize: 14,
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    progressPercentage: {
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 12,
+        marginTop: 4,
     },
 });
 

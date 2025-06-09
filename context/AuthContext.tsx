@@ -20,7 +20,7 @@ type AuthContextType = {
   authInitialized: boolean;
   encryptionInitialized: boolean;
   publicKey: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, progress: (progress: any, step: string) => void) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   encryptData: (data: any) => Promise<string | null>;
@@ -124,18 +124,33 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Initialize encryption key from password
   const initializeEncryptionKey = useCallback(
-      async (user: User, password: string): Promise<void> => {
+      async (
+          user: User,
+          password: string,
+          onProgress?: (progress: number) => void
+      ): Promise<void> => {
         try {
+          console.log('=== STARTING ENCRYPTION INITIALIZATION ===');
+          onProgress?.(0.05);
 
           // Retrieve keys from user metadata
           const { publicKey, encryptedPrivateKey } = await retrieveKeysFromUserMetadata(user);
+          console.log('Keys from metadata:', { hasPublic: !!publicKey, hasPrivate: !!encryptedPrivateKey });
+          onProgress?.(0.1);
 
           if (publicKey && encryptedPrivateKey) {
-            // Try to import existing keys
+            console.log('Found existing keys, importing with async PBKDF2...');
+
             const data = await encryption.importExistingKeys(
                 publicKey,
                 encryptedPrivateKey,
-                password
+                password,
+                (importProgress) => {
+                  // Map import progress to overall progress
+                  const overallProgress = 0.1 + (importProgress * 0.8);
+                  onProgress?.(overallProgress);
+                },
+                user.id
             );
 
             if (!data) {
@@ -144,20 +159,36 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
             console.log('Successfully imported existing keys');
             setEncryptionInitialized(true);
+            onProgress?.(1.0);
           } else {
-            // First, initialize encryption with the password
-            setIsGeneratingKeys(true);
-            const encryptionData = await encryption.initializeFromPassword(password);
-            setIsGeneratingKeys(false);
+            console.log('No existing keys, generating new ones...');
 
-            // Export the encrypted private key
-            const encryptedPrivateKey = await encryption.exportEncryptedPrivateKey(encryptionData.privateKey, encryptionData.encryptionKey, encryptionData.salt);
+            // For new key generation, show progress differently
+            onProgress?.(0.3);
+            setIsGeneratingKeys(true);
+
+            const encryptionData = await encryption.initializeFromPassword(
+                password,
+                (genProgress) => {
+                  const overallProgress = 0.3 + (genProgress * 0.6);
+                  onProgress?.(overallProgress);
+                },
+                user.id
+            );
+            setIsGeneratingKeys(false);
+            onProgress?.(0.95);
+
+            // Export and store keys
+            const encryptedPrivateKey = await encryption.exportEncryptedPrivateKey(
+                encryptionData.privateKey,
+                encryptionData.encryptionKey,
+                encryptionData.salt
+            );
 
             if (!encryptedPrivateKey) {
               throw new Error('Failed to export encrypted private key');
             }
 
-            // Store keys in user metadata
             const success = await storeKeysInUserMetadata(
                 encryptedPrivateKey,
                 encryptionData.publicKey
@@ -169,10 +200,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
             setNewEncryptionKeyGenerated(true);
             setEncryptionInitialized(true);
+            onProgress?.(1.0);
             console.log('Created new encryption keys for user:', user.id);
           }
         } catch (error) {
           console.error('Error initializing encryption key:', error);
+          onProgress?.(0);
           throw error;
         }
       },
@@ -316,33 +349,64 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     };
   }, [initializeEncryptionKey, encryption]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (
+      email: string,
+      password: string,
+      onProgress?: (progress: number, step: string) => void
+  ) => {
     try {
+      console.log('Starting sign in process...');
+      onProgress?.(0.1, 'Authenticating...');
+
       const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log("Signed in with password");
+      console.log('Supabase auth response:', {
+        hasError: !!error,
+        hasUser: !!data?.user,
+        errorMessage: error?.message
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase auth error:', error);
+        throw error;
+      }
 
       // User is now authenticated, initialize encryption
       if (data.user) {
+        console.log('User authenticated, initializing encryption...');
+        onProgress?.(0.2, 'Setting up encryption...');
+
         try {
           // Save the password temporarily for auth listener to use
           signupPassword.current = password;
-          await initializeEncryptionKey(data.user, password);
+
+          // Initialize encryption with progress tracking
+          await initializeEncryptionKey(data.user, password, (encryptionProgress) => {
+            // Map encryption progress to overall progress (20% to 95%)
+            const overallProgress = 0.2 + (encryptionProgress * 0.75);
+            const step = encryptionProgress < 0.5
+                ? 'Deriving encryption keys...'
+                : 'Finalizing setup...';
+            onProgress?.(overallProgress, step);
+          });
+
           setUser(data.user);
           setNeedsPasswordPrompt(false);
-        } catch (error) {
-          console.error('Failed to initialize encryption key after sign in:', error);
-          // If we can't initialize with the password, prompt the user
+          onProgress?.(1.0, 'Complete!');
+          console.log('Encryption initialized successfully');
+
+        } catch (encryptionError) {
+          console.error('Failed to initialize encryption key after sign in:', encryptionError);
           setNeedsPasswordPrompt(true);
+          throw new Error('Failed to initialize encryption. Please try again.');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      signupPassword.current = null;
       throw error;
     }
   };

@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { Buffer } from 'buffer';
 
 const ENCRYPTION_KEY_PREFIX = 'encryption_key_';
 const PRIVATE_KEY_PREFIX = 'private_key_';
