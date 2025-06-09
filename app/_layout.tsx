@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler'; // MUST be at the very top
+import { Buffer } from 'buffer';
 import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
 import { AuthProvider } from "@/context/AuthContext";
@@ -8,6 +9,9 @@ import * as eva from '@eva-design/eva';
 import { ApplicationProvider } from '@ui-kitten/components';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LogBox } from 'react-native';
+
+// Making sure it use the right Bugger
+if (typeof global.Buffer === 'undefined') global.Buffer = Buffer;
 
 if (!__DEV__) {
     LogBox.ignoreAllLogs();

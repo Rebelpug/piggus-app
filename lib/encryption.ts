@@ -4,7 +4,10 @@
  */
 import 'react-native-get-random-values';
 import * as Crypto from 'expo-crypto';
-import aesjs from 'aes-js';
+import { gcm } from '@noble/ciphers/aes';
+import { pbkdf2Async } from '@noble/hashes/pbkdf2';
+import { sha256 } from '@noble/hashes/sha2';
+import { randomBytes, utf8ToBytes, bytesToUtf8 } from '@noble/hashes/utils'; // 👈 correct imports
 import { RSA } from 'react-native-rsa-native';
 import { Buffer } from 'buffer';
 import {InteractionManager} from "react-native";
@@ -13,10 +16,10 @@ import {InteractionManager} from "react-native";
 // Constants and Utility Functions
 // =====================================================================
 
-const PBKDF2_ITERATIONS = 20000; // Balance should be between 10k and 100k, higher is better but slow down app
+const PBKDF2_ITERATIONS = 50000; // Balance should be between 10k and 100k, higher is better but slow down app
 const AES_KEY_LENGTH = 32; // 256 bits
-const AES_COUNTER_LENGTH = 16;
 const RSA_KEY_SIZE = 2048;
+const AES_IV_LENGTH = 12;
 
 /**
  * Convert array buffer to base64 string
@@ -62,97 +65,36 @@ export async function deriveKeyFromPassword(
     saltInput?: string,
     onProgress?: (progress: number) => void
 ): Promise<{ key: Uint8Array; salt: string }> {
-
   return new Promise((resolve, reject) => {
-    // Ensure this runs after any pending UI interactions
     InteractionManager.runAfterInteractions(async () => {
       try {
-        console.log('🔑 Starting async PBKDF2 derivation...');
+        console.info('🔑 Starting PBKDF2 derivation...');
         const startTime = Date.now();
 
-        const CHUNK_SIZE = 500;
-        const TOTAL_ITERATIONS = 20000;
-        const YIELD_INTERVAL = 10;
+        const salt = saltInput
+            ? base64ToArrayBuffer(saltInput)
+            : randomBytes(16);
 
-        // Generate salt if not provided
-        const salt = saltInput || arrayBufferToBase64(generateRandomBytes(16));
-        console.log('🧂 Salt:', salt.substring(0, 10) + '...');
+        const passwordBytes = utf8ToBytes(password);
 
-        // Initial key material
-        console.log('🔧 Creating initial key material...');
-        let key = await Crypto.digestStringAsync(
-            Crypto.CryptoDigestAlgorithm.SHA256,
-            password + salt,
-            { encoding: Crypto.CryptoEncoding.BASE64 }
-        );
-
-        if (!key) {
-          throw new Error('Failed to create initial key material');
-        }
-
-        let keyBuffer = base64ToArrayBuffer(key);
-        console.log('✅ Initial key created, starting iterations...');
-
-        // Process in chunks to avoid blocking
-        for (let chunk = 0; chunk < TOTAL_ITERATIONS; chunk += CHUNK_SIZE) {
-          const chunkEnd = Math.min(chunk + CHUNK_SIZE, TOTAL_ITERATIONS);
-
-          // Process this chunk synchronously
-          for (let i = chunk; i < chunkEnd; i++) {
-            try {
-              const combinedBuffer = Buffer.concat([
-                keyBuffer,
-                base64ToArrayBuffer(salt),
-                new Uint8Array([i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff])
-              ]);
-
-              key = await Crypto.digestStringAsync(
-                  Crypto.CryptoDigestAlgorithm.SHA256,
-                  arrayBufferToBase64(combinedBuffer),
-                  { encoding: Crypto.CryptoEncoding.BASE64 }
-              );
-
-              if (!key) {
-                throw new Error(`Failed to hash at iteration ${i}`);
-              }
-
-              keyBuffer = base64ToArrayBuffer(key);
-            } catch (iterError) {
-              console.error(`❌ Error at iteration ${i}:`, iterError);
-              throw iterError;
-            }
-          }
-
-          // Update progress
-          const progress = chunkEnd / TOTAL_ITERATIONS;
-          onProgress?.(progress);
-
-          // Log progress every 25%
-          if (chunkEnd % 5000 === 0) {
-            const elapsed = Date.now() - startTime;
-            console.log(`⏳ PBKDF2 progress: ${Math.round(progress * 100)}% (${elapsed}ms elapsed)`);
-          }
-
-          // Yield control to the UI thread
-          await new Promise(resolve => setTimeout(resolve, YIELD_INTERVAL));
-        }
+        // This is the full async-safe PBKDF2 operation
+        const key = await pbkdf2Async(sha256, passwordBytes, salt, {
+          c: PBKDF2_ITERATIONS,
+          dkLen: AES_KEY_LENGTH,
+        });
 
         const endTime = Date.now();
-        console.log(`✅ Async PBKDF2 completed in ${endTime - startTime}ms`);
+        console.info(`✅ Key derived in ${endTime - startTime}ms`);
 
-        // Ensure it's the right length for AES
-        const finalKey = keyBuffer.slice(0, AES_KEY_LENGTH);
+        onProgress?.(1); // mark 100% progress
 
-        if (finalKey.length !== AES_KEY_LENGTH) {
-          throw new Error(`Invalid key length: ${finalKey.length}, expected: ${AES_KEY_LENGTH}`);
-        }
-
-        console.log('🎉 Key derivation successful');
-        resolve({ key: finalKey, salt });
-
+        resolve({
+          key,
+          salt: arrayBufferToBase64(salt),
+        });
       } catch (error) {
-        console.error('❌ Error in async key derivation:', error);
-        reject(new Error(`Failed to derive encryption key: ${(error as Error)?.message}`));
+        console.error('❌ Error in PBKDF2:', error);
+        reject(new Error(`Key derivation failed: ${(error as Error)?.message}`));
       }
     });
   });
@@ -172,72 +114,40 @@ export function generateEncryptionKey() {
 /**
  * Encrypt data using AES-CTR
  */
-export function encryptWithAES(
-    data: string | object,
-    key: Uint8Array
-): string {
-  try {
-    // Generate a counter (IV)
-    const counter = generateRandomBytes(AES_COUNTER_LENGTH);
+export function encryptWithAES(data: string | object, key: Uint8Array): string {
+  const iv = generateRandomBytes(AES_IV_LENGTH);
+  const aesInstance = gcm(key, iv);
 
-    // Convert data to string if it's an object
-    const dataString = typeof data === 'object' ? JSON.stringify(data) : String(data);
+  const plaintext = typeof data === 'object' ? JSON.stringify(data) : String(data);
+  const ciphertext = aesInstance.encrypt(utf8ToBytes(plaintext));
 
-    // Convert to bytes
-    const dataBytes = aesjs.utils.utf8.toBytes(dataString);
+  const combined = new Uint8Array(iv.length + ciphertext.length);
+  combined.set(iv);
+  combined.set(ciphertext, iv.length);
 
-    // Set up AES-CTR mode
-    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-
-    // Encrypt
-    const encryptedBytes = aesCtr.encrypt(dataBytes);
-
-    // Combine counter and encrypted data
-    const combined = new Uint8Array(counter.length + encryptedBytes.length);
-    combined.set(counter);
-    combined.set(encryptedBytes, counter.length);
-
-    // Convert to base64
-    return arrayBufferToBase64(combined);
-  } catch (error) {
-    console.error('Encryption failed:', error);
-    throw new Error('Failed to encrypt data');
-  }
+  return Buffer.from(combined).toString('base64');
 }
 
 /**
  * Decrypt data using AES-CTR
  */
-export function decryptWithAES(
-    encryptedData: string,
-    key: Uint8Array
-): any {
+export function decryptWithAES(encryptedData: string, key: Uint8Array): any {
+  const combined = Buffer.from(encryptedData, 'base64');
+  const iv = combined.subarray(0, AES_IV_LENGTH);
+  const ciphertext = combined.subarray(AES_IV_LENGTH);
+
+  const aesInstance = gcm(key, iv);
+  const decryptedBytes = aesInstance.decrypt(ciphertext);
+
+  if (!decryptedBytes) {
+    throw new Error('AES-GCM decryption failed (authentication tag mismatch)');
+  }
+
+  const decryptedText = bytesToUtf8(decryptedBytes);
   try {
-    // Convert from base64
-    const encryptedBytes = base64ToArrayBuffer(encryptedData);
-
-    // Extract counter and data
-    const counter = encryptedBytes.slice(0, AES_COUNTER_LENGTH);
-    const dataBytes = encryptedBytes.slice(AES_COUNTER_LENGTH);
-
-    // Set up AES-CTR mode
-    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-
-    // Decrypt
-    const decryptedBytes = aesCtr.decrypt(dataBytes);
-
-    // Convert to string
-    const decryptedString = aesjs.utils.utf8.fromBytes(decryptedBytes);
-
-    // Try to parse as JSON if possible
-    try {
-      return JSON.parse(decryptedString);
-    } catch {
-      return decryptedString;
-    }
-  } catch (error) {
-    console.error('Decryption failed:', error);
-    throw new Error('Failed to decrypt data');
+    return JSON.parse(decryptedText);
+  } catch {
+    return decryptedText;
   }
 }
 

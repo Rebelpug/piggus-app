@@ -58,6 +58,7 @@ const LoginScreen = () => {
             });
 
             console.log('Login successful');
+            router.push('/(protected)');
 
         } catch (error: any) {
             console.error('Login failed:', error);
