@@ -13,6 +13,7 @@ import {
   EncryptionProvider
 } from '@/context/EncryptionContext';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import PasswordPrompt from "@/components/auth/PasswordPrompt";
 
 // Define the AuthContext type
 type AuthContextType = {
@@ -102,7 +103,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   };
 
   // Retrieve keys from user metadata
-  const retrieveKeysFromUserMetadata = async (
+  const retrieveKeysFromUserMetadata = useCallback(async (
       user: User
   ): Promise<{ publicKey: string | null; encryptedPrivateKey: string | null }> => {
     try {
@@ -120,7 +121,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       console.error('Error retrieving keys from user metadata:', error);
     }
     return { publicKey: null, encryptedPrivateKey: null };
-  };
+  }, []);
 
   // Initialize encryption key from password
   const initializeEncryptionKey = useCallback(
@@ -276,7 +277,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           if (publicKey && encryptedPrivateKey) {
             console.log('Found keys in metadata, need password');
             setNeedsPasswordPrompt(true);
-            await supabase.auth.signOut();
+            // Don't sign out - keep the user signed in but require password for encryption
           } else {
             console.log('No keys found anywhere, signing out');
             await supabase.auth.signOut();
@@ -293,14 +294,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     };
 
     checkSession();
-  }, [initializeEncryptionKey]);
+  }, [initializeEncryptionKey, retrieveKeysFromUserMetadata]);
 
   // Set up auth state change listener
   useEffect(() => {
     if (authListenerSetup.current) return;
 
     const setupAuthListener = () => {
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('Auth state changed:', event);
 
         if (event === 'SIGNED_IN' && session?.user) {
@@ -320,10 +321,16 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
                   setNeedsPasswordPrompt(true);
                 });
           } else {
-            // No saved password, prompt the user
-            console.log('No saved password after sign in, need to prompt user for password');
-            // We'll show the password prompt instead of immediately signing out
-            setNeedsPasswordPrompt(true);
+            // No saved password, check if we have keys in metadata first
+            const { publicKey, encryptedPrivateKey } = await retrieveKeysFromUserMetadata(session.user);
+
+            if (publicKey && encryptedPrivateKey) {
+              console.log('No saved password after sign in, but found keys in metadata - need password prompt');
+              setNeedsPasswordPrompt(true);
+            } else {
+              console.log('No saved password and no keys found, user needs to go through setup again');
+              await supabase.auth.signOut();
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
@@ -347,7 +354,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     return () => {
       if (cleanup) cleanup();
     };
-  }, [initializeEncryptionKey, encryption]);
+  }, [initializeEncryptionKey, encryption, retrieveKeysFromUserMetadata]);
 
   const signIn = async (
       email: string,
@@ -493,7 +500,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // If user is logged in but needs to enter password for encryption
     if (user && needsPasswordPrompt && !encryptionInitialized) {
       return (
-          <AuthSetupLoader />
+          <PasswordPrompt
+            onSuccess={() => {
+              setNeedsPasswordPrompt(false);
+            }}
+            onCancel={() => {
+              setNeedsPasswordPrompt(false);
+            }}
+          />
       );
     }
 

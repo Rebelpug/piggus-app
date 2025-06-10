@@ -1,9 +1,11 @@
 import React from 'react';
-import { TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { TouchableOpacity, Image, StyleSheet, View } from 'react-native';
 import { Text } from '@ui-kitten/components';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 interface ProfileHeaderProps {
     style?: any;
@@ -11,6 +13,8 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({ style }: ProfileHeaderProps) {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { userProfile } = useProfile();
 
@@ -39,13 +43,20 @@ export default function ProfileHeader({ style }: ProfileHeaderProps) {
             onPress={handlePress}
             activeOpacity={0.7}
         >
-            <Image
-                source={{ uri: getGravatarUrl(user.email || '') }}
-                style={styles.avatar}
-            />
-            <Text category='s2' style={styles.username}>
-                {userProfile.username}
-            </Text>
+            <View style={[styles.avatarContainer, { borderColor: colors.border }]}>
+                <Image
+                    source={{ uri: getGravatarUrl(user.email || '') }}
+                    style={styles.avatar}
+                />
+            </View>
+            <View style={styles.userInfo}>
+                <Text style={[styles.greeting, { color: colors.icon }]}>
+                    Hello,
+                </Text>
+                <Text style={[styles.username, { color: colors.text }]}>
+                    {userProfile.username}
+                </Text>
+            </View>
         </TouchableOpacity>
     );
 }
@@ -54,17 +65,33 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    avatarContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 2,
+        padding: 2,
+        marginRight: 12,
     },
     avatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        marginRight: 8,
+        width: '100%',
+        height: '100%',
+        borderRadius: 18,
         backgroundColor: '#F0F0F0',
     },
+    userInfo: {
+        justifyContent: 'center',
+    },
+    greeting: {
+        fontSize: 12,
+        fontWeight: '400',
+        marginBottom: 2,
+    },
     username: {
-        fontWeight: '500',
-        color: '#8F9BB3',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

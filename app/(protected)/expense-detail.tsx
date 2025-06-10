@@ -16,9 +16,14 @@ import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS, CURRENCIES } from '@/types/expense';
+import { ThemedView } from '@/components/ThemedView';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 export default function ExpenseDetailScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
     const { expensesGroups, deleteExpense } = useExpense();
@@ -128,7 +133,7 @@ export default function ExpenseDetailScreen() {
     };
 
     const BackIcon = (props: any) => (
-        <Ionicons name="arrow-back" size={24} color="#8F9BB3" />
+        <Ionicons name="arrow-back" size={24} color={colors.icon} />
     );
 
     const BackAction = () => (
@@ -137,17 +142,20 @@ export default function ExpenseDetailScreen() {
 
     if (!expense) {
         return (
-            <SafeAreaView style={styles.container}>
-                <TopNavigation
-                    title="Expense Details"
-                    alignment="center"
-                    accessoryLeft={BackAction}
-                />
-                <Divider />
-                <Layout style={styles.loadingContainer}>
-                    <Text>Loading expense details...</Text>
-                </Layout>
-            </SafeAreaView>
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <TopNavigation
+                        title="Expense Details"
+                        alignment="center"
+                        accessoryLeft={BackAction}
+                        style={{ backgroundColor: colors.background }}
+                    />
+                    <Divider />
+                    <Layout style={styles.loadingContainer}>
+                        <Text style={{ color: colors.text }}>Loading expense details...</Text>
+                    </Layout>
+                </SafeAreaView>
+            </ThemedView>
         );
     }
 
@@ -157,13 +165,15 @@ export default function ExpenseDetailScreen() {
     const payerMember = groupMembers.find(member => member.user_id === expense.data.payer_user_id);
 
     return (
-        <SafeAreaView style={styles.container}>
-            <TopNavigation
-                title="Expense Details"
-                alignment="center"
-                accessoryLeft={BackAction}
-            />
-            <Divider />
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
+                <TopNavigation
+                    title="Expense Details"
+                    alignment="center"
+                    accessoryLeft={BackAction}
+                    style={{ backgroundColor: colors.background }}
+                />
+                <Divider />
             <ScrollView style={styles.scrollView}>
                 <Card style={styles.card}>
                     <Layout style={styles.headerContainer}>
@@ -328,15 +338,18 @@ export default function ExpenseDetailScreen() {
                         Delete
                     </Button>
                 </Layout>
-            </ScrollView>
-        </SafeAreaView>
+                </ScrollView>
+            </SafeAreaView>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
+    },
+    safeArea: {
+        flex: 1,
     },
     scrollView: {
         flex: 1,

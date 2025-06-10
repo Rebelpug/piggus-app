@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList } from 'react-native';
 import {
     Layout,
     Text,
@@ -18,9 +18,13 @@ import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 export default function ExpensesScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { expensesGroups, isLoading, error } = useExpense();
     const [refreshing, setRefreshing] = useState(false);
@@ -114,6 +118,23 @@ export default function ExpensesScreen() {
         return colors[category] || colors.other;
     };
 
+    const getCategoryIcon = (category: string) => {
+        const icons: { [key: string]: string } = {
+            food: 'restaurant-outline',
+            transportation: 'car-outline',
+            housing: 'home-outline',
+            utilities: 'flash-outline',
+            entertainment: 'game-controller-outline',
+            shopping: 'bag-outline',
+            health: 'medical-outline',
+            education: 'book-outline',
+            personal: 'person-outline',
+            travel: 'airplane-outline',
+            other: 'ellipsis-horizontal-outline',
+        };
+        return icons[category] || icons.other;
+    };
+
     const renderExpenseItem = ({ item }: { item: ExpenseWithDecryptedData & { groupName?: string } }) => {
         if (!item || !item.data) {
             return null;
@@ -125,45 +146,8 @@ export default function ExpensesScreen() {
         const isSharedExpense = item.data.participants.length > 1;
 
         return (
-            <ListItem
-                title={item.data.name || 'Unnamed Expense'}
-                description={`${item.groupName || 'Unknown Group'} • ${formatDate(item.data.date)}`}
-                accessoryLeft={() => (
-                    <Layout style={[styles.categoryIndicator, { backgroundColor: getCategoryColor(item.data.category) }]} />
-                )}
-                accessoryRight={() => (
-                    <Layout style={styles.amountContainer}>
-                        {isSharedExpense ? (
-                            <Layout style={styles.sharedAmountContainer}>
-                                <Text category='s1' style={styles.userShare}>
-                                    {formatCurrency(userShare, item.data.currency)}
-                                </Text>
-                                <Text category='c1' appearance='hint' style={styles.totalAmount}>
-                                    of {formatCurrency(totalAmount, item.data.currency)}
-                                </Text>
-                                {isPayer && (
-                                    <Layout style={styles.payerBadge}>
-                                        <Text category='c1' style={styles.payerText}>You paid</Text>
-                                    </Layout>
-                                )}
-                            </Layout>
-                        ) : (
-                            <Layout style={styles.singleAmountContainer}>
-                                <Text category='s1' style={styles.amount}>
-                                    {formatCurrency(userShare, item.data.currency)}
-                                </Text>
-                                {isPayer && (
-                                    <Text category='c1' appearance='hint' style={styles.personalExpense}>
-                                        Personal
-                                    </Text>
-                                )}
-                            </Layout>
-                        )}
-                        <Text category='c1' appearance='hint' style={styles.category}>
-                            {item.data.category || 'other'}
-                        </Text>
-                    </Layout>
-                )}
+            <TouchableOpacity
+                style={[styles.expenseCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
                 onPress={() => {
                     router.push({
                         pathname: '/(protected)/expense-detail',
@@ -173,7 +157,54 @@ export default function ExpensesScreen() {
                         }
                     });
                 }}
-            />
+            >
+                <View style={styles.expenseCardContent}>
+                    <View style={styles.expenseHeader}>
+                        <View style={styles.expenseMainInfo}>
+                            <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(item.data.category) + '20' }]}>
+                                <Ionicons 
+                                    name={getCategoryIcon(item.data.category)} 
+                                    size={20} 
+                                    color={getCategoryColor(item.data.category)} 
+                                />
+                            </View>
+                            <View style={styles.expenseDetails}>
+                                <Text style={[styles.expenseTitle, { color: colors.text }]}>
+                                    {item.data.name || 'Unnamed Expense'}
+                                </Text>
+                                <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
+                                    {item.groupName || 'Unknown Group'} • {formatDate(item.data.date)}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.expenseAmount}>
+                            <Text style={[styles.amountText, { color: colors.text }]}>
+                                {formatCurrency(userShare, item.data.currency)}
+                            </Text>
+                            {isSharedExpense && (
+                                <Text style={[styles.totalAmountText, { color: colors.icon }]}>
+                                    of {formatCurrency(totalAmount, item.data.currency)}
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+                    
+                    <View style={styles.expenseFooter}>
+                        <View style={styles.expenseCategory}>
+                            <Text style={[styles.categoryText, { color: colors.icon }]}>
+                                {item.data.category || 'other'}
+                            </Text>
+                        </View>
+                        {isPayer && (
+                            <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
+                                <Text style={[styles.payerText, { color: colors.primary }]}>
+                                    You paid
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
         );
     };
 
@@ -188,19 +219,17 @@ export default function ExpensesScreen() {
         }, 0);
 
         return (
-            <Layout style={styles.header}>
-                <Layout style={styles.summaryCard}>
-                    <Card style={styles.card}>
-                        <Text category='h6' style={styles.summaryTitle}>Your Total Expenses</Text>
-                        <Text category='h4' style={styles.summaryAmount}>
-                            {formatCurrency(totalUserSpent)}
-                        </Text>
-                        <Text category='c1' appearance='hint'>
-                            {allExpenses.length} transaction{allExpenses.length !== 1 ? 's' : ''} you're part of
-                        </Text>
-                    </Card>
-                </Layout>
-            </Layout>
+            <View style={styles.header}>
+                <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.summaryTitle, { color: colors.text }]}>Total Expenses</Text>
+                    <Text style={[styles.summaryAmount, { color: colors.primary }]}>
+                        {formatCurrency(totalUserSpent)}
+                    </Text>
+                    <Text style={[styles.summarySubtitle, { color: colors.icon }]}>
+                        {allExpenses.length} transaction{allExpenses.length !== 1 ? 's' : ''} you're part of
+                    </Text>
+                </View>
+            </View>
         );
     };
 
@@ -278,40 +307,42 @@ export default function ExpensesScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
                 title='Expenses'
                 alignment='center'
                 accessoryLeft={renderLeftActions}
                 accessoryRight={renderRightActions}
+                style={{ backgroundColor: colors.background }}
             />
 
             {allExpenses.length === 0 ? (
                 renderEmptyState()
             ) : (
-                <List
+                <FlatList
                     style={styles.list}
                     data={allExpenses}
                     renderItem={renderExpenseItem}
-                    ItemSeparatorComponent={Divider}
                     ListHeaderComponent={renderHeader}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={onRefresh}
+                            tintColor={colors.primary}
                         />
                     }
                 />
             )}
 
             {allExpenses.length > 0 && (
-                <Button
-                    style={styles.fab}
-                    accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                <TouchableOpacity
+                    style={[styles.fab, { backgroundColor: colors.primary }]}
                     onPress={handleAddExpense}
-                    size='large'
-                    status='primary'
-                />
+                >
+                    <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
             )}
         </SafeAreaView>
     );
@@ -320,7 +351,6 @@ export default function ExpensesScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
     },
     errorContainer: {
         flex: 1,
@@ -341,6 +371,7 @@ const styles = StyleSheet.create({
     },
     retryButton: {
         paddingHorizontal: 24,
+        borderRadius: 12,
     },
     emptyState: {
         flex: 1,
@@ -361,92 +392,131 @@ const styles = StyleSheet.create({
     },
     addButton: {
         paddingHorizontal: 24,
+        borderRadius: 12,
     },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        padding: 20,
+        paddingBottom: 10,
     },
     summaryCard: {
-        marginBottom: 16,
-    },
-    card: {
-        padding: 16,
+        padding: 24,
+        borderRadius: 20,
+        marginBottom: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     summaryTitle: {
+        fontSize: 16,
+        fontWeight: '600',
         marginBottom: 8,
         textAlign: 'center',
     },
     summaryAmount: {
-        marginBottom: 4,
+        fontSize: 32,
+        fontWeight: '700',
+        marginBottom: 8,
         textAlign: 'center',
-        color: '#2E7D32',
+    },
+    summarySubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
     },
     list: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
-    categoryIndicator: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
+    listContent: {
+        paddingBottom: 100,
+    },
+    expenseCard: {
+        marginHorizontal: 20,
+        marginVertical: 6,
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    expenseCardContent: {
+        padding: 16,
+    },
+    expenseHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
+    expenseMainInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    categoryIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginRight: 12,
     },
-    amountContainer: {
-        alignItems: 'flex-end',
-        minWidth: 100,
+    expenseDetails: {
+        flex: 1,
     },
-    sharedAmountContainer: {
-        alignItems: 'flex-end',
-    },
-    singleAmountContainer: {
-        alignItems: 'flex-end',
-    },
-    userShare: {
-        fontWeight: '600',
-        color: '#2E7D32',
+    expenseTitle: {
         fontSize: 16,
-    },
-    totalAmount: {
-        fontSize: 12,
-        marginTop: 2,
-    },
-    amount: {
         fontWeight: '600',
-        color: '#2E7D32',
+        marginBottom: 4,
+    },
+    expenseSubtitle: {
+        fontSize: 14,
+    },
+    expenseAmount: {
+        alignItems: 'flex-end',
+    },
+    amountText: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    totalAmountText: {
+        fontSize: 12,
+    },
+    expenseFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    expenseCategory: {
+        flex: 1,
+    },
+    categoryText: {
+        fontSize: 12,
+        fontWeight: '500',
+        textTransform: 'capitalize',
     },
     payerBadge: {
-        backgroundColor: '#E3F2FD',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: 8,
-        marginTop: 4,
     },
     payerText: {
-        color: '#1976D2',
-        fontSize: 10,
-        fontWeight: '500',
-    },
-    personalExpense: {
         fontSize: 12,
-        marginTop: 2,
-    },
-    category: {
-        textTransform: 'capitalize',
-        marginTop: 4,
-        fontSize: 12,
+        fontWeight: '600',
     },
     fab: {
         position: 'absolute',
         bottom: 20,
         right: 20,
+        width: 56,
+        height: 56,
         borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
         elevation: 8,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
-        shadowRadius: 6,
+        shadowRadius: 8,
     },
     headerActions: {
         flexDirection: 'row',

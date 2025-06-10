@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, View, Dimensions } from 'react-native';
 import {
     Layout,
     Text,
@@ -22,9 +22,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { CURRENCIES, calculateUserShare, calculateUserBalance } from '@/types/expense';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { expensesGroups, isLoading } = useExpense();
     const { userProfile, updateProfile } = useProfile();
@@ -176,12 +182,13 @@ export default function HomeScreen() {
     const budgetStatusInfo = getBudgetStatus();
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
                 title='Dashboard'
                 alignment='center'
                 accessoryLeft={renderLeftActions}
                 accessoryRight={renderRightActions}
+                style={{ backgroundColor: colors.background }}
             />
 
             <ScrollView
@@ -190,45 +197,55 @@ export default function HomeScreen() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
+                        tintColor={colors.primary}
                     />
                 }
                 showsVerticalScrollIndicator={false}
             >
+                {/* Welcome Section */}
+                <View style={styles.welcomeSection}>
+                    <Text style={[styles.welcomeText, { color: colors.text }]}>
+                        Welcome back!
+                    </Text>
+                    <Text style={[styles.welcomeSubtext, { color: colors.icon }]}>
+                        Here's your spending overview
+                    </Text>
+                </View>
+
                 {/* Budget Overview Card */}
-                <Card style={styles.budgetCard}>
-                    <Layout style={styles.budgetHeader}>
-                        <Text category='h6'>Monthly Budget</Text>
+                <View style={[styles.budgetCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <View style={styles.budgetHeader}>
+                        <Text style={[styles.budgetTitle, { color: colors.text }]}>Monthly Budget</Text>
                         {budget ? (
                             <TouchableOpacity onPress={() => setBudgetModalVisible(true)}>
-                                <Ionicons name="settings-outline" size={20} color="#8F9BB3" />
+                                <Ionicons name="settings-outline" size={20} color={colors.icon} />
                             </TouchableOpacity>
                         ) : null}
-                    </Layout>
+                    </View>
 
                     {budget ? (
-                        <Layout>
-                            <Layout style={styles.budgetAmounts}>
-                                <Layout style={styles.budgetItem}>
-                                    <Text category='h5' style={styles.spentAmount}>
+                        <View>
+                            <View style={styles.budgetMainInfo}>
+                                <View style={styles.budgetSpent}>
+                                    <Text style={[styles.budgetSpentAmount, { color: colors.error }]}>
                                         {formatCurrency(currentMonthData.totalSpent)}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>Your Share</Text>
-                                </Layout>
-                                <Layout style={styles.budgetDivider} />
-                                <Layout style={styles.budgetItem}>
-                                    <Text category='h5' style={[styles.remainingAmount, { color: budgetRemaining >= 0 ? '#4CAF50' : '#F44336' }]}>
+                                    <Text style={[styles.budgetSpentLabel, { color: colors.icon }]}>Spent this month</Text>
+                                </View>
+                                <View style={styles.budgetRemaining}>
+                                    <Text style={[styles.budgetRemainingAmount, { color: budgetRemaining >= 0 ? colors.success : colors.error }]}>
                                         {formatCurrency(Math.abs(budgetRemaining))}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>
+                                    <Text style={[styles.budgetRemainingLabel, { color: colors.icon }]}>
                                         {budgetRemaining >= 0 ? 'Remaining' : 'Over Budget'}
                                     </Text>
-                                </Layout>
-                            </Layout>
+                                </View>
+                            </View>
 
-                            {/* Budget Progress Bar */}
-                            <Layout style={styles.progressContainer}>
-                                <Layout style={styles.progressBar}>
-                                    <Layout
+                            {/* Modern Progress Bar */}
+                            <View style={styles.progressContainer}>
+                                <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                                    <View
                                         style={[
                                             styles.progressFill,
                                             {
@@ -237,54 +254,89 @@ export default function HomeScreen() {
                                             }
                                         ]}
                                     />
-                                </Layout>
-                                <Text category='c1' style={[styles.budgetStatus, { color: budgetStatusInfo.color }]}>
-                                    {budgetStatusInfo.status} ({budgetPercentUsed.toFixed(0)}%)
-                                </Text>
-                            </Layout>
+                                </View>
+                                <View style={styles.progressInfo}>
+                                    <Text style={[styles.budgetStatus, { color: budgetStatusInfo.color }]}>
+                                        {budgetStatusInfo.status}
+                                    </Text>
+                                    <Text style={[styles.budgetPercentage, { color: colors.icon }]}>
+                                        {budgetPercentUsed.toFixed(0)}%
+                                    </Text>
+                                </View>
+                            </View>
 
-                            <Text category='c1' appearance='hint' style={styles.budgetTotal}>
-                                Budget: {formatCurrency(budgetAmount_profile)}
+                            <Text style={[styles.budgetTotal, { color: colors.icon }]}>
+                                Total Budget: {formatCurrency(budgetAmount_profile)}
                             </Text>
-                        </Layout>
+                        </View>
                     ) : (
-                        <Layout style={styles.noBudgetContainer}>
-                            <Ionicons name="wallet-outline" size={48} color="#8F9BB3" style={styles.noBudgetIcon} />
-                            <Text category='s1' appearance='hint' style={styles.noBudgetText}>
-                                Set a monthly budget to track your spending
+                        <View style={styles.noBudgetContainer}>
+                            <View style={[styles.noBudgetIcon, { backgroundColor: colors.primary + '20' }]}>
+                                <Ionicons name="wallet-outline" size={32} color={colors.primary} />
+                            </View>
+                            <Text style={[styles.noBudgetText, { color: colors.text }]}>
+                                Set a monthly budget
                             </Text>
-                            <Button
-                                style={styles.setBudgetButton}
-                                size='medium'
+                            <Text style={[styles.noBudgetSubtext, { color: colors.icon }]}>
+                                Track your spending and stay on budget
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.setBudgetButton, { backgroundColor: colors.primary }]}
                                 onPress={() => setBudgetModalVisible(true)}
                             >
-                                Set Budget
-                            </Button>
-                        </Layout>
+                                <Text style={styles.setBudgetButtonText}>Set Budget</Text>
+                            </TouchableOpacity>
+                        </View>
                     )}
-                </Card>
+                </View>
+
+                {/* Stats Cards */}
+                <View style={styles.statsContainer}>
+                    <View style={[styles.statCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                        <View style={[styles.statIcon, { backgroundColor: colors.secondary + '20' }]}>
+                            <Ionicons name="receipt-outline" size={24} color={colors.secondary} />
+                        </View>
+                        <Text style={[styles.statNumber, { color: colors.text }]}>
+                            {currentMonthData.transactionCount}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: colors.icon }]}>
+                            Transactions
+                        </Text>
+                    </View>
+
+                    <View style={[styles.statCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                        <View style={[styles.statIcon, { backgroundColor: colors.accent + '20' }]}>
+                            <Ionicons name="people-outline" size={24} color={colors.accent} />
+                        </View>
+                        <Text style={[styles.statNumber, { color: colors.text }]}>
+                            {expensesGroups.filter(g => g.membership_status === 'confirmed').length}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: colors.icon }]}>
+                            Active Groups
+                        </Text>
+                    </View>
+                </View>
 
                 {/* Quick Actions */}
-                <Layout style={styles.actionsContainer}>
-                    <Button
-                        style={styles.primaryAction}
-                        size='large'
-                        accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                <View style={styles.actionsContainer}>
+                    <TouchableOpacity
+                        style={[styles.primaryAction, { backgroundColor: colors.primary }]}
                         onPress={handleAddExpense}
                     >
-                        Add Expense
-                    </Button>
+                        <Ionicons name="add" size={24} color="white" />
+                        <Text style={styles.primaryActionText}>Add Expense</Text>
+                    </TouchableOpacity>
 
-                    <Button
-                        style={styles.secondaryAction}
-                        appearance='outline'
-                        size='large'
-                        accessoryLeft={(props) => <Ionicons name="people-outline" size={20} color={props?.tintColor || '#3366FF'} />}
+                    <TouchableOpacity
+                        style={[styles.secondaryAction, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.text }]}
                         onPress={handleViewGroups}
                     >
-                        Manage Groups
-                    </Button>
-                </Layout>
+                        <Ionicons name="people-outline" size={24} color={colors.primary} />
+                        <Text style={[styles.secondaryActionText, { color: colors.primary }]}>Manage Groups</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 100 }} />
             </ScrollView>
 
             {/* Budget Modal */}
@@ -336,63 +388,100 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
     },
     content: {
         flex: 1,
-        padding: 16,
+        paddingHorizontal: 20,
+    },
+    welcomeSection: {
+        paddingVertical: 20,
+        paddingBottom: 16,
+    },
+    welcomeText: {
+        fontSize: 28,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    welcomeSubtext: {
+        fontSize: 16,
+        fontWeight: '400',
     },
     budgetCard: {
-        marginBottom: 16,
-        padding: 20,
+        marginBottom: 24,
+        padding: 24,
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     budgetHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
-    budgetAmounts: {
+    budgetTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    budgetMainInfo: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 24,
     },
-    budgetItem: {
-        alignItems: 'center',
+    budgetSpent: {
         flex: 1,
     },
-    budgetDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: '#E4E9F2',
-        marginHorizontal: 16,
-    },
-    spentAmount: {
-        color: '#FF6B6B',
+    budgetSpentAmount: {
+        fontSize: 24,
+        fontWeight: '700',
         marginBottom: 4,
     },
-    remainingAmount: {
+    budgetSpentLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    budgetRemaining: {
+        flex: 1,
+        alignItems: 'flex-end',
+    },
+    budgetRemainingAmount: {
+        fontSize: 24,
+        fontWeight: '700',
         marginBottom: 4,
+    },
+    budgetRemainingLabel: {
+        fontSize: 14,
+        fontWeight: '500',
     },
     progressContainer: {
-        marginBottom: 12,
+        marginBottom: 16,
     },
-    progressBar: {
+    progressTrack: {
         height: 8,
-        backgroundColor: '#E4E9F2',
-        borderRadius: 4,
-        marginBottom: 8,
+        borderRadius: 6,
+        marginBottom: 12,
     },
     progressFill: {
         height: '100%',
-        borderRadius: 4,
+        borderRadius: 6,
+    },
+    progressInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     budgetStatus: {
-        textAlign: 'center',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    budgetPercentage: {
+        fontSize: 14,
         fontWeight: '500',
     },
     budgetTotal: {
+        fontSize: 14,
         textAlign: 'center',
     },
     noBudgetContainer: {
@@ -400,126 +489,123 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
     },
     noBudgetIcon: {
-        marginBottom: 12,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
     },
     noBudgetText: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 8,
         textAlign: 'center',
-        marginBottom: 16,
+    },
+    noBudgetSubtext: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 20,
         lineHeight: 20,
     },
     setBudgetButton: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        borderRadius: 12,
+    },
+    setBudgetButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
     statsContainer: {
         flexDirection: 'row',
-        marginBottom: 16,
-        gap: 12,
+        marginBottom: 24,
+        gap: 16,
     },
     statCard: {
         flex: 1,
-        padding: 16,
-    },
-    statContent: {
+        padding: 20,
+        borderRadius: 16,
         alignItems: 'center',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    statIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
     },
     statNumber: {
-        marginVertical: 8,
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 12,
+        fontWeight: '500',
         textAlign: 'center',
     },
-    balancesCard: {
-        marginBottom: 16,
-        padding: 20,
-    },
-    balancesHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    balanceItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    balanceInfo: {
-        flex: 1,
-    },
-    balanceAmount: {
-        alignItems: 'flex-end',
-    },
-    balanceText: {
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    balanceStatus: {
-        fontSize: 12,
-        marginTop: 2,
-    },
-    activityCard: {
-        marginBottom: 16,
-        padding: 20,
-    },
-    activityHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    viewAllText: {
-        color: '#3366FF',
-        fontWeight: '500',
-    },
-    groupItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    groupInfo: {
-        flex: 1,
-    },
-    groupName: {
-        marginBottom: 2,
-        fontWeight: '500',
-    },
-    groupTotal: {
-        fontWeight: '600',
-        color: '#2E7D32',
-    },
-    noActivityContainer: {
-        alignItems: 'center',
-        paddingVertical: 20,
-    },
     actionsContainer: {
-        gap: 12,
+        gap: 16,
         marginBottom: 32,
     },
     primaryAction: {
-        // Default styling
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 16,
+        gap: 8,
+    },
+    primaryActionText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
     secondaryAction: {
-        // Default styling
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        gap: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    secondaryActionText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     backdrop: {
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalCard: {
         minWidth: 320,
+        borderRadius: 20,
+        padding: 24,
     },
     modalTitle: {
+        fontSize: 20,
+        fontWeight: '600',
         marginBottom: 8,
     },
     modalDescription: {
-        marginBottom: 16,
-        lineHeight: 20,
+        marginBottom: 20,
+        lineHeight: 22,
+        fontSize: 14,
     },
     modalInput: {
-        marginBottom: 16,
+        marginBottom: 20,
+        borderRadius: 12,
     },
     modalActions: {
         flexDirection: 'row',
@@ -528,6 +614,7 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         flex: 1,
+        borderRadius: 12,
     },
     headerActions: {
         flexDirection: 'row',

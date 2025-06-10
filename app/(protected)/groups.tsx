@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, StatusBar, ScrollView } from 'react-native';
 import {
     Layout,
     Text,
@@ -17,9 +17,14 @@ import { useExpense } from '@/context/ExpenseContext';
 import { ExpenseGroupWithDecryptedData } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
+import { ThemedView } from '@/components/ThemedView';
 
 export default function GroupsScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { expensesGroups, isLoading, error } = useExpense();
     const [refreshing, setRefreshing] = useState(false);
 
@@ -91,64 +96,59 @@ export default function GroupsScreen() {
         }, 0) || 0;
 
         return (
-            <ListItem
-                title={item.data.name || 'Unnamed Group'}
-                description={item.data.description || 'No description'}
-                accessoryLeft={() => (
-                    <Layout style={[
-                        styles.statusIndicator,
-                        { backgroundColor: getGroupStatusColor(item.membership_status || 'confirmed') }
-                    ]} />
-                )}
-                accessoryRight={() => (
-                    <Layout style={styles.groupInfo}>
-                        <Text category='c1' appearance='hint' style={styles.groupStats}>
-                            {expenseCount} expense{expenseCount !== 1 ? 's' : ''} • {memberCount} member{memberCount !== 1 ? 's' : ''}
-                        </Text>
-                        <Text category='s2' style={styles.groupTotal}>
-                            ${totalAmount.toFixed(2)}
-                        </Text>
-                        <Text category='c1' style={[
-                            styles.groupStatus,
-                            { color: getGroupStatusColor(item.membership_status || 'confirmed') }
-                        ]}>
-                            {getGroupStatusText(item.membership_status || 'confirmed')}
-                        </Text>
-                    </Layout>
-                )}
+            <TouchableOpacity
+                style={[styles.groupCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
                 onPress={() => handleGroupPress(item)}
-            />
-        );
-    };
-
-    const renderHeader = () => {
-        const confirmedGroups = expensesGroups.filter(group => group.membership_status === 'confirmed');
-        const pendingGroups = expensesGroups.filter(group => group.membership_status === 'pending');
-
-        return (
-            <Layout style={styles.header}>
-                <Layout style={styles.summaryCard}>
-                    <Card style={styles.card}>
-                        <Text category='h6' style={styles.summaryTitle}>Groups Summary</Text>
-                        <Layout style={styles.summaryRow}>
-                            <Layout style={styles.summaryItem}>
-                                <Text category='h5' style={styles.summaryNumber}>
-                                    {confirmedGroups.length}
+            >
+                <View style={styles.groupCardContent}>
+                    <View style={styles.groupHeader}>
+                        <View style={styles.groupMainInfo}>
+                            <View style={[
+                                styles.statusIcon,
+                                { backgroundColor: getGroupStatusColor(item.membership_status || 'confirmed') + '20' }
+                            ]}>
+                                <View style={[
+                                    styles.statusDot,
+                                    { backgroundColor: getGroupStatusColor(item.membership_status || 'confirmed') }
+                                ]} />
+                            </View>
+                            <View style={styles.groupDetails}>
+                                <Text style={[styles.groupTitle, { color: colors.text }]}>
+                                    {item.data.name || 'Unnamed Group'}
                                 </Text>
-                                <Text category='c1' appearance='hint'>Active</Text>
-                            </Layout>
-                            {pendingGroups.length > 0 && (
-                                <Layout style={styles.summaryItem}>
-                                    <Text category='h5' style={[styles.summaryNumber, { color: '#FF9800' }]}>
-                                        {pendingGroups.length}
-                                    </Text>
-                                    <Text category='c1' appearance='hint'>Pending</Text>
-                                </Layout>
-                            )}
-                        </Layout>
-                    </Card>
-                </Layout>
-            </Layout>
+                                <Text style={[styles.groupSubtitle, { color: colors.icon }]}>
+                                    {item.data.description || 'No description'}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.groupAmount}>
+                            <Text style={[styles.amountText, { color: colors.text }]}>
+                                ${totalAmount.toFixed(2)}
+                            </Text>
+                            <Text style={[styles.statusText, { color: getGroupStatusColor(item.membership_status || 'confirmed') }]}>
+                                {getGroupStatusText(item.membership_status || 'confirmed')}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.groupFooter}>
+                        <View style={styles.groupStats}>
+                            <View style={styles.statItem}>
+                                <Ionicons name="receipt-outline" size={14} color={colors.icon} />
+                                <Text style={[styles.statText, { color: colors.icon }]}>
+                                    {expenseCount} expense{expenseCount !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Ionicons name="people-outline" size={14} color={colors.icon} />
+                                <Text style={[styles.statText, { color: colors.icon }]}>
+                                    {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
         );
     };
 
@@ -187,87 +187,106 @@ export default function GroupsScreen() {
 
     if (isLoading && !refreshing) {
         return (
-            <SafeAreaView style={styles.container}>
-                <TopNavigation
-                    title='Expense Groups'
-                    alignment='center'
-                    accessoryLeft={renderBackAction}
-                    accessoryRight={renderRightAction}
-                />
-                <AuthSetupLoader />
-            </SafeAreaView>
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <TopNavigation
+                        title='Expense Groups'
+                        alignment='center'
+                        accessoryLeft={renderBackAction}
+                        accessoryRight={renderRightAction}
+                        style={{ backgroundColor: colors.background }}
+                    />
+                    <AuthSetupLoader />
+                </SafeAreaView>
+            </ThemedView>
         );
     }
 
     if (error) {
         return (
-            <SafeAreaView style={styles.container}>
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <TopNavigation
+                        title='Expense Groups'
+                        alignment='center'
+                        accessoryLeft={renderBackAction}
+                        accessoryRight={renderRightAction}
+                        style={{ backgroundColor: colors.background }}
+                    />
+                    <Layout style={styles.errorContainer}>
+                        <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
+                        <Text category='h6' style={styles.errorTitle}>Error loading groups</Text>
+                        <Text category='s1' appearance='hint' style={styles.errorDescription}>
+                            {error}
+                        </Text>
+                        <Button
+                            style={styles.retryButton}
+                            status='primary'
+                            onPress={onRefresh}
+                        >
+                            Try Again
+                        </Button>
+                    </Layout>
+                </SafeAreaView>
+            </ThemedView>
+        );
+    }
+
+    return (
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
                 <TopNavigation
                     title='Expense Groups'
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     accessoryRight={renderRightAction}
+                    style={{ backgroundColor: colors.background }}
                 />
-                <Layout style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                    <Text category='h6' style={styles.errorTitle}>Error loading groups</Text>
-                    <Text category='s1' appearance='hint' style={styles.errorDescription}>
-                        {error}
-                    </Text>
-                    <Button
-                        style={styles.retryButton}
-                        status='primary'
-                        onPress={onRefresh}
+
+                {expensesGroups.length === 0 ? (
+                    renderEmptyState()
+                ) : (
+                    <ScrollView
+                        style={styles.content}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                tintColor={colors.primary}
+                            />
+                        }
+                        showsVerticalScrollIndicator={false}
                     >
-                        Try Again
-                    </Button>
-                </Layout>
-            </SafeAreaView>
-        );
-    }
+                        <View style={styles.groupsList}>
+                            {expensesGroups.map((item, index) => (
+                                <View key={item.id}>
+                                    {renderGroupItem({ item })}
+                                </View>
+                            ))}
+                        </View>
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <TopNavigation
-                title='Expense Groups'
-                alignment='center'
-                accessoryLeft={renderBackAction}
-                accessoryRight={renderRightAction}
-            />
+                        <View style={{ height: 100 }} />
+                    </ScrollView>
+                )}
 
-            {expensesGroups.length === 0 ? (
-                renderEmptyState()
-            ) : (
-                <List
-                    style={styles.list}
-                    data={expensesGroups}
-                    renderItem={renderGroupItem}
-                    ItemSeparatorComponent={Divider}
-                    ListHeaderComponent={renderHeader}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                        />
-                    }
+                <Button
+                    style={styles.fab}
+                    accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                    onPress={handleCreateGroup}
+                    size='large'
+                    status='primary'
                 />
-            )}
-
-            <Button
-                style={styles.fab}
-                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
-                onPress={handleCreateGroup}
-                size='large'
-                status='primary'
-            />
-        </SafeAreaView>
+            </SafeAreaView>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+    },
+    safeArea: {
+        flex: 1,
     },
     loadingContainer: {
         flex: 1,
@@ -317,18 +336,39 @@ const styles = StyleSheet.create({
     addButton: {
         paddingHorizontal: 24,
     },
+    content: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingVertical: 20,
+        paddingBottom: 16,
+    },
+    welcomeSection: {
+        marginBottom: 24,
+    },
+    welcomeText: {
+        fontSize: 28,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    welcomeSubtext: {
+        fontSize: 16,
+        fontWeight: '400',
     },
     summaryCard: {
-        marginBottom: 16,
-    },
-    card: {
-        padding: 16,
+        padding: 24,
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        marginBottom: 24,
     },
     summaryTitle: {
-        marginBottom: 12,
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 20,
         textAlign: 'center',
     },
     summaryRow: {
@@ -337,33 +377,103 @@ const styles = StyleSheet.create({
     },
     summaryItem: {
         alignItems: 'center',
+        flex: 1,
+    },
+    summaryIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
     },
     summaryNumber: {
+        fontSize: 20,
+        fontWeight: '700',
         marginBottom: 4,
-        color: '#2E7D32',
     },
-    list: {
+    summaryLabel: {
+        fontSize: 12,
+        fontWeight: '500',
+        textAlign: 'center',
+    },
+    groupsList: {
+        gap: 12,
+    },
+    groupCard: {
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        marginBottom: 12,
+    },
+    groupCardContent: {
+        padding: 16,
+    },
+    groupHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
+    groupMainInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
-    statusIndicator: {
+    statusIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    statusDot: {
         width: 12,
         height: 12,
         borderRadius: 6,
-        marginRight: 12,
     },
-    groupInfo: {
+    groupDetails: {
+        flex: 1,
+    },
+    groupTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    groupSubtitle: {
+        fontSize: 14,
+    },
+    groupAmount: {
         alignItems: 'flex-end',
     },
+    amountText: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: '500',
+        textTransform: 'capitalize',
+    },
+    groupFooter: {
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+        paddingTop: 12,
+    },
     groupStats: {
-        marginBottom: 2,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
-    groupTotal: {
-        fontWeight: '600',
-        color: '#2E7D32',
-        marginBottom: 2,
+    statItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
-    groupStatus: {
+    statText: {
         fontSize: 12,
         fontWeight: '500',
     },

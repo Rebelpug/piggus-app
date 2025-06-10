@@ -3,11 +3,11 @@ import { Buffer } from 'buffer';
 import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { Stack } from "expo-router";
 import React from 'react';
 import * as eva from '@eva-design/eva';
 import { ApplicationProvider } from '@ui-kitten/components';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { LogBox } from 'react-native';
 
 // Making sure it use the right Bugger
@@ -23,17 +23,9 @@ if (!__DEV__) {
     });
 }
 
-export default function RootLayout() {
-    const [loaded] = useFonts({
-        SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    });
-
-    const colorScheme = useColorScheme();
+function ThemedApp() {
+    const { colorScheme } = useTheme();
     const theme = colorScheme === 'dark' ? eva.dark : eva.light;
-
-    if (!loaded) {
-        return null;
-    }
 
     return (
         <ApplicationProvider {...eva} theme={theme}>
@@ -43,5 +35,21 @@ export default function RootLayout() {
                 }} />
             </AuthProvider>
         </ApplicationProvider>
+    );
+}
+
+export default function RootLayout() {
+    const [loaded] = useFonts({
+        SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    });
+
+    if (!loaded) {
+        return null;
+    }
+
+    return (
+        <ThemeProvider>
+            <ThemedApp />
+        </ThemeProvider>
     );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Alert, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, TextInput, StatusBar } from 'react-native';
 import {
     Layout,
     Text,
@@ -19,6 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 import {
     ExpenseData,
     EXPENSE_CATEGORIES,
@@ -29,9 +31,12 @@ import {
     calculateEqualSplit
 } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '@/components/ThemedView';
 
 export default function AddExpenseScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { expensesGroups, addExpense } = useExpense();
     const [loading, setLoading] = useState(false);
@@ -296,7 +301,7 @@ export default function AddExpenseScreen() {
 
     const renderBackAction = () => (
         <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#8F9BB3" />
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </TouchableOpacity>
     );
 
@@ -313,8 +318,8 @@ export default function AddExpenseScreen() {
         const isBalanced = Math.abs(totalShares - totalAmount) < 0.01;
 
         return (
-            <Card style={styles.card}>
-                <Text category='h6' style={styles.sectionTitle}>Expense Sharing</Text>
+            <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Sharing</Text>
 
                 <Select
                     style={styles.input}
@@ -396,46 +401,61 @@ export default function AddExpenseScreen() {
                         )}
                     </Layout>
                 </Layout>
-            </Card>
+            </View>
         );
     };
 
     if (availableGroups.length === 0) {
         return (
-            <SafeAreaView style={styles.container}>
-                <TopNavigation
-                    title='Add Expense'
-                    alignment='center'
-                    accessoryLeft={renderBackAction}
-                />
-                <Layout style={styles.emptyContainer}>
-                    <Ionicons name="folder-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-                    <Text category='h6' style={styles.emptyTitle}>No expense groups available</Text>
-                    <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                        You need to create or join an expense group before adding expenses.
-                    </Text>
-                    <Button
-                        style={styles.goBackButton}
-                        onPress={navigateBack}
-                    >
-                        Go Back
-                    </Button>
-                </Layout>
-            </SafeAreaView>
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <StatusBar
+                        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+                        backgroundColor={colors.background}
+                    />
+                    <TopNavigation
+                        title='Add Expense'
+                        alignment='center'
+                        accessoryLeft={renderBackAction}
+                        style={{ backgroundColor: colors.background }}
+                    />
+                    <View style={styles.emptyContainer}>
+                        <View style={[styles.emptyIconContainer, { backgroundColor: colors.error + '20' }]}>
+                            <Ionicons name="folder-outline" size={32} color={colors.error} />
+                        </View>
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>No expense groups available</Text>
+                        <Text style={[styles.emptyDescription, { color: colors.icon }]}>
+                            You need to create or join an expense group before adding expenses.
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.goBackButton, { backgroundColor: colors.primary }]}
+                            onPress={navigateBack}
+                        >
+                            <Text style={styles.goBackButtonText}>Go Back</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            </ThemedView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <TopNavigation
-                title='Add Expense'
-                alignment='center'
-                accessoryLeft={renderBackAction}
-            />
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar
+                    barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+                    backgroundColor={colors.background}
+                />
+                <TopNavigation
+                    title='Add Expense'
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                    style={{ backgroundColor: colors.background }}
+                />
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                <Card style={styles.card}>
-                    <Text category='h6' style={styles.sectionTitle}>Expense Details</Text>
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Details</Text>
 
                     <Input
                         style={styles.input}
@@ -522,11 +542,11 @@ export default function AddExpenseScreen() {
                             <SelectItem key={category.value} title={category.label} />
                         ))}
                     </Select>
-                </Card>
+                </View>
 
                 {renderSharingSection()}
 
-                <Card style={styles.card}>
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text category='h6' style={styles.sectionTitle}>Additional Options</Text>
 
                     <Layout style={styles.toggleContainer}>
@@ -557,7 +577,7 @@ export default function AddExpenseScreen() {
                             <SelectItem title='Yearly' />
                         </Select>
                     )}
-                </Card>
+                </View>
 
                 <Button
                     style={styles.submitButton}
@@ -568,109 +588,145 @@ export default function AddExpenseScreen() {
                 >
                     {loading ? 'Adding Expense...' : 'Add Expense'}
                 </Button>
-            </ScrollView>
-        </SafeAreaView>
+                </ScrollView>
+            </SafeAreaView>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+    },
+    safeArea: {
+        flex: 1,
     },
     content: {
         flex: 1,
-        padding: 16,
+        padding: 20,
     },
     card: {
-        marginBottom: 16,
-        padding: 16,
+        marginBottom: 20,
+        padding: 24,
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     sectionTitle: {
-        marginBottom: 16,
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 20,
     },
     input: {
-        marginBottom: 16,
+        marginBottom: 20,
+        borderRadius: 12,
     },
     toggleContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
+        paddingVertical: 4,
     },
     toggleLabelContainer: {
         flex: 1,
         marginRight: 16,
     },
     submitButton: {
+        marginHorizontal: 20,
         marginBottom: 32,
+        borderRadius: 16,
+        height: 56,
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        padding: 24,
     },
-    emptyIcon: {
-        marginBottom: 16,
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
     },
     emptyTitle: {
+        fontSize: 20,
+        fontWeight: '600',
         marginBottom: 8,
         textAlign: 'center',
     },
     emptyDescription: {
-        marginBottom: 24,
+        fontSize: 16,
+        marginBottom: 32,
         textAlign: 'center',
+        lineHeight: 24,
     },
     goBackButton: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 32,
+        paddingVertical: 16,
+        borderRadius: 16,
+    },
+    goBackButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
     },
     backButton: {
-        padding: 8,
+        padding: 12,
     },
     participantsContainer: {
-        marginTop: 8,
+        marginTop: 12,
     },
     participantsTitle: {
-        marginBottom: 12,
-        fontWeight: '500',
+        fontSize: 16,
+        marginBottom: 16,
+        fontWeight: '600',
     },
     participantRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 4,
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
     },
     participantCheckbox: {
-        marginRight: 12,
+        marginRight: 16,
     },
     participantInfo: {
         flex: 1,
     },
     customAmountInput: {
-        width: 80,
-        marginLeft: 8,
+        width: 90,
+        marginLeft: 12,
+        borderRadius: 8,
     },
     shareAmount: {
-        marginLeft: 8,
-        minWidth: 60,
+        marginLeft: 12,
+        minWidth: 70,
         textAlign: 'right',
-        color: '#2E7D32',
-        fontWeight: '500',
+        fontSize: 14,
+        fontWeight: '600',
     },
     totalRow: {
-        marginTop: 12,
-        paddingTop: 12,
+        marginTop: 16,
+        paddingTop: 16,
         borderTopWidth: 1,
         borderTopColor: '#E0E0E0',
         alignItems: 'center',
     },
     totalText: {
-        fontWeight: '600',
-        fontSize: 16,
+        fontWeight: '700',
+        fontSize: 18,
     },
     errorText: {
-        color: '#F44336',
+        fontSize: 14,
+        fontWeight: '500',
     },
 });

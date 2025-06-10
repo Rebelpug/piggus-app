@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image } from 'react-native';
+import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image, Switch } from 'react-native';
 import {
     Layout,
     Text,
@@ -18,12 +18,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 import { CURRENCIES } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
+    const { colorScheme: currentTheme, toggleColorScheme, isSystemTheme, setIsSystemTheme } = useTheme();
     const { user, signOut } = useAuth();
     const { userProfile, updateProfile } = useProfile();
     const [loading, setLoading] = useState(false);
@@ -80,72 +86,81 @@ export default function ProfileScreen() {
 
     const renderBackAction = () => (
         <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#8F9BB3" />
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </TouchableOpacity>
     );
 
     const ProfileAvatar = () => (
         <View style={styles.avatarContainer}>
-            <Image
-                source={{ uri: (userProfile?.profile?.avatar_url || '') }}
-                style={styles.avatar}
-            />
-            <TouchableOpacity style={styles.avatarEditButton}>
-                <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
+            <View style={[styles.avatarBorder, { borderColor: colors.primary }]}>
+                <Image
+                    source={{ uri: (userProfile?.profile?.avatar_url || '') }}
+                    style={styles.avatar}
+                />
+            </View>
+            <TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
+                <Ionicons name="camera-outline" size={20} color="white" />
             </TouchableOpacity>
         </View>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
                 title='Profile'
                 alignment='center'
                 accessoryLeft={renderBackAction}
+                style={{ backgroundColor: colors.background }}
             />
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Profile Header */}
-                <Layout style={styles.header}>
+                <View style={[styles.header, { backgroundColor: colors.card }]}>
                     <ProfileAvatar />
-                    <Text category='h5' style={styles.username}>
+                    <Text style={[styles.username, { color: colors.text }]}>
                         {userProfile?.username || 'Unknown User'}
                     </Text>
-                    <Text category='s1' appearance='hint' style={styles.email}>
+                    <Text style={[styles.email, { color: colors.icon }]}>
                         {user?.email || ''}
                     </Text>
-                </Layout>
+                </View>
 
                 {/* Account Information */}
-                <Card style={styles.card}>
-                    <Text category='h6' style={styles.sectionTitle}>Account Information</Text>
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Information</Text>
 
-                    <Layout style={styles.infoRow}>
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="person-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Username</Text>
-                        </Layout>
-                        <Text category='s1'>{userProfile?.username}</Text>
-                    </Layout>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                                <Ionicons name="person-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Username</Text>
+                        </View>
+                        <Text style={[styles.valueText, { color: colors.icon }]}>{userProfile?.username}</Text>
+                    </View>
 
-                    <Divider style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-                    <Layout style={styles.infoRow}>
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="mail-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Email</Text>
-                        </Layout>
-                        <Text category='s1'>{user?.email}</Text>
-                    </Layout>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.secondary + '20' }]}>
+                                <Ionicons name="mail-outline" size={20} color={colors.secondary} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Email</Text>
+                        </View>
+                        <Text style={[styles.valueText, { color: colors.icon }]}>{user?.email}</Text>
+                    </View>
 
-                    <Divider style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-                    <Layout style={styles.infoRow}>
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="calendar-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Member Since</Text>
-                        </Layout>
-                        <Text category='s1'>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
+                                <Ionicons name="calendar-outline" size={20} color={colors.accent} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Member Since</Text>
+                        </View>
+                        <Text style={[styles.valueText, { color: colors.icon }]}>
                             {userProfile?.created_at
                                 ? new Date(userProfile.created_at).toLocaleDateString('en-US', {
                                     month: 'long',
@@ -154,95 +169,155 @@ export default function ProfileScreen() {
                                 })
                                 : 'Unknown'}
                         </Text>
-                    </Layout>
-                </Card>
+                    </View>
+                </View>
+
+                {/* Appearance */}
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Appearance</Text>
+
+                    <View style={styles.preferenceRow}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.warning + '20' }]}>
+                                <Ionicons name={currentTheme === 'dark' ? 'moon-outline' : 'sunny-outline'} size={20} color={colors.warning} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Theme</Text>
+                        </View>
+                        <View style={styles.themeControls}>
+                            <Text style={[styles.currentValue, { color: colors.icon }]}>
+                                {isSystemTheme ? 'Auto' : currentTheme === 'dark' ? 'Dark' : 'Light'}
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.themeButton, { backgroundColor: colors.primary }]}
+                                onPress={toggleColorScheme}
+                            >
+                                <Ionicons 
+                                    name={currentTheme === 'dark' ? 'sunny-outline' : 'moon-outline'} 
+                                    size={20} 
+                                    color="white" 
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    <View style={styles.preferenceRow}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
+                                <Ionicons name="phone-portrait-outline" size={20} color={colors.success} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Follow System</Text>
+                        </View>
+                        <Switch
+                            value={isSystemTheme}
+                            onValueChange={setIsSystemTheme}
+                            trackColor={{ false: colors.border, true: colors.primary + '40' }}
+                            thumbColor={isSystemTheme ? colors.primary : colors.icon}
+                        />
+                    </View>
+                </View>
 
                 {/* Preferences */}
-                <Card style={styles.card}>
-                    <Text category='h6' style={styles.sectionTitle}>Preferences</Text>
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
 
                     <TouchableOpacity
                         style={styles.preferenceRow}
                         onPress={() => setCurrencyModalVisible(true)}
                     >
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="card-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Default Currency</Text>
-                        </Layout>
-                        <Layout style={styles.preferenceValue}>
-                            <Text category='s1' style={styles.currentValue}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
+                                <Ionicons name="card-outline" size={20} color={colors.success} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Default Currency</Text>
+                        </View>
+                        <View style={styles.preferenceValue}>
+                            <Text style={[styles.currentValue, { color: colors.icon }]}>
                                 {CURRENCIES.find(c => c.value === userProfile?.profile?.defaultCurrency)?.label || 'EUR (€)'}
                             </Text>
-                            <Ionicons name="chevron-forward" size={20} color="#8F9BB3" />
-                        </Layout>
+                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                        </View>
                     </TouchableOpacity>
 
-                    <Divider style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <TouchableOpacity
                         style={styles.preferenceRow}
                         onPress={() => Alert.alert('Coming Soon', 'Budget preferences will be available soon!')}
                     >
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="wallet-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Budget Settings</Text>
-                        </Layout>
-                        <Layout style={styles.preferenceValue}>
-                            <Text category='s1' style={styles.currentValue}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.warning + '20' }]}>
+                                <Ionicons name="wallet-outline" size={20} color={colors.warning} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Budget Settings</Text>
+                        </View>
+                        <View style={styles.preferenceValue}>
+                            <Text style={[styles.currentValue, { color: colors.icon }]}>
                                 {userProfile?.profile?.budget
                                     ? `${userProfile.profile.budget.amount} ${userProfile.profile.defaultCurrency}`
                                     : 'Not set'}
                             </Text>
-                            <Ionicons name="chevron-forward" size={20} color="#8F9BB3" />
-                        </Layout>
+                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                        </View>
                     </TouchableOpacity>
-                </Card>
+                </View>
 
                 {/* Security */}
-                <Card style={styles.card}>
-                    <Text category='h6' style={styles.sectionTitle}>Security</Text>
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Security</Text>
 
                     <TouchableOpacity
                         style={styles.preferenceRow}
                         onPress={() => Alert.alert('Coming Soon', 'Password change will be available soon!')}
                     >
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Change Password</Text>
-                        </Layout>
-                        <Ionicons name="chevron-forward" size={20} color="#8F9BB3" />
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.error + '20' }]}>
+                                <Ionicons name="lock-closed-outline" size={20} color={colors.error} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Change Password</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                     </TouchableOpacity>
 
-                    <Divider style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-                    <Layout style={styles.infoRow}>
-                        <Layout style={styles.infoLabel}>
-                            <Ionicons name="shield-checkmark-outline" size={20} color="#8F9BB3" />
-                            <Text category='s1' style={styles.labelText}>Encryption</Text>
-                        </Layout>
-                        <Text category='c1' style={styles.encryptionStatus}>
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
+                                <Ionicons name="shield-checkmark-outline" size={20} color={colors.success} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Encryption</Text>
+                        </View>
+                        <Text style={[styles.encryptionStatus, { color: colors.success }]}>
                             End-to-End Encrypted
                         </Text>
-                    </Layout>
-                </Card>
+                    </View>
+                </View>
 
                 {/* Actions */}
-                <Button
-                    style={styles.signOutButton}
-                    status='danger'
-                    size='large'
+                <TouchableOpacity
+                    style={[styles.signOutButton, { backgroundColor: colors.error }]}
                     onPress={handleSignOut}
                     disabled={loading}
-                    accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
                 >
-                    {loading ? 'Signing Out...' : 'Sign Out'}
-                </Button>
+                    <View style={styles.signOutContent}>
+                        {loading ? (
+                            <Spinner size='small' status='control' />
+                        ) : (
+                            <Ionicons name="log-out-outline" size={20} color="white" />
+                        )}
+                        <Text style={styles.signOutText}>
+                            {loading ? 'Signing Out...' : 'Sign Out'}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
 
-                <Layout style={styles.footer}>
-                    <Text category='c1' appearance='hint' style={styles.version}>
+                <View style={styles.footer}>
+                    <Text style={[styles.version, { color: colors.icon }]}>
                         Version 1.0.0
                     </Text>
-                </Layout>
+                </View>
             </ScrollView>
 
             {/* Currency Selection Modal */}
@@ -251,9 +326,9 @@ export default function ProfileScreen() {
                 backdropStyle={styles.backdrop}
                 onBackdropPress={() => setCurrencyModalVisible(false)}
             >
-                <Card disabled={true} style={styles.modalCard}>
-                    <Text category='h6' style={styles.modalTitle}>Select Default Currency</Text>
-                    <Text category='s1' appearance='hint' style={styles.modalDescription}>
+                <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Select Default Currency</Text>
+                    <Text style={[styles.modalDescription, { color: colors.icon }]}>
                         This will be your default currency for new expenses and budgets.
                     </Text>
 
@@ -269,24 +344,27 @@ export default function ProfileScreen() {
                         ))}
                     </Select>
 
-                    <Layout style={styles.modalActions}>
-                        <Button
-                            style={styles.modalButton}
-                            appearance='outline'
+                    <View style={styles.modalActions}>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.modalCancelButton, { borderColor: colors.border }]}
                             onPress={() => setCurrencyModalVisible(false)}
                         >
-                            Cancel
-                        </Button>
-                        <Button
-                            style={styles.modalButton}
+                            <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
                             onPress={handleUpdateCurrency}
                             disabled={loading}
-                            accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
                         >
-                            {loading ? 'Updating...' : 'Update'}
-                        </Button>
-                    </Layout>
-                </Card>
+                            <View style={styles.modalButtonContent}>
+                                {loading && <Spinner size='small' status='control' />}
+                                <Text style={[styles.modalButtonText, { color: 'white' }]}>
+                                    {loading ? 'Updating...' : 'Update'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </Modal>
         </SafeAreaView>
     );
@@ -295,25 +373,29 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
     },
     content: {
         flex: 1,
     },
     header: {
         alignItems: 'center',
-        paddingVertical: 24,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        paddingVertical: 32,
+        marginBottom: 20,
     },
     avatarContainer: {
         position: 'relative',
-        marginBottom: 16,
+        marginBottom: 20,
+    },
+    avatarBorder: {
+        width: 104,
+        height: 104,
+        borderRadius: 52,
+        borderWidth: 3,
+        padding: 2,
     },
     avatar: {
-        width: 100,
-        height: 100,
+        width: '100%',
+        height: '100%',
         borderRadius: 50,
         backgroundColor: '#F0F0F0',
     },
@@ -321,66 +403,117 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: '#3366FF',
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
         borderColor: '#FFFFFF',
     },
     username: {
-        marginBottom: 4,
+        fontSize: 24,
+        fontWeight: '700',
+        marginBottom: 8,
     },
     email: {
+        fontSize: 16,
         marginBottom: 8,
     },
     card: {
-        margin: 16,
-        marginBottom: 0,
-        padding: 16,
+        marginHorizontal: 20,
+        marginBottom: 20,
+        padding: 20,
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     sectionTitle: {
-        marginBottom: 16,
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 20,
     },
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 16,
     },
     infoLabel: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+    },
+    iconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
     },
     labelText: {
-        marginLeft: 12,
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    valueText: {
+        fontSize: 14,
+        textAlign: 'right',
+        flex: 1,
     },
     divider: {
-        backgroundColor: '#F0F0F0',
+        height: 1,
+        marginVertical: 8,
     },
     preferenceRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 16,
     },
     preferenceValue: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     currentValue: {
-        marginRight: 8,
-        color: '#8F9BB3',
+        marginRight: 12,
+        fontSize: 14,
+    },
+    themeControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    themeButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 12,
     },
     encryptionStatus: {
-        color: '#4CAF50',
-        fontWeight: '500',
+        fontWeight: '600',
+        fontSize: 14,
     },
     signOutButton: {
-        margin: 16,
-        marginTop: 24,
+        marginHorizontal: 20,
+        marginTop: 10,
+        paddingVertical: 16,
+        borderRadius: 16,
+        marginBottom: 20,
+    },
+    signOutContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    signOutText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
     footer: {
         alignItems: 'center',
@@ -397,23 +530,48 @@ const styles = StyleSheet.create({
     },
     modalCard: {
         minWidth: 320,
+        maxWidth: 400,
+        borderRadius: 20,
+        padding: 24,
     },
     modalTitle: {
+        fontSize: 20,
+        fontWeight: '600',
         marginBottom: 8,
     },
     modalDescription: {
-        marginBottom: 16,
-        lineHeight: 20,
+        marginBottom: 20,
+        lineHeight: 22,
+        fontSize: 14,
     },
     modalSelect: {
-        marginBottom: 16,
+        marginBottom: 20,
+        borderRadius: 12,
     },
     modalActions: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
         gap: 12,
     },
     modalButton: {
         flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalCancelButton: {
+        borderWidth: 1,
+    },
+    modalPrimaryButton: {
+        // backgroundColor set dynamically
+    },
+    modalButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

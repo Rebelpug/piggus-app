@@ -19,6 +19,7 @@ import { useExpense } from '@/context/ExpenseContext';
 import {ExpenseGroupData, CURRENCIES} from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '@/context/ProfileContext';
+import { ThemedView } from '@/components/ThemedView';
 
 export default function CreateGroupScreen() {
     const router = useRouter();
@@ -85,14 +86,15 @@ export default function CreateGroupScreen() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <TopNavigation
-                title='Create Group'
-                alignment='center'
-                accessoryLeft={renderBackAction}
-            />
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
+                <TopNavigation
+                    title='Create Group'
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                />
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 <Card style={styles.card}>
                     <Text category='h6' style={styles.sectionTitle}>Group Details</Text>
 
@@ -185,15 +187,18 @@ export default function CreateGroupScreen() {
                 >
                     {loading ? 'Creating Group...' : 'Create Group'}
                 </Button>
-            </ScrollView>
-        </SafeAreaView>
+                </ScrollView>
+            </SafeAreaView>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+    },
+    safeArea: {
+        flex: 1,
     },
     content: {
         flex: 1,

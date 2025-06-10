@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, ScrollView } from 'react-native';
 import {
     Layout,
     Text,
@@ -21,9 +21,14 @@ import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { ExpenseWithDecryptedData, calculateGroupBalances, calculateUserShare } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '@/components/ThemedView';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 export default function GroupDetailScreen() {
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { expensesGroups, inviteUserToGroup, handleGroupInvitation, removeUserFromGroup } = useExpense();
@@ -178,43 +183,8 @@ export default function GroupDetailScreen() {
         const isSharedExpense = item.data.participants.length > 1;
 
         return (
-            <ListItem
-                title={item.data.name || 'Unnamed Expense'}
-                description={`${formatDate(item.data.date)} • ${item.data.participants.length} participant${item.data.participants.length !== 1 ? 's' : ''}`}
-                accessoryLeft={() => (
-                    <Layout style={[styles.categoryIndicator, { backgroundColor: getCategoryColor(item.data.category) }]} />
-                )}
-                accessoryRight={() => (
-                    <Layout style={styles.expenseAmountContainer}>
-                        {isSharedExpense ? (
-                            <Layout style={styles.sharedAmountInfo}>
-                                <Text category='s1' style={styles.userShareAmount}>
-                                    {formatCurrency(userShare, item.data.currency)}
-                                </Text>
-                                <Text category='c1' appearance='hint' style={styles.totalAmountHint}>
-                                    of {formatCurrency(item.data.amount, item.data.currency)}
-                                </Text>
-                                {isPayer && (
-                                    <Text category='c1' style={styles.payerBadgeSmall}>
-                                        You paid
-                                    </Text>
-                                )}
-                            </Layout>
-                        ) : (
-                            <Layout style={styles.personalAmountInfo}>
-                                <Text category='s1' style={styles.amount}>
-                                    {formatCurrency(item.data.amount || 0, item.data.currency)}
-                                </Text>
-                                <Text category='c1' appearance='hint' style={styles.personalLabel}>
-                                    Personal
-                                </Text>
-                            </Layout>
-                        )}
-                        <Text category='c1' appearance='hint' style={styles.category}>
-                            {item.data.category || 'other'}
-                        </Text>
-                    </Layout>
-                )}
+            <TouchableOpacity
+                style={[styles.expenseCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
                 onPress={() => {
                     router.push({
                         pathname: '/(protected)/expense-detail',
@@ -224,7 +194,50 @@ export default function GroupDetailScreen() {
                         }
                     });
                 }}
-            />
+            >
+                <View style={styles.expenseCardContent}>
+                    <View style={styles.expenseHeader}>
+                        <View style={styles.expenseMainInfo}>
+                            <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(item.data.category) + '20' }]}>
+                                <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(item.data.category) }]} />
+                            </View>
+                            <View style={styles.expenseDetails}>
+                                <Text style={[styles.expenseTitle, { color: colors.text }]}>
+                                    {item.data.name || 'Unnamed Expense'}
+                                </Text>
+                                <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
+                                    {formatDate(item.data.date)} • {item.data.participants.length} participant{item.data.participants.length !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.expenseAmount}>
+                            <Text style={[styles.amountText, { color: colors.text }]}>
+                                {formatCurrency(userShare, item.data.currency)}
+                            </Text>
+                            {isSharedExpense && (
+                                <Text style={[styles.totalAmountText, { color: colors.icon }]}>
+                                    of {formatCurrency(item.data.amount, item.data.currency)}
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+
+                    <View style={styles.expenseFooter}>
+                        <View style={styles.expenseCategory}>
+                            <Text style={[styles.categoryText, { color: colors.icon }]}>
+                                {item.data.category || 'other'}
+                            </Text>
+                        </View>
+                        {isPayer && (
+                            <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
+                                <Text style={[styles.payerText, { color: colors.primary }]}>
+                                    You paid
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
         );
     };
 
@@ -364,33 +377,36 @@ export default function GroupDetailScreen() {
 
     const renderBackAction = () => (
         <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#8F9BB3" />
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </TouchableOpacity>
     );
 
     const renderRightAction = () => (
         <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={24} color="#8F9BB3" />
+            <Ionicons name="refresh" size={24} color={colors.icon} />
         </TouchableOpacity>
     );
 
     if (!group) {
         return (
-            <SafeAreaView style={styles.container}>
-                <TopNavigation
-                    title='Group Details'
-                    alignment='center'
-                    accessoryLeft={renderBackAction}
-                />
-                <Layout style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                    <Text category='h6' style={styles.errorTitle}>Group not found</Text>
-                    <Text category='s1' appearance='hint' style={styles.errorDescription}>
-                        The requested group could not be found.
-                    </Text>
-                    <Button onPress={navigateBack}>Go Back</Button>
-                </Layout>
-            </SafeAreaView>
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <TopNavigation
+                        title='Group Details'
+                        alignment='center'
+                        accessoryLeft={renderBackAction}
+                        style={{ backgroundColor: colors.background }}
+                    />
+                    <Layout style={styles.errorContainer}>
+                        <Ionicons name="alert-circle-outline" size={48} color={colors.error} style={styles.errorIcon} />
+                        <Text category='h6' style={[styles.errorTitle, { color: colors.text }]}>Group not found</Text>
+                        <Text category='s1' appearance='hint' style={[styles.errorDescription, { color: colors.icon }]}>
+                            The requested group could not be found.
+                        </Text>
+                        <Button onPress={navigateBack}>Go Back</Button>
+                    </Layout>
+                </SafeAreaView>
+            </ThemedView>
         );
     }
 
@@ -413,13 +429,15 @@ export default function GroupDetailScreen() {
     const isPending = group.membership_status === 'pending';
 
     return (
-        <SafeAreaView style={styles.container}>
-            <TopNavigation
-                title={group.data?.name || 'Group Details'}
-                alignment='center'
-                accessoryLeft={renderBackAction}
-                accessoryRight={renderRightAction}
-            />
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
+                <TopNavigation
+                    title={group.data?.name || 'Group Details'}
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                    accessoryRight={renderRightAction}
+                    style={{ backgroundColor: colors.background }}
+                />
 
             {isPending ? (
                 <Layout style={styles.pendingContainer}>
@@ -451,42 +469,42 @@ export default function GroupDetailScreen() {
                 </Layout>
             ) : (
                 <>
-                    <Layout style={styles.header}>
-                        <Card style={styles.summaryCard}>
-                            <Text category='h6' style={styles.groupName}>{group.data?.name}</Text>
+                    <View style={styles.header}>
+                        <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                            <Text style={[styles.groupName, { color: colors.text }]}>{group.data?.name}</Text>
                             {group.data?.description && (
-                                <Text category='s1' appearance='hint' style={styles.groupDescription}>
+                                <Text style={[styles.groupDescription, { color: colors.icon }]}>
                                     {group.data.description}
                                 </Text>
                             )}
-                            <Layout style={styles.currencyInfo}>
-                                <Ionicons name="card-outline" size={16} color="#8F9BB3" />
-                                <Text category='c1' appearance='hint' style={styles.currencyText}>
+                            <View style={styles.currencyInfo}>
+                                <Ionicons name="card-outline" size={16} color={colors.icon} />
+                                <Text style={[styles.currencyText, { color: colors.icon }]}>
                                     Default Currency: {group.data?.currency || 'USD'}
                                 </Text>
-                            </Layout>
-                            <Layout style={styles.summaryRow}>
-                                <Layout style={styles.summaryItem}>
-                                    <Text category='h5' style={styles.summaryNumber}>
+                            </View>
+                            <View style={styles.summaryRow}>
+                                <View style={styles.summaryItem}>
+                                    <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                         {formatCurrency(userTotalShare, group.data?.currency)}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>Your Share</Text>
-                                </Layout>
-                                <Layout style={styles.summaryItem}>
-                                    <Text category='h5' style={styles.summaryNumber}>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>Your Share</Text>
+                                </View>
+                                <View style={styles.summaryItem}>
+                                    <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                         {group.expenses?.length || 0}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>Expenses</Text>
-                                </Layout>
-                                <Layout style={styles.summaryItem}>
-                                    <Text category='h5' style={styles.summaryNumber}>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>Expenses</Text>
+                                </View>
+                                <View style={styles.summaryItem}>
+                                    <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                         {group.members?.filter(m => m.status === 'confirmed').length || 0}
                                     </Text>
-                                    <Text category='c1' appearance='hint'>Members</Text>
-                                </Layout>
-                            </Layout>
-                        </Card>
-                    </Layout>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>Members</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
 
                     <TabView
                         style={styles.tabView}
@@ -494,19 +512,23 @@ export default function GroupDetailScreen() {
                         onSelect={index => setSelectedIndex(index)}
                     >
                         <Tab title='Expenses'>
-                            <Layout style={styles.tabContent}>
+                            <View style={styles.tabContent}>
                                 {group.expenses && group.expenses.length > 0 ? (
-                                    <List
-                                        style={styles.list}
-                                        data={group.expenses}
-                                        renderItem={renderExpenseItem}
-                                        ItemSeparatorComponent={Divider}
-                                    />
+                                    <ScrollView style={styles.expensesList} showsVerticalScrollIndicator={false}>
+                                        <View style={styles.expensesContainer}>
+                                            {group.expenses.map((item) => (
+                                                <View key={item.id}>
+                                                    {renderExpenseItem({ item })}
+                                                </View>
+                                            ))}
+                                        </View>
+                                        <View style={{ height: 100 }} />
+                                    </ScrollView>
                                 ) : (
                                     <Layout style={styles.emptyState}>
-                                        <Ionicons name="document-text-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-                                        <Text category='h6' style={styles.emptyTitle}>No expenses yet</Text>
-                                        <Text category='s1' appearance='hint' style={styles.emptyDescription}>
+                                        <Ionicons name="document-text-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
+                                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No expenses yet</Text>
+                                        <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
                                             Start tracking expenses for this group
                                         </Text>
                                         <Button
@@ -518,7 +540,7 @@ export default function GroupDetailScreen() {
                                         </Button>
                                     </Layout>
                                 )}
-                            </Layout>
+                            </View>
                         </Tab>
                         <Tab title='Balances'>
                             {renderBalancesTab()}
@@ -573,55 +595,58 @@ export default function GroupDetailScreen() {
                 </>
             )}
 
-            <Modal
-                visible={inviteModalVisible}
-                backdropStyle={styles.backdrop}
-                onBackdropPress={() => setInviteModalVisible(false)}
-            >
-                <Card disabled={true}>
-                    <Text category='h6' style={styles.modalTitle}>Invite Member</Text>
-                    <Text category='s1' appearance='hint' style={styles.modalDescription}>
-                        Enter the username of the person you want to invite to this group.
-                    </Text>
+                <Modal
+                    visible={inviteModalVisible}
+                    backdropStyle={styles.backdrop}
+                    onBackdropPress={() => setInviteModalVisible(false)}
+                >
+                    <Card disabled={true}>
+                        <Text category='h6' style={styles.modalTitle}>Invite Member</Text>
+                        <Text category='s1' appearance='hint' style={styles.modalDescription}>
+                            Enter the username of the person you want to invite to this group.
+                        </Text>
 
-                    <Input
-                        style={styles.modalInput}
-                        placeholder='Enter username'
-                        value={inviteUsername}
-                        onChangeText={setInviteUsername}
-                        autoCapitalize='none'
-                    />
+                        <Input
+                            style={styles.modalInput}
+                            placeholder='Enter username'
+                            value={inviteUsername}
+                            onChangeText={setInviteUsername}
+                            autoCapitalize='none'
+                        />
 
-                    <Layout style={styles.modalActions}>
-                        <Button
-                            style={styles.modalButton}
-                            appearance='outline'
-                            onPress={() => {
-                                setInviteModalVisible(false);
-                                setInviteUsername('');
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            style={styles.modalButton}
-                            onPress={handleInviteUser}
-                            disabled={inviteLoading}
-                            accessoryLeft={inviteLoading ? () => <Spinner size='small' status='control' /> : undefined}
-                        >
-                            {inviteLoading ? 'Inviting...' : 'Send Invite'}
-                        </Button>
-                    </Layout>
-                </Card>
-            </Modal>
-        </SafeAreaView>
+                        <Layout style={styles.modalActions}>
+                            <Button
+                                style={styles.modalButton}
+                                appearance='outline'
+                                onPress={() => {
+                                    setInviteModalVisible(false);
+                                    setInviteUsername('');
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                style={styles.modalButton}
+                                onPress={handleInviteUser}
+                                disabled={inviteLoading}
+                                accessoryLeft={inviteLoading ? () => <Spinner size='small' status='control' /> : undefined}
+                            >
+                                {inviteLoading ? 'Inviting...' : 'Send Invite'}
+                            </Button>
+                        </Layout>
+                    </Card>
+                </Modal>
+            </SafeAreaView>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+    },
+    safeArea: {
+        flex: 1,
     },
     errorContainer: {
         flex: 1,
@@ -641,28 +666,39 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 20,
     },
     summaryCard: {
-        padding: 16,
+        padding: 24,
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     groupName: {
+        fontSize: 24,
+        fontWeight: '700',
         textAlign: 'center',
         marginBottom: 8,
     },
     groupDescription: {
+        fontSize: 14,
         textAlign: 'center',
-        marginBottom: 8,
+        marginBottom: 16,
+        lineHeight: 20,
     },
     currencyInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     currencyText: {
-        marginLeft: 4,
+        marginLeft: 6,
+        fontSize: 12,
+        fontWeight: '500',
     },
     summaryRow: {
         flexDirection: 'row',
@@ -670,10 +706,17 @@ const styles = StyleSheet.create({
     },
     summaryItem: {
         alignItems: 'center',
+        flex: 1,
     },
     summaryNumber: {
+        fontSize: 18,
+        fontWeight: '700',
         marginBottom: 4,
-        color: '#2E7D32',
+    },
+    summaryLabel: {
+        fontSize: 12,
+        fontWeight: '500',
+        textAlign: 'center',
     },
     pendingContainer: {
         flex: 1,
@@ -714,53 +757,95 @@ const styles = StyleSheet.create({
     tabContent: {
         flex: 1,
     },
-    list: {
+    expensesList: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
-    categoryIndicator: {
+    expensesContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        gap: 12,
+    },
+    expenseCard: {
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        marginBottom: 12,
+    },
+    expenseCardContent: {
+        padding: 16,
+    },
+    expenseHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
+    expenseMainInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    categoryIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    categoryDot: {
         width: 12,
         height: 12,
         borderRadius: 6,
-        marginRight: 12,
     },
-    expenseAmountContainer: {
-        alignItems: 'flex-end',
-        minWidth: 100,
+    expenseDetails: {
+        flex: 1,
     },
-    sharedAmountInfo: {
-        alignItems: 'flex-end',
-    },
-    personalAmountInfo: {
-        alignItems: 'flex-end',
-    },
-    userShareAmount: {
-        fontWeight: '600',
-        color: '#2E7D32',
+    expenseTitle: {
         fontSize: 16,
-    },
-    totalAmountHint: {
-        fontSize: 11,
-        marginTop: 1,
-    },
-    payerBadgeSmall: {
-        color: '#4CAF50',
-        fontSize: 10,
-        fontWeight: '500',
-        marginTop: 2,
-    },
-    amount: {
         fontWeight: '600',
-        color: '#2E7D32',
+        marginBottom: 4,
     },
-    personalLabel: {
-        fontSize: 11,
-        marginTop: 1,
+    expenseSubtitle: {
+        fontSize: 14,
     },
-    category: {
-        textTransform: 'capitalize',
-        marginTop: 4,
+    expenseAmount: {
+        alignItems: 'flex-end',
+    },
+    amountText: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    totalAmountText: {
         fontSize: 12,
+    },
+    expenseFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+        paddingTop: 12,
+    },
+    expenseCategory: {
+        flex: 1,
+    },
+    categoryText: {
+        fontSize: 12,
+        fontWeight: '500',
+        textTransform: 'capitalize',
+    },
+    payerBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    payerText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
     statusIndicator: {
         width: 12,
@@ -816,7 +901,6 @@ const styles = StyleSheet.create({
     },
     balancesList: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     balanceItemRight: {
         alignItems: 'flex-end',
@@ -855,7 +939,6 @@ const styles = StyleSheet.create({
     },
     membersList: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     emptyState: {
         flex: 1,
