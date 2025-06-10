@@ -63,9 +63,7 @@ export type ExpenseData = {
   is_recurring: boolean;
   recurring_interval?: string;
   recurring_end_date?: string;
-  payment_method?: string;
   currency?: string;
-  tags?: string[];
   receipt_url?: string;
   status?: string;
   payer_user_id: string; // Who actually paid for this expense
@@ -91,9 +89,7 @@ export type ExpenseFormData = {
   is_recurring: boolean;
   recurring_interval?: string;
   recurring_end_date?: string;
-  payment_method?: string;
   currency?: string;
-  tags?: string[];
   receipt_url?: string;
   status?: string;
   payer_user_id: string;

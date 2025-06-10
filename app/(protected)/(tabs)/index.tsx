@@ -31,7 +31,7 @@ export default function HomeScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [budgetModalVisible, setBudgetModalVisible] = useState(false);
     const [budgetAmount, setBudgetAmount] = useState(userProfile?.profile?.budget?.amount?.toString() || '0');
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(CURRENCIES.findIndex((cur) => cur.value === userProfile?.profile?.budget?.currency)));
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(CURRENCIES.findIndex((cur) => cur.value === userProfile?.profile?.defaultCurrency)));
     const [savingBudget, setSavingBudget] = useState(false);
 
     // Calculate current month's expenses - only user's share
@@ -76,24 +76,10 @@ export default function HomeScreen() {
         };
     }, [expensesGroups, user?.id]);
 
-    // Calculate balances for each group
-    const groupBalances = useMemo(() => {
-        const balances: { [groupId: string]: number } = {};
-
-        expensesGroups.forEach(group => {
-            if (group.membership_status === 'confirmed' && user?.id) {
-                balances[group.id] = calculateUserBalance(group.expenses, user.id);
-            }
-        });
-
-        return balances;
-    }, [expensesGroups, user?.id]);
-
     // Get budget information from profile
     const budget = userProfile?.profile?.budget;
     const budgetAmount_profile = budget?.amount || 0;
     const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
-    const budgetCurrency = budget?.currency || defaultCurrency;
     const budgetRemaining = budgetAmount_profile - currentMonthData.totalSpent;
     const budgetPercentUsed = budgetAmount_profile > 0 ? (currentMonthData.totalSpent / budgetAmount_profile) * 100 : 0;
 
@@ -127,7 +113,6 @@ export default function HomeScreen() {
             await updateProfile({
                 budget: {
                     amount: Number(budgetAmount),
-                    currency: selectedCurrency.value,
                     period: 'monthly'
                 }
             });
@@ -142,7 +127,7 @@ export default function HomeScreen() {
         }
     };
 
-    const formatCurrency = (amount: number, currency: string = budgetCurrency) => {
+    const formatCurrency = (amount: number, currency: string = defaultCurrency) => {
         try {
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -279,117 +264,6 @@ export default function HomeScreen() {
                     )}
                 </Card>
 
-                {/* Quick Stats */}
-                <Layout style={styles.statsContainer}>
-                    <Card style={styles.statCard}>
-                        <Layout style={styles.statContent}>
-                            <Ionicons name="receipt-outline" size={24} color="#4ECDC4" />
-                            <Text category='h6' style={styles.statNumber}>{currentMonthData.transactionCount}</Text>
-                            <Text category='c1' appearance='hint'>Your Expenses</Text>
-                        </Layout>
-                    </Card>
-
-                    <Card style={styles.statCard}>
-                        <Layout style={styles.statContent}>
-                            <Ionicons name="trending-up-outline" size={24} color="#FF6B6B" />
-                            <Text category='h6' style={styles.statNumber}>
-                                {currentMonthData.topCategory?.category?.replace('_', ' ') || 'N/A'}
-                            </Text>
-                            <Text category='c1' appearance='hint'>Top Category</Text>
-                        </Layout>
-                    </Card>
-                </Layout>
-
-                {/* Group Balances */}
-                {Object.keys(groupBalances).length > 0 && (
-                    <Card style={styles.balancesCard}>
-                        <Layout style={styles.balancesHeader}>
-                            <Text category='h6'>Group Balances</Text>
-                            <TouchableOpacity onPress={handleViewGroups}>
-                                <Text category='s1' style={styles.viewAllText}>View All</Text>
-                            </TouchableOpacity>
-                        </Layout>
-
-                        {expensesGroups
-                            .filter(group => group.membership_status === 'confirmed')
-                            .slice(0, 3)
-                            .map((group) => {
-                                const balance = groupBalances[group.id] || 0;
-                                const isPositive = balance > 0;
-                                const isZero = Math.abs(balance) < 0.01;
-
-                                return (
-                                    <Layout key={group.id} style={styles.balanceItem}>
-                                        <Layout style={styles.balanceInfo}>
-                                            <Text category='s1' style={styles.groupName}>{group.data?.name}</Text>
-                                            <Text category='c1' appearance='hint'>
-                                                {group.expenses?.length || 0} expenses
-                                            </Text>
-                                        </Layout>
-                                        <Layout style={styles.balanceAmount}>
-                                            <Text
-                                                category='s1'
-                                                style={[
-                                                    styles.balanceText,
-                                                    { color: isZero ? '#666' : isPositive ? '#4CAF50' : '#F44336' }
-                                                ]}
-                                            >
-                                                {isPositive ? '+' : ''}{formatCurrency(balance, group.data?.currency)}
-                                            </Text>
-                                            <Text category='c1' appearance='hint' style={styles.balanceStatus}>
-                                                {isZero ? 'Settled' : isPositive ? 'You are owed' : 'You owe'}
-                                            </Text>
-                                        </Layout>
-                                    </Layout>
-                                );
-                            })
-                        }
-                    </Card>
-                )}
-
-                {/* Recent Activity */}
-                <Card style={styles.activityCard}>
-                    <Layout style={styles.activityHeader}>
-                        <Text category='h6'>Recent Activity</Text>
-                        <TouchableOpacity onPress={handleViewAllExpenses}>
-                            <Text category='s1' style={styles.viewAllText}>View All</Text>
-                        </TouchableOpacity>
-                    </Layout>
-
-                    {expensesGroups.length > 0 ? (
-                        <Layout>
-                            {expensesGroups
-                                .filter(group => group.membership_status === 'confirmed')
-                                .slice(0, 2)
-                                .map((group) => {
-                                    // Calculate user's total share in this group
-                                    const userTotalShare = group.expenses?.reduce((sum, expense) => {
-                                        return sum + calculateUserShare(expense, user?.id || '');
-                                    }, 0) || 0;
-
-                                    return (
-                                        <Layout key={group.id} style={styles.groupItem}>
-                                            <Layout style={styles.groupInfo}>
-                                                <Text category='s1' style={styles.groupName}>{group.data?.name}</Text>
-                                                <Text category='c1' appearance='hint'>
-                                                    {group.expenses?.length || 0} expenses
-                                                </Text>
-                                            </Layout>
-                                            <Text category='s1' style={styles.groupTotal}>
-                                                {formatCurrency(userTotalShare, group.data?.currency)}
-                                            </Text>
-                                        </Layout>
-                                    );
-                                })
-                            }
-                        </Layout>
-                    ) : (
-                        <Layout style={styles.noActivityContainer}>
-                            <Text category='s1' appearance='hint'>No recent activity</Text>
-                        </Layout>
-                    )}
-                </Card>
-
                 {/* Quick Actions */}
                 <Layout style={styles.actionsContainer}>
                     <Button
@@ -433,20 +307,6 @@ export default function HomeScreen() {
                         onChangeText={setBudgetAmount}
                         keyboardType='decimal-pad'
                     />
-
-                    <Select
-                        style={styles.modalInput}
-                        label='Currency'
-                        placeholder='Select currency'
-                        value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
-                        selectedIndex={selectedCurrencyIndex}
-                        onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
-                    >
-                        {CURRENCIES.map((currency) => (
-                            <SelectItem key={currency.value} title={currency.label} />
-                        ))}
-                    </Select>
-
                     <Layout style={styles.modalActions}>
                         <Button
                             style={styles.modalButton}

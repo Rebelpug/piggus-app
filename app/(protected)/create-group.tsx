@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState } from 'react';
 import { StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import {
     Layout,
@@ -16,19 +16,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
-import { ExpenseGroupData, CURRENCIES } from '@/types/expense';
+import {ExpenseGroupData, CURRENCIES} from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
+import { useProfile } from '@/context/ProfileContext';
 
 export default function CreateGroupScreen() {
     const router = useRouter();
+    const { userProfile } = useProfile();
     const { createExpensesGroup } = useExpense();
     const [loading, setLoading] = useState(false);
-
-    // Form state
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [isPrivate, setIsPrivate] = useState(false);
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0)); // Default to USD
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
+
+    useEffect(() => {
+        if (userProfile) {
+            console.log(userProfile);
+            const currencyIndex = CURRENCIES.findIndex(currency => userProfile?.profile?.defaultCurrency === currency.value);
+            setSelectedCurrencyIndex(currencyIndex >= 0 ? new IndexPath(currencyIndex) : new IndexPath(0));
+        }
+    }, [userProfile]);
 
     const navigateBack = () => {
         router.back();
@@ -52,7 +59,7 @@ export default function CreateGroupScreen() {
             const groupData: ExpenseGroupData = {
                 name: name.trim(),
                 description: description.trim(),
-                private: isPrivate,
+                private: false,
                 currency: selectedCurrency.value,
             };
 
@@ -114,7 +121,7 @@ export default function CreateGroupScreen() {
                         style={styles.input}
                         label='Default Currency'
                         placeholder='Select currency'
-                        value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
+                        value={CURRENCIES[selectedCurrencyIndex.row].label}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
                         caption='This will be the default currency for expenses in this group'
@@ -123,19 +130,6 @@ export default function CreateGroupScreen() {
                             <SelectItem key={currency.value} title={currency.label} />
                         ))}
                     </Select>
-
-                    <Layout style={styles.toggleContainer}>
-                        <Layout style={styles.toggleLabelContainer}>
-                            <Text category='s1'>Private Group</Text>
-                            <Text category='c1' appearance='hint'>
-                                Private groups are only visible to invited members
-                            </Text>
-                        </Layout>
-                        <Toggle
-                            checked={isPrivate}
-                            onChange={setIsPrivate}
-                        />
-                    </Layout>
                 </Card>
 
                 <Card style={styles.card}>

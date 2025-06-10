@@ -190,7 +190,7 @@ export default function ProfileScreen() {
                         <Layout style={styles.preferenceValue}>
                             <Text category='s1' style={styles.currentValue}>
                                 {userProfile?.profile?.budget
-                                    ? `${userProfile.profile.budget.amount} ${userProfile.profile.budget.currency}`
+                                    ? `${userProfile.profile.budget.amount} ${userProfile.profile.defaultCurrency}`
                                     : 'Not set'}
                             </Text>
                             <Ionicons name="chevron-forward" size={20} color="#8F9BB3" />

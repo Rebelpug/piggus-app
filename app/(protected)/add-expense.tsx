@@ -42,13 +42,10 @@ export default function AddExpenseScreen() {
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState(new Date());
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<IndexPath | undefined>();
-    const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] = useState<IndexPath | undefined>();
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedGroupIndex, setSelectedGroupIndex] = useState<IndexPath | undefined>();
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState('');
-    const [tags, setTags] = useState('');
-
     // Sharing state
     const [selectedPayerIndex, setSelectedPayerIndex] = useState<IndexPath | undefined>();
     const [selectedSplitMethodIndex, setSelectedSplitMethodIndex] = useState<IndexPath>(new IndexPath(0)); // Default to equal split
@@ -69,6 +66,17 @@ export default function AddExpenseScreen() {
             return [];
         }
     }, [expensesGroups]);
+
+    // Set default group to private group
+    useEffect(() => {
+        if (availableGroups.length > 0) {
+            console.log('Available groups:', availableGroups);
+            const privateGroupIndex = availableGroups.findIndex(group => group.data.private === true);
+            if (privateGroupIndex !== -1) {
+                setSelectedGroupIndex(new IndexPath(privateGroupIndex));
+            }
+        }
+    }, [availableGroups]);
 
     // Get current group members
     const currentGroupMembers = React.useMemo(() => {
@@ -196,8 +204,6 @@ export default function AddExpenseScreen() {
             const selectedGroup = availableGroups[selectedGroupIndex!.row];
             const selectedCategory = EXPENSE_CATEGORIES[selectedCategoryIndex!.row];
             const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
-            const selectedPaymentMethod = selectedPaymentMethodIndex ?
-                PAYMENT_METHODS[selectedPaymentMethodIndex.row] : undefined;
             const selectedPayer = currentGroupMembers[selectedPayerIndex!.row];
             const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
 
@@ -211,9 +217,7 @@ export default function AddExpenseScreen() {
                 category: selectedCategory.value,
                 is_recurring: isRecurring,
                 recurring_interval: isRecurring ? recurringInterval : undefined,
-                payment_method: selectedPaymentMethod?.value,
                 currency: selectedCurrency.value,
-                tags: tags.trim() ? tags.split(',').map(tag => tag.trim()) : [],
                 status: 'completed',
                 payer_user_id: selectedPayer.user_id,
                 payer_username: selectedPayer.username,
@@ -518,28 +522,6 @@ export default function AddExpenseScreen() {
                             <SelectItem key={category.value} title={category.label} />
                         ))}
                     </Select>
-
-                    <Select
-                        style={styles.input}
-                        label='Payment Method (Optional)'
-                        placeholder='Select payment method'
-                        value={selectedPaymentMethodIndex ? PAYMENT_METHODS[selectedPaymentMethodIndex.row]?.label : ''}
-                        selectedIndex={selectedPaymentMethodIndex}
-                        onSelect={(index) => setSelectedPaymentMethodIndex(index as IndexPath)}
-                    >
-                        {PAYMENT_METHODS.map((method) => (
-                            <SelectItem key={method.value} title={method.label} />
-                        ))}
-                    </Select>
-
-                    <Input
-                        style={styles.input}
-                        label='Tags (Optional)'
-                        placeholder='Enter tags separated by commas'
-                        value={tags}
-                        onChangeText={setTags}
-                        caption='Example: groceries, weekly, essential'
-                    />
                 </Card>
 
                 {renderSharingSection()}

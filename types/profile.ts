@@ -5,7 +5,6 @@ export type ProfileData = {
   defaultCurrency?: string;
   budget?: {
     amount: number;
-    currency: string;
     period: 'monthly' | 'weekly' | 'yearly';
   } | null;
 };
