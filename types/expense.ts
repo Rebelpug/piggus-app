@@ -63,6 +63,7 @@ export type ExpenseData = {
   is_recurring: boolean;
   recurring_interval?: string;
   recurring_end_date?: string;
+  recurring_expense_id?: string; // Reference to the recurring expense if this was auto-generated
   currency?: string;
   receipt_url?: string;
   status?: string;
@@ -89,6 +90,7 @@ export type ExpenseFormData = {
   is_recurring: boolean;
   recurring_interval?: string;
   recurring_end_date?: string;
+  recurring_expense_id?: string;
   currency?: string;
   receipt_url?: string;
   status?: string;
@@ -96,6 +98,57 @@ export type ExpenseFormData = {
   payer_username?: string;
   participants: ExpenseParticipant[];
   split_method: 'equal' | 'custom' | 'percentage';
+};
+
+// Recurring expense types
+export type RecurringExpense = {
+  id: string;
+  group_id: string;
+  created_at: string;
+  updated_at: string;
+  encrypted_data: RecurringExpenseData;
+};
+
+export type RecurringExpenseData = {
+  name: string;
+  description: string;
+  amount: number;
+  category: string;
+  currency?: string;
+  payer_user_id: string;
+  payer_username?: string;
+  participants: ExpenseParticipant[];
+  split_method: 'equal' | 'custom' | 'percentage';
+  interval: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  start_date: string;
+  end_date?: string;
+  next_due_date: string;
+  last_generated_date?: string;
+  is_active: boolean;
+};
+
+export type RecurringExpenseWithDecryptedData = {
+  id: string;
+  group_id: string;
+  created_at: string;
+  updated_at: string;
+  data: RecurringExpenseData;
+};
+
+export type RecurringExpenseFormData = {
+  name: string;
+  description: string;
+  amount: number;
+  category: string;
+  currency?: string;
+  payer_user_id: string;
+  payer_username?: string;
+  participants: ExpenseParticipant[];
+  split_method: 'equal' | 'custom' | 'percentage';
+  interval: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  start_date: string;
+  end_date?: string;
+  is_active: boolean;
 };
 
 export const BASE_EXPENSE_CATEGORIES = [
@@ -272,4 +325,42 @@ export const calculateGroupBalances = (
   });
 
   return balances;
+};
+
+// Utility functions for recurring expenses
+export const calculateNextDueDate = (interval: string, lastDate: string): string => {
+  const date = new Date(lastDate);
+  
+  switch (interval) {
+    case 'daily':
+      date.setDate(date.getDate() + 1);
+      break;
+    case 'weekly':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'monthly':
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case 'yearly':
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+    default:
+      throw new Error(`Invalid interval: ${interval}`);
+  }
+  
+  return date.toISOString().split('T')[0];
+};
+
+export const isRecurringExpenseDue = (recurringExpense: RecurringExpenseWithDecryptedData): boolean => {
+  if (!recurringExpense.data.is_active) return false;
+  
+  const today = new Date().toISOString().split('T')[0];
+  const nextDueDate = recurringExpense.data.next_due_date;
+  
+  // Check if end date has passed
+  if (recurringExpense.data.end_date && today > recurringExpense.data.end_date) {
+    return false;
+  }
+  
+  return today >= nextDueDate;
 };

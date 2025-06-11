@@ -24,12 +24,14 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {
     ExpenseData,
+    RecurringExpenseData,
     EXPENSE_CATEGORIES,
     PAYMENT_METHODS,
     CURRENCIES,
     SPLIT_METHODS,
     ExpenseParticipant,
     calculateEqualSplit,
+    calculateNextDueDate,
     computeExpenseCategories,
     getCategoryDisplayInfo
 } from '@/types/expense';
@@ -41,7 +43,7 @@ export default function AddExpenseScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
-    const { expensesGroups, addExpense } = useExpense();
+    const { expensesGroups, addExpense, addRecurringExpense } = useExpense();
     const { userProfile } = useProfile();
     
     // Compute categories with user's customizations
@@ -192,6 +194,10 @@ export default function AddExpenseScreen() {
             Alert.alert('Validation Error', 'Please select who paid for this expense');
             return false;
         }
+        if (isRecurring && !recurringInterval.trim()) {
+            Alert.alert('Validation Error', 'Please select a recurring interval');
+            return false;
+        }
 
         // Validate participants and shares
         const activeParticipants = participants.filter(p => p.share_amount > 0);
@@ -223,32 +229,92 @@ export default function AddExpenseScreen() {
 
             const activeParticipants = participants.filter(p => p.share_amount > 0);
 
-            const expenseData: ExpenseData = {
-                name: name.trim(),
-                description: description.trim(),
-                amount: Number(amount),
-                date: date.toISOString().split('T')[0],
-                category: selectedCategory.id,
-                is_recurring: isRecurring,
-                recurring_interval: isRecurring ? recurringInterval : undefined,
-                currency: selectedCurrency.value,
-                status: 'completed',
-                payer_user_id: selectedPayer.user_id,
-                payer_username: selectedPayer.username,
-                participants: activeParticipants,
-                split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
-            };
+            if (isRecurring) {
+                // Create recurring expense entry
+                const today = date.toISOString().split('T')[0];
+                const nextDueDate = calculateNextDueDate(recurringInterval, today);
+                
+                const recurringExpenseData: RecurringExpenseData = {
+                    name: name.trim(),
+                    description: description.trim(),
+                    amount: Number(amount),
+                    category: selectedCategory.id,
+                    currency: selectedCurrency.value,
+                    payer_user_id: selectedPayer.user_id,
+                    payer_username: selectedPayer.username,
+                    participants: activeParticipants,
+                    split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
+                    interval: recurringInterval as 'daily' | 'weekly' | 'monthly' | 'yearly',
+                    start_date: today,
+                    next_due_date: nextDueDate,
+                    last_generated_date: today,
+                    is_active: true,
+                };
 
-            const result = await addExpense(selectedGroup.id, expenseData);
+                const recurringResult = await addRecurringExpense(selectedGroup.id, recurringExpenseData);
+                
+                if (!recurringResult) {
+                    Alert.alert('Error', 'Failed to create recurring expense. Please try again.');
+                    return;
+                }
 
-            if (result) {
-                Alert.alert(
-                    'Success',
-                    'Expense added successfully!',
-                    [{ text: 'OK', onPress: () => router.back() }]
-                );
+                // Create the initial expense for this period
+                const expenseData: ExpenseData = {
+                    name: name.trim(),
+                    description: description.trim(),
+                    amount: Number(amount),
+                    date: today,
+                    category: selectedCategory.id,
+                    is_recurring: false,
+                    recurring_expense_id: recurringResult.id,
+                    currency: selectedCurrency.value,
+                    status: 'completed',
+                    payer_user_id: selectedPayer.user_id,
+                    payer_username: selectedPayer.username,
+                    participants: activeParticipants,
+                    split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
+                };
+
+                const expenseResult = await addExpense(selectedGroup.id, expenseData);
+
+                if (expenseResult) {
+                    Alert.alert(
+                        'Success',
+                        'Recurring expense created successfully! The first expense has been added for the current period.',
+                        [{ text: 'OK', onPress: () => router.back() }]
+                    );
+                } else {
+                    Alert.alert('Warning', 'Recurring expense was created, but failed to add the initial expense. You may need to add it manually.');
+                    router.back();
+                }
             } else {
-                Alert.alert('Error', 'Failed to add expense. Please try again.');
+                // Create regular one-time expense
+                const expenseData: ExpenseData = {
+                    name: name.trim(),
+                    description: description.trim(),
+                    amount: Number(amount),
+                    date: date.toISOString().split('T')[0],
+                    category: selectedCategory.id,
+                    is_recurring: false,
+                    currency: selectedCurrency.value,
+                    status: 'completed',
+                    payer_user_id: selectedPayer.user_id,
+                    payer_username: selectedPayer.username,
+                    participants: activeParticipants,
+                    split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
+                };
+
+                const result = await addExpense(selectedGroup.id, expenseData);
+
+                if (result) {
+                    Alert.alert(
+                        'Success',
+                        'Expense added successfully!',
+                        [{ text: 'OK', onPress: () => router.back() }]
+                    );
+                } else {
+                    Alert.alert('Error', 'Failed to add expense. Please try again.');
+                }
             }
         } catch (error) {
             console.error('Error adding expense:', error);

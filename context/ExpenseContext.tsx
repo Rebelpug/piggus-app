@@ -4,6 +4,8 @@ import {
   ExpenseGroupData,
   ExpenseGroupWithDecryptedData,
   ExpenseWithDecryptedData,
+  RecurringExpenseData,
+  RecurringExpenseWithDecryptedData,
 } from '@/types/expense';
 import { useAuth } from '@/context/AuthContext'; // Updated import path
 import { useProfile } from '@/context/ProfileContext';
@@ -18,10 +20,18 @@ import {
   apiUpdateExpenseGroup,
   apiRemoveUserFromGroup,
 } from '@/client/expense';
+import {
+  apiFetchRecurringExpenses,
+  apiCreateRecurringExpense,
+  apiUpdateRecurringExpense,
+  apiDeleteRecurringExpense,
+  apiProcessRecurringExpenses,
+} from '@/client/recurringExpense';
 import {useEncryption} from "@/context/EncryptionContext";
 
 interface ExpenseContextType {
   expensesGroups: ExpenseGroupWithDecryptedData[];
+  recurringExpenses: RecurringExpenseWithDecryptedData[];
   isLoading: boolean;
   error: string | null;
   addExpense: (groupId: string, expense: ExpenseData) => Promise<ExpenseWithDecryptedData | null>;
@@ -54,6 +64,12 @@ interface ExpenseContextType {
       accept: boolean
   ) => Promise<{ success: boolean; error?: string }>;
   getPendingInvitations: () => ExpenseGroupWithDecryptedData[];
+  addRecurringExpense: (groupId: string, recurringExpense: RecurringExpenseData) => Promise<RecurringExpenseWithDecryptedData | null>;
+  updateRecurringExpense: (
+      groupId: string,
+      recurringExpense: RecurringExpenseWithDecryptedData
+  ) => Promise<RecurringExpenseWithDecryptedData | null>;
+  deleteRecurringExpense: (groupId: string, id: string) => Promise<void>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -63,6 +79,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const { isEncryptionInitialized, createEncryptionKey ,decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
   const { userProfile } = useProfile();
   const [expensesGroups, setExpensesGroups] = useState<ExpenseGroupWithDecryptedData[]>([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpenseWithDecryptedData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,12 +95,64 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
 
+      // Fetch regular expenses
       const result = await apiFetchExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
 
       if (result.success && result.data) {
         setExpensesGroups(result.data);
+        
+        // Fetch recurring expenses
+        const recurringResult = await apiFetchRecurringExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
+        
+        if (recurringResult.success && recurringResult.data) {
+          setRecurringExpenses(recurringResult.data);
+          
+          // Process recurring expenses to generate any due expenses
+          const groupMemberships = result.data.map(group => ({
+            group_id: group.id,
+            encrypted_group_key: group.encrypted_key,
+          }));
+          
+          const processResult = await apiProcessRecurringExpenses(
+            user,
+            recurringResult.data,
+            groupMemberships,
+            decryptWithPrivateKey,
+            encryptWithExternalEncryptionKey
+          );
+          
+          if (processResult.success && processResult.generatedExpenses && processResult.generatedExpenses.length > 0) {
+            // Update groups with new generated expenses
+            setExpensesGroups(prev => 
+              prev.map(group => {
+                const newExpenses = processResult.generatedExpenses?.filter(exp => exp.group_id === group.id) || [];
+                if (newExpenses.length > 0) {
+                  return {
+                    ...group,
+                    expenses: [...newExpenses, ...group.expenses],
+                  };
+                }
+                return group;
+              })
+            );
+            
+            // Update recurring expenses with new generation dates
+            if (processResult.updatedRecurring) {
+              setRecurringExpenses(prev => 
+                prev.map(recurring => {
+                  const updated = processResult.updatedRecurring?.find(upd => upd.id === recurring.id);
+                  return updated || recurring;
+                })
+              );
+            }
+          }
+        } else {
+          setRecurringExpenses([]);
+          console.error(recurringResult.error || 'Failed to load recurring expenses');
+        }
       } else {
         setExpensesGroups([]);
+        setRecurringExpenses([]);
         setError(result.error || 'Failed to load expense groups');
       }
 
@@ -406,6 +475,114 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     return expensesGroups.filter(group => group.membership_status === 'pending');
   };
 
+  const addRecurringExpense = async (groupId: string, recurringExpense: RecurringExpenseData) => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        console.error('You must be logged in to add a recurring expense');
+        setError('You must be logged in to add a recurring expense');
+        return null;
+      }
+
+      // Find the group
+      const group = expensesGroups.find(g => g.id === groupId);
+      if (!group) {
+        console.error('Expense group not found');
+        setError('Expense group not found');
+        return null;
+      }
+
+      // Get the group key
+      const groupKey = group.encrypted_key;
+      if (!groupKey) {
+        console.error('Could not access group key');
+        setError('Could not access encryption key');
+        return null;
+      }
+
+      const result = await apiCreateRecurringExpense(user, groupId, groupKey, recurringExpense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const addedRecurringExpense = result.data;
+      if (result.success && addedRecurringExpense) {
+        // Add to local state
+        setRecurringExpenses(prev => [addedRecurringExpense, ...prev]);
+        return addedRecurringExpense;
+      } else {
+        setError(result.error || 'Failed to add recurring expense');
+        return null;
+      }
+    } catch (error: any) {
+      console.error('Failed to add recurring expense:', error);
+      setError(error.message || 'Failed to add recurring expense');
+      return null;
+    }
+  };
+
+  const updateRecurringExpense = async (groupId: string, updatedRecurringExpense: RecurringExpenseWithDecryptedData) => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        console.error('You must be logged in to update a recurring expense');
+        setError('You must be logged in to update a recurring expense');
+        return null;
+      }
+
+      // Find the group
+      const group = expensesGroups.find(g => g.id === groupId);
+      if (!group) {
+        console.error('Expense group not found');
+        setError('Expense group not found');
+        return null;
+      }
+
+      // Get the group key
+      const groupKey = group.encrypted_key;
+      if (!groupKey) {
+        console.error('Could not access group key');
+        setError('Could not access encryption key');
+        return null;
+      }
+
+      const result = await apiUpdateRecurringExpense(user, groupId, groupKey, updatedRecurringExpense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const changedRecurringExpense = result.data;
+      if (result.success && changedRecurringExpense) {
+        // Update in local state
+        setRecurringExpenses(prev =>
+          prev.map(recurringExpense =>
+            recurringExpense.id === updatedRecurringExpense.id ? changedRecurringExpense : recurringExpense
+          )
+        );
+        return changedRecurringExpense;
+      } else {
+        setError(result.error || 'Failed to update recurring expense');
+        return null;
+      }
+    } catch (error: any) {
+      console.error('Failed to update recurring expense:', error);
+      setError(error.message || 'Failed to update recurring expense');
+      return null;
+    }
+  };
+
+  const deleteRecurringExpense = async (groupId: string, id: string) => {
+    try {
+      if (!user) {
+        console.error('You must be logged in to delete a recurring expense');
+        setError('You must be logged in to delete a recurring expense');
+        return;
+      }
+
+      const result = await apiDeleteRecurringExpense(user, groupId, id);
+
+      if (result.success) {
+        // Remove from local state
+        setRecurringExpenses(prev => prev.filter(recurringExpense => recurringExpense.id !== id));
+      } else {
+        setError(result.error || 'Failed to delete recurring expense');
+      }
+    } catch (error: any) {
+      console.error('Failed to delete recurring expense:', error);
+      setError(error.message || 'Failed to delete recurring expense');
+    }
+  };
+
   useEffect(() => {
     if (isEncryptionInitialized) {
       fetchExpenses().catch(error => console.error('Failed to fetch expenses:', error));
@@ -416,6 +593,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       <ExpenseContext.Provider
           value={{
             expensesGroups,
+            recurringExpenses,
             isLoading,
             error,
             addExpense,
@@ -427,6 +605,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             updateExpenseGroup,
             handleGroupInvitation,
             getPendingInvitations,
+            addRecurringExpense,
+            updateRecurringExpense,
+            deleteRecurringExpense,
           }}
       >
         {children}
