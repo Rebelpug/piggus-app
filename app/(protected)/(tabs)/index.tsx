@@ -36,7 +36,7 @@ export default function HomeScreen() {
     const { userProfile, updateProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [budgetModalVisible, setBudgetModalVisible] = useState(false);
-    const [budgetAmount, setBudgetAmount] = useState(userProfile?.profile?.budget?.amount?.toString() || '0');
+    const [budgetAmount, setBudgetAmount] = useState(userProfile?.profile?.budgeting?.budget?.amount?.toString() || '0');
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(CURRENCIES.findIndex((cur) => cur.value === userProfile?.profile?.defaultCurrency)));
     const [savingBudget, setSavingBudget] = useState(false);
 
@@ -83,7 +83,7 @@ export default function HomeScreen() {
     }, [expensesGroups, user?.id]);
 
     // Get budget information from profile
-    const budget = userProfile?.profile?.budget;
+    const budget = userProfile?.profile?.budgeting?.budget;
     const budgetAmount_profile = budget?.amount || 0;
     const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
     const budgetRemaining = budgetAmount_profile - currentMonthData.totalSpent;
@@ -117,9 +117,11 @@ export default function HomeScreen() {
         try {
             const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
             await updateProfile({
-                budget: {
-                    amount: Number(budgetAmount),
-                    period: 'monthly'
+                budgeting: {
+                    budget: {
+                        amount: Number(budgetAmount),
+                        period: 'monthly'
+                    }
                 }
             });
 

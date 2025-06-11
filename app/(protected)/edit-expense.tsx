@@ -16,7 +16,7 @@ import {
     CheckBox
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
@@ -24,6 +24,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {
     ExpenseData,
+    ExpenseWithDecryptedData,
     EXPENSE_CATEGORIES,
     PAYMENT_METHODS,
     CURRENCIES,
@@ -36,12 +37,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 
-export default function AddExpenseScreen() {
+export default function EditExpenseScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
-    const { expensesGroups, addExpense } = useExpense();
+    const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
+    const { expensesGroups, updateExpense } = useExpense();
     const { userProfile } = useProfile();
     
     // Compute categories with user's customizations
@@ -49,6 +51,9 @@ export default function AddExpenseScreen() {
         userProfile?.profile?.budgeting?.categoryOverrides
     );
     const [loading, setLoading] = useState(false);
+    const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
+    const [groupName, setGroupName] = useState<string>('');
+    const [groupMembers, setGroupMembers] = useState<any[]>([]);
 
     // Form state
     const [name, setName] = useState('');
@@ -57,7 +62,6 @@ export default function AddExpenseScreen() {
     const [date, setDate] = useState(new Date());
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<IndexPath | undefined>();
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
-    const [selectedGroupIndex, setSelectedGroupIndex] = useState<IndexPath | undefined>();
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState('');
     // Sharing state
@@ -66,83 +70,69 @@ export default function AddExpenseScreen() {
     const [participants, setParticipants] = useState<ExpenseParticipant[]>([]);
     const [customAmounts, setCustomAmounts] = useState<{ [userId: string]: string }>({});
 
-    // Filter out groups that are confirmed
-    const availableGroups = React.useMemo(() => {
-        try {
-            if (!expensesGroups || !Array.isArray(expensesGroups)) {
-                return [];
-            }
-            return expensesGroups.filter(group =>
-                group && group.membership_status === 'confirmed'
-            );
-        } catch (error) {
-            console.error('Error filtering groups:', error);
-            return [];
-        }
-    }, [expensesGroups]);
-
-    // Set default group to private group
+    // Load expense data on mount
     useEffect(() => {
-        if (availableGroups.length > 0) {
-            console.log('Available groups:', availableGroups);
-            const privateGroupIndex = availableGroups.findIndex(group => group.data.private === true);
-            if (privateGroupIndex !== -1) {
-                setSelectedGroupIndex(new IndexPath(privateGroupIndex));
+        if (!expenseId || !groupId || !expensesGroups) return;
+
+        const group = expensesGroups.find(g => g.id === groupId);
+        if (!group) return;
+
+        setGroupName(group.data?.name || 'Unknown Group');
+        setGroupMembers(group.members || []);
+
+        const foundExpense = group.expenses.find(e => e.id === expenseId);
+        if (foundExpense) {
+            setExpense(foundExpense);
+            
+            // Populate form with existing expense data
+            setName(foundExpense.data.name);
+            setDescription(foundExpense.data.description || '');
+            setAmount(foundExpense.data.amount.toString());
+            setDate(new Date(foundExpense.data.date));
+            setIsRecurring(foundExpense.data.is_recurring);
+            setRecurringInterval(foundExpense.data.recurring_interval || '');
+            setParticipants(foundExpense.data.participants);
+
+            // Set category index - check both current categories and legacy value for backwards compatibility
+            let categoryIndex = availableCategories.findIndex(cat => cat.id === foundExpense.data.category);
+            if (categoryIndex === -1) {
+                // Category might be deleted - add it temporarily to the list for this expense
+                const categoryInfo = getCategoryDisplayInfo(foundExpense.data.category, userProfile?.profile?.budgeting?.categoryOverrides);
+                availableCategories.push({
+                    id: foundExpense.data.category,
+                    name: `${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`,
+                    icon: categoryInfo.icon
+                });
+                categoryIndex = availableCategories.length - 1;
             }
-        }
-    }, [availableGroups]);
+            setSelectedCategoryIndex(new IndexPath(categoryIndex));
 
-    // Get current group members
-    const currentGroupMembers = React.useMemo(() => {
-        if (!selectedGroupIndex || !availableGroups.length) return [];
-        const selectedGroup = availableGroups[selectedGroupIndex.row];
-        return selectedGroup?.members || [];
-    }, [selectedGroupIndex, availableGroups]);
-
-    // Update currency when group is selected
-    useEffect(() => {
-        if (selectedGroupIndex && availableGroups.length > 0) {
-            const selectedGroup = availableGroups[selectedGroupIndex.row];
-            if (selectedGroup && selectedGroup.data.currency) {
-                const currencyIndex = CURRENCIES.findIndex(currency =>
-                    currency.value === selectedGroup.data.currency
-                );
-                if (currencyIndex !== -1) {
-                    setSelectedCurrencyIndex(new IndexPath(currencyIndex));
-                }
+            // Set currency index
+            const currencyIndex = CURRENCIES.findIndex(curr => curr.value === foundExpense.data.currency);
+            if (currencyIndex !== -1) {
+                setSelectedCurrencyIndex(new IndexPath(currencyIndex));
             }
-        }
-    }, [selectedGroupIndex, availableGroups]);
 
-    // Initialize participants when group is selected
-    useEffect(() => {
-        if (currentGroupMembers.length > 0) {
-            // Set default payer to current user
-            const currentUserMember = currentGroupMembers.find(member => member.user_id === user?.id);
-            if (currentUserMember) {
-                const payerIndex = currentGroupMembers.findIndex(member => member.user_id === user?.id);
+            // Set payer index
+            const payerIndex = group.members.findIndex(member => member.user_id === foundExpense.data.payer_user_id);
+            if (payerIndex !== -1) {
                 setSelectedPayerIndex(new IndexPath(payerIndex));
             }
 
-            // Initialize all members as participants for multi-member groups
-            if (currentGroupMembers.length > 1) {
-                const initialParticipants: ExpenseParticipant[] = currentGroupMembers.map(member => ({
-                    user_id: member.user_id,
-                    username: member.username,
-                    share_amount: 0
-                }));
-                setParticipants(initialParticipants);
-            } else {
-                // For single-member groups, only include that member
-                const singleParticipant: ExpenseParticipant[] = [{
-                    user_id: currentGroupMembers[0].user_id,
-                    username: currentGroupMembers[0].username,
-                    share_amount: 0
-                }];
-                setParticipants(singleParticipant);
+            // Set split method index
+            const splitMethodIndex = SPLIT_METHODS.findIndex(method => method.value === foundExpense.data.split_method);
+            if (splitMethodIndex !== -1) {
+                setSelectedSplitMethodIndex(new IndexPath(splitMethodIndex));
             }
+
+            // Initialize custom amounts for display
+            const initialCustomAmounts: { [userId: string]: string } = {};
+            foundExpense.data.participants.forEach(participant => {
+                initialCustomAmounts[participant.user_id] = participant.share_amount.toString();
+            });
+            setCustomAmounts(initialCustomAmounts);
         }
-    }, [currentGroupMembers, user?.id]);
+    }, [expenseId, groupId, expensesGroups]);
 
     // Recalculate shares when amount or split method changes
     useEffect(() => {
@@ -184,10 +174,6 @@ export default function AddExpenseScreen() {
             Alert.alert('Validation Error', 'Please select a category');
             return false;
         }
-        if (!selectedGroupIndex) {
-            Alert.alert('Validation Error', 'Please select an expense group');
-            return false;
-        }
         if (!selectedPayerIndex) {
             Alert.alert('Validation Error', 'Please select who paid for this expense');
             return false;
@@ -211,19 +197,18 @@ export default function AddExpenseScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!validateForm()) return;
+        if (!validateForm() || !expense) return;
 
         setLoading(true);
         try {
-            const selectedGroup = availableGroups[selectedGroupIndex!.row];
             const selectedCategory = availableCategories[selectedCategoryIndex!.row];
             const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
-            const selectedPayer = currentGroupMembers[selectedPayerIndex!.row];
+            const selectedPayer = groupMembers[selectedPayerIndex!.row];
             const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
 
             const activeParticipants = participants.filter(p => p.share_amount > 0);
 
-            const expenseData: ExpenseData = {
+            const updatedExpenseData: ExpenseData = {
                 name: name.trim(),
                 description: description.trim(),
                 amount: Number(amount),
@@ -239,19 +224,24 @@ export default function AddExpenseScreen() {
                 split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
             };
 
-            const result = await addExpense(selectedGroup.id, expenseData);
+            const updatedExpense: ExpenseWithDecryptedData = {
+                ...expense,
+                data: updatedExpenseData
+            };
+
+            const result = await updateExpense(groupId!, updatedExpense);
 
             if (result) {
                 Alert.alert(
                     'Success',
-                    'Expense added successfully!',
+                    'Expense updated successfully!',
                     [{ text: 'OK', onPress: () => router.back() }]
                 );
             } else {
-                Alert.alert('Error', 'Failed to add expense. Please try again.');
+                Alert.alert('Error', 'Failed to update expense. Please try again.');
             }
         } catch (error) {
-            console.error('Error adding expense:', error);
+            console.error('Error updating expense:', error);
             Alert.alert('Error', 'An unexpected error occurred. Please try again.');
         } finally {
             setLoading(false);
@@ -319,7 +309,7 @@ export default function AddExpenseScreen() {
     );
 
     const renderSharingSection = () => {
-        if (currentGroupMembers.length <= 1) return null;
+        if (groupMembers.length <= 1) return null;
 
         const splitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || 'equal';
         const totalShares = participants.reduce((sum, p) => sum + p.share_amount, 0);
@@ -334,12 +324,12 @@ export default function AddExpenseScreen() {
                     style={styles.input}
                     label='Who Paid?'
                     placeholder='Select who paid for this expense'
-                    value={selectedPayerIndex ? currentGroupMembers[selectedPayerIndex.row]?.username : ''}
+                    value={selectedPayerIndex ? groupMembers[selectedPayerIndex.row]?.username : ''}
                     selectedIndex={selectedPayerIndex}
                     onSelect={(index) => setSelectedPayerIndex(index as IndexPath)}
                     status={selectedPayerIndex ? 'basic' : 'danger'}
                 >
-                    {currentGroupMembers.map((member) => (
+                    {groupMembers.map((member) => (
                         <SelectItem key={member.user_id} title={member.username} />
                     ))}
                 </Select>
@@ -359,10 +349,10 @@ export default function AddExpenseScreen() {
 
                 <Layout style={styles.participantsContainer}>
                     <Text category='s1' style={styles.participantsTitle}>
-                        Share with ({participants.filter(p => p.share_amount > 0).length} of {currentGroupMembers.length})
+                        Share with ({participants.filter(p => p.share_amount > 0).length} of {groupMembers.length})
                     </Text>
 
-                    {currentGroupMembers.map((member) => {
+                    {groupMembers.map((member) => {
                         const participant = participants.find(p => p.user_id === member.user_id);
                         const isActive = participant && participant.share_amount > 0;
                         const shareAmount = participant?.share_amount || 0;
@@ -414,7 +404,7 @@ export default function AddExpenseScreen() {
         );
     };
 
-    if (availableGroups.length === 0) {
+    if (!expense) {
         return (
             <ThemedView style={styles.container}>
                 <SafeAreaView style={styles.safeArea}>
@@ -423,18 +413,18 @@ export default function AddExpenseScreen() {
                         backgroundColor={colors.background}
                     />
                     <TopNavigation
-                        title='Add Expense'
+                        title='Edit Expense'
                         alignment='center'
                         accessoryLeft={renderBackAction}
                         style={{ backgroundColor: colors.background }}
                     />
                     <View style={styles.emptyContainer}>
                         <View style={[styles.emptyIconContainer, { backgroundColor: colors.error + '20' }]}>
-                            <Ionicons name="folder-outline" size={32} color={colors.error} />
+                            <Ionicons name="document-outline" size={32} color={colors.error} />
                         </View>
-                        <Text style={[styles.emptyTitle, { color: colors.text }]}>No expense groups available</Text>
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>Expense not found</Text>
                         <Text style={[styles.emptyDescription, { color: colors.icon }]}>
-                            You need to create or join an expense group before adding expenses.
+                            The expense you're trying to edit could not be found.
                         </Text>
                         <TouchableOpacity
                             style={[styles.goBackButton, { backgroundColor: colors.primary }]}
@@ -456,7 +446,7 @@ export default function AddExpenseScreen() {
                     backgroundColor={colors.background}
                 />
                 <TopNavigation
-                    title='Add Expense'
+                    title='Edit Expense'
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
@@ -495,23 +485,9 @@ export default function AddExpenseScreen() {
                         status={amount.trim() && !isNaN(Number(amount)) && Number(amount) > 0 ? 'basic' : 'danger'}
                     />
 
-                    <Select
-                        style={styles.input}
-                        label='Expense Group'
-                        placeholder='Select expense group'
-                        value={selectedGroupIndex ? availableGroups[selectedGroupIndex.row]?.data?.name : ''}
-                        selectedIndex={selectedGroupIndex}
-                        onSelect={(index) => setSelectedGroupIndex(index as IndexPath)}
-                        status={selectedGroupIndex ? 'basic' : 'danger'}
-                        caption='Selecting a group will set its default currency'
-                    >
-                        {availableGroups.map((group) => (
-                            <SelectItem
-                                key={group.id}
-                                title={`${group.data?.name || 'Unnamed Group'} (${group.data?.currency || 'USD'})`}
-                            />
-                        ))}
-                    </Select>
+                    <Text style={[styles.groupInfo, { color: colors.icon }]}>
+                        Group: {groupName}
+                    </Text>
 
                     <Select
                         style={styles.input}
@@ -520,10 +496,6 @@ export default function AddExpenseScreen() {
                         value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
-                        caption={selectedGroupIndex ?
-                            `Default: ${availableGroups[selectedGroupIndex.row]?.data?.currency || 'USD'}` :
-                            'Select a group first to use its default currency'
-                        }
                     >
                         {CURRENCIES.map((currency) => (
                             <SelectItem key={currency.value} title={currency.label} />
@@ -598,7 +570,7 @@ export default function AddExpenseScreen() {
                     disabled={loading}
                     accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
                 >
-                    {loading ? 'Adding Expense...' : 'Add Expense'}
+                    {loading ? 'Updating Expense...' : 'Update Expense'}
                 </Button>
                 </ScrollView>
             </SafeAreaView>
@@ -634,6 +606,11 @@ const styles = StyleSheet.create({
     input: {
         marginBottom: 20,
         borderRadius: 12,
+    },
+    groupInfo: {
+        fontSize: 14,
+        marginBottom: 20,
+        fontStyle: 'italic',
     },
     toggleContainer: {
         flexDirection: 'row',

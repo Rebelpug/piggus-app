@@ -98,25 +98,91 @@ export type ExpenseFormData = {
   split_method: 'equal' | 'custom' | 'percentage';
 };
 
-export const EXPENSE_CATEGORIES = [
-  { value: 'food', label: 'Food & Dining' },
-  { value: 'transportation', label: 'Transportation' },
-  { value: 'housing', label: 'Housing & Rent' },
-  { value: 'utilities', label: 'Utilities' },
-  { value: 'entertainment', label: 'Entertainment' },
-  { value: 'shopping', label: 'Shopping' },
-  { value: 'health', label: 'Health & Medical' },
-  { value: 'education', label: 'Education' },
-  { value: 'personal', label: 'Personal Care' },
-  { value: 'travel', label: 'Travel' },
-  { value: 'gifts', label: 'Gifts & Donations' },
-  { value: 'investments', label: 'Investments' },
-  { value: 'debt', label: 'Debt Payments' },
-  { value: 'insurance', label: 'Insurance' },
-  { value: 'taxes', label: 'Taxes' },
-  { value: 'subscriptions', label: 'Subscriptions' },
-  { value: 'other', label: 'Other' },
+export const BASE_EXPENSE_CATEGORIES = [
+  { id: 'food', name: 'Food & Dining', icon: '🍽️' },
+  { id: 'transportation', name: 'Transportation', icon: '🚗' },
+  { id: 'housing', name: 'Housing & Rent', icon: '🏠' },
+  { id: 'utilities', name: 'Utilities', icon: '💡' },
+  { id: 'entertainment', name: 'Entertainment', icon: '🎬' },
+  { id: 'shopping', name: 'Shopping', icon: '🛍️' },
+  { id: 'health', name: 'Health & Medical', icon: '⚕️' },
+  { id: 'education', name: 'Education', icon: '📚' },
+  { id: 'personal', name: 'Personal Care', icon: '💄' },
+  { id: 'travel', name: 'Travel', icon: '✈️' },
+  { id: 'gifts', name: 'Gifts & Donations', icon: '🎁' },
+  { id: 'investments', name: 'Investments', icon: '📈' },
+  { id: 'debt', name: 'Debt Payments', icon: '💳' },
+  { id: 'insurance', name: 'Insurance', icon: '🛡️' },
+  { id: 'taxes', name: 'Taxes', icon: '📊' },
+  { id: 'subscriptions', name: 'Subscriptions', icon: '📱' },
+  { id: 'other', name: 'Other', icon: '📋' },
 ];
+
+// Legacy support - will be computed from base categories + overrides
+export const EXPENSE_CATEGORIES = BASE_EXPENSE_CATEGORIES.map(cat => ({
+  value: cat.id,
+  label: cat.name
+}));
+
+// Utility function to compute categories based on base categories and overrides
+export const computeExpenseCategories = (categoryOverrides?: {
+  edited: { [categoryId: string]: { name: string; icon: string } };
+  deleted: string[];
+  added: Array<{ id: string; name: string; icon: string }>;
+}) => {
+  let categories = [...BASE_EXPENSE_CATEGORIES];
+
+  if (categoryOverrides) {
+    // Apply edits
+    categories = categories.map(cat => {
+      const override = categoryOverrides.edited[cat.id];
+      return override ? { ...cat, name: override.name, icon: override.icon } : cat;
+    });
+
+    // Remove deleted categories
+    categories = categories.filter(cat => !categoryOverrides.deleted.includes(cat.id));
+
+    // Add new categories
+    categories = [...categories, ...categoryOverrides.added];
+  }
+
+  return categories;
+};
+
+// Utility function to get category display info (including deleted ones for existing expenses)
+export const getCategoryDisplayInfo = (
+  categoryId: string, 
+  categoryOverrides?: {
+    edited: { [categoryId: string]: { name: string; icon: string } };
+    deleted: string[];
+    added: Array<{ id: string; name: string; icon: string }>;
+  }
+) => {
+  // First check if it's a custom added category
+  if (categoryOverrides?.added) {
+    const customCategory = categoryOverrides.added.find(cat => cat.id === categoryId);
+    if (customCategory) {
+      return { name: customCategory.name, icon: customCategory.icon, isDeleted: false };
+    }
+  }
+
+  // Check if it's a base category
+  const baseCategory = BASE_EXPENSE_CATEGORIES.find(cat => cat.id === categoryId);
+  if (baseCategory) {
+    // Check if it's edited
+    const editedInfo = categoryOverrides?.edited[categoryId];
+    const isDeleted = categoryOverrides?.deleted.includes(categoryId) || false;
+    
+    return {
+      name: editedInfo?.name || baseCategory.name,
+      icon: editedInfo?.icon || baseCategory.icon,
+      isDeleted
+    };
+  }
+
+  // Fallback for unknown categories
+  return { name: categoryId, icon: '📋', isDeleted: false };
+};
 
 export const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },

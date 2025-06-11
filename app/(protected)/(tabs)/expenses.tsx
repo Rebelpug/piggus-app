@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
-import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
+import { useProfile } from '@/context/ProfileContext';
+import { ExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
@@ -27,6 +28,7 @@ export default function ExpensesScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { expensesGroups, isLoading, error } = useExpense();
+    const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
 
     // Flatten all expenses from all groups with error handling
@@ -118,21 +120,15 @@ export default function ExpensesScreen() {
         return colors[category] || colors.other;
     };
 
+    const getCategoryInfo = (categoryId: string) => {
+        const categoryInfo = getCategoryDisplayInfo(categoryId, userProfile?.profile?.budgeting?.categoryOverrides);
+        return categoryInfo;
+    };
+
     const getCategoryIcon = (category: string) => {
-        const icons: { [key: string]: string } = {
-            food: 'restaurant-outline',
-            transportation: 'car-outline',
-            housing: 'home-outline',
-            utilities: 'flash-outline',
-            entertainment: 'game-controller-outline',
-            shopping: 'bag-outline',
-            health: 'medical-outline',
-            education: 'book-outline',
-            personal: 'person-outline',
-            travel: 'airplane-outline',
-            other: 'ellipsis-horizontal-outline',
-        };
-        return icons[category] || icons.other;
+        const categoryInfo = getCategoryInfo(category);
+        // For now, return a default icon since we're using emojis in the new system
+        return 'pricetag-outline';
     };
 
     const renderExpenseItem = ({ item }: { item: ExpenseWithDecryptedData & { groupName?: string } }) => {
@@ -162,11 +158,9 @@ export default function ExpensesScreen() {
                     <View style={styles.expenseHeader}>
                         <View style={styles.expenseMainInfo}>
                             <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(item.data.category) + '20' }]}>
-                                <Ionicons 
-                                    name={getCategoryIcon(item.data.category)} 
-                                    size={20} 
-                                    color={getCategoryColor(item.data.category)} 
-                                />
+                                <Text style={styles.categoryEmoji}>
+                                    {getCategoryInfo(item.data.category).icon}
+                                </Text>
                             </View>
                             <View style={styles.expenseDetails}>
                                 <Text style={[styles.expenseTitle, { color: colors.text }]}>
@@ -186,13 +180,31 @@ export default function ExpensesScreen() {
                                     of {formatCurrency(totalAmount, item.data.currency)}
                                 </Text>
                             )}
+                            <TouchableOpacity
+                                style={styles.editButton}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    router.push({
+                                        pathname: '/(protected)/edit-expense',
+                                        params: {
+                                            expenseId: item.id,
+                                            groupId: item.group_id
+                                        }
+                                    });
+                                }}
+                            >
+                                <Ionicons name="pencil-outline" size={18} color={colors.icon} />
+                            </TouchableOpacity>
                         </View>
                     </View>
                     
                     <View style={styles.expenseFooter}>
                         <View style={styles.expenseCategory}>
                             <Text style={[styles.categoryText, { color: colors.icon }]}>
-                                {item.data.category || 'other'}
+                                {(() => {
+                                    const categoryInfo = getCategoryInfo(item.data.category || 'other');
+                                    return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`;
+                                })()}
                             </Text>
                         </View>
                         {isPayer && (
@@ -460,6 +472,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginRight: 12,
     },
+    categoryEmoji: {
+        fontSize: 20,
+    },
     expenseDetails: {
         flex: 1,
     },
@@ -473,6 +488,14 @@ const styles = StyleSheet.create({
     },
     expenseAmount: {
         alignItems: 'flex-end',
+        position: 'relative',
+    },
+    editButton: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        padding: 8,
+        borderRadius: 16,
     },
     amountText: {
         fontSize: 18,

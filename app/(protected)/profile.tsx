@@ -254,9 +254,29 @@ export default function ProfileScreen() {
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
-                                {userProfile?.profile?.budget
-                                    ? `${userProfile.profile.budget.amount} ${userProfile.profile.defaultCurrency}`
+                                {userProfile?.profile?.budgeting?.budget
+                                    ? `${userProfile.profile.budgeting.budget.amount} ${userProfile.profile.defaultCurrency}`
                                     : 'Not set'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                        </View>
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={() => router.push('/(protected)/budgeting-categories')}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
+                                <Ionicons name="grid-outline" size={20} color={colors.accent} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Manage Categories</Text>
+                        </View>
+                        <View style={styles.preferenceValue}>
+                            <Text style={[styles.currentValue, { color: colors.icon }]}>
+                                Customize expense categories
                             </Text>
                             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                         </View>

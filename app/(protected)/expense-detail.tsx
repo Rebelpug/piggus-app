@@ -14,8 +14,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/context/ProfileContext';
 import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
-import { EXPENSE_CATEGORIES, PAYMENT_METHODS, CURRENCIES } from '@/types/expense';
+import { EXPENSE_CATEGORIES, PAYMENT_METHODS, CURRENCIES, getCategoryDisplayInfo } from '@/types/expense';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -27,6 +28,7 @@ export default function ExpenseDetailScreen() {
     const { user } = useAuth();
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
     const { expensesGroups, deleteExpense } = useExpense();
+    const { userProfile } = useProfile();
     const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
     const [groupName, setGroupName] = useState<string>('');
     const [groupMembers, setGroupMembers] = useState<any[]>([]);
@@ -51,8 +53,13 @@ export default function ExpenseDetailScreen() {
     };
 
     const handleEdit = () => {
-        // Navigate to edit expense screen (to be implemented)
-        Alert.alert('Edit', 'Edit functionality to be implemented');
+        router.push({
+            pathname: '/(protected)/edit-expense',
+            params: {
+                expenseId: expenseId,
+                groupId: groupId
+            }
+        });
     };
 
     const handleDelete = () => {
@@ -106,8 +113,8 @@ export default function ExpenseDetailScreen() {
     };
 
     const getCategoryLabel = (categoryValue: string) => {
-        const category = EXPENSE_CATEGORIES.find(cat => cat.value === categoryValue);
-        return category ? category.label : 'Other';
+        const categoryInfo = getCategoryDisplayInfo(categoryValue, userProfile?.profile?.budgeting?.categoryOverrides);
+        return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`;
     };
 
     const getPaymentMethodLabel = (methodValue: string) => {
@@ -226,12 +233,6 @@ export default function ExpenseDetailScreen() {
                         </Text>
                     </Layout>
 
-                    {expense.data.payment_method && (
-                        <Layout style={styles.detailRow}>
-                            <Text appearance="hint">Payment Method:</Text>
-                            <Text>{getPaymentMethodLabel(expense.data.payment_method)}</Text>
-                        </Layout>
-                    )}
 
                     <Layout style={styles.detailRow}>
                         <Text appearance="hint">Split Method:</Text>
@@ -260,12 +261,6 @@ export default function ExpenseDetailScreen() {
                         </Layout>
                     )}
 
-                    {expense.data.tags && expense.data.tags.length > 0 && (
-                        <Layout style={styles.detailRow}>
-                            <Text appearance="hint">Tags:</Text>
-                            <Text>{expense.data.tags.join(', ')}</Text>
-                        </Layout>
-                    )}
 
                     {expense.data.description && (
                         <Layout style={styles.descriptionContainer}>
