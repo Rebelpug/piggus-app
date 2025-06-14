@@ -152,8 +152,9 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             // 4. Store keys securely if userId is provided
             if (userId) {
                 console.log('Storing keys in secure storage...');
-                await SecureKeyManager.storeEncryptionKey(userId, key);
-                await SecureKeyManager.storePrivateKey(userId, newPrivateKey);
+                const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
+                await SecureKeyManager.storeEncryptionKeyWithBiometric(userId, key, biometricAvailable);
+                await SecureKeyManager.storePrivateKeyWithBiometric(userId, newPrivateKey, biometricAvailable);
             }
 
             onProgress?.(1.0);
@@ -224,8 +225,9 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             // Store keys securely for future fast access
             if (userId) {
                 console.log('Storing keys in secure storage for future fast access...');
-                await SecureKeyManager.storeEncryptionKey(userId, key);
-                await SecureKeyManager.storePrivateKey(userId, decryptedPrivateKey);
+                const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
+                await SecureKeyManager.storeEncryptionKeyWithBiometric(userId, key, biometricAvailable);
+                await SecureKeyManager.storePrivateKeyWithBiometric(userId, decryptedPrivateKey, biometricAvailable);
             }
 
             onProgress?.(1.0);
@@ -253,7 +255,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
         // Clear secure storage if userId is provided
         if (userId) {
-            await SecureKeyManager.clearUserKeys(userId);
+            await SecureKeyManager.clearAllUserData(userId);
         }
     }, []);
 
