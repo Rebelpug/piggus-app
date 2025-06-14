@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { ThemedView } from '@/components/ThemedView';
+import BiometricLogin from '@/components/auth/BiometricLogin';
 
 interface PasswordPromptProps {
     onSuccess?: () => void;
@@ -131,6 +132,8 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                         >
                             Sign Out
                         </Button>
+
+                        <BiometricLogin onBiometricLogin={onSuccess} />
                     </View>
                 </View>
                 </KeyboardAvoidingView>
