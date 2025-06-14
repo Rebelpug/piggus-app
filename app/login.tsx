@@ -198,13 +198,15 @@ const LoginScreen = () => {
                             )}
                         </TouchableOpacity>
 
-                        {/* Biometric Login */}
-                        <BiometricLogin 
-                            onBiometricLogin={() => {
-                                console.log('Biometric login successful');
-                                router.push('/(protected)');
-                            }}
-                        />
+                        {/* Biometric Login - only show when not actively logging in */}
+                        {!loading && (
+                            <BiometricLogin 
+                                onBiometricLogin={() => {
+                                    console.log('Biometric login successful');
+                                    router.push('/(protected)');
+                                }}
+                            />
+                        )}
                     </View>
 
                     {/* Footer */}

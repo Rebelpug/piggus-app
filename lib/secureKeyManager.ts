@@ -312,12 +312,35 @@ export class SecureKeyManager {
     }
 
     /**
-     * Store user ID for biometric login lookup - split into individual entries
+     * Store user ID for biometric login lookup - maintain a small index
      */
     static async storeUserIdForBiometric(userId: string): Promise<void> {
         try {
+            // Store individual user flag
             const key = `biometric_user_${userId}`;
             await SecureStore.setItemAsync(key, 'true');
+            
+            // Also maintain an index (keeping it small to avoid 2048 byte limit)
+            const indexKey = 'biometric_user_index';
+            const existingIndex = await SecureStore.getItemAsync(indexKey);
+            let userIds: string[] = [];
+            
+            if (existingIndex) {
+                try {
+                    userIds = JSON.parse(existingIndex);
+                } catch (e) {
+                    userIds = [];
+                }
+            }
+            
+            if (!userIds.includes(userId)) {
+                userIds.push(userId);
+                // Keep only the last 5 users to avoid size issues
+                if (userIds.length > 5) {
+                    userIds = userIds.slice(-5);
+                }
+                await SecureStore.setItemAsync(indexKey, JSON.stringify(userIds));
+            }
         } catch (error) {
             console.error('Failed to store user ID for biometric:', error);
         }
@@ -325,15 +348,35 @@ export class SecureKeyManager {
 
     /**
      * Get user IDs that have biometric login enabled
-     * Note: This is a simplified implementation that can't enumerate all keys
-     * In practice, you'd maintain a separate index or use a different approach
      */
     static async getBiometricUserIds(): Promise<string[]> {
         try {
-            // Since we can't enumerate SecureStore keys, we'll return empty array
-            // and rely on hasStoredSession to check individual users
-            // In a real implementation, you might maintain this list elsewhere
-            return [];
+            const indexKey = 'biometric_user_index';
+            const existingIndex = await SecureStore.getItemAsync(indexKey);
+            
+            if (!existingIndex) {
+                return [];
+            }
+            
+            try {
+                const userIds = JSON.parse(existingIndex);
+                // Verify each user still has valid data
+                const validUserIds: string[] = [];
+                
+                for (const userId of userIds) {
+                    const hasSession = await this.hasStoredSession(userId);
+                    const hasBiometricFlag = await SecureStore.getItemAsync(`biometric_user_${userId}`);
+                    
+                    if (hasSession && hasBiometricFlag) {
+                        validUserIds.push(userId);
+                    }
+                }
+                
+                return validUserIds;
+            } catch (e) {
+                console.error('Failed to parse biometric user index:', e);
+                return [];
+            }
         } catch (error) {
             console.error('Failed to get biometric user IDs:', error);
             return [];
@@ -345,8 +388,28 @@ export class SecureKeyManager {
      */
     static async removeBiometricUserId(userId: string): Promise<void> {
         try {
+            // Remove individual user flag
             const key = `biometric_user_${userId}`;
             await SecureStore.deleteItemAsync(key);
+            
+            // Remove from index
+            const indexKey = 'biometric_user_index';
+            const existingIndex = await SecureStore.getItemAsync(indexKey);
+            
+            if (existingIndex) {
+                try {
+                    let userIds: string[] = JSON.parse(existingIndex);
+                    userIds = userIds.filter(id => id !== userId);
+                    
+                    if (userIds.length > 0) {
+                        await SecureStore.setItemAsync(indexKey, JSON.stringify(userIds));
+                    } else {
+                        await SecureStore.deleteItemAsync(indexKey);
+                    }
+                } catch (e) {
+                    console.error('Failed to update biometric user index:', e);
+                }
+            }
         } catch (error) {
             console.error('Failed to remove biometric user ID:', error);
         }

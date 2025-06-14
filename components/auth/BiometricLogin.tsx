@@ -12,18 +12,26 @@ interface BiometricLoginProps {
 }
 
 export default function BiometricLogin({ onBiometricLogin }: BiometricLoginProps) {
-  const { tryBiometricLogin, isBiometricAvailable } = useAuth();
+  const { tryBiometricLogin, isBiometricAvailable, user } = useAuth();
   const [hasStoredCredentials, setHasStoredCredentials] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
     checkStoredCredentials();
-  }, []);
+  }, [user]);
 
   const checkStoredCredentials = async () => {
     try {
-      const userIds = await SecureKeyManager.getBiometricUserIds();
-      setHasStoredCredentials(userIds.length > 0);
+      // If we have a current user, check if they have stored session data
+      if (user) {
+        const hasSession = await SecureKeyManager.hasStoredSession(user.id);
+        const biometricEnabled = await SecureKeyManager.isBiometricEnabledForUser(user.id);
+        setHasStoredCredentials(hasSession && biometricEnabled);
+      } else {
+        // No current user, check for any stored user IDs
+        const userIds = await SecureKeyManager.getBiometricUserIds();
+        setHasStoredCredentials(userIds.length > 0);
+      }
     } catch (error) {
       console.error('Failed to check stored credentials:', error);
     }
