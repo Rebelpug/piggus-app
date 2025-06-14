@@ -217,12 +217,13 @@ export class SecureKeyManager {
                 keychainService: 'piggus-supabase-sessions',
             });
 
-            // Store biometric preference
+            // Store biometric preference (always set to true if device supports it, regardless of requireBiometric)
             const biometricEnabledId = this.getBiometricEnabledId(userId);
-            await SecureStore.setItemAsync(biometricEnabledId, requireBiometric.toString());
+            const deviceSupportsBiometric = await this.isBiometricAvailable();
+            await SecureStore.setItemAsync(biometricEnabledId, deviceSupportsBiometric.toString());
 
-            // Store user ID for biometric login lookup
-            if (requireBiometric) {
+            // Store user ID for biometric login lookup if device supports biometric
+            if (deviceSupportsBiometric) {
                 await this.storeUserIdForBiometric(userId);
             }
 

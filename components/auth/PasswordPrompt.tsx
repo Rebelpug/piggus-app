@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import {
     View,
-    Alert,
+    Text,
+    TextInput,
+    TouchableOpacity,
     StyleSheet,
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
+    Alert,
+    StatusBar,
 } from 'react-native';
-import {
-    Text,
-    Input,
-    Button,
-    Spinner,
-} from '@ui-kitten/components';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { ThemedView } from '@/components/ThemedView';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
+import BiometricLogin from '@/components/auth/BiometricLogin';
 
 interface PasswordPromptProps {
     onSuccess?: () => void;
@@ -23,11 +24,13 @@ interface PasswordPromptProps {
 }
 
 const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) => {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [secureTextEntry, setSecureTextEntry] = useState(true);
+    const [showPassword, setShowPassword] = useState(false);
     
-    const { initializeEncryptionWithPassword, signOut } = useAuth();
+    const { initializeEncryptionWithPassword, signOut, user } = useAuth();
 
     const handleSubmit = async () => {
         if (!password.trim()) {
@@ -73,69 +76,98 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
         );
     };
 
-    const toggleSecureEntry = () => {
-        setSecureTextEntry(!secureTextEntry);
-    };
-
-    const renderIcon = (props: any) => (
-        <Ionicons
-            {...props}
-            name={secureTextEntry ? 'eye-off' : 'eye'}
-            onPress={toggleSecureEntry}
-        />
-    );
-
     return (
-        <ThemedView style={styles.container}>
-            <SafeAreaView style={styles.safeArea}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.keyboardView}
-                >
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <StatusBar 
+                barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
+                backgroundColor={colors.background} 
+            />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardView}
+            >
                 <View style={styles.contentContainer}>
-                    <View style={styles.iconContainer}>
-                        <Ionicons name="lock-closed-outline" size={64} color="#4A69FF" />
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={[styles.logoContainer, { backgroundColor: colors.primary + '20' }]}>
+                            <Ionicons name="lock-closed-outline" size={32} color={colors.primary} />
+                        </View>
+                        <Text style={[styles.title, { color: colors.text }]}>Enter Password</Text>
+                        <Text style={[styles.subtitle, { color: colors.icon }]}>
+                            Please enter your password to unlock your encrypted data
+                        </Text>
                     </View>
-                    
-                    <Text style={styles.title}>Enter Password</Text>
-                    <Text style={styles.subtitle}>
-                        Please enter your password to unlock your encrypted data
-                    </Text>
 
+                    {/* Form */}
                     <View style={styles.form}>
-                        <Input
-                            placeholder="Enter your password"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={secureTextEntry}
-                            accessoryRight={renderIcon}
-                            onSubmitEditing={handleSubmit}
-                            autoFocus
-                            style={styles.input}
-                        />
+                        <View style={styles.inputContainer}>
+                            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <Ionicons name="lock-closed-outline" size={20} color={colors.icon} style={styles.inputIcon} />
+                                <TextInput
+                                    style={[styles.input, { color: colors.text }]}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    placeholder="Enter your password"
+                                    placeholderTextColor={colors.icon}
+                                    secureTextEntry={!showPassword}
+                                    onSubmitEditing={handleSubmit}
+                                    autoFocus
+                                    editable={!loading}
+                                />
+                                <TouchableOpacity
+                                    onPress={() => setShowPassword(!showPassword)}
+                                    style={styles.eyeIcon}
+                                >
+                                    <Ionicons 
+                                        name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                                        size={20} 
+                                        color={colors.icon} 
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
 
-                        <Button
+                        <TouchableOpacity
+                            style={[
+                                styles.button, 
+                                { backgroundColor: loading ? colors.icon : colors.primary },
+                                (loading || !password.trim()) && styles.buttonDisabled
+                            ]}
                             onPress={handleSubmit}
                             disabled={loading || !password.trim()}
-                            accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
-                            style={styles.button}
+                            activeOpacity={loading || !password.trim() ? 1 : 0.7}
                         >
-                            {loading ? 'Unlocking...' : 'Unlock'}
-                        </Button>
+                            {loading ? (
+                                <View style={styles.buttonContent}>
+                                    <ActivityIndicator color="#FFF" size="small" />
+                                    <Text style={styles.buttonText}>Unlocking...</Text>
+                                </View>
+                            ) : (
+                                <View style={styles.buttonContent}>
+                                    <Text style={styles.buttonText}>Unlock</Text>
+                                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                                </View>
+                            )}
+                        </TouchableOpacity>
 
-                        <Button
-                            appearance='ghost'
+                        <TouchableOpacity
                             onPress={handleCancel}
                             disabled={loading}
-                            style={styles.cancelButton}
+                            style={[styles.cancelButton, loading && { opacity: 0.5 }]}
+                            activeOpacity={loading ? 1 : 0.7}
                         >
-                            Sign Out
-                        </Button>
+                            <Text style={[styles.cancelButtonText, { color: colors.icon }]}>Sign Out</Text>
+                        </TouchableOpacity>
+
+                        {/* Show biometric option only if current user has stored biometric data and not currently loading */}
+                        {!loading && user && (
+                            <BiometricLogin onBiometricLogin={onSuccess} />
+                        )}
                     </View>
                 </View>
-                </KeyboardAvoidingView>
-            </SafeAreaView>
-        </ThemedView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 };
 
@@ -143,46 +175,97 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
-        flex: 1,
-    },
     keyboardView: {
         flex: 1,
     },
     contentContainer: {
         flex: 1,
-        padding: 20,
+        padding: 24,
         justifyContent: 'center',
     },
-    iconContainer: {
+    header: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: 40,
+    },
+    logoContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#333',
+        fontSize: 32,
+        fontWeight: '700',
         marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#666',
-        marginBottom: 30,
         textAlign: 'center',
+        marginBottom: 8,
         lineHeight: 22,
     },
     form: {
-        marginBottom: 30,
+        marginBottom: 32,
     },
-    input: {
+    inputContainer: {
         marginBottom: 20,
     },
+    label: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        height: 56,
+    },
+    inputIcon: {
+        marginRight: 12,
+    },
+    input: {
+        flex: 1,
+        fontSize: 16,
+        height: '100%',
+    },
+    eyeIcon: {
+        padding: 4,
+        marginLeft: 8,
+    },
     button: {
-        marginBottom: 16,
+        borderRadius: 16,
+        height: 56,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    buttonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '600',
     },
     cancelButton: {
-        marginTop: 8,
+        marginTop: 16,
+        alignItems: 'center',
+        padding: 12,
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
     },
 });
 

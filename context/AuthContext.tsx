@@ -368,8 +368,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           }
         } else {
           console.log('No active session found, checking for stored sessions...');
-          // Try biometric login if no active session but we might have stored sessions
-          if (isBiometricAvailable) {
+          // Check if we have any stored user IDs before attempting biometric login
+          const storedUserIds = await SecureKeyManager.getBiometricUserIds();
+          
+          if (isBiometricAvailable && storedUserIds.length > 0) {
             console.log('Attempting biometric login for stored session...');
             const biometricSuccess = await tryBiometricLogin();
             if (biometricSuccess) {
@@ -377,8 +379,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
               // The auth state change listener will handle the rest
               return;
             }
+          } else {
+            console.log('No biometric login available - no stored sessions or biometric not available');
           }
-          console.log('No stored session available for biometric login');
         }
       } catch (error) {
         console.error('Error checking session:', error);
@@ -436,10 +439,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         } else if (event === 'USER_UPDATED' && session?.user) {
           setUser(session.user);
         } else if (event === 'TOKEN_REFRESHED' && session?.user && session) {
-          // Update stored session when token is refreshed
+          // Update stored session when token is refreshed (without requiring biometric)
           try {
-            const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-            await SecureKeyManager.storeSupabaseSession(session.user.id, session, biometricAvailable);
+            await SecureKeyManager.storeSupabaseSession(session.user.id, session, false);
           } catch (error) {
             console.error('Failed to update stored session after token refresh:', error);
           }
@@ -503,10 +505,15 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             onProgress?.(overallProgress, step);
           });
 
-          // Store Supabase session securely
+          // Store Supabase session securely (without requiring biometric during login)
           onProgress?.(0.9, 'Securing session...');
           const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-          await SecureKeyManager.storeSupabaseSession(data.user.id, data.session, biometricAvailable);
+          await SecureKeyManager.storeSupabaseSession(data.user.id, data.session, false); // Don't require biometric during login
+          
+          // Enable biometric for future logins if available
+          if (biometricAvailable) {
+            await SecureKeyManager.storeUserIdForBiometric(data.user.id);
+          }
 
           setUser(data.user);
           setNeedsPasswordPrompt(false);
