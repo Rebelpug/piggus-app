@@ -28,9 +28,9 @@ export default function BiometricLogin({ onBiometricLogin }: BiometricLoginProps
         const biometricEnabled = await SecureKeyManager.isBiometricEnabledForUser(user.id);
         setHasStoredCredentials(hasSession && biometricEnabled);
       } else {
-        // No current user, check for any stored user IDs
-        const userIds = await SecureKeyManager.getBiometricUserIds();
-        setHasStoredCredentials(userIds.length > 0);
+        // No current user, check for any stored session data (simplified approach)
+        const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
+        setHasStoredCredentials(hasStoredData);
       }
     } catch (error) {
       console.error('Failed to check stored credentials:', error);

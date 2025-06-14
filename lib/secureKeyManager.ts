@@ -348,40 +348,84 @@ export class SecureKeyManager {
     }
 
     /**
-     * Get user IDs that have biometric login enabled
+     * Check if there's any stored session data available (simplified for single user)
      */
-    static async getBiometricUserIds(): Promise<string[]> {
+    static async hasAnyStoredSessionData(): Promise<boolean> {
+        try {
+            // Check if there's a current stored session by looking for the most recent user
+            const indexKey = 'biometric_user_index';
+            const existingIndex = await SecureStore.getItemAsync(indexKey);
+            
+            if (!existingIndex) {
+                return false;
+            }
+            
+            try {
+                const userIds = JSON.parse(existingIndex);
+                if (userIds.length === 0) {
+                    return false;
+                }
+                
+                // Check the most recent user (last in array)
+                const mostRecentUserId = userIds[userIds.length - 1];
+                const hasSession = await this.hasStoredSession(mostRecentUserId);
+                const hasBiometricFlag = await SecureStore.getItemAsync(`biometric_user_${mostRecentUserId}`);
+                
+                return hasSession && !!hasBiometricFlag;
+            } catch (e) {
+                console.error('Failed to parse biometric user index:', e);
+                return false;
+            }
+        } catch (error) {
+            console.error('Failed to check for stored session data:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get the most recent stored user ID (simplified for single user approach)
+     */
+    static async getMostRecentStoredUserId(): Promise<string | null> {
         try {
             const indexKey = 'biometric_user_index';
             const existingIndex = await SecureStore.getItemAsync(indexKey);
             
             if (!existingIndex) {
-                return [];
+                return null;
             }
             
             try {
                 const userIds = JSON.parse(existingIndex);
-                // Verify each user still has valid data
-                const validUserIds: string[] = [];
-                
-                for (const userId of userIds) {
-                    const hasSession = await this.hasStoredSession(userId);
-                    const hasBiometricFlag = await SecureStore.getItemAsync(`biometric_user_${userId}`);
-                    
-                    if (hasSession && hasBiometricFlag) {
-                        validUserIds.push(userId);
-                    }
+                if (userIds.length === 0) {
+                    return null;
                 }
                 
-                return validUserIds;
+                // Return the most recent user (last in array)
+                const mostRecentUserId = userIds[userIds.length - 1];
+                const hasSession = await this.hasStoredSession(mostRecentUserId);
+                const hasBiometricFlag = await SecureStore.getItemAsync(`biometric_user_${mostRecentUserId}`);
+                
+                if (hasSession && hasBiometricFlag) {
+                    return mostRecentUserId;
+                }
+                
+                return null;
             } catch (e) {
                 console.error('Failed to parse biometric user index:', e);
-                return [];
+                return null;
             }
         } catch (error) {
-            console.error('Failed to get biometric user IDs:', error);
-            return [];
+            console.error('Failed to get most recent stored user ID:', error);
+            return null;
         }
+    }
+
+    /**
+     * Get user IDs that have biometric login enabled (kept for compatibility)
+     */
+    static async getBiometricUserIds(): Promise<string[]> {
+        const userId = await this.getMostRecentStoredUserId();
+        return userId ? [userId] : [];
     }
 
     /**
