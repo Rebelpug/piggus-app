@@ -21,9 +21,10 @@ export default function BiometricLogin({ onBiometricLogin }: BiometricLoginProps
 
   const checkStoredCredentials = async () => {
     try {
-      const biometricEnabled = await SecureKeyManager.isBiometricEnabled();
+      console.log('Checking stored credentials...');
       const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
-      if (!biometricEnabled || !hasStoredData) {
+      console.log('Has stored data:', hasStoredData);
+      if (!hasStoredData) {
         setHasStoredCredentials(false);
         return;
       }
@@ -36,8 +37,13 @@ export default function BiometricLogin({ onBiometricLogin }: BiometricLoginProps
   };
 
   const handleBiometricLogin = async () => {
-    if (!hasStoredCredentials) return;
-
+    console.log('Checking stored credentials...');
+    const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
+    console.log('Has stored data:', hasStoredData);
+    if (!hasStoredData) {
+      setHasStoredCredentials(false);
+      return;
+    }
     setIsAuthenticating(true);
     try {
       const success = await tryBiometricLogin();
