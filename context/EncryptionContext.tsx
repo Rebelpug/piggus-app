@@ -87,12 +87,17 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
                 return false;
             }
 
-            // Retrieve keys from secure storage
+            // Retrieve encryption key from secure storage
             const storedEncryptionKey = await SecureKeyManager.getEncryptionKey();
-            const storedPrivateKey = await SecureKeyManager.getPrivateKey();
+            if (!storedEncryptionKey) {
+                console.log('Failed to retrieve encryption key from secure storage');
+                return false;
+            }
 
-            if (!storedEncryptionKey || !storedPrivateKey) {
-                console.log('Failed to retrieve keys from secure storage');
+            // Retrieve encrypted private key from AsyncStorage
+            const storedPrivateKey = await SecureKeyManager.getPrivateKey(storedEncryptionKey);
+            if (!storedPrivateKey) {
+                console.log('Failed to retrieve private key from AsyncStorage');
                 return false;
             }
 
@@ -152,7 +157,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
                 console.log('Storing keys in secure storage...');
                 const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
                 await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
-                await SecureKeyManager.storePrivateKeyWithBiometric(newPrivateKey, biometricAvailable);
+                await SecureKeyManager.storePrivateKeyWithBiometric(newPrivateKey, key);
             }
 
             onProgress?.(1.0);
@@ -224,7 +229,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
                 console.log('Storing keys in secure storage for future fast access...');
                 const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
                 await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
-                await SecureKeyManager.storePrivateKeyWithBiometric(decryptedPrivateKey, biometricAvailable);
+                await SecureKeyManager.storePrivateKeyWithBiometric(decryptedPrivateKey, key);
             }
 
             onProgress?.(1.0);

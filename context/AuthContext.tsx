@@ -245,8 +245,15 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      // Get stored session
-      const storedSession = await SecureKeyManager.getSupabaseSession();
+      // Get encryption key from secure storage (only the encryption key)
+      const encryptionKey = await SecureKeyManager.getEncryptionKey();
+      if (!encryptionKey) {
+        console.log('No encryption key found in secure storage');
+        return false;
+      }
+
+      // Get encrypted session data from AsyncStorage and decrypt it
+      const storedSession = await SecureKeyManager.getSupabaseSession(encryptionKey);
       if (!storedSession) {
         console.log('No stored session found after biometric auth');
         return false;
@@ -392,7 +399,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         } else if (event === 'TOKEN_REFRESHED' && session?.user && session) {
           // Update stored session when token is refreshed (without requiring biometric)
           try {
-            await SecureKeyManager.storeSupabaseSession(session, false);
+            // Get encryption key for storing session
+            const encryptionKey = await SecureKeyManager.getEncryptionKey();
+            if (encryptionKey) {
+              await SecureKeyManager.storeSupabaseSession(session, encryptionKey);
+            }
           } catch (error) {
             console.error('Failed to update stored session after token refresh:', error);
           }
@@ -458,7 +469,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
           // Store Supabase session securely (without requiring biometric during login)
           onProgress?.(0.9, 'Securing session...');
-          await SecureKeyManager.storeSupabaseSession(data.session, false); // Don't require biometric during login
+          // Get encryption key for storing session
+          const encryptionKey = await SecureKeyManager.getEncryptionKey();
+          if (encryptionKey) {
+            await SecureKeyManager.storeSupabaseSession(data.session, encryptionKey);
+          }
 
           setUser(data.user);
           setNeedsPasswordPrompt(false);
