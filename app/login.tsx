@@ -69,6 +69,7 @@ const LoginScreen = () => {
             router.push('/(protected)');
 
         } catch (error: any) {
+            setLoading(false);
             console.error('Login failed:', error);
             let errorMessage = 'Failed to sign in. Please check your credentials.';
 
@@ -84,8 +85,6 @@ const LoginScreen = () => {
 
             Alert.alert('Sign In Error', errorMessage);
         } finally {
-            setLoading(false);
-            // Keep progress visible for a moment after completion
             setTimeout(() => {
                 setEncryptionProgress(0);
                 setEncryptionStep('');
@@ -95,9 +94,9 @@ const LoginScreen = () => {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <StatusBar 
-                barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
-                backgroundColor={colors.background} 
+            <StatusBar
+                barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+                backgroundColor={colors.background}
             />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -150,10 +149,10 @@ const LoginScreen = () => {
                                     onPress={() => setShowPassword(!showPassword)}
                                     style={styles.eyeIcon}
                                 >
-                                    <Ionicons 
-                                        name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                                        size={20} 
-                                        color={colors.icon} 
+                                    <Ionicons
+                                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                        size={20}
+                                        color={colors.icon}
                                     />
                                 </TouchableOpacity>
                             </View>
@@ -161,7 +160,7 @@ const LoginScreen = () => {
 
                         <TouchableOpacity
                             style={[
-                                styles.button, 
+                                styles.button,
                                 { backgroundColor: loading ? colors.icon : colors.primary },
                                 loading && styles.buttonDisabled
                             ]}
@@ -200,7 +199,7 @@ const LoginScreen = () => {
 
                         {/* Biometric Login - only show when not actively logging in */}
                         {!loading && (
-                            <BiometricLogin 
+                            <BiometricLogin
                                 onBiometricLogin={() => {
                                     console.log('Biometric login successful');
                                     router.push('/(protected)');

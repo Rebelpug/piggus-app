@@ -15,7 +15,6 @@ import {
 import { SecureKeyManager } from '@/lib/secureKeyManager';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import PasswordPrompt from "@/components/auth/PasswordPrompt";
-import AutoBiometricPrompt from "@/components/auth/AutoBiometricPrompt";
 
 // Define the AuthContext type
 type AuthContextType = {
@@ -32,7 +31,6 @@ type AuthContextType = {
   initializeEncryptionWithPassword: (password: string) => Promise<void>;
   isAuthenticated: boolean;
   tryBiometricLogin: () => Promise<boolean>;
-  isBiometricAvailable: boolean;
 };
 
 // Create the context with a default undefined value
@@ -46,8 +44,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const [needsPasswordPrompt, setNeedsPasswordPrompt] = useState<boolean>(false);
   const [encryptionInitialized, setEncryptionInitialized] = useState<boolean>(false);
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false);
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState<boolean>(false);
-  const [showAutoBiometric, setShowAutoBiometric] = useState<boolean>(false);
 
   const authCheckComplete = useRef(false);
   const authListenerSetup = useRef(false);
@@ -55,15 +51,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Get the encryption context
   const encryption = useEncryption();
-
-  // Check biometric availability on mount
-  useEffect(() => {
-    const checkBiometric = async () => {
-      const available = await SecureKeyManager.isBiometricAvailable();
-      setIsBiometricAvailable(available);
-    };
-    checkBiometric();
-  }, []);
 
   // Helper function to encrypt data using the encryption context
   const encryptData = useCallback(
@@ -251,21 +238,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting biometric login...');
 
-      // Check if biometric is available
-      if (!isBiometricAvailable) {
-        console.log('Biometric not available');
-        return false;
-      }
-
-      // Get the most recent stored user ID
-      const userId = await SecureKeyManager.getMostRecentStoredUserId();
-      if (!userId) {
-        console.log('No stored user data found');
-        return false;
-      }
-
-      console.log('Found stored user data, requesting biometric authentication...');
-
       // Authenticate with biometrics
       const authenticated = await SecureKeyManager.authenticateWithBiometrics('Use biometrics to unlock your data');
       if (!authenticated) {
@@ -274,7 +246,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       }
 
       // Get stored session
-      const storedSession = await SecureKeyManager.getSupabaseSession(userId);
+      const storedSession = await SecureKeyManager.getSupabaseSession();
       if (!storedSession) {
         console.log('No stored session found after biometric auth');
         return false;
@@ -297,7 +269,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       console.error('Biometric login error:', error);
       return false;
     }
-  }, [isBiometricAvailable]);
+  }, []);
 
   // Check for active session on mount
   useEffect(() => {
@@ -314,7 +286,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           console.log('User session found:', currentUser.email);
 
           // First, try to initialize from secure storage (this includes biometric auth if enabled)
-          const initFromStorage = await encryption.initializeFromSecureStorage(currentUser.id);
+          const initFromStorage = await encryption.initializeFromSecureStorage();
 
           if (initFromStorage) {
             console.log('Successfully initialized encryption from secure storage');
@@ -354,10 +326,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           console.log('No active session found, checking for stored sessions...');
           // Check if we have any stored session data and biometric is available
           const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
-          
-          if (isBiometricAvailable && hasStoredData) {
+
+          if (hasStoredData) {
             console.log('Found stored session data, showing auto biometric prompt...');
-            setShowAutoBiometric(true);
             return; // Don't complete auth initialization yet
           } else {
             console.log('No biometric login available - no stored sessions or biometric not available');
@@ -372,7 +343,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     };
 
     checkSession();
-  }, [initializeEncryptionKey, retrieveKeysFromUserMetadata, encryption, isBiometricAvailable, tryBiometricLogin]);
+  }, [initializeEncryptionKey, retrieveKeysFromUserMetadata, encryption, tryBiometricLogin]);
 
   // Set up auth state change listener
   useEffect(() => {
@@ -421,7 +392,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         } else if (event === 'TOKEN_REFRESHED' && session?.user && session) {
           // Update stored session when token is refreshed (without requiring biometric)
           try {
-            await SecureKeyManager.storeSupabaseSession(session.user.id, session, false);
+            await SecureKeyManager.storeSupabaseSession(session, false);
           } catch (error) {
             console.error('Failed to update stored session after token refresh:', error);
           }
@@ -487,13 +458,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
           // Store Supabase session securely (without requiring biometric during login)
           onProgress?.(0.9, 'Securing session...');
-          const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-          await SecureKeyManager.storeSupabaseSession(data.user.id, data.session, false); // Don't require biometric during login
-          
-          // Enable biometric for future logins if available
-          if (biometricAvailable) {
-            await SecureKeyManager.storeUserIdForBiometric(data.user.id);
-          }
+          await SecureKeyManager.storeSupabaseSession(data.session, false); // Don't require biometric during login
 
           setUser(data.user);
           setNeedsPasswordPrompt(false);
@@ -559,15 +524,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const currentUser = user;
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
-      // Clear all stored data
-      if (currentUser) {
-        await SecureKeyManager.clearAllUserData(currentUser.id);
-      }
-
+      await SecureKeyManager.clearAllData();
       setUser(null);
       encryption.resetEncryption();
       setEncryptionInitialized(false);
@@ -581,26 +540,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Determine what to render based on auth state
   const renderContent = () => {
-    // If showing auto biometric prompt
-    if (showAutoBiometric) {
-      return (
-        <>
-          {children}
-          <AutoBiometricPrompt
-            onBiometricSuccess={() => {
-              setShowAutoBiometric(false);
-              // The auth state change listener will handle the rest
-            }}
-            onCancel={() => {
-              setShowAutoBiometric(false);
-              authCheckComplete.current = true;
-              setAuthInitialized(true);
-            }}
-          />
-        </>
-      );
-    }
-
     // If auth check is not complete, show loading
     if (!authInitialized) {
       return (
@@ -665,7 +604,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             initializeEncryptionWithPassword,
             isAuthenticated,
             tryBiometricLogin,
-            isBiometricAvailable
           }}
       >
         {renderContent()}

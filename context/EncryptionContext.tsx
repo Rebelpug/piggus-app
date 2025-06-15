@@ -20,7 +20,7 @@ interface EncryptionContextType {
     isEncryptionInitialized: boolean;
 
     // Core functions
-    initializeFromSecureStorage: (userId: string) => Promise<boolean>;
+    initializeFromSecureStorage: () => Promise<boolean>;
     initializeFromPassword: (password: string, progress?: (progress: any) => void, userId?: string) => Promise<{
         publicKey: string;
         privateKey: string;
@@ -74,23 +74,22 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const [publicKey, setPublicKey] = useState<string | null>(null);
     const [privateKey, setPrivateKey] = useState<string | null>(null);
     const [encryptionKey, setEncryptionKey] = useState<Uint8Array | null>(null);
-    const [salt, setSalt] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-    const initializeFromSecureStorage = useCallback(async (userId: string): Promise<boolean> => {
+    const initializeFromSecureStorage = useCallback(async (): Promise<boolean> => {
         try {
             console.log('Attempting to initialize from secure storage...');
 
             // Check if we have stored keys
-            const hasKeys = await SecureKeyManager.hasStoredKeys(userId);
+            const hasKeys = await SecureKeyManager.hasStoredKeys();
             if (!hasKeys) {
                 console.log('No keys found in secure storage');
                 return false;
             }
 
             // Retrieve keys from secure storage
-            const storedEncryptionKey = await SecureKeyManager.getEncryptionKey(userId);
-            const storedPrivateKey = await SecureKeyManager.getPrivateKey(userId);
+            const storedEncryptionKey = await SecureKeyManager.getEncryptionKey();
+            const storedPrivateKey = await SecureKeyManager.getPrivateKey();
 
             if (!storedEncryptionKey || !storedPrivateKey) {
                 console.log('Failed to retrieve keys from secure storage');
@@ -144,7 +143,6 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
             // 3. Update the state
             setEncryptionKey(key);
-            setSalt(newSalt);
             setPublicKey(newPublicKey);
             setPrivateKey(newPrivateKey);
             setIsInitialized(true);
@@ -153,8 +151,8 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             if (userId) {
                 console.log('Storing keys in secure storage...');
                 const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-                await SecureKeyManager.storeEncryptionKeyWithBiometric(userId, key, biometricAvailable);
-                await SecureKeyManager.storePrivateKeyWithBiometric(userId, newPrivateKey, biometricAvailable);
+                await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
+                await SecureKeyManager.storePrivateKeyWithBiometric(newPrivateKey, biometricAvailable);
             }
 
             onProgress?.(1.0);
@@ -219,15 +217,14 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setPublicKey(importedPublicKey);
             setPrivateKey(decryptedPrivateKey);
             setEncryptionKey(key);
-            setSalt(storedSalt);
             setIsInitialized(true);
 
             // Store keys securely for future fast access
             if (userId) {
                 console.log('Storing keys in secure storage for future fast access...');
                 const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-                await SecureKeyManager.storeEncryptionKeyWithBiometric(userId, key, biometricAvailable);
-                await SecureKeyManager.storePrivateKeyWithBiometric(userId, decryptedPrivateKey, biometricAvailable);
+                await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
+                await SecureKeyManager.storePrivateKeyWithBiometric(decryptedPrivateKey, biometricAvailable);
             }
 
             onProgress?.(1.0);
@@ -250,12 +247,11 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         setPublicKey(null);
         setPrivateKey(null);
         setEncryptionKey(null);
-        setSalt(null);
         setIsInitialized(false);
 
         // Clear secure storage if userId is provided
         if (userId) {
-            await SecureKeyManager.clearAllUserData(userId);
+            await SecureKeyManager.clearAllData();
         }
     }, []);
 

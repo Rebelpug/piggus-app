@@ -1,44 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/context/AuthContext';
 import { SecureKeyManager } from '@/lib/secureKeyManager';
 import { Ionicons } from '@expo/vector-icons';
-import { TouchableOpacity } from 'react-native';
 
 interface BiometricLoginProps {
   onBiometricLogin?: () => void;
 }
 
 export default function BiometricLogin({ onBiometricLogin }: BiometricLoginProps) {
-  const { tryBiometricLogin, isBiometricAvailable, user } = useAuth();
+  const { tryBiometricLogin } = useAuth();
   const [hasStoredCredentials, setHasStoredCredentials] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
     checkStoredCredentials();
-  }, [user]);
+  }, []);
 
   const checkStoredCredentials = async () => {
     try {
-      // If we have a current user, check if they have stored session data
-      if (user) {
-        const hasSession = await SecureKeyManager.hasStoredSession(user.id);
-        const biometricEnabled = await SecureKeyManager.isBiometricEnabledForUser(user.id);
-        setHasStoredCredentials(hasSession && biometricEnabled);
-      } else {
-        // No current user, check for any stored session data (simplified approach)
-        const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
-        setHasStoredCredentials(hasStoredData);
+      const biometricEnabled = await SecureKeyManager.isBiometricEnabled();
+      const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
+      if (!biometricEnabled || !hasStoredData) {
+        setHasStoredCredentials(false);
+        return;
       }
+      setHasStoredCredentials(true);
+      await handleBiometricLogin();
     } catch (error) {
       console.error('Failed to check stored credentials:', error);
+      setHasStoredCredentials(false);
     }
   };
 
   const handleBiometricLogin = async () => {
-    if (!isBiometricAvailable || !hasStoredCredentials) return;
+    if (!hasStoredCredentials) return;
 
     setIsAuthenticating(true);
     try {
@@ -64,7 +62,7 @@ export default function BiometricLogin({ onBiometricLogin }: BiometricLoginProps
     }
   };
 
-  if (!isBiometricAvailable || !hasStoredCredentials) {
+  if (!hasStoredCredentials) {
     return null;
   }
 

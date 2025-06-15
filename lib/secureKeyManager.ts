@@ -3,37 +3,21 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { Buffer } from 'buffer';
 import type { Session } from '@supabase/supabase-js';
 
-const ENCRYPTION_KEY_PREFIX = 'encryption_key_';
-const PRIVATE_KEY_PREFIX = 'private_key_';
-const SUPABASE_SESSION_PREFIX = 'supabase_session_';
-const BIOMETRIC_ENABLED_PREFIX = 'biometric_enabled_';
+const ENCRYPTION_KEY = 'encryption_key';
+const PRIVATE_KEY = 'private_key';
+const SUPABASE_SESSION = 'supabase_session';
+const BIOMETRIC_ENABLED = 'biometric_enabled';
 
 export class SecureKeyManager {
-    private static getUserKeyId(userId: string): string {
-        return `${ENCRYPTION_KEY_PREFIX}${userId}`;
-    }
-
-    private static getPrivateKeyId(userId: string): string {
-        return `${PRIVATE_KEY_PREFIX}${userId}`;
-    }
-
-    private static getSessionId(userId: string): string {
-        return `${SUPABASE_SESSION_PREFIX}${userId}`;
-    }
-
-    private static getBiometricEnabledId(userId: string): string {
-        return `${BIOMETRIC_ENABLED_PREFIX}${userId}`;
-    }
 
     /**
      * Store encryption key securely (for session persistence)
      */
-    static async storeEncryptionKey(userId: string, encryptionKey: Uint8Array): Promise<void> {
+    static async storeEncryptionKey(encryptionKey: Uint8Array): Promise<void> {
         try {
-            const keyId = this.getUserKeyId(userId);
             const keyBase64 = Buffer.from(encryptionKey).toString('base64');
 
-            await SecureStore.setItemAsync(keyId, keyBase64, {
+            await SecureStore.setItemAsync(ENCRYPTION_KEY, keyBase64, {
                 requireAuthentication: false, // Set to true if you want biometric protection
                 keychainService: 'piggus-encryption-keys',
             });
@@ -48,10 +32,9 @@ export class SecureKeyManager {
     /**
      * Retrieve encryption key from secure storage
      */
-    static async getEncryptionKey(userId: string): Promise<Uint8Array | null> {
+    static async getEncryptionKey(): Promise<Uint8Array | null> {
         try {
-            const keyId = this.getUserKeyId(userId);
-            const keyBase64 = await SecureStore.getItemAsync(keyId);
+            const keyBase64 = await SecureStore.getItemAsync(ENCRYPTION_KEY);
 
             if (!keyBase64) {
                 console.log('No encryption key found in secure storage');
@@ -69,11 +52,9 @@ export class SecureKeyManager {
     /**
      * Store private key securely
      */
-    static async storePrivateKey(userId: string, privateKey: string): Promise<void> {
+    static async storePrivateKey(privateKey: string): Promise<void> {
         try {
-            const keyId = this.getPrivateKeyId(userId);
-
-            await SecureStore.setItemAsync(keyId, privateKey, {
+            await SecureStore.setItemAsync(PRIVATE_KEY, privateKey, {
                 requireAuthentication: false,
                 keychainService: 'piggus-private-keys',
             });
@@ -88,10 +69,9 @@ export class SecureKeyManager {
     /**
      * Retrieve private key from secure storage
      */
-    static async getPrivateKey(userId: string): Promise<string | null> {
+    static async getPrivateKey(): Promise<string | null> {
         try {
-            const keyId = this.getPrivateKeyId(userId);
-            const privateKey = await SecureStore.getItemAsync(keyId);
+            const privateKey = await SecureStore.getItemAsync(PRIVATE_KEY);
 
             if (!privateKey) {
                 console.log('No private key found in secure storage');
@@ -109,19 +89,16 @@ export class SecureKeyManager {
     /**
      * Clear all stored keys for a user (on sign out)
      */
-    static async clearUserKeys(userId: string): Promise<void> {
+    static async clearKeys(): Promise<void> {
         try {
-            const encryptionKeyId = this.getUserKeyId(userId);
-            const privateKeyId = this.getPrivateKeyId(userId);
-
             await Promise.all([
-                SecureStore.deleteItemAsync(encryptionKeyId),
-                SecureStore.deleteItemAsync(privateKeyId),
+                SecureStore.deleteItemAsync(ENCRYPTION_KEY),
+                SecureStore.deleteItemAsync(PRIVATE_KEY),
             ]);
 
-            console.log('User keys cleared from secure storage');
+            console.log('Keys cleared from secure storage');
         } catch (error) {
-            console.error('Failed to clear user keys:', error);
+            console.error('Failed to clear keys:', error);
             // Don't throw here, as this is cleanup
         }
     }
@@ -129,10 +106,10 @@ export class SecureKeyManager {
     /**
      * Check if keys exist for a user
      */
-    static async hasStoredKeys(userId: string): Promise<boolean> {
+    static async hasStoredKeys(): Promise<boolean> {
         try {
-            const encryptionKey = await this.getEncryptionKey(userId);
-            const privateKey = await this.getPrivateKey(userId);
+            const encryptionKey = await this.getEncryptionKey();
+            const privateKey = await this.getPrivateKey();
             return !!(encryptionKey && privateKey);
         } catch (error) {
             console.error('Failed to check for stored keys:', error);
@@ -172,7 +149,7 @@ export class SecureKeyManager {
     /**
      * Supabase session management - split into smaller chunks
      */
-    static async storeSupabaseSession(userId: string, session: Session, requireBiometric: boolean = true): Promise<void> {
+    static async storeSupabaseSession(session: Session, requireBiometric: boolean = true): Promise<void> {
         try {
             // Split session into smaller parts to avoid 2048 byte limit
             const sessionParts = {
@@ -190,16 +167,14 @@ export class SecureKeyManager {
                 }
             };
 
-            const sessionId = this.getSessionId(userId);
-            
             // Store access token separately
-            await SecureStore.setItemAsync(`${sessionId}_access`, session.access_token, {
+            await SecureStore.setItemAsync(`${SUPABASE_SESSION}_access`, session.access_token, {
                 requireAuthentication: requireBiometric,
                 keychainService: 'piggus-supabase-sessions',
             });
 
             // Store refresh token separately
-            await SecureStore.setItemAsync(`${sessionId}_refresh`, session.refresh_token, {
+            await SecureStore.setItemAsync(`${SUPABASE_SESSION}_refresh`, session.refresh_token, {
                 requireAuthentication: requireBiometric,
                 keychainService: 'piggus-supabase-sessions',
             });
@@ -212,20 +187,14 @@ export class SecureKeyManager {
                 user: sessionParts.user
             };
 
-            await SecureStore.setItemAsync(`${sessionId}_meta`, JSON.stringify(sessionMeta), {
+            await SecureStore.setItemAsync(`${SUPABASE_SESSION}_meta`, JSON.stringify(sessionMeta), {
                 requireAuthentication: requireBiometric,
                 keychainService: 'piggus-supabase-sessions',
             });
 
-            // Store biometric preference (always set to true if device supports it, regardless of requireBiometric)
-            const biometricEnabledId = this.getBiometricEnabledId(userId);
+            // Store biometric preference
             const deviceSupportsBiometric = await this.isBiometricAvailable();
-            await SecureStore.setItemAsync(biometricEnabledId, deviceSupportsBiometric.toString());
-
-            // Store user ID for biometric login lookup if device supports biometric
-            if (deviceSupportsBiometric) {
-                await this.storeUserIdForBiometric(userId);
-            }
+            await SecureStore.setItemAsync(BIOMETRIC_ENABLED, deviceSupportsBiometric.toString());
 
             console.log('Supabase session stored securely in chunks');
         } catch (error) {
@@ -234,14 +203,12 @@ export class SecureKeyManager {
         }
     }
 
-    static async getSupabaseSession(userId: string): Promise<Session | null> {
+    static async getSupabaseSession(): Promise<Session | null> {
         try {
-            const sessionId = this.getSessionId(userId);
-            
             // Retrieve session parts
-            const accessToken = await SecureStore.getItemAsync(`${sessionId}_access`);
-            const refreshToken = await SecureStore.getItemAsync(`${sessionId}_refresh`);
-            const metaData = await SecureStore.getItemAsync(`${sessionId}_meta`);
+            const accessToken = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_access`);
+            const refreshToken = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_refresh`);
+            const metaData = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_meta`);
 
             if (!accessToken || !refreshToken || !metaData) {
                 console.log('No complete Supabase session found in secure storage');
@@ -249,7 +216,7 @@ export class SecureKeyManager {
             }
 
             const sessionMeta = JSON.parse(metaData);
-            
+
             // Reconstruct session
             const session: Session = {
                 access_token: accessToken,
@@ -268,10 +235,9 @@ export class SecureKeyManager {
         }
     }
 
-    static async isBiometricEnabledForUser(userId: string): Promise<boolean> {
+    static async isBiometricEnabled(): Promise<boolean> {
         try {
-            const biometricEnabledId = this.getBiometricEnabledId(userId);
-            const enabled = await SecureStore.getItemAsync(biometricEnabledId);
+            const enabled = await SecureStore.getItemAsync(BIOMETRIC_ENABLED);
             return enabled === 'true';
         } catch (error) {
             console.error('Failed to check biometric setting:', error);
@@ -279,12 +245,11 @@ export class SecureKeyManager {
         }
     }
 
-    static async hasStoredSession(userId: string): Promise<boolean> {
+    static async hasStoredSession(): Promise<boolean> {
         try {
-            const sessionId = this.getSessionId(userId);
-            const accessToken = await SecureStore.getItemAsync(`${sessionId}_access`);
-            const refreshToken = await SecureStore.getItemAsync(`${sessionId}_refresh`);
-            const metaData = await SecureStore.getItemAsync(`${sessionId}_meta`);
+            const accessToken = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_access`);
+            const refreshToken = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_refresh`);
+            const metaData = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_meta`);
             return !!(accessToken && refreshToken && metaData);
         } catch (error) {
             console.error('Failed to check for stored session:', error);
@@ -295,87 +260,12 @@ export class SecureKeyManager {
     /**
      * Get all stored user IDs (for biometric login when no active session)
      */
-    static async getStoredUserIds(): Promise<string[]> {
-        try {
-            // This is a simplified approach - in a real app you might want to
-            // store a list of user IDs separately for easier retrieval
-            const userIds: string[] = [];
-            
-            // For now, we can't easily enumerate all stored keys with expo-secure-store
-            // so we'll return an empty array. In a real implementation, you'd want to
-            // maintain a separate list of user IDs who have stored sessions
-            
-            return userIds;
-        } catch (error) {
-            console.error('Failed to get stored user IDs:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Store user ID for biometric login lookup - maintain a small index
-     */
-    static async storeUserIdForBiometric(userId: string): Promise<void> {
-        try {
-            // Store individual user flag
-            const key = `biometric_user_${userId}`;
-            await SecureStore.setItemAsync(key, 'true');
-            
-            // Also maintain an index (keeping it small to avoid 2048 byte limit)
-            const indexKey = 'biometric_user_index';
-            const existingIndex = await SecureStore.getItemAsync(indexKey);
-            let userIds: string[] = [];
-            
-            if (existingIndex) {
-                try {
-                    userIds = JSON.parse(existingIndex);
-                } catch (e) {
-                    userIds = [];
-                }
-            }
-            
-            if (!userIds.includes(userId)) {
-                userIds.push(userId);
-                // Keep only the last 5 users to avoid size issues
-                if (userIds.length > 5) {
-                    userIds = userIds.slice(-5);
-                }
-                await SecureStore.setItemAsync(indexKey, JSON.stringify(userIds));
-            }
-        } catch (error) {
-            console.error('Failed to store user ID for biometric:', error);
-        }
-    }
-
-    /**
-     * Check if there's any stored session data available (simplified for single user)
-     */
     static async hasAnyStoredSessionData(): Promise<boolean> {
         try {
-            // Check if there's a current stored session by looking for the most recent user
-            const indexKey = 'biometric_user_index';
-            const existingIndex = await SecureStore.getItemAsync(indexKey);
-            
-            if (!existingIndex) {
-                return false;
-            }
-            
-            try {
-                const userIds = JSON.parse(existingIndex);
-                if (userIds.length === 0) {
-                    return false;
-                }
-                
-                // Check the most recent user (last in array)
-                const mostRecentUserId = userIds[userIds.length - 1];
-                const hasSession = await this.hasStoredSession(mostRecentUserId);
-                const hasBiometricFlag = await SecureStore.getItemAsync(`biometric_user_${mostRecentUserId}`);
-                
-                return hasSession && !!hasBiometricFlag;
-            } catch (e) {
-                console.error('Failed to parse biometric user index:', e);
-                return false;
-            }
+            const accessToken = await SecureStore.getItemAsync(`${SUPABASE_SESSION}_access`);
+            const hasBiometricFlag = await SecureStore.getItemAsync(BIOMETRIC_ENABLED);
+
+            return !!accessToken && hasBiometricFlag === 'true';
         } catch (error) {
             console.error('Failed to check for stored session data:', error);
             return false;
@@ -383,121 +273,33 @@ export class SecureKeyManager {
     }
 
     /**
-     * Get the most recent stored user ID (simplified for single user approach)
-     */
-    static async getMostRecentStoredUserId(): Promise<string | null> {
-        try {
-            const indexKey = 'biometric_user_index';
-            const existingIndex = await SecureStore.getItemAsync(indexKey);
-            
-            if (!existingIndex) {
-                return null;
-            }
-            
-            try {
-                const userIds = JSON.parse(existingIndex);
-                if (userIds.length === 0) {
-                    return null;
-                }
-                
-                // Return the most recent user (last in array)
-                const mostRecentUserId = userIds[userIds.length - 1];
-                const hasSession = await this.hasStoredSession(mostRecentUserId);
-                const hasBiometricFlag = await SecureStore.getItemAsync(`biometric_user_${mostRecentUserId}`);
-                
-                if (hasSession && hasBiometricFlag) {
-                    return mostRecentUserId;
-                }
-                
-                return null;
-            } catch (e) {
-                console.error('Failed to parse biometric user index:', e);
-                return null;
-            }
-        } catch (error) {
-            console.error('Failed to get most recent stored user ID:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get user IDs that have biometric login enabled (kept for compatibility)
-     */
-    static async getBiometricUserIds(): Promise<string[]> {
-        const userId = await this.getMostRecentStoredUserId();
-        return userId ? [userId] : [];
-    }
-
-    /**
-     * Remove user ID from biometric login list
-     */
-    static async removeBiometricUserId(userId: string): Promise<void> {
-        try {
-            // Remove individual user flag
-            const key = `biometric_user_${userId}`;
-            await SecureStore.deleteItemAsync(key);
-            
-            // Remove from index
-            const indexKey = 'biometric_user_index';
-            const existingIndex = await SecureStore.getItemAsync(indexKey);
-            
-            if (existingIndex) {
-                try {
-                    let userIds: string[] = JSON.parse(existingIndex);
-                    userIds = userIds.filter(id => id !== userId);
-                    
-                    if (userIds.length > 0) {
-                        await SecureStore.setItemAsync(indexKey, JSON.stringify(userIds));
-                    } else {
-                        await SecureStore.deleteItemAsync(indexKey);
-                    }
-                } catch (e) {
-                    console.error('Failed to update biometric user index:', e);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to remove biometric user ID:', error);
-        }
-    }
-
-    /**
      * Clear all stored data for a user (on sign out)
      */
-    static async clearAllUserData(userId: string): Promise<void> {
+    static async clearAllData(): Promise<void> {
         try {
-            const encryptionKeyId = this.getUserKeyId(userId);
-            const privateKeyId = this.getPrivateKeyId(userId);
-            const sessionId = this.getSessionId(userId);
-            const biometricEnabledId = this.getBiometricEnabledId(userId);
-
             await Promise.all([
-                SecureStore.deleteItemAsync(encryptionKeyId),
-                SecureStore.deleteItemAsync(privateKeyId),
-                SecureStore.deleteItemAsync(`${sessionId}_access`),
-                SecureStore.deleteItemAsync(`${sessionId}_refresh`),
-                SecureStore.deleteItemAsync(`${sessionId}_meta`),
-                SecureStore.deleteItemAsync(biometricEnabledId),
-                SecureStore.deleteItemAsync(`biometric_user_${userId}`),
+                SecureStore.deleteItemAsync(ENCRYPTION_KEY),
+                SecureStore.deleteItemAsync(PRIVATE_KEY),
+                SecureStore.deleteItemAsync(`${SUPABASE_SESSION}_access`),
+                SecureStore.deleteItemAsync(`${SUPABASE_SESSION}_refresh`),
+                SecureStore.deleteItemAsync(`${SUPABASE_SESSION}_meta`),
+                SecureStore.deleteItemAsync(BIOMETRIC_ENABLED),
             ]);
 
-            // Remove from biometric user IDs list
-            await this.removeBiometricUserId(userId);
-
-            console.log('All user data cleared from secure storage');
+            console.log('All data cleared from secure storage');
         } catch (error) {
-            console.error('Failed to clear user data:', error);
+            console.error('Failed to clear data:', error);
         }
     }
 
     /**
      * Update encryption key storage to support biometric authentication
      */
-    static async storeEncryptionKeyWithBiometric(userId: string, encryptionKey: Uint8Array, requireBiometric: boolean = true): Promise<void> {
+    static async storeEncryptionKeyWithBiometric(encryptionKey: Uint8Array, requireBiometric: boolean = true): Promise<void> {
         try {
-            const keyId = this.getUserKeyId(userId);
             const keyBase64 = Buffer.from(encryptionKey).toString('base64');
 
-            await SecureStore.setItemAsync(keyId, keyBase64, {
+            await SecureStore.setItemAsync(ENCRYPTION_KEY, keyBase64, {
                 requireAuthentication: requireBiometric,
                 keychainService: 'piggus-encryption-keys',
             });
@@ -509,11 +311,9 @@ export class SecureKeyManager {
         }
     }
 
-    static async storePrivateKeyWithBiometric(userId: string, privateKey: string, requireBiometric: boolean = true): Promise<void> {
+    static async storePrivateKeyWithBiometric(privateKey: string, requireBiometric: boolean = true): Promise<void> {
         try {
-            const keyId = this.getPrivateKeyId(userId);
-
-            await SecureStore.setItemAsync(keyId, privateKey, {
+            await SecureStore.setItemAsync(PRIVATE_KEY, privateKey, {
                 requireAuthentication: requireBiometric,
                 keychainService: 'piggus-private-keys',
             });
