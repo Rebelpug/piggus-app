@@ -17,6 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import BiometricLogin from '@/components/auth/BiometricLogin';
+import {useRouter} from "expo-router";
 
 interface PasswordPromptProps {
     onSuccess?: () => void;
@@ -29,7 +30,8 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    
+    const router = useRouter();
+
     const { initializeEncryptionWithPassword, signOut, user } = useAuth();
 
     const handleSubmit = async () => {
@@ -41,11 +43,12 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
         setLoading(true);
         try {
             await initializeEncryptionWithPassword(password);
+            router.push('/');
             onSuccess?.();
         } catch (error: any) {
             console.error('Password verification failed:', error);
             Alert.alert(
-                'Invalid Password', 
+                'Invalid Password',
                 'The password you entered is incorrect. Please try again.',
                 [{ text: 'OK' }]
             );
@@ -60,8 +63,8 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
             'Are you sure you want to sign out? You will need to sign in again.',
             [
                 { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Sign Out', 
+                {
+                    text: 'Sign Out',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -78,9 +81,9 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <StatusBar 
-                barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
-                backgroundColor={colors.background} 
+            <StatusBar
+                barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+                backgroundColor={colors.background}
             />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -119,10 +122,10 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                                     onPress={() => setShowPassword(!showPassword)}
                                     style={styles.eyeIcon}
                                 >
-                                    <Ionicons 
-                                        name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                                        size={20} 
-                                        color={colors.icon} 
+                                    <Ionicons
+                                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                        size={20}
+                                        color={colors.icon}
                                     />
                                 </TouchableOpacity>
                             </View>
@@ -130,7 +133,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
 
                         <TouchableOpacity
                             style={[
-                                styles.button, 
+                                styles.button,
                                 { backgroundColor: loading ? colors.icon : colors.primary },
                                 (loading || !password.trim()) && styles.buttonDisabled
                             ]}

@@ -22,6 +22,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import BiometricLogin from '@/components/auth/BiometricLogin';
+import PasswordPrompt from "@/components/auth/PasswordPrompt";
 
 const LoginScreen = () => {
     const colorScheme = useColorScheme();
@@ -32,7 +33,7 @@ const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
     const [encryptionProgress, setEncryptionProgress] = useState(0);
     const [encryptionStep, setEncryptionStep] = useState('');
-    const { signIn } = useAuth();
+    const { signIn, user, encryptionInitialized, needsPasswordPrompt } = useAuth();
     const router = useRouter();
 
     const handleLogin = async () => {
@@ -66,7 +67,7 @@ const LoginScreen = () => {
             });
 
             console.log('Login successful');
-            router.push('/(protected)');
+            router.push('/');
 
         } catch (error: any) {
             setLoading(false);
@@ -91,6 +92,13 @@ const LoginScreen = () => {
             }, 1500);
         }
     };
+
+    // If user is logged in but needs to enter password for encryption
+    if (user && needsPasswordPrompt && !encryptionInitialized) {
+        return (
+            <PasswordPrompt/>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -202,7 +210,7 @@ const LoginScreen = () => {
                             <BiometricLogin
                                 onBiometricLogin={() => {
                                     console.log('Biometric login successful');
-                                    router.push('/(protected)');
+                                    router.push('/');
                                 }}
                             />
                         )}
@@ -210,7 +218,7 @@ const LoginScreen = () => {
 
                     {/* Footer */}
                     <View style={styles.footer}>
-                        <Text style={[styles.footerText, { color: colors.icon }]}>Don't have an account?</Text>
+                        <Text style={[styles.footerText, { color: colors.icon }]}>{"Don't have an account?"}</Text>
                         <TouchableOpacity onPress={() => router.push('/register')} disabled={loading}>
                             <Text style={[styles.link, { color: colors.primary }, loading && { opacity: 0.5 }]}>
                                 Sign Up

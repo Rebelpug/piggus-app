@@ -14,13 +14,13 @@ import {
 } from '@/context/EncryptionContext';
 import { SecureKeyManager } from '@/lib/secureKeyManager';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
-import PasswordPrompt from "@/components/auth/PasswordPrompt";
 
 // Define the AuthContext type
 type AuthContextType = {
   user: User | null;
   authInitialized: boolean;
   encryptionInitialized: boolean;
+  needsPasswordPrompt: boolean;
   publicKey: string | null;
   signIn: (email: string, password: string, progress: (progress: any, step: string) => void) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -153,7 +153,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
                   const overallProgress = 0.1 + (importProgress * 0.8);
                   onProgress?.(overallProgress);
                 },
-                user.id
             );
 
             if (!data) {
@@ -176,7 +175,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
                   const overallProgress = 0.3 + (genProgress * 0.6);
                   onProgress?.(overallProgress);
                 },
-                user.id
             );
             setIsGeneratingKeys(false);
             onProgress?.(0.95);
@@ -291,19 +289,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         if (currentUser) {
           setUser(currentUser);
           console.log('User session found:', currentUser.email);
-
-          // First, try to initialize from secure storage (this includes biometric auth if enabled)
-          const initFromStorage = await encryption.initializeFromSecureStorage();
-
-          if (initFromStorage) {
-            console.log('Successfully initialized encryption from secure storage');
-            setEncryptionInitialized(true);
-            setNeedsPasswordPrompt(false);
-            return;
-          }
-
-          console.log('No keys in secure storage, checking user metadata...');
-
           // If secure storage fails, check if we have a saved password from signup
           if (signupPassword.current) {
             console.log('Using saved signup password');
@@ -333,7 +318,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           console.log('No active session found, checking for stored sessions...');
           // Check if we have any stored session data and biometric is available
           const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
-
           if (hasStoredData) {
             console.log('Found stored session data, showing auto biometric prompt...');
             return; // Don't complete auth initialization yet
@@ -572,29 +556,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     if (!user) {
       return children;
     }
-
-    // If user is logged in but needs to enter password for encryption
-    if (user && needsPasswordPrompt && !encryptionInitialized) {
-      return (
-          <PasswordPrompt
-            onSuccess={() => {
-              setNeedsPasswordPrompt(false);
-            }}
-            onCancel={() => {
-              setNeedsPasswordPrompt(false);
-            }}
-          />
-      );
-    }
-
-    // Check if we have a valid session with Supabase
-    // Only render children when both user and encryption are fully initialized
-    if (!user || !encryptionInitialized || !encryption.isEncryptionInitialized || !encryption.getPublicKey()) {
-      return (
-          <AuthSetupLoader />
-      );
-    }
-
     // All checks passed, render the children
     return children;
   };
@@ -609,6 +570,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             user,
             authInitialized,
             encryptionInitialized,
+            needsPasswordPrompt,
             publicKey: encryption.getPublicKey(),
             signIn,
             signUp,

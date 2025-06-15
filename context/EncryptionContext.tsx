@@ -21,7 +21,7 @@ interface EncryptionContextType {
 
     // Core functions
     initializeFromSecureStorage: () => Promise<boolean>;
-    initializeFromPassword: (password: string, progress?: (progress: any) => void, userId?: string) => Promise<{
+    initializeFromPassword: (password: string, progress?: (progress: any) => void) => Promise<{
         publicKey: string;
         privateKey: string;
         encryptionKey: Uint8Array<ArrayBufferLike>;
@@ -32,7 +32,6 @@ interface EncryptionContextType {
         encryptedPrivateKey: string,
         password: string,
         progress?: (progress: any) => void,
-        userId?: string,
     ) => Promise<{
         publicKey: string;
         privateKey: string;
@@ -122,7 +121,6 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const initializeFromPassword = useCallback(async (
         password: string,
         onProgress?: (progress: number) => void,
-        userId?: string,
     ) => {
         try {
             console.log('Initializing encryption from password...');
@@ -152,10 +150,9 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setPrivateKey(newPrivateKey);
             setIsInitialized(true);
 
-            // 4. Store keys securely if userId is provided
-            if (userId) {
-                console.log('Storing keys in secure storage...');
-                const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
+            console.log('Storing keys in secure storage...');
+            const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
+            if (biometricAvailable) {
                 await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
                 await SecureKeyManager.storePrivateKeyWithBiometric(newPrivateKey, key);
             }
@@ -181,7 +178,6 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         encryptedPrivateKeyData: string,
         password: string,
         onProgress?: (progress: number) => void,
-        userId?: string,
     ): Promise<{
         publicKey: string;
         privateKey: string;
@@ -225,9 +221,9 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setIsInitialized(true);
 
             // Store keys securely for future fast access
-            if (userId) {
-                console.log('Storing keys in secure storage for future fast access...');
-                const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
+            console.log('Storing keys in secure storage...');
+            const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
+            if (biometricAvailable) {
                 await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
                 await SecureKeyManager.storePrivateKeyWithBiometric(decryptedPrivateKey, key);
             }
@@ -253,11 +249,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         setPrivateKey(null);
         setEncryptionKey(null);
         setIsInitialized(false);
-
-        // Clear secure storage if userId is provided
-        if (userId) {
-            await SecureKeyManager.clearAllData();
-        }
+        await SecureKeyManager.clearAllData();
     }, []);
 
     // Check if encryption is initialized
