@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
     View,
     Text,
@@ -18,6 +18,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import BiometricLogin from '@/components/auth/BiometricLogin';
 import {useRouter} from "expo-router";
+import {SecureKeyManager} from "@/lib/secureKeyManager";
 
 interface PasswordPromptProps {
     onSuccess?: () => void;
@@ -31,6 +32,20 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
+    const [debugInfo, setDebugInfo] = useState({
+        hasStoredKeys: false,
+        hasAnyStoredSessionData: false,
+    });
+
+    useEffect(() => {
+        const loadDebugInfo = async () => {
+            setDebugInfo({
+                hasStoredKeys: await SecureKeyManager.hasStoredKeys(),
+                hasAnyStoredSessionData: await SecureKeyManager.hasAnyStoredSessionData(),
+            });
+        };
+        loadDebugInfo();
+    }, []);
 
     const { initializeEncryptionWithPassword, signOut, user } = useAuth();
 
@@ -89,6 +104,15 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
+                <View style={styles.debugContainer}>
+                    <Text style={[styles.debugTitle, {color: colors.text}]}>Debug Info:</Text>
+                    <Text style={[styles.debugText, {color: colors.text}]}>
+                        hasStoredKeys: {debugInfo.hasStoredKeys ? '✅' : '❌'}
+                    </Text>
+                    <Text style={[styles.debugText, {color: colors.text}]}>
+                        hasAnyStoredSessionData: {debugInfo.hasAnyStoredSessionData ? '✅' : '❌'}
+                    </Text>
+                </View>
                 <View style={styles.contentContainer}>
                     {/* Header */}
                     <View style={styles.header}>
@@ -177,6 +201,22 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    debugContainer: {
+        padding: 16,
+        margin: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ccc',
+    },
+    debugTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    debugText: {
+        fontSize: 14,
+        marginBottom: 4,
     },
     keyboardView: {
         flex: 1,

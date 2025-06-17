@@ -151,11 +151,8 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setIsInitialized(true);
 
             console.log('Storing keys in secure storage...');
-            const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-            if (biometricAvailable) {
-                await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
-                await SecureKeyManager.storePrivateKeyWithBiometric(newPrivateKey, key);
-            }
+            await SecureKeyManager.storeEncryptionKey(key);
+            await SecureKeyManager.storePrivateKey(newPrivateKey, key);
 
             onProgress?.(1.0);
             console.log('Encryption initialization completed successfully');
@@ -222,11 +219,8 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
             // Store keys securely for future fast access
             console.log('Storing keys in secure storage...');
-            const biometricAvailable = await SecureKeyManager.isBiometricAvailable();
-            if (biometricAvailable) {
-                await SecureKeyManager.storeEncryptionKeyWithBiometric(key, biometricAvailable);
-                await SecureKeyManager.storePrivateKeyWithBiometric(decryptedPrivateKey, key);
-            }
+            await SecureKeyManager.storeEncryptionKey(key);
+            await SecureKeyManager.storePrivateKey(decryptedPrivateKey, key);
 
             onProgress?.(1.0);
             console.log('Key import completed successfully');

@@ -8,28 +8,8 @@ import { encryptWithAES, decryptWithAES } from './encryption';
 const ENCRYPTION_KEY = 'encryption_key';
 const ENCRYPTED_PRIVATE_KEY = 'encrypted_private_key';
 const ENCRYPTED_SESSION_DATA = 'encrypted_session_data';
-const BIOMETRIC_ENABLED = 'biometric_enabled';
 
 export class SecureKeyManager {
-
-    /**
-     * Store encryption key securely (for session persistence)
-     */
-    static async storeEncryptionKey(encryptionKey: Uint8Array): Promise<void> {
-        try {
-            const keyBase64 = Buffer.from(encryptionKey).toString('base64');
-
-            await SecureStore.setItemAsync(ENCRYPTION_KEY, keyBase64, {
-                requireAuthentication: false, // Set to true if you want biometric protection
-                keychainService: 'piggus-encryption-keys',
-            });
-
-            console.log('Encryption key stored securely');
-        } catch (error) {
-            console.error('Failed to store encryption key:', error);
-            throw error;
-        }
-    }
 
     /**
      * Retrieve encryption key from secure storage
@@ -87,24 +67,6 @@ export class SecureKeyManager {
     }
 
     /**
-     * Clear all stored keys for a user (on sign out)
-     */
-    static async clearKeys(): Promise<void> {
-        try {
-            await Promise.all([
-                SecureStore.deleteItemAsync(ENCRYPTION_KEY),
-                AsyncStorage.removeItem(ENCRYPTED_PRIVATE_KEY),
-                AsyncStorage.removeItem(ENCRYPTED_SESSION_DATA),
-            ]);
-
-            console.log('Keys cleared from storage');
-        } catch (error) {
-            console.error('Failed to clear keys:', error);
-            // Don't throw here, as this is cleanup
-        }
-    }
-
-    /**
      * Check if keys exist for a user
      */
     static async hasStoredKeys(): Promise<boolean> {
@@ -114,20 +76,6 @@ export class SecureKeyManager {
             return !!(encryptionKey && encryptedPrivateKey);
         } catch (error) {
             console.error('Failed to check for stored keys:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Biometric authentication methods
-     */
-    static async isBiometricAvailable(): Promise<boolean> {
-        try {
-            const hasHardware = await LocalAuthentication.hasHardwareAsync();
-            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-            return hasHardware && isEnrolled;
-        } catch (error) {
-            console.error('Failed to check biometric availability:', error);
             return false;
         }
     }
@@ -169,10 +117,6 @@ export class SecureKeyManager {
 
             const encryptedSessionData = encryptWithAES(sessionData, encryptionKey);
             await AsyncStorage.setItem(ENCRYPTED_SESSION_DATA, encryptedSessionData);
-
-            // Store biometric preference
-            const deviceSupportsBiometric = await this.isBiometricAvailable();
-            await AsyncStorage.setItem(BIOMETRIC_ENABLED, deviceSupportsBiometric.toString());
 
             console.log('Supabase session stored encrypted in AsyncStorage');
         } catch (error) {
@@ -216,9 +160,8 @@ export class SecureKeyManager {
     static async hasAnyStoredSessionData(): Promise<boolean> {
         try {
             const encryptedSessionData = await AsyncStorage.getItem(ENCRYPTED_SESSION_DATA);
-            const hasBiometricFlag = await AsyncStorage.getItem(BIOMETRIC_ENABLED);
 
-            return !!encryptedSessionData && hasBiometricFlag === 'true';
+            return !!encryptedSessionData;
         } catch (error) {
             console.error('Failed to check for stored session data:', error);
             return false;
@@ -234,7 +177,6 @@ export class SecureKeyManager {
                 SecureStore.deleteItemAsync(ENCRYPTION_KEY),
                 AsyncStorage.removeItem(ENCRYPTED_PRIVATE_KEY),
                 AsyncStorage.removeItem(ENCRYPTED_SESSION_DATA),
-                AsyncStorage.removeItem(BIOMETRIC_ENABLED),
             ]);
 
             console.log('All data cleared from storage');
@@ -246,28 +188,18 @@ export class SecureKeyManager {
     /**
      * Update encryption key storage to support biometric authentication
      */
-    static async storeEncryptionKeyWithBiometric(encryptionKey: Uint8Array, requireBiometric: boolean = true): Promise<void> {
+    static async storeEncryptionKey(encryptionKey: Uint8Array): Promise<void> {
         try {
             const keyBase64 = Buffer.from(encryptionKey).toString('base64');
 
             await SecureStore.setItemAsync(ENCRYPTION_KEY, keyBase64, {
-                requireAuthentication: requireBiometric,
+                requireAuthentication: true,
                 keychainService: 'piggus-encryption-keys',
             });
 
             console.log('Encryption key stored securely with biometric protection');
         } catch (error) {
             console.error('Failed to store encryption key with biometric:', error);
-            throw error;
-        }
-    }
-
-    static async storePrivateKeyWithBiometric(privateKey: string, encryptionKey: Uint8Array): Promise<void> {
-        try {
-            await this.storePrivateKey(privateKey, encryptionKey);
-            console.log('Private key stored encrypted in AsyncStorage');
-        } catch (error) {
-            console.error('Failed to store private key:', error);
             throw error;
         }
     }
