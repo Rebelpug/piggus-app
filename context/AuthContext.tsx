@@ -235,8 +235,17 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const tryBiometricLogin = useCallback(async (): Promise<boolean> => {
     try {
       console.log('Attempting biometric login...');
+      if (!user) {
+        console.log('No user found to try biometric login');
+        return false;
+      }
+      const { publicKey } = await retrieveKeysFromUserMetadata(user);
+      if (!publicKey) {
+        console.log('No public key found in user metadata');
+        return false;
+      }
       // Get encryption key from secure storage (only the encryption key)
-      const result = await encryption.initializeFromSecureStorage();
+      const result = await encryption.initializeFromSecureStorage(publicKey);
       if (!result) {
         console.log('No encryption key found in secure storage');
         return false;

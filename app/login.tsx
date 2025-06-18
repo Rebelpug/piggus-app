@@ -2,7 +2,7 @@
  * LoginScreen.tsx
  * A complete login screen with username/password authentication
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -32,8 +32,16 @@ const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
     const [encryptionProgress, setEncryptionProgress] = useState(0);
     const [encryptionStep, setEncryptionStep] = useState('');
-    const { signIn, user, encryptionInitialized, needsPasswordPrompt } = useAuth();
+    const { signIn, user, encryptionInitialized, needsPasswordPrompt, isAuthenticated } = useAuth();
     const router = useRouter();
+
+    // Redirect to main app when user becomes fully authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            console.log('User is fully authenticated, redirecting to main app');
+            router.replace('/(protected)');
+        }
+    }, [isAuthenticated, router]);
 
     const handleLogin = async () => {
         // Validate inputs
@@ -95,7 +103,11 @@ const LoginScreen = () => {
     // If user is logged in but needs to enter password for encryption
     if (user && needsPasswordPrompt && !encryptionInitialized) {
         return (
-            <PasswordPrompt/>
+            <PasswordPrompt
+                onSuccess={() => {
+                    console.log('Password prompt success, authentication should be complete');
+                }}
+            />
         );
     }
 

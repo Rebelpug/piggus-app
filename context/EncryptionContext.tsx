@@ -21,7 +21,7 @@ interface EncryptionContextType {
     isEncryptionInitialized: boolean;
 
     // Core functions
-    initializeFromSecureStorage: () => Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null>;
+    initializeFromSecureStorage: (publicKey: string) => Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null>;
     initializeFromPassword: (password: string, progress?: (progress: any) => void) => Promise<{
         publicKey: string;
         privateKey: string;
@@ -76,7 +76,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const [encryptionKey, setEncryptionKey] = useState<Uint8Array | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-    const initializeFromSecureStorage = useCallback(async ()
+    const initializeFromSecureStorage = useCallback(async (publicKey: string)
         : Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null> => {
         try {
             console.log('Attempting to initialize from secure storage...');
@@ -109,7 +109,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             // Update state with the retrieved keys
             setEncryptionKey(storedEncryptionKey);
             setPrivateKey(storedPrivateKey);
-            // setPublicKey(publicKeyFromMetadata); // You'll need to get this
+            setPublicKey(publicKey); // You'll need to get this
             setIsInitialized(true);
 
             console.log('Successfully initialized from secure storage');

@@ -31,7 +31,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
-    const { initializeEncryptionWithPassword, signOut, user, tryBiometricLogin } = useAuth();
+    const { initializeEncryptionWithPassword, signOut, user, tryBiometricLogin, isAuthenticated } = useAuth();
 
     useEffect(() => {
         handleBiometricLogin();
@@ -42,17 +42,26 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
         console.log('hasStoredKeys', hasStoredKeys);
         const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
         console.log('hasStoredData', hasStoredData);
-        console.log("lol")
+
         if (!hasStoredKeys || !hasStoredData) {
             console.log('No stored keys or data');
             return;
         }
+
         try {
             console.log('Trying biometric login');
-            await tryBiometricLogin();
-            router.push('/');
+            const success = await tryBiometricLogin();
+            if (success) {
+                console.log('Biometric login successful, user is now authenticated');
+                // Don't redirect - let the auth system handle the navigation
+                onSuccess?.();
+            } else {
+                console.log('Biometric login failed or was canceled');
+                // User canceled or biometric failed, stay on password prompt
+            }
         } catch (error) {
             console.error('Biometric login error:', error);
+            // Error occurred, stay on password prompt
         }
     };
 
@@ -65,7 +74,8 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
         setLoading(true);
         try {
             await initializeEncryptionWithPassword(password);
-            router.push('/');
+            console.log('Password authentication successful, user is now authenticated');
+            // Don't redirect - let the auth system handle the navigation
             onSuccess?.();
         } catch (error: any) {
             console.error('Password verification failed:', error);
