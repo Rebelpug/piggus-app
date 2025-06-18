@@ -69,13 +69,12 @@ export class SecureKeyManager {
     /**
      * Check if keys exist for a user
      */
-    static async hasStoredKeys(): Promise<boolean> {
+    static async hasStoredKey(): Promise<boolean> {
         try {
-            const encryptionKey = await this.getEncryptionKey();
             const encryptedPrivateKey = await AsyncStorage.getItem(ENCRYPTED_PRIVATE_KEY);
-            return !!(encryptionKey && encryptedPrivateKey);
+            return !!encryptedPrivateKey;
         } catch (error) {
-            console.error('Failed to check for stored keys:', error);
+            console.error('Failed to check for stored key:', error);
             return false;
         }
     }
@@ -194,7 +193,6 @@ export class SecureKeyManager {
 
             await SecureStore.setItemAsync(ENCRYPTION_KEY, keyBase64, {
                 requireAuthentication: true,
-                keychainService: 'piggus-encryption-keys',
             });
 
             console.log('Encryption key stored securely with biometric protection');

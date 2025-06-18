@@ -235,23 +235,15 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const tryBiometricLogin = useCallback(async (): Promise<boolean> => {
     try {
       console.log('Attempting biometric login...');
-
-      // Authenticate with biometrics
-      const authenticated = await SecureKeyManager.authenticateWithBiometrics('Use biometrics to unlock your data');
-      if (!authenticated) {
-        console.log('Biometric authentication failed or cancelled');
-        return false;
-      }
-
       // Get encryption key from secure storage (only the encryption key)
-      const encryptionKey = await SecureKeyManager.getEncryptionKey();
-      if (!encryptionKey) {
+      const result = await encryption.initializeFromSecureStorage();
+      if (!result) {
         console.log('No encryption key found in secure storage');
         return false;
       }
 
       // Get encrypted session data from AsyncStorage and decrypt it
-      const storedSession = await SecureKeyManager.getSupabaseSession(encryptionKey);
+      const storedSession = await SecureKeyManager.getSupabaseSession(result.encryptionKey);
       if (!storedSession) {
         console.log('No stored session found after biometric auth');
         return false;
@@ -268,13 +260,15 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         return false;
       }
 
+      setNeedsPasswordPrompt(false);
+      setEncryptionInitialized(true);
       console.log('Biometric login successful');
       return true;
     } catch (error) {
       console.error('Biometric login error:', error);
       return false;
     }
-  }, []);
+  }, [encryption]);
 
   // Check for active session on mount
   useEffect(() => {
@@ -384,9 +378,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           // Update stored session when token is refreshed (without requiring biometric)
           try {
             // Get encryption key for storing session
-            const encryptionKey = await SecureKeyManager.getEncryptionKey();
-            if (encryptionKey) {
-              await SecureKeyManager.storeSupabaseSession(session, encryptionKey);
+            if (encryption.encryptionKey) {
+              await SecureKeyManager.storeSupabaseSession(session, encryption.encryptionKey);
             }
           } catch (error) {
             console.error('Failed to update stored session after token refresh:', error);
@@ -453,10 +446,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
           // Store Supabase session securely (without requiring biometric during login)
           onProgress?.(0.9, 'Securing session...');
-          // Get encryption key for storing session
-          const encryptionKey = await SecureKeyManager.getEncryptionKey();
-          if (encryptionKey) {
-            await SecureKeyManager.storeSupabaseSession(data.session, encryptionKey);
+          if (encryption.encryptionKey) {
+            await SecureKeyManager.storeSupabaseSession(data.session, encryption.encryptionKey);
           }
 
           setUser(data.user);

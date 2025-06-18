@@ -21,7 +21,6 @@ import { useRouter } from "expo-router";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import BiometricLogin from '@/components/auth/BiometricLogin';
 import PasswordPrompt from "@/components/auth/PasswordPrompt";
 
 const LoginScreen = () => {
@@ -204,16 +203,6 @@ const LoginScreen = () => {
                                 </View>
                             )}
                         </TouchableOpacity>
-
-                        {/* Biometric Login - only show when not actively logging in */}
-                        {!loading && (
-                            <BiometricLogin
-                                onBiometricLogin={() => {
-                                    console.log('Biometric login successful');
-                                    router.push('/');
-                                }}
-                            />
-                        )}
                     </View>
 
                     {/* Footer */}

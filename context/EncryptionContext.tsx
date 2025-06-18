@@ -16,11 +16,12 @@ import {SecureKeyManager} from "@/lib/secureKeyManager";
 // Types
 interface EncryptionContextType {
     // State getters
+    encryptionKey: Uint8Array<ArrayBufferLike> | null;
     getPublicKey: () => string | null;
     isEncryptionInitialized: boolean;
 
     // Core functions
-    initializeFromSecureStorage: () => Promise<boolean>;
+    initializeFromSecureStorage: () => Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null>;
     initializeFromPassword: (password: string, progress?: (progress: any) => void) => Promise<{
         publicKey: string;
         privateKey: string;
@@ -75,29 +76,30 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const [encryptionKey, setEncryptionKey] = useState<Uint8Array | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-    const initializeFromSecureStorage = useCallback(async (): Promise<boolean> => {
+    const initializeFromSecureStorage = useCallback(async ()
+        : Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null> => {
         try {
             console.log('Attempting to initialize from secure storage...');
 
             // Check if we have stored keys
-            const hasKeys = await SecureKeyManager.hasStoredKeys();
+            const hasKeys = await SecureKeyManager.hasStoredKey();
             if (!hasKeys) {
                 console.log('No keys found in secure storage');
-                return false;
+                return null;
             }
 
             // Retrieve encryption key from secure storage
             const storedEncryptionKey = await SecureKeyManager.getEncryptionKey();
             if (!storedEncryptionKey) {
                 console.log('Failed to retrieve encryption key from secure storage');
-                return false;
+                return null;
             }
 
             // Retrieve encrypted private key from AsyncStorage
             const storedPrivateKey = await SecureKeyManager.getPrivateKey(storedEncryptionKey);
             if (!storedPrivateKey) {
                 console.log('Failed to retrieve private key from AsyncStorage');
-                return false;
+                return null;
             }
 
             // Get public key from user metadata (this doesn't need to be stored securely)
@@ -111,10 +113,10 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             setIsInitialized(true);
 
             console.log('Successfully initialized from secure storage');
-            return true;
+            return { encryptionKey: storedEncryptionKey, privateKey: storedPrivateKey };
         } catch (error) {
             console.error('Failed to initialize from secure storage:', error);
-            return false;
+            return null;
         }
     }, []);
 
@@ -416,6 +418,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
     // Context value
     const value: EncryptionContextType = {
+        encryptionKey,
         getPublicKey,
         isEncryptionInitialized,
         initializeFromSecureStorage,
