@@ -39,28 +39,29 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
 
     const handleBiometricLogin = async () => {
         const hasStoredKeys = await SecureKeyManager.hasStoredKey();
-        console.log('hasStoredKeys', hasStoredKeys);
+        console.log('PasswordPrompt: hasStoredKeys =', hasStoredKeys);
         const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
-        console.log('hasStoredData', hasStoredData);
+        console.log('PasswordPrompt: hasStoredData =', hasStoredData);
 
-        if (!hasStoredKeys || !hasStoredData) {
-            console.log('No stored keys or data');
+        // Only require stored keys for biometric login - session data might not be stored in production
+        if (!hasStoredKeys) {
+            console.log('PasswordPrompt: No stored keys - skipping biometric login');
             return;
         }
 
         try {
-            console.log('Trying biometric login');
+            console.log('PasswordPrompt: Trying biometric login via tryBiometricLogin()');
             const success = await tryBiometricLogin();
             if (success) {
-                console.log('Biometric login successful, user is now authenticated');
+                console.log('PasswordPrompt: Biometric login successful, user is now authenticated');
                 // Don't redirect - let the auth system handle the navigation
                 onSuccess?.();
             } else {
-                console.log('Biometric login failed or was canceled');
+                console.log('PasswordPrompt: Biometric login failed or was canceled');
                 // User canceled or biometric failed, stay on password prompt
             }
         } catch (error) {
-            console.error('Biometric login error:', error);
+            console.error('PasswordPrompt: Biometric login error:', error);
             // Error occurred, stay on password prompt
         }
     };
