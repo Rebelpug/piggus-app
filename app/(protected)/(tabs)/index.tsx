@@ -156,16 +156,6 @@ export default function HomeScreen() {
         <ProfileHeader />
     );
 
-    const renderRightActions = () => (
-        <Layout style={styles.headerActions}>
-            <TouchableOpacity onPress={handleViewGroups} style={styles.groupsButton}>
-                <Ionicons name="people-outline" size={24} color="#8F9BB3" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-                <Ionicons name="refresh" size={24} color="#8F9BB3" />
-            </TouchableOpacity>
-        </Layout>
-    );
 
     if (isLoading && !refreshing) {
         return (
@@ -174,7 +164,6 @@ export default function HomeScreen() {
                     title='Dashboard'
                     alignment='center'
                     accessoryLeft={renderLeftActions}
-                    accessoryRight={renderRightActions}
                 />
                 <AuthSetupLoader />
             </SafeAreaView>
@@ -189,7 +178,6 @@ export default function HomeScreen() {
                 title='Dashboard'
                 alignment='center'
                 accessoryLeft={renderLeftActions}
-                accessoryRight={renderRightActions}
                 style={{ backgroundColor: colors.background }}
             />
 
@@ -617,16 +605,5 @@ const styles = StyleSheet.create({
     modalButton: {
         flex: 1,
         borderRadius: 12,
-    },
-    headerActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    groupsButton: {
-        padding: 8,
-        marginRight: 8,
-    },
-    refreshButton: {
-        padding: 8,
     },
 });

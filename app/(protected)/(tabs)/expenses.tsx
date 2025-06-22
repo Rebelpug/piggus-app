@@ -41,30 +41,30 @@ export default function ExpensesScreen() {
     const monthOptions = React.useMemo(() => {
         const months = [];
         const now = new Date();
-        
+
         // Add "Current month" option
         months.push({
             key: 'current',
             label: 'Current month',
             value: 'current'
         });
-        
+
         // Add previous 11 months (excluding current month)
         for (let i = 1; i <= 11; i++) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            const monthLabel = date.toLocaleDateString('en-US', { 
-                month: 'long', 
-                year: 'numeric' 
+            const monthLabel = date.toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric'
             });
-            
+
             months.push({
                 key: monthKey,
                 label: monthLabel,
                 value: monthKey
             });
         }
-        
+
         return months;
     }, []);
 
@@ -109,7 +109,7 @@ export default function ExpensesScreen() {
             // Show last 3 months
             const now = new Date();
             const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-            
+
             return allExpenses.filter(expense => {
                 const expenseDate = new Date(expense.data.date);
                 return expenseDate >= threeMonthsAgo;
@@ -117,7 +117,7 @@ export default function ExpensesScreen() {
         } else {
             // Show specific month
             const [year, month] = selectedMonth.split('-').map(Number);
-            
+
             return allExpenses.filter(expense => {
                 const expenseDate = new Date(expense.data.date);
                 return expenseDate.getFullYear() === year && expenseDate.getMonth() + 1 === month;
@@ -169,10 +169,6 @@ export default function ExpensesScreen() {
         router.push('/(protected)/add-expense');
     };
 
-    const handleViewGroups = () => {
-        router.push('/(protected)/groups');
-    };
-
     const formatCurrency = (amount: number, currency: string = 'USD') => {
         try {
             return new Intl.NumberFormat('en-US', {
@@ -201,11 +197,11 @@ export default function ExpensesScreen() {
             const date = new Date(dateString);
             const now = new Date();
             const isThisMonth = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-            
+
             if (isThisMonth) {
                 return 'This month';
             }
-            
+
             return date.toLocaleDateString('en-US', {
                 month: 'long',
                 year: 'numeric',
@@ -218,7 +214,7 @@ export default function ExpensesScreen() {
     // Group expenses by month
     const groupedExpenses = React.useMemo(() => {
         const groups: { [key: string]: (ExpenseWithDecryptedData & { groupName?: string })[] } = {};
-        
+
         filteredExpenses.forEach(expense => {
             const monthKey = getMonthYear(expense.data.date);
             if (!groups[monthKey]) {
@@ -226,7 +222,7 @@ export default function ExpensesScreen() {
             }
             groups[monthKey].push(expense);
         });
-        
+
         // Convert to array with month labels
         const result: Array<{ type: 'header' | 'expense'; data: any; key: string }> = [];
         Object.keys(groups).forEach(monthKey => {
@@ -235,7 +231,7 @@ export default function ExpensesScreen() {
                 result.push({ type: 'expense', data: expense, key: expense.id });
             });
         });
-        
+
         return result;
     }, [filteredExpenses]);
 
@@ -291,7 +287,7 @@ export default function ExpensesScreen() {
         const getIntervalDisplay = (interval: string) => {
             const intervalMap = {
                 daily: 'Daily',
-                weekly: 'Weekly', 
+                weekly: 'Weekly',
                 monthly: 'Monthly',
                 yearly: 'Yearly'
             };
@@ -304,7 +300,7 @@ export default function ExpensesScreen() {
                 const today = new Date();
                 const diffTime = date.getTime() - today.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
+
                 if (diffDays < 0) {
                     return 'Overdue';
                 } else if (diffDays === 0) {
@@ -373,7 +369,7 @@ export default function ExpensesScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                    
+
                     <View style={styles.expenseFooter}>
                         <View style={styles.expenseCategory}>
                             <Text style={[styles.categoryText, { color: colors.icon }]}>
@@ -398,8 +394,8 @@ export default function ExpensesScreen() {
 
     const renderMonthSelector = () => (
         <View style={[styles.monthSelector, { backgroundColor: colors.background }]}>
-            <ScrollView 
-                horizontal 
+            <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.monthSelectorContent}
             >
@@ -408,16 +404,16 @@ export default function ExpensesScreen() {
                         key={month.key}
                         style={[
                             styles.monthOption,
-                            { 
+                            {
                                 backgroundColor: selectedMonth === month.value ? colors.primary : colors.card,
-                                borderColor: colors.border 
+                                borderColor: colors.border
                             }
                         ]}
                         onPress={() => setSelectedMonth(month.value)}
                     >
                         <Text style={[
                             styles.monthOptionText,
-                            { 
+                            {
                                 color: selectedMonth === month.value ? 'white' : colors.text,
                                 fontWeight: selectedMonth === month.value ? '600' : '500'
                             }
@@ -499,16 +495,6 @@ export default function ExpensesScreen() {
         <ProfileHeader />
     );
 
-    const renderRightActions = () => (
-        <Layout style={styles.headerActions}>
-            <TouchableOpacity onPress={handleViewGroups} style={styles.groupsButton}>
-                <Ionicons name="people-outline" size={24} color="#8F9BB3" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-                <Ionicons name="refresh" size={24} color="#8F9BB3" />
-            </TouchableOpacity>
-        </Layout>
-    );
 
     if (isLoading && !refreshing) {
         return (
@@ -517,7 +503,6 @@ export default function ExpensesScreen() {
                     title='Expenses'
                     alignment='center'
                     accessoryLeft={renderLeftActions}
-                    accessoryRight={renderRightActions}
                 />
                 <AuthSetupLoader />
             </SafeAreaView>
@@ -531,7 +516,6 @@ export default function ExpensesScreen() {
                     title='Expenses'
                     alignment='center'
                     accessoryLeft={renderLeftActions}
-                    accessoryRight={renderRightActions}
                 />
                 <Layout style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
@@ -606,7 +590,6 @@ export default function ExpensesScreen() {
                 title='Expenses'
                 alignment='center'
                 accessoryLeft={renderLeftActions}
-                accessoryRight={renderRightActions}
                 style={{ backgroundColor: colors.background }}
             />
 
@@ -617,13 +600,13 @@ export default function ExpensesScreen() {
                 onSelect={index => setSelectedIndex(index)}
                 style={styles.tabView}
             >
-                <Tab 
+                <Tab
                     title={`Expenses (${filteredExpenses.length})`}
                     icon={(props) => <Ionicons name="card-outline" size={20} color={props?.tintColor} />}
                 >
                     {renderExpensesTab()}
                 </Tab>
-                <Tab 
+                <Tab
                     title={`Recurring (${allRecurringExpenses.length})`}
                     icon={(props) => <Ionicons name="repeat-outline" size={20} color={props?.tintColor} />}
                 >
@@ -708,17 +691,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
-    },
-    headerActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    groupsButton: {
-        padding: 8,
-        marginRight: 8,
-    },
-    refreshButton: {
-        padding: 8,
     },
     tabView: {
         flex: 1,
