@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList } from 'react-native';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
 import {
     Layout,
     Text,
@@ -21,6 +21,8 @@ import { ExpenseWithDecryptedData, RecurringExpenseWithDecryptedData, calculateU
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import ExpenseItem from '@/components/expenses/ExpenseItem';
+import BudgetCard from '@/components/budget/BudgetCard';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 
@@ -33,6 +35,38 @@ export default function ExpensesScreen() {
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [selectedMonth, setSelectedMonth] = useState<string>('current'); // 'current' for default 3-month view, or specific month like '2025-05'
+
+    // Generate last 12 months for selector
+    const monthOptions = React.useMemo(() => {
+        const months = [];
+        const now = new Date();
+        
+        // Add "Current month" option
+        months.push({
+            key: 'current',
+            label: 'Current month',
+            value: 'current'
+        });
+        
+        // Add previous 11 months (excluding current month)
+        for (let i = 1; i <= 11; i++) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const monthLabel = date.toLocaleDateString('en-US', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+            
+            months.push({
+                key: monthKey,
+                label: monthLabel,
+                value: monthKey
+            });
+        }
+        
+        return months;
+    }, []);
 
     // Flatten all expenses from all groups with error handling
     const allExpenses: (ExpenseWithDecryptedData & { groupName?: string })[] = React.useMemo(() => {
@@ -68,6 +102,28 @@ export default function ExpensesScreen() {
             return [];
         }
     }, [expensesGroups, user?.id]);
+
+    // Filter expenses based on selected month
+    const filteredExpenses = React.useMemo(() => {
+        if (selectedMonth === 'current') {
+            // Show last 3 months
+            const now = new Date();
+            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+            
+            return allExpenses.filter(expense => {
+                const expenseDate = new Date(expense.data.date);
+                return expenseDate >= threeMonthsAgo;
+            });
+        } else {
+            // Show specific month
+            const [year, month] = selectedMonth.split('-').map(Number);
+            
+            return allExpenses.filter(expense => {
+                const expenseDate = new Date(expense.data.date);
+                return expenseDate.getFullYear() === year && expenseDate.getMonth() + 1 === month;
+            });
+        }
+    }, [allExpenses, selectedMonth]);
 
     // Process recurring expenses with group names
     const allRecurringExpenses: (RecurringExpenseWithDecryptedData & { groupName?: string })[] = React.useMemo(() => {
@@ -140,6 +196,49 @@ export default function ExpensesScreen() {
         }
     };
 
+    const getMonthYear = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const isThisMonth = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+            
+            if (isThisMonth) {
+                return 'This month';
+            }
+            
+            return date.toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric',
+            });
+        } catch {
+            return 'Unknown';
+        }
+    };
+
+    // Group expenses by month
+    const groupedExpenses = React.useMemo(() => {
+        const groups: { [key: string]: (ExpenseWithDecryptedData & { groupName?: string })[] } = {};
+        
+        filteredExpenses.forEach(expense => {
+            const monthKey = getMonthYear(expense.data.date);
+            if (!groups[monthKey]) {
+                groups[monthKey] = [];
+            }
+            groups[monthKey].push(expense);
+        });
+        
+        // Convert to array with month labels
+        const result: Array<{ type: 'header' | 'expense'; data: any; key: string }> = [];
+        Object.keys(groups).forEach(monthKey => {
+            result.push({ type: 'header', data: monthKey, key: `header-${monthKey}` });
+            groups[monthKey].forEach(expense => {
+                result.push({ type: 'expense', data: expense, key: expense.id });
+            });
+        });
+        
+        return result;
+    }, [filteredExpenses]);
+
     const getCategoryColor = (category: string) => {
         const colors: { [key: string]: string } = {
             food: '#FF6B6B',
@@ -162,99 +261,21 @@ export default function ExpensesScreen() {
         return categoryInfo;
     };
 
-    const getCategoryIcon = (category: string) => {
-        const categoryInfo = getCategoryInfo(category);
-        // For now, return a default icon since we're using emojis in the new system
-        return 'pricetag-outline';
-    };
+    const renderMonthHeader = ({ item }: { item: string }) => (
+        <View style={[styles.monthHeader, { backgroundColor: colors.background }]}>
+            <Text style={[styles.monthHeaderText, { color: colors.text }]}>
+                {item}
+            </Text>
+        </View>
+    );
 
-    const renderExpenseItem = ({ item }: { item: ExpenseWithDecryptedData & { groupName?: string } }) => {
-        if (!item || !item.data) {
-            return null;
+
+    const renderListItem = ({ item }: { item: { type: 'header' | 'expense'; data: any; key: string } }) => {
+        if (item.type === 'header') {
+            return renderMonthHeader({ item: item.data });
+        } else {
+            return <ExpenseItem item={item.data} />;
         }
-
-        const userShare = calculateUserShare(item, user?.id || '');
-        const totalAmount = item.data.amount || 0;
-        const isPayer = item.data.payer_user_id === user?.id;
-        const isSharedExpense = item.data.participants.length > 1;
-
-        return (
-            <TouchableOpacity
-                style={[styles.expenseCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
-                onPress={() => {
-                    router.push({
-                        pathname: '/(protected)/expense-detail',
-                        params: {
-                            expenseId: item.id,
-                            groupId: item.group_id
-                        }
-                    });
-                }}
-            >
-                <View style={styles.expenseCardContent}>
-                    <View style={styles.expenseHeader}>
-                        <View style={styles.expenseMainInfo}>
-                            <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(item.data.category) + '20' }]}>
-                                <Text style={styles.categoryEmoji}>
-                                    {getCategoryInfo(item.data.category).icon}
-                                </Text>
-                            </View>
-                            <View style={styles.expenseDetails}>
-                                <Text style={[styles.expenseTitle, { color: colors.text }]}>
-                                    {item.data.name || 'Unnamed Expense'}
-                                </Text>
-                                <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
-                                    {item.groupName || 'Unknown Group'} • {formatDate(item.data.date)}
-                                </Text>
-                            </View>
-                        </View>
-                        <View style={styles.expenseAmount}>
-                            <Text style={[styles.amountText, { color: colors.text }]}>
-                                {formatCurrency(userShare, item.data.currency)}
-                            </Text>
-                            {isSharedExpense && (
-                                <Text style={[styles.totalAmountText, { color: colors.icon }]}>
-                                    of {formatCurrency(totalAmount, item.data.currency)}
-                                </Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.editButton}
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    router.push({
-                                        pathname: '/(protected)/edit-expense',
-                                        params: {
-                                            expenseId: item.id,
-                                            groupId: item.group_id
-                                        }
-                                    });
-                                }}
-                            >
-                                <Ionicons name="pencil-outline" size={18} color={colors.icon} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    
-                    <View style={styles.expenseFooter}>
-                        <View style={styles.expenseCategory}>
-                            <Text style={[styles.categoryText, { color: colors.icon }]}>
-                                {(() => {
-                                    const categoryInfo = getCategoryInfo(item.data.category || 'other');
-                                    return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`;
-                                })()}
-                            </Text>
-                        </View>
-                        {isPayer && (
-                            <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
-                                <Text style={[styles.payerText, { color: colors.primary }]}>
-                                    You paid
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-            </TouchableOpacity>
-        );
     };
 
     const renderRecurringExpenseItem = ({ item }: { item: RecurringExpenseWithDecryptedData & { groupName?: string } }) => {
@@ -375,29 +396,42 @@ export default function ExpensesScreen() {
         );
     };
 
-    const renderExpensesHeader = () => {
-        const totalUserSpent = allExpenses.reduce((sum, expense) => {
-            try {
-                const userShare = calculateUserShare(expense, user?.id || '');
-                return sum + userShare;
-            } catch {
-                return sum;
-            }
-        }, 0);
+    const renderMonthSelector = () => (
+        <View style={[styles.monthSelector, { backgroundColor: colors.background }]}>
+            <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.monthSelectorContent}
+            >
+                {monthOptions.map((month) => (
+                    <TouchableOpacity
+                        key={month.key}
+                        style={[
+                            styles.monthOption,
+                            { 
+                                backgroundColor: selectedMonth === month.value ? colors.primary : colors.card,
+                                borderColor: colors.border 
+                            }
+                        ]}
+                        onPress={() => setSelectedMonth(month.value)}
+                    >
+                        <Text style={[
+                            styles.monthOptionText,
+                            { 
+                                color: selectedMonth === month.value ? 'white' : colors.text,
+                                fontWeight: selectedMonth === month.value ? '600' : '500'
+                            }
+                        ]}>
+                            {month.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+        </View>
+    );
 
-        return (
-            <View style={styles.header}>
-                <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.summaryTitle, { color: colors.text }]}>Total Expenses</Text>
-                    <Text style={[styles.summaryAmount, { color: colors.primary }]}>
-                        {formatCurrency(totalUserSpent)}
-                    </Text>
-                    <Text style={[styles.summarySubtitle, { color: colors.icon }]}>
-                        {allExpenses.length} transaction{allExpenses.length !== 1 ? 's' : ''} you're part of
-                    </Text>
-                </View>
-            </View>
-        );
+    const renderExpensesHeader = () => {
+        return <BudgetCard selectedMonth={selectedMonth} />;
     };
 
     const renderRecurringHeader = () => {
@@ -519,13 +553,14 @@ export default function ExpensesScreen() {
 
     const renderExpensesTab = () => (
         <Layout style={styles.tabContent}>
-            {allExpenses.length === 0 ? (
+            {filteredExpenses.length === 0 ? (
                 renderExpensesEmptyState()
             ) : (
                 <FlatList
                     style={styles.list}
-                    data={allExpenses}
-                    renderItem={renderExpenseItem}
+                    data={groupedExpenses}
+                    renderItem={renderListItem}
+                    keyExtractor={(item) => item.key}
                     ListHeaderComponent={renderExpensesHeader}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
@@ -575,13 +610,15 @@ export default function ExpensesScreen() {
                 style={{ backgroundColor: colors.background }}
             />
 
+            {renderMonthSelector()}
+
             <TabView
                 selectedIndex={selectedIndex}
                 onSelect={index => setSelectedIndex(index)}
                 style={styles.tabView}
             >
                 <Tab 
-                    title={`Expenses (${allExpenses.length})`}
+                    title={`Expenses (${filteredExpenses.length})`}
                     icon={(props) => <Ionicons name="card-outline" size={20} color={props?.tintColor} />}
                 >
                     {renderExpensesTab()}
@@ -652,126 +689,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 12,
     },
-    header: {
-        padding: 20,
-        paddingBottom: 10,
-    },
-    summaryCard: {
-        padding: 24,
-        borderRadius: 20,
-        marginBottom: 20,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    summaryTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    summaryAmount: {
-        fontSize: 32,
-        fontWeight: '700',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    summarySubtitle: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
     list: {
         flex: 1,
     },
     listContent: {
         paddingBottom: 100,
-    },
-    expenseCard: {
-        marginHorizontal: 20,
-        marginVertical: 6,
-        borderRadius: 16,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    expenseCardContent: {
-        padding: 16,
-    },
-    expenseHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-    },
-    expenseMainInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    categoryIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    categoryEmoji: {
-        fontSize: 20,
-    },
-    expenseDetails: {
-        flex: 1,
-    },
-    expenseTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    expenseSubtitle: {
-        fontSize: 14,
-    },
-    expenseAmount: {
-        alignItems: 'flex-end',
-        position: 'relative',
-    },
-    editButton: {
-        position: 'absolute',
-        top: -8,
-        right: -8,
-        padding: 8,
-        borderRadius: 16,
-    },
-    amountText: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    totalAmountText: {
-        fontSize: 12,
-    },
-    expenseFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    expenseCategory: {
-        flex: 1,
-    },
-    categoryText: {
-        fontSize: 12,
-        fontWeight: '500',
-        textTransform: 'capitalize',
-    },
-    payerBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    payerText: {
-        fontSize: 12,
-        fontWeight: '600',
     },
     fab: {
         position: 'absolute',
@@ -818,5 +740,35 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '500',
         marginTop: 2,
+    },
+    monthHeader: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        marginTop: 8,
+    },
+    monthHeaderText: {
+        fontSize: 16,
+        fontWeight: '600',
+        opacity: 0.8,
+    },
+    monthSelector: {
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E5E5',
+    },
+    monthSelectorContent: {
+        paddingHorizontal: 20,
+        gap: 12,
+    },
+    monthOption: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        minWidth: 100,
+        alignItems: 'center',
+    },
+    monthOptionText: {
+        fontSize: 14,
     },
 });
