@@ -31,7 +31,6 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
     const { initializeEncryptionWithPassword, signOut, user, tryBiometricLogin, isAuthenticated } = useAuth();
 
     useEffect(() => {
@@ -75,6 +74,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
             });
 
             if (biometricResult.success) {
+                setLoading(true);
                 console.log('PasswordPrompt: Biometric authentication successful, initializing encryption...');
                 // Try to initialize encryption using stored keys
                 const success = await tryBiometricLogin();
@@ -90,6 +90,8 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
         } catch (error) {
             console.error('PasswordPrompt: Biometric login error:', error);
             // Error occurred, stay on password prompt
+        } finally {
+            setLoading(false);
         }
     };
 
