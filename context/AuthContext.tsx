@@ -264,7 +264,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       }
 
       // Restore session in Supabase
-      const { error } = await supabase.auth.setSession({
+      const { data, error } = await supabase.auth.setSession({
         access_token: storedSession.access_token,
         refresh_token: storedSession.refresh_token,
       });
@@ -273,6 +273,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         console.error('Failed to restore session:', error);
         return false;
       }
+
+      if (!data?.session) {
+        console.error('No session data returned from restore session');
+        return false;
+      }
+      await SecureKeyManager.storeSupabaseSession(data.session, encryptionKey);
 
       setNeedsPasswordPrompt(false);
       setEncryptionInitialized(true);

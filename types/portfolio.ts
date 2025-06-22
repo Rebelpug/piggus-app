@@ -19,6 +19,8 @@ export type PortfolioMemberWithProfile = {
   status: string;
   username: string;
   created_at: string;
+  updated_at: string;
+  encrypted_portfolio_key: string;
 };
 
 export type PortfolioWithDecryptedData = {

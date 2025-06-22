@@ -1,25 +1,21 @@
-import {
-  decryptData,
-  decryptWithRSA,
-  encryptData,
-  encryptWithRSA,
-  arrayBufferToBase64,
-  base64ToArrayBuffer,
-  generateRandomBytes
-} from '@/lib/encryption';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-import { PortfolioData, PortfolioWithDecryptedData } from '@/types/portfolio';
+import {
+  PortfolioData,
+  PortfolioWithDecryptedData,
+} from '@/types/portfolio';
 import { User } from '@supabase/supabase-js';
 import { InvestmentData, InvestmentWithDecryptedData } from '@/types/investment';
+import {arrayBufferToBase64} from "@/lib/encryption";
 
 export const apiFetchPortfolios = async (
     user: User,
-    privateKey: string // Changed from CryptoKey to string
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
 ): Promise<{ success: boolean; data?: PortfolioWithDecryptedData[]; error?: string }> => {
   try {
-    if (!user || !privateKey) {
+    if (!user || !decryptWithExternalEncryptionKey || !decryptWithPrivateKey) {
       console.error('User credentials are invalid');
       return {
         success: false,
@@ -49,84 +45,88 @@ export const apiFetchPortfolios = async (
 
     const decryptedPortfolios = await Promise.all(
         memberships.map(async membership => {
-          const portfolio = membership.portfolios;
+          try {
+            const portfolio = membership.portfolios;
+            // Decrypt the portfolio key with the user's private key
+            const decryptedPortfolioKey = await decryptWithPrivateKey(membership.encrypted_portfolio_key);
+            // Ensure the decrypted key is a string (base64)
+            const portfolioKeyString = typeof decryptedPortfolioKey === 'string' ? decryptedPortfolioKey : JSON.stringify(decryptedPortfolioKey);
+            // Validate that this looks like a base64 string
+            if (!/^[A-Za-z0-9+/]*={0,2}$/.test(portfolioKeyString)) {
+              console.error('Decrypted portfolio key does not appear to be valid base64:', portfolioKeyString.substring(0, 50));
+              throw new Error('Invalid portfolio key format');
+            }
+            // Now decrypt the portfolio data using the decrypted portfolio key
+            const decryptedPortfolioData = await decryptWithExternalEncryptionKey(portfolioKeyString, portfolio.encrypted_data);
+            const { data: investments, error: investmentsError } = await supabase
+                .from('investments')
+                .select('*')
+                .eq('portfolio_id', portfolio.id);
 
-          // First decrypt the portfolio key using the private key
-          const portfolioKeyRaw = await decryptWithRSA(privateKey, membership.encrypted_portfolio_key);
+            if (investmentsError) {
+              console.error('Error fetching investments:', investmentsError);
+              return (await Promise.reject(investmentsError)) as any;
+            }
 
-          // Convert the portfolio key to Uint8Array for AES decryption
-          const portfolioKey = base64ToArrayBuffer(portfolioKeyRaw);
-
-          // Now decrypt the portfolio data using the decrypted portfolio key
-          const decryptedPortfolioData = decryptData(portfolio.encrypted_data, portfolioKey);
-
-          // Get investments for this portfolio
-          const { data: investments, error: investmentsError } = await supabase
-              .from('investments')
-              .select('*')
-              .eq('portfolio_id', portfolio.id);
-
-          if (investmentsError) {
-            console.error('Error fetching investments:', investmentsError);
-            return (await Promise.reject(investmentsError)) as any;
-          }
-
-          // Decrypt each investment
-          const decryptedInvestments = await Promise.all(
-              investments.map(async (investment): Promise<InvestmentWithDecryptedData> => {
-                const decryptedInvestmentData = decryptData(investment.encrypted_data, portfolioKey);
-                return {
+            const decryptedInvestments = await Promise.all(
+                investments.map(async investment => ({
                   ...investment,
-                  data: decryptedInvestmentData,
-                };
-              })
-          );
+                  data: await decryptWithExternalEncryptionKey(portfolioKeyString, investment.encrypted_data),
+                }))
+            );
 
-          // Get members for this portfolio
-          const { data: members, error: membersError } = await supabase
-              .from('portfolio_memberships')
-              .select('*')
-              .eq('portfolio_id', portfolio.id);
+            // Get members for this portfolio
+            const { data: members, error: membersError } = await supabase
+                .from('portfolio_memberships')
+                .select('*')
+                .eq('portfolio_id', portfolio.id);
 
-          if (membersError) {
-            console.error('Error fetching members:', membersError);
-            return (await Promise.reject(membersError)) as any;
+            if (membersError) {
+              console.error('Error fetching members:', membersError);
+              return (await Promise.reject(membersError)) as any;
+            }
+
+            // Fetch usernames separately
+            const userIds = members.map(member => member.user_id);
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .in('id', userIds);
+
+            if (profilesError) {
+              console.error('Error fetching profiles:', profilesError);
+              return (await Promise.reject(profilesError)) as any;
+            }
+
+            const usernameMap = new Map(profiles?.map(profile => [profile.id, profile.username]) || []);
+
+            const portfolioMembers = members.map(member => ({
+              id: member.id,
+              portfolio_id: member.portfolio_id,
+              user_id: member.user_id,
+              status: member.status,
+              created_at: member.created_at,
+              updated_at: member.updated_at,
+              encrypted_portfolio_key: member.encrypted_portfolio_key,
+              username: usernameMap.get(member.user_id) || '',
+            }));
+
+            return {
+              id: portfolio.id,
+              created_at: portfolio.created_at,
+              updated_at: portfolio.updated_at,
+              data: decryptedPortfolioData,
+              membership_id: membership.id,
+              membership_status: membership.status,
+              encrypted_key: membership.encrypted_portfolio_key,
+              investments: decryptedInvestments.filter(Boolean),
+              members: portfolioMembers.filter(Boolean),
+            };
+          } catch (error) {
+            console.error('Error processing portfolio:', membership?.id, error);
+            // Return null for failed portfolios rather than throwing
+            return null;
           }
-
-          // Fetch usernames separately
-          const userIds = members.map(member => member.user_id);
-          const { data: profiles, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, username')
-              .in('id', userIds);
-
-          if (profilesError) {
-            console.error('Error fetching profiles:', profilesError);
-            return (await Promise.reject(profilesError)) as any;
-          }
-
-          const usernameMap = new Map(profiles?.map(profile => [profile.id, profile.username]) || []);
-
-          const portfolioMembers = members.map(member => ({
-            id: member.id,
-            portfolio_id: member.portfolio_id,
-            user_id: member.user_id,
-            status: member.status,
-            created_at: member.created_at,
-            username: usernameMap.get(member.user_id) || '',
-          }));
-
-          return {
-            id: portfolio.id,
-            created_at: portfolio.created_at,
-            updated_at: portfolio.updated_at,
-            data: decryptedPortfolioData,
-            membership_id: membership.id,
-            membership_status: membership.status,
-            encrypted_key: membership.encrypted_portfolio_key,
-            investments: decryptedInvestments,
-            members: portfolioMembers,
-          };
         })
     );
 
@@ -145,12 +145,13 @@ export const apiFetchPortfolios = async (
 
 export const apiInviteUserToPortfolio = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     portfolioId: string,
-    username: string
+    username: string,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    if (!user || !privateKey) {
+    if (!user) {
       console.error('You must be logged in to invite a user');
       return { success: false, error: 'Not authenticated' };
     }
@@ -201,15 +202,29 @@ export const apiInviteUserToPortfolio = async (
     }
 
     // 4. Decrypt the portfolio key with the current user's private key
-    const encryptedPortfolioKeyBase64 = membership.encrypted_portfolio_key;
-    const portfolioKeyBase64 = await decryptWithRSA(privateKey, encryptedPortfolioKeyBase64);
+    const portfolioKey = await decryptWithPrivateKey(membership.encrypted_portfolio_key);
+    // Ensure the decrypted key is a string (base64)
+    const portfolioKeyString = typeof portfolioKey === 'string' ? portfolioKey : JSON.stringify(portfolioKey);
+    // Validate that this looks like a base64 string
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(portfolioKeyString)) {
+      console.error('Decrypted portfolio key does not appear to be valid base64:', portfolioKeyString.substring(0, 50));
+      return { success: false, error: 'Invalid portfolio key format' };
+    }
 
     // 5. Re-encrypt the portfolio key with the target user's public key
     const targetUserPublicKey = targetUser.encryption_public_key;
-    const encryptedPortfolioKeyForNewUser = await encryptWithRSA(
+    const encryptedPortfolioKeyForNewUser = await encryptWithExternalPublicKey(
         targetUserPublicKey,
-        portfolioKeyBase64
+        portfolioKeyString
     );
+
+    if (!encryptedPortfolioKeyForNewUser) {
+      console.error('Failed to encrypt portfolio key for new user');
+      return { success: false, error: 'Failed to encrypt portfolio key for new user' };
+    }
+
+    console.log('Successfully encrypted portfolio key for new user');
+    console.log('New encrypted portfolio key length:', encryptedPortfolioKeyForNewUser.length);
 
     // 6. Create the membership for the invited user
     const { error: inviteError } = await supabase.from('portfolio_memberships').insert({
@@ -269,10 +284,13 @@ export const apiCreatePortfolio = async (
     user: User,
     username: string,
     publicKey: string,
-    portfolioData: PortfolioData
+    createEncryptionKey: () => Promise<Uint8Array<ArrayBufferLike>>,
+    encryptWithExternalPublicKey: (recipientPublicKey: string, data: any) => Promise<string>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
+    portfolioData: PortfolioData,
 ): Promise<{ success: boolean; data?: PortfolioWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !publicKey) {
+    if (!user || !encryptWithExternalPublicKey) {
       console.error('You must be logged in to create a portfolio');
       return {
         success: false,
@@ -280,17 +298,19 @@ export const apiCreatePortfolio = async (
       };
     }
 
-    // 1. Generate a random portfolio encryption key (32 bytes for AES-256)
-    const portfolioKey = generateRandomBytes(32);
+    const portfolioEncryptionKey = await createEncryptionKey();
+    const stringedPortfolioEncryptionKey = arrayBufferToBase64(portfolioEncryptionKey);
+    // Encrypt the portfolio key with the creator's public key
+    const encryptedPortfolioKey = await encryptWithExternalPublicKey(publicKey, stringedPortfolioEncryptionKey);
+    const encryptedPortfolioData = await encryptWithExternalEncryptionKey(stringedPortfolioEncryptionKey, portfolioData);
 
-    // 2. Convert the key to base64 for encryption with RSA
-    const portfolioKeyBase64 = arrayBufferToBase64(portfolioKey);
-
-    // 3. Encrypt the portfolio key with the user's public key
-    const encryptedPortfolioKey = await encryptWithRSA(publicKey, portfolioKeyBase64);
-
-    // 4. Encrypt the portfolio data with the portfolio key
-    const encryptedData = encryptData(portfolioData, portfolioKey);
+    if (!encryptedPortfolioKey || !encryptedPortfolioData) {
+      console.error('Failed to encrypt portfolio data');
+      return {
+        success: false,
+        error: 'Failed to encrypt portfolio data',
+      };
+    }
 
     // 5. Create the portfolio in the database
     const newPortfolioId = uuidv4();
@@ -298,7 +318,7 @@ export const apiCreatePortfolio = async (
         .from('portfolios')
         .insert({
           id: newPortfolioId,
-          encrypted_data: encryptedData,
+          encrypted_data: encryptedPortfolioData,
         })
         .single();
 
@@ -306,7 +326,7 @@ export const apiCreatePortfolio = async (
       console.error('Failed to create portfolio:', portfolioError);
       return {
         success: false,
-        error: `Failed to create portfolio for ${portfolioError}`,
+        error: `Failed to create portfolio: ${portfolioError}`,
       };
     }
 
@@ -326,12 +346,12 @@ export const apiCreatePortfolio = async (
       console.error('Failed to create portfolio membership:', membershipError);
       return {
         success: false,
-        error: `Failed to create portfolio membership for ${membershipError}`,
+        error: `Failed to create portfolio membership: ${membershipError}`,
       };
     }
 
-    // 7. Add the new portfolio to the local state
-    const newPortfolio: PortfolioWithDecryptedData = {
+    // 7. Return the new portfolio with data
+    const newPortfolioWithData: PortfolioWithDecryptedData = {
       id: newPortfolioId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -344,9 +364,11 @@ export const apiCreatePortfolio = async (
         {
           id: membership.id,
           portfolio_id: newPortfolioId,
-          created_at: new Date().toISOString(),
           user_id: user.id,
           status: 'confirmed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          encrypted_portfolio_key: encryptedPortfolioKey,
           username: username,
         },
       ],
@@ -354,26 +376,27 @@ export const apiCreatePortfolio = async (
 
     return {
       success: true,
-      data: newPortfolio,
+      data: newPortfolioWithData,
     };
   } catch (error: any) {
     console.error('Failed to create portfolio:', error);
     return {
       success: false,
-      error: `Failed to create portfolio membership for ${error?.message || 'Failed to create portfolio'}`,
+      error: `Failed to create portfolio: ${error?.message || 'Unknown error'}`,
     };
   }
 };
 
 export const apiAddInvestment = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     portfolioId: string,
     encryptedPortfolioKey: string,
-    investmentData: InvestmentData
+    investmentData: InvestmentData,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; data?: InvestmentWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !privateKey || !portfolioId) {
+    if (!user || !decryptWithPrivateKey || !portfolioId) {
       console.error('You must be logged in and have access to this portfolio');
       return {
         success: false,
@@ -382,13 +405,11 @@ export const apiAddInvestment = async (
     }
 
     // First decrypt the portfolio key using the private key
-    const portfolioKeyRaw = await decryptWithRSA(privateKey, encryptedPortfolioKey);
-
-    // Convert the portfolio key to Uint8Array for AES encryption
-    const portfolioKey = base64ToArrayBuffer(portfolioKeyRaw);
-
+    const portfolioKey = await decryptWithPrivateKey(encryptedPortfolioKey);
+    // Ensure the decrypted key is a string
+    const portfolioKeyString = typeof portfolioKey === 'string' ? portfolioKey : JSON.stringify(portfolioKey);
     // Encrypt the investment data with the portfolio key
-    const encryptedData = encryptData(investmentData, portfolioKey);
+    const encryptedData = await encryptWithExternalEncryptionKey(portfolioKeyString, investmentData);
 
     // Generate a unique ID for the new investment
     const newInvestmentId = uuidv4();
@@ -436,13 +457,14 @@ export const apiAddInvestment = async (
 
 export const apiUpdateInvestment = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     portfolioId: string,
     encryptedPortfolioKey: string,
-    updatedInvestment: InvestmentWithDecryptedData
+    updatedInvestment: InvestmentWithDecryptedData,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; data?: InvestmentWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !privateKey || !portfolioId) {
+    if (!user || !decryptWithPrivateKey || !portfolioId || !encryptWithExternalEncryptionKey) {
       console.error('You must be logged in and have access to this portfolio');
       return {
         success: false,
@@ -451,13 +473,11 @@ export const apiUpdateInvestment = async (
     }
 
     // First decrypt the portfolio key using the private key
-    const portfolioKeyRaw = await decryptWithRSA(privateKey, encryptedPortfolioKey);
-
-    // Convert the portfolio key to Uint8Array for AES encryption
-    const portfolioKey = base64ToArrayBuffer(portfolioKeyRaw);
-
+    const portfolioKey = await decryptWithPrivateKey(encryptedPortfolioKey);
+    // Ensure the decrypted key is a string
+    const portfolioKeyString = typeof portfolioKey === 'string' ? portfolioKey : JSON.stringify(portfolioKey);
     // Encrypt the investment data with the portfolio key
-    const encryptedData = encryptData(updatedInvestment.data, portfolioKey);
+    const encryptedData = await encryptWithExternalEncryptionKey(portfolioKeyString, updatedInvestment.data);
 
     // Update in database
     const { error } = await supabase
@@ -533,13 +553,14 @@ export const apiDeleteInvestment = async (
 
 export const apiUpdatePortfolio = async (
     user: User,
-    privateKey: string, // Changed from CryptoKey to string
     portfolioId: string,
     encryptedPortfolioKey: string,
-    updatedPortfolioData: PortfolioData
+    updatedPortfolioData: PortfolioData,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
 ): Promise<{ success: boolean; data?: PortfolioWithDecryptedData; error?: string }> => {
   try {
-    if (!user || !privateKey || !portfolioId) {
+    if (!user || !portfolioId) {
       console.error('You must be logged in and have access to this portfolio');
       return {
         success: false,
@@ -548,13 +569,11 @@ export const apiUpdatePortfolio = async (
     }
 
     // First decrypt the portfolio key using the private key
-    const portfolioKeyRaw = await decryptWithRSA(privateKey, encryptedPortfolioKey);
-
-    // Convert the portfolio key to Uint8Array for AES encryption
-    const portfolioKey = base64ToArrayBuffer(portfolioKeyRaw);
-
+    const portfolioKey = await decryptWithPrivateKey(encryptedPortfolioKey);
+    // Ensure the decrypted key is a string
+    const portfolioKeyString = typeof portfolioKey === 'string' ? portfolioKey : JSON.stringify(portfolioKey);
     // Encrypt the portfolio data with the portfolio key
-    const encryptedData = encryptData(updatedPortfolioData, portfolioKey);
+    const encryptedData = await encryptWithExternalEncryptionKey(portfolioKeyString, updatedPortfolioData);
 
     // Update in database
     const { error } = await supabase
@@ -621,7 +640,7 @@ export const apiUpdatePortfolio = async (
     // Decrypt each investment
     const decryptedInvestments = await Promise.all(
         investments.map(async (investment): Promise<InvestmentWithDecryptedData> => {
-          const decryptedInvestmentData = decryptData(investment.encrypted_data, portfolioKey);
+          const decryptedInvestmentData = await encryptWithExternalEncryptionKey(portfolioKeyString, investment.encrypted_data);
           return {
             ...investment,
             data: decryptedInvestmentData,
@@ -666,6 +685,8 @@ export const apiUpdatePortfolio = async (
       user_id: member.user_id,
       status: member.status,
       created_at: member.created_at,
+      updated_at: member.updated_at,
+      encrypted_portfolio_key: member.encrypted_portfolio_key,
       username: usernameMap.get(member.user_id) || '',
     }));
 
@@ -691,5 +712,53 @@ export const apiUpdatePortfolio = async (
       success: false,
       error: e.message || 'Failed to update portfolio',
     };
+  }
+};
+
+export const apiRemoveUserFromPortfolio = async (
+    user: User,
+    portfolioId: string,
+    userIdToRemove: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    if (!user) {
+      console.error('You must be logged in to remove a user');
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Check if the current user has permission to remove members (is confirmed member)
+    const { data: currentMembership, error: membershipError } = await supabase
+        .from('portfolio_memberships')
+        .select('status')
+        .eq('portfolio_id', portfolioId)
+        .eq('user_id', user.id)
+        .single();
+
+    if (membershipError || !currentMembership || currentMembership.status !== 'confirmed') {
+      console.error('Access denied:', membershipError);
+      return { success: false, error: 'Access denied' };
+    }
+
+    // Prevent users from removing themselves
+    if (userIdToRemove === user.id) {
+      return { success: false, error: 'Cannot remove yourself from the portfolio' };
+    }
+
+    // Remove the user from the portfolio
+    const { error: removeError } = await supabase
+        .from('portfolio_memberships')
+        .delete()
+        .eq('portfolio_id', portfolioId)
+        .eq('user_id', userIdToRemove);
+
+    if (removeError) {
+      console.error('Failed to remove user:', removeError);
+      return { success: false, error: 'Failed to remove user' };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to remove user from portfolio:', error);
+    return { success: false, error: error.message || 'Failed to remove user' };
   }
 };

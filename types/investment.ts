@@ -1,6 +1,8 @@
 export type InvestmentData = {
   name: string;
   symbol: string | null;
+  isin: string | null;
+  exchange_market?: string | null;
   type: string;
   purchase_date: string;
   purchase_price: number;
@@ -8,7 +10,6 @@ export type InvestmentData = {
   current_price: number | null;
   last_updated: string | null;
   notes: string | null;
-  // Additional fields for specific investment types
   interest_rate?: number | null;
   maturity_date?: string | null;
   dividend_yield?: number | null;

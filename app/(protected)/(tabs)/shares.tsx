@@ -12,7 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
+import { useInvestment } from '@/context/InvestmentContext';
 import { ExpenseGroupWithDecryptedData } from '@/types/expense';
+import { PortfolioWithDecryptedData } from '@/types/portfolio';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
@@ -24,6 +26,7 @@ export default function SharesScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { expensesGroups, isLoading, error } = useExpense();
+    const { portfolios, isLoading: portfoliosLoading, error: portfoliosError } = useInvestment();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -37,8 +40,16 @@ export default function SharesScreen() {
         router.push('/(protected)/create-group');
     };
 
+    const handleCreatePortfolio = () => {
+        router.push('/(protected)/create-portfolio');
+    };
+
     const handleGroupPress = (group: ExpenseGroupWithDecryptedData) => {
         router.push(`/(protected)/group-detail?id=${group.id}`);
+    };
+
+    const handlePortfolioPress = (portfolio: PortfolioWithDecryptedData) => {
+        router.push(`/(protected)/portfolio-detail?id=${portfolio.id}`);
     };
 
     const formatDate = (dateString: string) => {
@@ -151,6 +162,96 @@ export default function SharesScreen() {
         );
     };
 
+    const renderPortfolioItem = ({ item }: { item: PortfolioWithDecryptedData }) => {
+        if (!item || !item.data) {
+            return null;
+        }
+
+        const investmentCount = item.investments?.length || 0;
+        const memberCount = item.members?.length || 0;
+        const totalValue = item.investments?.reduce((sum, investment) => {
+            try {
+                const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                return sum + currentValue;
+            } catch {
+                return sum;
+            }
+        }, 0) || 0;
+
+        const totalGainLoss = item.investments?.reduce((sum, investment) => {
+            try {
+                const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const initialValue = investment.data.quantity * investment.data.purchase_price;
+                return sum + (currentValue - initialValue);
+            } catch {
+                return sum;
+            }
+        }, 0) || 0;
+
+        const formatCurrency = (amount: number) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            }).format(amount);
+        };
+
+        return (
+            <TouchableOpacity
+                style={[styles.groupCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
+                onPress={() => handlePortfolioPress(item)}
+            >
+                <View style={styles.groupCardContent}>
+                    <View style={styles.groupHeader}>
+                        <View style={styles.groupMainInfo}>
+                            <View style={[
+                                styles.statusIcon,
+                                { backgroundColor: colors.primary + '20' }
+                            ]}>
+                                <Ionicons name="briefcase" size={20} color={colors.primary} />
+                            </View>
+                            <View style={styles.groupDetails}>
+                                <Text style={[styles.groupTitle, { color: colors.text }]}>
+                                    {item.data.name || 'Unnamed Portfolio'}
+                                </Text>
+                                <Text style={[styles.groupSubtitle, { color: colors.icon }]}>
+                                    {item.data.description || 'No description'}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.groupAmount}>
+                            <Text style={[styles.amountText, { color: colors.text }]}>
+                                {formatCurrency(totalValue)}
+                            </Text>
+                            <Text style={[
+                                styles.statusText,
+                                { color: totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                            ]}>
+                                {formatCurrency(totalGainLoss)}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.groupFooter}>
+                        <View style={styles.groupStats}>
+                            <View style={styles.statItem}>
+                                <Ionicons name="trending-up" size={14} color={colors.icon} />
+                                <Text style={[styles.statText, { color: colors.icon }]}>
+                                    {investmentCount} investment{investmentCount !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Ionicons name="people-outline" size={14} color={colors.icon} />
+                                <Text style={[styles.statText, { color: colors.icon }]}>
+                                    {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
     const renderExpenseGroupsEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
@@ -171,10 +272,17 @@ export default function SharesScreen() {
     const renderPortfoliosEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="briefcase-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>Portfolio groups coming soon</Text>
+            <Text category='h6' style={styles.emptyTitle}>No portfolios yet</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Portfolio groups functionality will be available in a future update
+                Create your first portfolio to organize and share your investments with others
             </Text>
+            <Button
+                style={styles.addButton}
+                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                onPress={handleCreatePortfolio}
+            >
+                Create Portfolio
+            </Button>
         </Layout>
     );
 
@@ -209,7 +317,30 @@ export default function SharesScreen() {
 
     const renderPortfoliosTab = () => (
         <Layout style={styles.tabContent}>
-            {renderPortfoliosEmptyState()}
+            {portfolios.length === 0 ? (
+                renderPortfoliosEmptyState()
+            ) : (
+                <ScrollView
+                    style={styles.content}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={colors.primary}
+                        />
+                    }
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.groupsList}>
+                        {portfolios.map((item, index) => (
+                            <View key={item.id}>
+                                {renderPortfolioItem({ item })}
+                            </View>
+                        ))}
+                    </View>
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            )}
         </Layout>
     );
 
@@ -218,7 +349,7 @@ export default function SharesScreen() {
     );
 
 
-    if (isLoading && !refreshing) {
+    if ((isLoading || portfoliosLoading) && !refreshing) {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
@@ -231,7 +362,7 @@ export default function SharesScreen() {
         );
     }
 
-    if (error) {
+    if (error || portfoliosError) {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
@@ -241,9 +372,9 @@ export default function SharesScreen() {
                 />
                 <Layout style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                    <Text category='h6' style={styles.errorTitle}>Error loading groups</Text>
+                    <Text category='h6' style={styles.errorTitle}>Error loading data</Text>
                     <Text category='s1' appearance='hint' style={styles.errorDescription}>
-                        {error}
+                        {error || portfoliosError}
                     </Text>
                     <Button
                         style={styles.retryButton}
@@ -285,10 +416,10 @@ export default function SharesScreen() {
                 </Tab>
             </TabView>
 
-            {expensesGroups.length > 0 && selectedIndex === 0 && (
+            {((expensesGroups.length > 0 && selectedIndex === 0) || (portfolios.length > 0 && selectedIndex === 1)) && (
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: colors.primary }]}
-                    onPress={handleCreateGroup}
+                    onPress={selectedIndex === 0 ? handleCreateGroup : handleCreatePortfolio}
                 >
                     <Ionicons name="add" size={24} color="white" />
                 </TouchableOpacity>

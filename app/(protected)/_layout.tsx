@@ -2,6 +2,7 @@ import 'react-native-reanimated';
 import {useAuth} from "@/context/AuthContext";
 import {ProfileProvider} from "@/context/ProfileContext";
 import {ExpenseProvider} from "@/context/ExpenseContext";
+import {InvestmentProvider} from "@/context/InvestmentContext";
 import {Redirect, Stack} from "expo-router";
 
 export default function ProtectedLayout() {
@@ -15,9 +16,11 @@ export default function ProtectedLayout() {
     return (
         <ProfileProvider>
             <ExpenseProvider>
-                <Stack screenOptions={{
-                    headerShown: false,
-                }} />;
+                <InvestmentProvider>
+                    <Stack screenOptions={{
+                        headerShown: false,
+                    }} />
+                </InvestmentProvider>
             </ExpenseProvider>
         </ProfileProvider>
     );

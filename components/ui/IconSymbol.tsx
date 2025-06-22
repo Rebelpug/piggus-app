@@ -17,6 +17,8 @@ const MAPPING = {
   'creditcard.fill': 'credit-card',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chart.line.uptrend.xyaxis': 'trending-up',
+  'people-outline': 'people',
 } as IconMapping;
 
 /**
