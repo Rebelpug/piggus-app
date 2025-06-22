@@ -21,7 +21,7 @@ interface EncryptionContextType {
     isEncryptionInitialized: boolean;
 
     // Core functions
-    initializeFromSecureStorage: (publicKey: string) => Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null>;
+    initializeFromSecureStorage: () => Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null>;
     initializeFromPassword: (password: string, progress?: (progress: any) => void) => Promise<{
         publicKey: string;
         privateKey: string;
@@ -76,7 +76,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
     const [encryptionKey, setEncryptionKey] = useState<Uint8Array | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-    const initializeFromSecureStorage = useCallback(async (publicKey: string)
+    const initializeFromSecureStorage = useCallback(async ()
         : Promise<{ encryptionKey: Uint8Array<ArrayBufferLike>, privateKey: string } | null> => {
         try {
             console.log('Attempting to initialize from secure storage...');
@@ -99,6 +99,12 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             const storedPrivateKey = await SecureKeyManager.getPrivateKey(storedEncryptionKey);
             if (!storedPrivateKey) {
                 console.log('Failed to retrieve private key from AsyncStorage');
+                return null;
+            }
+
+            const publicKey = await SecureKeyManager.getPublicKey();
+            if (!publicKey) {
+                console.log('Failed to retrieve public key from AsyncStorage');
                 return null;
             }
 
@@ -155,6 +161,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             console.log('Storing keys in secure storage...');
             await SecureKeyManager.storeEncryptionKey(key);
             await SecureKeyManager.storePrivateKey(newPrivateKey, key);
+            await SecureKeyManager.storePublicKey(newPublicKey);
 
             onProgress?.(1.0);
             console.log('Encryption initialization completed successfully');
@@ -223,6 +230,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
             console.log('Storing keys in secure storage...');
             await SecureKeyManager.storeEncryptionKey(key);
             await SecureKeyManager.storePrivateKey(decryptedPrivateKey, key);
+            await SecureKeyManager.storePublicKey(importedPublicKey);
 
             onProgress?.(1.0);
             console.log('Key import completed successfully');

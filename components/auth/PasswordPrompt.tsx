@@ -13,6 +13,7 @@ import {
     StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -38,27 +39,53 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     }, []);
 
     const handleBiometricLogin = async () => {
-        const hasStoredKeys = await SecureKeyManager.hasStoredKey();
-        console.log('PasswordPrompt: hasStoredKeys =', hasStoredKeys);
-        const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
-        console.log('PasswordPrompt: hasStoredData =', hasStoredData);
-
-        // Only require stored keys for biometric login - session data might not be stored in production
-        if (!hasStoredKeys) {
-            console.log('PasswordPrompt: No stored keys - skipping biometric login');
-            return;
-        }
-
         try {
-            console.log('PasswordPrompt: Trying biometric login via tryBiometricLogin()');
-            const success = await tryBiometricLogin();
-            if (success) {
-                console.log('PasswordPrompt: Biometric login successful, user is now authenticated');
-                // Don't redirect - let the auth system handle the navigation
-                onSuccess?.();
+            // Check if biometric authentication is available
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            console.log('PasswordPrompt: hasHardware =', hasHardware);
+
+            if (!hasHardware) {
+                console.log('PasswordPrompt: No biometric hardware available - skipping biometric login');
+                return;
+            }
+
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+            console.log('PasswordPrompt: isEnrolled =', isEnrolled);
+
+            if (!isEnrolled) {
+                console.log('PasswordPrompt: No biometric credentials enrolled - skipping biometric login');
+                return;
+            }
+
+            const hasStoredKeys = await SecureKeyManager.hasStoredKey();
+            console.log('PasswordPrompt: hasStoredKeys =', hasStoredKeys);
+
+            // Only attempt biometric login if we have stored keys
+            if (!hasStoredKeys) {
+                console.log('PasswordPrompt: No stored keys - skipping biometric login');
+                return;
+            }
+
+            console.log('PasswordPrompt: Attempting biometric authentication...');
+            const biometricResult = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate to unlock your encrypted data',
+                cancelLabel: 'Cancel',
+                fallbackLabel: 'Use Password',
+                disableDeviceFallback: false,
+            });
+
+            if (biometricResult.success) {
+                console.log('PasswordPrompt: Biometric authentication successful, initializing encryption...');
+                // Try to initialize encryption using stored keys
+                const success = await tryBiometricLogin();
+                if (success) {
+                    console.log('PasswordPrompt: Biometric login successful, user is now authenticated');
+                    onSuccess?.();
+                } else {
+                    console.log('PasswordPrompt: Biometric authentication succeeded but encryption initialization failed');
+                }
             } else {
-                console.log('PasswordPrompt: Biometric login failed or was canceled');
-                // User canceled or biometric failed, stay on password prompt
+                console.log('PasswordPrompt: Biometric authentication failed or was canceled');
             }
         } catch (error) {
             console.error('PasswordPrompt: Biometric login error:', error);

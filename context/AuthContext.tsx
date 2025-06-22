@@ -131,7 +131,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           user: User,
           password: string,
           onProgress?: (progress: number) => void
-      ): Promise<void> => {
+      ): Promise<{
+        publicKey: string;
+        privateKey: string;
+        encryptionKey: Uint8Array<ArrayBufferLike>;
+        salt: string;
+      }> => {
         try {
           console.log('=== STARTING ENCRYPTION INITIALIZATION ===');
           onProgress?.(0.05);
@@ -162,6 +167,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             console.log('Successfully imported existing keys');
             setEncryptionInitialized(true);
             onProgress?.(1.0);
+            return data;
           } else {
             console.log('No existing keys, generating new ones...');
 
@@ -203,6 +209,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             setEncryptionInitialized(true);
             onProgress?.(1.0);
             console.log('Created new encryption keys for user:', user.id);
+            return encryptionData;
           }
         } catch (error) {
           console.error('Error initializing encryption key:', error);
@@ -210,7 +217,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           throw error;
         }
       },
-      [encryption]
+      [encryption, retrieveKeysFromUserMetadata]
   );
 
   // Public method to initialize encryption with password
@@ -235,26 +242,24 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const tryBiometricLogin = useCallback(async (): Promise<boolean> => {
     try {
       console.log('Attempting biometric login...');
-      if (!user) {
-        console.log('No user found to try biometric login');
-        return false;
-      }
-      const { publicKey } = await retrieveKeysFromUserMetadata(user);
-      if (!publicKey) {
-        console.log('No public key found in user metadata');
-        return false;
-      }
-      // Get encryption key from secure storage (only the encryption key)
-      const result = await encryption.initializeFromSecureStorage(publicKey);
-      if (!result) {
+
+      // First get the stored session to extract user data
+      const encryptionKey = await SecureKeyManager.getEncryptionKey();
+      if (!encryptionKey) {
         console.log('No encryption key found in secure storage');
         return false;
       }
 
-      // Get encrypted session data from AsyncStorage and decrypt it
-      const storedSession = await SecureKeyManager.getSupabaseSession(result.encryptionKey);
+      const storedSession = await SecureKeyManager.getSupabaseSession(encryptionKey);
       if (!storedSession) {
-        console.log('No stored session found after biometric auth');
+        console.log('No stored session found for biometric login');
+        return false;
+      }
+
+      // Initialize encryption from secure storage using the public key
+      const result = await encryption.initializeFromSecureStorage();
+      if (!result) {
+        console.log('Failed to initialize encryption from secure storage');
         return false;
       }
 
@@ -388,7 +393,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           try {
             // Get encryption key for storing session
             if (encryption.encryptionKey) {
+              console.log("Token refresh, session: ", session);
               await SecureKeyManager.storeSupabaseSession(session, encryption.encryptionKey);
+            } else {
+              console.error('Encryption key not found when trying to store session after token refresh');
             }
           } catch (error) {
             console.error('Failed to update stored session after token refresh:', error);
@@ -444,7 +452,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           signupPassword.current = password;
 
           // Initialize encryption with progress tracking
-          await initializeEncryptionKey(data.user, password, (encryptionProgress) => {
+          const encryptionData = await initializeEncryptionKey(data.user, password, (encryptionProgress) => {
             // Map encryption progress to overall progress (20% to 85%)
             const overallProgress = 0.2 + (encryptionProgress * 0.65);
             const step = encryptionProgress < 0.5
@@ -455,8 +463,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
           // Store Supabase session securely (without requiring biometric during login)
           onProgress?.(0.9, 'Securing session...');
-          if (encryption.encryptionKey) {
-            await SecureKeyManager.storeSupabaseSession(data.session, encryption.encryptionKey);
+          if (encryptionData.encryptionKey) {
+            console.log("Storing session: ", data.session);
+            await SecureKeyManager.storeSupabaseSession(data.session, encryptionData.encryptionKey);
+          } else {
+            console.error('Encryption key not found when trying to store session after sign in');
           }
 
           setUser(data.user);

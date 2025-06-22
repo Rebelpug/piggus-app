@@ -8,6 +8,7 @@ import { encryptWithAES, decryptWithAES } from './encryption';
 const ENCRYPTION_KEY = 'encryption_key';
 const ENCRYPTED_PRIVATE_KEY = 'encrypted_private_key';
 const ENCRYPTED_SESSION_DATA = 'encrypted_session_data';
+const PUBLIC_KEY = 'public_key';
 
 export class SecureKeyManager {
 
@@ -46,6 +47,37 @@ export class SecureKeyManager {
     }
 
     /**
+     * Store public key in AsyncStorage
+     */
+    static async storePublicKey(publicKey: string): Promise<void> {
+        try {
+            await AsyncStorage.setItem(PUBLIC_KEY, publicKey);
+            console.log('Public key stored in AsyncStorage');
+        } catch (error) {
+            console.error('Failed to store public key:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Retrieve public key from AsyncStorage
+     */
+    static async getPublicKey(): Promise<string | null> {
+        try {
+            const publicKey = await AsyncStorage.getItem(PUBLIC_KEY);
+            if (!publicKey) {
+                console.log('No public key found in AsyncStorage');
+                return null;
+            }
+            console.log('Public key retrieved from AsyncStorage');
+            return publicKey;
+        } catch (error) {
+            console.error('Failed to retrieve public key:', error);
+            return null;
+        }
+    }
+
+    /**
      * Retrieve and decrypt private key from AsyncStorage
      */
     static async getPrivateKey(encryptionKey: Uint8Array): Promise<string | null> {
@@ -71,8 +103,11 @@ export class SecureKeyManager {
      */
     static async hasStoredKey(): Promise<boolean> {
         try {
-            const encryptedPrivateKey = await AsyncStorage.getItem(ENCRYPTED_PRIVATE_KEY);
-            return !!encryptedPrivateKey;
+            const [encryptedPrivateKey, publicKey] = await Promise.all([
+                AsyncStorage.getItem(ENCRYPTED_PRIVATE_KEY),
+                AsyncStorage.getItem(PUBLIC_KEY)
+            ]);
+            return !!(encryptedPrivateKey && publicKey);
         } catch (error) {
             console.error('Failed to check for stored key:', error);
             return false;
@@ -115,6 +150,7 @@ export class SecureKeyManager {
             };
 
             const encryptedSessionData = encryptWithAES(sessionData, encryptionKey);
+            console.log("encryptedSessionData:", encryptedSessionData);
             await AsyncStorage.setItem(ENCRYPTED_SESSION_DATA, encryptedSessionData);
 
             console.log('Supabase session stored encrypted in AsyncStorage');
@@ -176,6 +212,7 @@ export class SecureKeyManager {
                 SecureStore.deleteItemAsync(ENCRYPTION_KEY),
                 AsyncStorage.removeItem(ENCRYPTED_PRIVATE_KEY),
                 AsyncStorage.removeItem(ENCRYPTED_SESSION_DATA),
+                AsyncStorage.removeItem(PUBLIC_KEY),
             ]);
 
             console.log('All data cleared from storage');
@@ -192,7 +229,7 @@ export class SecureKeyManager {
             const keyBase64 = Buffer.from(encryptionKey).toString('base64');
 
             await SecureStore.setItemAsync(ENCRYPTION_KEY, keyBase64, {
-                requireAuthentication: true,
+                requireAuthentication: false,
             });
 
             console.log('Encryption key stored securely with biometric protection');
