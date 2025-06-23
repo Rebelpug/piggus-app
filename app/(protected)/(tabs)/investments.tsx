@@ -4,7 +4,10 @@ import {
     Layout,
     Text,
     Button,
-    TopNavigation
+    TopNavigation,
+    Select,
+    SelectItem,
+    IndexPath
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -26,15 +29,54 @@ export default function InvestmentsScreen() {
     const { portfolios, isLoading, error } = useInvestment();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
+    const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath | undefined>();
 
-    // Flatten all investments from all portfolios
-    const allInvestments: (InvestmentWithDecryptedData & { portfolioName?: string })[] = React.useMemo(() => {
+    // Find the default personal portfolio (created by the current user or with single member)
+    const personalPortfolio = React.useMemo(() => {
+        if (!portfolios || portfolios.length === 0) return null;
+        
+        // Look for a portfolio with only the current user as member
+        const singleMemberPortfolio = portfolios.find(portfolio => 
+            portfolio.members && portfolio.members.length === 1 && 
+            portfolio.members[0].user_id === user?.id
+        );
+        
+        if (singleMemberPortfolio) return singleMemberPortfolio;
+        
+        // Fallback to first portfolio
+        return portfolios[0];
+    }, [portfolios, user?.id]);
+
+    // Set default portfolio selection
+    React.useEffect(() => {
+        if (portfolios.length > 0 && selectedPortfolioIndex === undefined) {
+            if (personalPortfolio) {
+                const index = portfolios.findIndex(p => p.id === personalPortfolio.id);
+                if (index >= 0) {
+                    setSelectedPortfolioIndex(new IndexPath(index));
+                }
+            } else {
+                setSelectedPortfolioIndex(new IndexPath(0));
+            }
+        }
+    }, [portfolios, personalPortfolio, selectedPortfolioIndex]);
+
+    // Get selected portfolio
+    const selectedPortfolio = React.useMemo(() => {
+        if (!selectedPortfolioIndex || !portfolios.length) return null;
+        return portfolios[selectedPortfolioIndex.row];
+    }, [selectedPortfolioIndex, portfolios]);
+
+    // Filter investments based on selected portfolio or show all if no selection
+    const filteredInvestments: (InvestmentWithDecryptedData & { portfolioName?: string })[] = React.useMemo(() => {
         try {
             if (!portfolios || !Array.isArray(portfolios)) {
                 return [];
             }
 
-            return portfolios.flatMap(portfolio => {
+            const portfoliosToProcess = selectedPortfolio ? [selectedPortfolio] : portfolios;
+
+            return portfoliosToProcess.flatMap(portfolio => {
                 if (!portfolio || !portfolio.investments || !Array.isArray(portfolio.investments)) {
                     return [];
                 }
@@ -54,11 +96,11 @@ export default function InvestmentsScreen() {
             console.error('Error processing investments:', error);
             return [];
         }
-    }, [portfolios]);
+    }, [portfolios, selectedPortfolio]);
 
-    // Calculate total portfolio value
+    // Calculate total portfolio value based on filtered investments
     const totalPortfolioValue = React.useMemo(() => {
-        return allInvestments.reduce((sum, investment) => {
+        return filteredInvestments.reduce((sum, investment) => {
             try {
                 const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 return sum + currentValue;
@@ -66,11 +108,11 @@ export default function InvestmentsScreen() {
                 return sum;
             }
         }, 0);
-    }, [allInvestments]);
+    }, [filteredInvestments]);
 
-    // Calculate total gain/loss
+    // Calculate total gain/loss based on filtered investments
     const totalGainLoss = React.useMemo(() => {
-        return allInvestments.reduce((sum, investment) => {
+        return filteredInvestments.reduce((sum, investment) => {
             try {
                 const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 const initialValue = investment.data.quantity * investment.data.purchase_price;
@@ -79,7 +121,7 @@ export default function InvestmentsScreen() {
                 return sum;
             }
         }, 0);
-    }, [allInvestments]);
+    }, [filteredInvestments]);
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -160,8 +202,11 @@ export default function InvestmentsScreen() {
             <TouchableOpacity
                 style={[styles.investmentCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
                 onPress={() => {
-                    // TODO: Navigate to investment detail screen
-                    Alert.alert('Investment Details', `${item.data.symbol || item.data.name}\nCurrent Value: ${formatCurrency(currentValue)}`);
+                    // Navigate to investment detail screen
+                    const portfolioId = portfolios.find(p => p.investments.some(inv => inv.id === item.id))?.id;
+                    if (portfolioId) {
+                        router.push(`/(protected)/investment-detail?investmentId=${item.id}&portfolioId=${portfolioId}`);
+                    }
                 }}
             >
                 <View style={styles.investmentCardContent}>
@@ -208,11 +253,34 @@ export default function InvestmentsScreen() {
 
     const renderInvestmentsHeader = () => {
         const gainLossPercentage = totalPortfolioValue > 0 ? (totalGainLoss / (totalPortfolioValue - totalGainLoss)) * 100 : 0;
+        const showPortfolioSelector = portfolios.length > 1;
 
         return (
             <View style={styles.header}>
+                {showPortfolioSelector && (
+                    <View style={[styles.selectorCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                        <Text style={[styles.selectorLabel, { color: colors.text }]}>Portfolio</Text>
+                        <Select
+                            style={styles.portfolioSelector}
+                            value={selectedPortfolio?.data?.name || 'All Portfolios'}
+                            selectedIndex={selectedPortfolioIndex}
+                            onSelect={(index) => setSelectedPortfolioIndex(index as IndexPath)}
+                            placeholder="Select portfolio"
+                        >
+                            {portfolios.map((portfolio, index) => (
+                                <SelectItem 
+                                    key={portfolio.id} 
+                                    title={portfolio.data?.name || `Portfolio ${index + 1}`}
+                                />
+                            ))}
+                        </Select>
+                    </View>
+                )}
+                
                 <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.summaryTitle, { color: colors.text }]}>Total Portfolio Value</Text>
+                    <Text style={[styles.summaryTitle, { color: colors.text }]}>
+                        {selectedPortfolio ? selectedPortfolio.data?.name || 'Portfolio' : 'Total Portfolio'} Value
+                    </Text>
                     <Text style={[styles.summaryAmount, { color: colors.primary }]}>
                         {formatCurrency(totalPortfolioValue)}
                     </Text>
@@ -296,12 +364,12 @@ export default function InvestmentsScreen() {
                 style={{ backgroundColor: colors.background }}
             />
 
-            {allInvestments.length === 0 ? (
+            {filteredInvestments.length === 0 ? (
                 renderInvestmentsEmptyState()
             ) : (
                 <FlatList
                     style={styles.list}
-                    data={allInvestments}
+                    data={filteredInvestments}
                     renderItem={renderInvestmentItem}
                     keyExtractor={(item) => item.id}
                     ListHeaderComponent={renderInvestmentsHeader}
@@ -317,7 +385,7 @@ export default function InvestmentsScreen() {
                 />
             )}
 
-            {allInvestments.length > 0 && (
+            {filteredInvestments.length > 0 && (
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: colors.primary }]}
                     onPress={handleAddInvestment}
@@ -378,6 +446,23 @@ const styles = StyleSheet.create({
     header: {
         paddingHorizontal: 20,
         paddingVertical: 16,
+    },
+    selectorCard: {
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    selectorLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    portfolioSelector: {
+        borderRadius: 12,
     },
     summaryCard: {
         padding: 20,

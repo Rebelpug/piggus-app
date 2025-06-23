@@ -1,0 +1,939 @@
+import React, { useState, useMemo } from 'react';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, ScrollView } from 'react-native';
+import {
+    Layout,
+    Text,
+    Card,
+    Button,
+    Spinner,
+    TopNavigation,
+    List,
+    ListItem,
+    Divider,
+    Input,
+    Modal,
+    Tab,
+    TabView
+} from '@ui-kitten/components';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useInvestment } from '@/context/InvestmentContext';
+import { useAuth } from '@/context/AuthContext';
+import { InvestmentWithDecryptedData } from '@/types/investment';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemedView } from '@/components/ThemedView';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
+
+const investmentTypes = [
+    { id: 'stock', name: 'Stock', icon: 'trending-up' },
+    { id: 'bond', name: 'Bond', icon: 'shield-checkmark' },
+    { id: 'crypto', name: 'Cryptocurrency', icon: 'flash' },
+    { id: 'etf', name: 'ETF', icon: 'bar-chart' },
+    { id: 'mutual_fund', name: 'Mutual Fund', icon: 'pie-chart' },
+    { id: 'real_estate', name: 'Real Estate', icon: 'home' },
+    { id: 'commodity', name: 'Commodity', icon: 'diamond' },
+    { id: 'other', name: 'Other', icon: 'ellipsis-horizontal' },
+];
+
+export default function PortfolioDetailScreen() {
+    const router = useRouter();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
+    const { user } = useAuth();
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const { portfolios, inviteUserToPortfolio, handlePortfolioInvitation, removeUserFromPortfolio } = useInvestment();
+    const [refreshing, setRefreshing] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [inviteModalVisible, setInviteModalVisible] = useState(false);
+    const [inviteUsername, setInviteUsername] = useState('');
+    const [inviteLoading, setInviteLoading] = useState(false);
+
+    const portfolio = useMemo(() => {
+        return portfolios.find(p => p.id === id);
+    }, [portfolios, id]);
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 2000);
+    }, []);
+
+    const navigateBack = () => {
+        router.back();
+    };
+
+    const handleAddInvestment = () => {
+        router.push('/(protected)/add-investment');
+    };
+
+    const handleInviteUser = async () => {
+        if (!inviteUsername.trim() || !portfolio) {
+            Alert.alert('Error', 'Please enter a username');
+            return;
+        }
+
+        setInviteLoading(true);
+        try {
+            const result = await inviteUserToPortfolio(portfolio.id, inviteUsername.trim());
+
+            if (result.success) {
+                Alert.alert('Success', 'User invited successfully!');
+                setInviteModalVisible(false);
+                setInviteUsername('');
+            } else {
+                Alert.alert('Error', result.error || 'Failed to invite user');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to invite user');
+        } finally {
+            setInviteLoading(false);
+        }
+    };
+
+    const handleRemoveUser = async (userId: string, username: string) => {
+        if (!portfolio) return;
+
+        Alert.alert(
+            'Remove Member',
+            `Are you sure you want to remove ${username} from this portfolio?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const result = await removeUserFromPortfolio(portfolio.id, userId);
+                            if (result.success) {
+                                Alert.alert('Success', 'Member removed successfully');
+                            } else {
+                                Alert.alert('Error', result.error || 'Failed to remove member');
+                            }
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to remove member');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleInvitation = async (accept: boolean) => {
+        if (!portfolio) return;
+
+        try {
+            const result = await handlePortfolioInvitation(portfolio.id, accept);
+
+            if (result.success) {
+                Alert.alert(
+                    'Success',
+                    accept ? 'Invitation accepted!' : 'Invitation declined',
+                    [{ text: 'OK', onPress: () => router.back() }]
+                );
+            } else {
+                Alert.alert('Error', result.error || 'Failed to handle invitation');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to handle invitation');
+        }
+    };
+
+    const formatCurrency = (amount: number, currency: string = 'USD') => {
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency,
+            }).format(amount);
+        } catch {
+            return `${amount.toFixed(2)}`;
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        try {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            });
+        } catch {
+            return dateString;
+        }
+    };
+
+    const getInvestmentTypeColor = (type: string) => {
+        const colors: { [key: string]: string } = {
+            stock: '#4CAF50',
+            bond: '#2196F3',
+            crypto: '#FF9800',
+            etf: '#9C27B0',
+            mutual_fund: '#3F51B5',
+            real_estate: '#795548',
+            commodity: '#FFC107',
+            other: '#9E9E9E',
+        };
+        return colors[type] || colors.other;
+    };
+
+    const getInvestmentTypeIcon = (type: string) => {
+        const typeInfo = investmentTypes.find(t => t.id === type);
+        return typeInfo?.icon || 'ellipsis-horizontal';
+    };
+
+    const renderInvestmentItem = ({ item }: { item: InvestmentWithDecryptedData }) => {
+        if (!item || !item.data) {
+            return null;
+        }
+
+        const currentValue = item.data.current_value || (item.data.quantity * (item.data.current_price || item.data.purchase_price));
+        const initialValue = item.data.quantity * item.data.purchase_price;
+        const gainLoss = currentValue - initialValue;
+        const gainLossPercentage = initialValue > 0 ? (gainLoss / initialValue) * 100 : 0;
+
+        return (
+            <TouchableOpacity
+                style={[styles.investmentCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
+                onPress={() => {
+                    router.push({
+                        pathname: '/(protected)/investment-detail',
+                        params: {
+                            investmentId: item.id,
+                            portfolioId: item.portfolio_id
+                        }
+                    });
+                }}
+            >
+                <View style={styles.investmentCardContent}>
+                    <View style={styles.investmentHeader}>
+                        <View style={styles.investmentMainInfo}>
+                            <View style={[
+                                styles.typeIcon,
+                                { backgroundColor: getInvestmentTypeColor(item.data.type) + '20' }
+                            ]}>
+                                <Ionicons
+                                    name={getInvestmentTypeIcon(item.data.type) as any}
+                                    size={20}
+                                    color={getInvestmentTypeColor(item.data.type)}
+                                />
+                            </View>
+                            <View style={styles.investmentDetails}>
+                                <Text style={[styles.investmentTitle, { color: colors.text }]}>
+                                    {item.data.symbol || item.data.name || 'Unknown Investment'}
+                                </Text>
+                                <Text style={[styles.investmentSubtitle, { color: colors.icon }]}>
+                                    {item.data.quantity} shares • {formatDate(item.data.purchase_date)}
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.investmentAmount}>
+                            <Text style={[styles.currentValueText, { color: colors.text }]}>
+                                {formatCurrency(currentValue, item.data.currency)}
+                            </Text>
+                            <Text style={[
+                                styles.gainLossText,
+                                { color: gainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                            ]}>
+                                {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, item.data.currency)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%)
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderMemberItem = ({ item }: { item: any }) => {
+        const isCurrentUser = item.user_id === user?.id;
+        const canRemove = !isCurrentUser && item.status === 'confirmed';
+
+        return (
+            <ListItem
+                title={() => (
+                    <Layout style={styles.memberInfo}>
+                        <Layout style={styles.memberMainInfo}>
+                            <Text style={[styles.memberName, { color: colors.text }]}>
+                                {item.username}{isCurrentUser ? ' (You)' : ''}
+                            </Text>
+                            <View style={[
+                                styles.statusBadge,
+                                { backgroundColor: item.status === 'confirmed' ? '#4CAF50' : '#FF9800' }
+                            ]}>
+                                <Text style={styles.statusText}>
+                                    {item.status === 'confirmed' ? 'Active' : 'Pending'}
+                                </Text>
+                            </View>
+                        </Layout>
+                        {canRemove && (
+                            <TouchableOpacity
+                                style={styles.removeButton}
+                                onPress={() => handleRemoveUser(item.user_id, item.username)}
+                            >
+                                <Ionicons name="close-circle-outline" size={24} color="#F44336" />
+                            </TouchableOpacity>
+                        )}
+                    </Layout>
+                )}
+            />
+        );
+    };
+
+    const renderPerformanceTab = () => {
+        if (!portfolio?.investments || portfolio.investments.length === 0) {
+            return (
+                <Layout style={styles.tabContent}>
+                    <Layout style={styles.emptyState}>
+                        <Ionicons name="analytics-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
+                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No performance data</Text>
+                        <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
+                            Add investments to see performance analytics
+                        </Text>
+                    </Layout>
+                </Layout>
+            );
+        }
+
+        // Calculate performance by type
+        const performanceByType = portfolio.investments.reduce((acc, investment) => {
+            const type = investment.data.type;
+            const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+            const initialValue = investment.data.quantity * investment.data.purchase_price;
+            
+            if (!acc[type]) {
+                acc[type] = { currentValue: 0, initialValue: 0, count: 0 };
+            }
+            
+            acc[type].currentValue += currentValue;
+            acc[type].initialValue += initialValue;
+            acc[type].count += 1;
+            
+            return acc;
+        }, {} as Record<string, { currentValue: number; initialValue: number; count: number }>);
+
+        return (
+            <Layout style={styles.tabContent}>
+                <ScrollView style={styles.performanceList} showsVerticalScrollIndicator={false}>
+                    <View style={styles.performanceContainer}>
+                        {Object.entries(performanceByType).map(([type, data]) => {
+                            const gainLoss = data.currentValue - data.initialValue;
+                            const gainLossPercentage = data.initialValue > 0 ? (gainLoss / data.initialValue) * 100 : 0;
+                            const typeInfo = investmentTypes.find(t => t.id === type);
+                            
+                            return (
+                                <Card key={type} style={[styles.performanceCard, { backgroundColor: colors.card }]}>
+                                    <View style={styles.performanceHeader}>
+                                        <View style={styles.performanceInfo}>
+                                            <View style={[
+                                                styles.typeIcon,
+                                                { backgroundColor: getInvestmentTypeColor(type) + '20' }
+                                            ]}>
+                                                <Ionicons
+                                                    name={getInvestmentTypeIcon(type) as any}
+                                                    size={20}
+                                                    color={getInvestmentTypeColor(type)}
+                                                />
+                                            </View>
+                                            <View style={styles.performanceDetails}>
+                                                <Text style={[styles.performanceTitle, { color: colors.text }]}>
+                                                    {typeInfo?.name || type}
+                                                </Text>
+                                                <Text style={[styles.performanceSubtitle, { color: colors.icon }]}>
+                                                    {data.count} investment{data.count !== 1 ? 's' : ''}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.performanceAmount}>
+                                            <Text style={[styles.performanceValue, { color: colors.text }]}>
+                                                {formatCurrency(data.currentValue)}
+                                            </Text>
+                                            <Text style={[
+                                                styles.performanceGainLoss,
+                                                { color: gainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                            ]}>
+                                                {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%)
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </Card>
+                            );
+                        })}
+                    </View>
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            </Layout>
+        );
+    };
+
+    const renderBackAction = () => (
+        <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
+        </TouchableOpacity>
+    );
+
+    const renderRightAction = () => (
+        <TouchableOpacity onPress={handleAddInvestment} style={styles.addButton}>
+            <Ionicons name="add" size={24} color={colors.icon} />
+        </TouchableOpacity>
+    );
+
+    if (!portfolio) {
+        return (
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <TopNavigation
+                        title="Portfolio Details"
+                        alignment='center'
+                        accessoryLeft={renderBackAction}
+                        style={{ backgroundColor: colors.background }}
+                    />
+                    <Layout style={styles.errorContainer}>
+                        <Ionicons name="alert-circle-outline" size={48} color={colors.error} style={styles.errorIcon} />
+                        <Text category='h6' style={[styles.errorTitle, { color: colors.text }]}>Portfolio not found</Text>
+                        <Text category='s1' appearance='hint' style={[styles.errorDescription, { color: colors.icon }]}>
+                            The requested portfolio could not be found.
+                        </Text>
+                        <Button onPress={navigateBack}>Go Back</Button>
+                    </Layout>
+                </SafeAreaView>
+            </ThemedView>
+        );
+    }
+
+    const totalValue = portfolio.investments?.reduce((sum, investment) => {
+        try {
+            const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+            return sum + currentValue;
+        } catch {
+            return sum;
+        }
+    }, 0) || 0;
+
+    const totalInvestment = portfolio.investments?.reduce((sum, investment) => {
+        try {
+            return sum + (investment.data.quantity * investment.data.purchase_price);
+        } catch {
+            return sum;
+        }
+    }, 0) || 0;
+
+    const totalGainLoss = totalValue - totalInvestment;
+
+    const isPending = portfolio.membership_status === 'pending';
+
+    return (
+        <ThemedView style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
+                <TopNavigation
+                    title={portfolio.data?.name || 'Portfolio Details'}
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                    accessoryRight={renderRightAction}
+                    style={{ backgroundColor: colors.background }}
+                />
+
+                {isPending ? (
+                    <Layout style={styles.pendingContainer}>
+                        <Card style={styles.pendingCard}>
+                            <Layout style={styles.pendingHeader}>
+                                <Ionicons name="mail-outline" size={48} color="#FF9800" style={styles.pendingIcon} />
+                                <Text category='h6' style={styles.pendingTitle}>Invitation Pending</Text>
+                                <Text category='s1' appearance='hint' style={styles.pendingDescription}>
+                                    You've been invited to join "{portfolio.data?.name}". Would you like to accept this invitation?
+                                </Text>
+                            </Layout>
+                            <Layout style={styles.pendingActions}>
+                                <Button
+                                    style={[styles.actionButton, styles.declineButton]}
+                                    status='danger'
+                                    onPress={() => handleInvitation(false)}
+                                >
+                                    Decline
+                                </Button>
+                                <Button
+                                    style={styles.actionButton}
+                                    status='success'
+                                    onPress={() => handleInvitation(true)}
+                                >
+                                    Accept
+                                </Button>
+                            </Layout>
+                        </Card>
+                    </Layout>
+                ) : (
+                    <>
+                        <View style={styles.header}>
+                            <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                                <Text style={[styles.portfolioName, { color: colors.text }]}>{portfolio.data?.name}</Text>
+                                {portfolio.data?.description && (
+                                    <Text style={[styles.portfolioDescription, { color: colors.icon }]}>
+                                        {portfolio.data.description}
+                                    </Text>
+                                )}
+                                <View style={styles.summaryRow}>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={[styles.summaryNumber, { color: colors.primary }]}>
+                                            {formatCurrency(totalValue)}
+                                        </Text>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>Total Value</Text>
+                                    </View>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={[styles.summaryNumber, { color: totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }]}>
+                                            {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss)}
+                                        </Text>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>Gain/Loss</Text>
+                                    </View>
+                                    <View style={styles.summaryItem}>
+                                        <Text style={[styles.summaryNumber, { color: colors.primary }]}>
+                                            {portfolio.investments?.length || 0}
+                                        </Text>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>Investments</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+
+                        <TabView
+                            style={styles.tabView}
+                            selectedIndex={selectedIndex}
+                            onSelect={index => setSelectedIndex(index)}
+                        >
+                            <Tab title='Investments'>
+                                <View style={styles.tabContent}>
+                                    {portfolio.investments && portfolio.investments.length > 0 ? (
+                                        <ScrollView style={styles.investmentsList} showsVerticalScrollIndicator={false}>
+                                            <View style={styles.investmentsContainer}>
+                                                {portfolio.investments.map((item) => (
+                                                    <View key={item.id}>
+                                                        {renderInvestmentItem({ item })}
+                                                    </View>
+                                                ))}
+                                            </View>
+                                            <View style={{ height: 100 }} />
+                                        </ScrollView>
+                                    ) : (
+                                        <Layout style={styles.emptyState}>
+                                            <Ionicons name="trending-up-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
+                                            <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No investments yet</Text>
+                                            <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
+                                                Start building your portfolio by adding investments
+                                            </Text>
+                                            <Button
+                                                style={styles.addButton}
+                                                accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                                                onPress={handleAddInvestment}
+                                            >
+                                                Add Investment
+                                            </Button>
+                                        </Layout>
+                                    )}
+                                </View>
+                            </Tab>
+                            <Tab title='Performance'>
+                                {renderPerformanceTab()}
+                            </Tab>
+                            <Tab title='Members'>
+                                <Layout style={styles.tabContent}>
+                                    <Layout style={styles.membersHeader}>
+                                        <Text category='h6' style={styles.membersTitle}>Portfolio Members</Text>
+                                        <Button
+                                            style={styles.inviteButton}
+                                            size='small'
+                                            accessoryLeft={(props) => <Ionicons name="person-add-outline" size={16} color={props?.tintColor || '#FFFFFF'} />}
+                                            onPress={() => setInviteModalVisible(true)}
+                                        >
+                                            Invite
+                                        </Button>
+                                    </Layout>
+                                    {portfolio.members && portfolio.members.length > 0 ? (
+                                        <List
+                                            style={styles.membersList}
+                                            data={portfolio.members}
+                                            renderItem={renderMemberItem}
+                                            ItemSeparatorComponent={Divider}
+                                        />
+                                    ) : (
+                                        <Layout style={styles.emptyState}>
+                                            <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
+                                            <Text category='h6' style={styles.emptyTitle}>No members</Text>
+                                            <Text category='s1' appearance='hint' style={styles.emptyDescription}>
+                                                Invite others to collaborate on this portfolio
+                                            </Text>
+                                            <Button
+                                                style={styles.addButton}
+                                                accessoryLeft={(props) => <Ionicons name="person-add-outline" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                                                onPress={() => setInviteModalVisible(true)}
+                                            >
+                                                Invite Member
+                                            </Button>
+                                        </Layout>
+                                    )}
+                                </Layout>
+                            </Tab>
+                        </TabView>
+
+                        <Button
+                            style={styles.fab}
+                            accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                            onPress={handleAddInvestment}
+                            size='large'
+                            status='primary'
+                        />
+                    </>
+                )}
+
+                <Modal
+                    visible={inviteModalVisible}
+                    backdropStyle={styles.backdrop}
+                    onBackdropPress={() => setInviteModalVisible(false)}
+                >
+                    <Card disabled={true}>
+                        <Text category='h6' style={styles.modalTitle}>Invite User</Text>
+                        <Input
+                            placeholder='Enter username'
+                            value={inviteUsername}
+                            onChangeText={setInviteUsername}
+                            style={styles.modalInput}
+                        />
+                        <Layout style={styles.modalActions}>
+                            <Button
+                                style={styles.modalButton}
+                                appearance='ghost'
+                                onPress={() => {
+                                    setInviteModalVisible(false);
+                                    setInviteUsername('');
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                style={styles.modalButton}
+                                onPress={handleInviteUser}
+                                disabled={inviteLoading}
+                                accessoryLeft={inviteLoading ? () => <Spinner size='small' status='control' /> : undefined}
+                            >
+                                {inviteLoading ? 'Inviting...' : 'Invite'}
+                            </Button>
+                        </Layout>
+                    </Card>
+                </Modal>
+            </SafeAreaView>
+        </ThemedView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    header: {
+        padding: 20,
+        paddingBottom: 0,
+    },
+    summaryCard: {
+        padding: 24,
+        borderRadius: 20,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    portfolioName: {
+        fontSize: 24,
+        fontWeight: '700',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    portfolioDescription: {
+        fontSize: 14,
+        marginBottom: 16,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 16,
+    },
+    summaryItem: {
+        alignItems: 'center',
+    },
+    summaryNumber: {
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    summaryLabel: {
+        fontSize: 12,
+        fontWeight: '500',
+        textTransform: 'uppercase',
+    },
+    tabView: {
+        flex: 1,
+    },
+    tabContent: {
+        flex: 1,
+        padding: 16,
+    },
+    investmentsList: {
+        flex: 1,
+    },
+    investmentsContainer: {
+        gap: 12,
+    },
+    investmentCard: {
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+        marginBottom: 12,
+    },
+    investmentCardContent: {
+        padding: 16,
+    },
+    investmentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    investmentMainInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    typeIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    investmentDetails: {
+        flex: 1,
+    },
+    investmentTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    investmentSubtitle: {
+        fontSize: 14,
+    },
+    investmentAmount: {
+        alignItems: 'flex-end',
+    },
+    currentValueText: {
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    gainLossText: {
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    performanceList: {
+        flex: 1,
+    },
+    performanceContainer: {
+        gap: 12,
+    },
+    performanceCard: {
+        borderRadius: 12,
+        padding: 16,
+    },
+    performanceHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    performanceInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    performanceDetails: {
+        flex: 1,
+    },
+    performanceTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    performanceSubtitle: {
+        fontSize: 14,
+    },
+    performanceAmount: {
+        alignItems: 'flex-end',
+    },
+    performanceValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    performanceGainLoss: {
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    membersHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    membersTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    inviteButton: {
+        borderRadius: 12,
+    },
+    membersList: {
+        backgroundColor: 'transparent',
+    },
+    memberInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+    },
+    memberMainInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    memberName: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginRight: 12,
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: 'white',
+        textTransform: 'uppercase',
+    },
+    removeButton: {
+        padding: 4,
+    },
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+    },
+    emptyIcon: {
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    emptyDescription: {
+        fontSize: 14,
+        marginBottom: 24,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    addButton: {
+        borderRadius: 12,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        borderRadius: 28,
+        width: 56,
+        height: 56,
+    },
+    pendingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: 20,
+    },
+    pendingCard: {
+        padding: 24,
+        borderRadius: 20,
+    },
+    pendingHeader: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    pendingIcon: {
+        marginBottom: 16,
+    },
+    pendingTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    pendingDescription: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    pendingActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
+    actionButton: {
+        flex: 1,
+        marginHorizontal: 8,
+        borderRadius: 12,
+    },
+    declineButton: {
+        marginRight: 8,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+    },
+    errorIcon: {
+        marginBottom: 16,
+    },
+    errorTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    errorDescription: {
+        fontSize: 14,
+        marginBottom: 24,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    backButton: {
+        padding: 12,
+    },
+    backdrop: {
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalTitle: {
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    modalInput: {
+        marginBottom: 16,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    modalButton: {
+        flex: 1,
+        marginHorizontal: 8,
+    },
+});
