@@ -10,6 +10,7 @@ export type Portfolio = {
 export type PortfolioData = {
   name: string;
   description?: string | null;
+  private: boolean;
 };
 
 export type PortfolioMemberWithProfile = {

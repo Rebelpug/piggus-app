@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
+import { useInvestment } from '@/context/InvestmentContext';
 import { Ionicons } from '@expo/vector-icons';
 import { CURRENCIES, calculateUserShare, calculateUserBalance } from '@/types/expense';
 import ProfileHeader from '@/components/ProfileHeader';
@@ -34,6 +35,7 @@ export default function HomeScreen() {
     const { user } = useAuth();
     const { expensesGroups, isLoading } = useExpense();
     const { userProfile, updateProfile } = useProfile();
+    const { portfolios } = useInvestment();
     const [refreshing, setRefreshing] = useState(false);
     const [budgetModalVisible, setBudgetModalVisible] = useState(false);
     const [budgetAmount, setBudgetAmount] = useState(userProfile?.profile?.budgeting?.budget?.amount?.toString() || '0');
@@ -82,6 +84,64 @@ export default function HomeScreen() {
         };
     }, [expensesGroups, user?.id]);
 
+    // Calculate investment portfolio returns
+    const portfolioReturns = useMemo(() => {
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        
+        let totalInvested = 0;
+        let currentValue = 0;
+        let yearStartValue = 0;
+        let hasCurrentPrices = false;
+
+        // Only consider private portfolios (membership_status === 'confirmed' and private === true)
+        const privatePortfolios = portfolios.filter(p => p.membership_status === 'confirmed' && p.data.private === true);
+        
+        privatePortfolios.forEach(portfolio => {
+            portfolio.investments.forEach(investment => {
+                const purchasePrice = investment.data.purchase_price;
+                const quantity = investment.data.quantity;
+                const currentPrice = investment.data.current_price;
+                const purchaseDate = new Date(investment.data.purchase_date);
+                
+                totalInvested += purchasePrice * quantity;
+                
+                if (currentPrice !== null && currentPrice > 0) {
+                    currentValue += currentPrice * quantity;
+                    hasCurrentPrices = true;
+                    
+                    // For year-to-date calculation, use purchase price if bought this year, otherwise use current price
+                    if (purchaseDate >= startOfYear) {
+                        yearStartValue += purchasePrice * quantity;
+                    } else {
+                        yearStartValue += currentPrice * quantity; // Approximation - ideally we'd have historical prices
+                    }
+                } else {
+                    // If no current price, use purchase price as fallback
+                    currentValue += purchasePrice * quantity;
+                    yearStartValue += purchasePrice * quantity;
+                }
+            });
+        });
+
+        const totalReturn = currentValue - totalInvested;
+        const totalReturnPercentage = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
+        
+        const yearReturn = currentValue - yearStartValue;
+        const yearReturnPercentage = yearStartValue > 0 ? (yearReturn / yearStartValue) * 100 : 0;
+
+        return {
+            currentValue,
+            totalInvested,
+            totalReturn,
+            totalReturnPercentage,
+            yearReturn,
+            yearReturnPercentage,
+            hasInvestments: privatePortfolios.some(p => p.investments.length > 0),
+            hasCurrentPrices
+        };
+    }, [portfolios]);
+
     // Get budget information from profile
     const budget = userProfile?.profile?.budgeting?.budget;
     const budgetAmount_profile = budget?.amount || 0;
@@ -95,17 +155,6 @@ export default function HomeScreen() {
         setTimeout(() => setRefreshing(false), 2000);
     }, []);
 
-    const handleAddExpense = () => {
-        router.push('/(protected)/add-expense');
-    };
-
-    const handleViewGroups = () => {
-        router.push('/(protected)/groups');
-    };
-
-    const handleViewAllExpenses = () => {
-        router.push('/(protected)/(tabs)/expenses');
-    };
 
     const handleSetBudget = async () => {
         if (!budgetAmount.trim() || isNaN(Number(budgetAmount)) || Number(budgetAmount) <= 0) {
@@ -280,50 +329,98 @@ export default function HomeScreen() {
                     )}
                 </View>
 
-                {/* Stats Cards */}
-                <View style={styles.statsContainer}>
-                    <View style={[styles.statCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                        <View style={[styles.statIcon, { backgroundColor: colors.secondary + '20' }]}>
-                            <Ionicons name="receipt-outline" size={24} color={colors.secondary} />
-                        </View>
-                        <Text style={[styles.statNumber, { color: colors.text }]}>
-                            {currentMonthData.transactionCount}
-                        </Text>
-                        <Text style={[styles.statLabel, { color: colors.icon }]}>
-                            Transactions
-                        </Text>
+                {/* Investment Portfolio Returns Card */}
+                <View style={[styles.portfolioCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <View style={styles.portfolioHeader}>
+                        <Text style={[styles.portfolioTitle, { color: colors.text }]}>Investment Portfolio</Text>
+                        <TouchableOpacity onPress={() => router.push('/(protected)/(tabs)/investments')}>
+                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                        </TouchableOpacity>
                     </View>
 
-                    <View style={[styles.statCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                        <View style={[styles.statIcon, { backgroundColor: colors.accent + '20' }]}>
-                            <Ionicons name="people-outline" size={24} color={colors.accent} />
+                    {portfolioReturns.hasInvestments ? (
+                        <View>
+                            {/* Current Value */}
+                            <View style={styles.portfolioMainValue}>
+                                <Text style={[styles.portfolioValueAmount, { color: colors.text }]}>
+                                    {formatCurrency(portfolioReturns.currentValue)}
+                                </Text>
+                                <Text style={[styles.portfolioValueLabel, { color: colors.icon }]}>
+                                    Current Portfolio Value
+                                </Text>
+                            </View>
+
+                            {/* Returns Summary */}
+                            <View style={styles.portfolioReturnsContainer}>
+                                {/* Total Returns */}
+                                <View style={styles.portfolioReturn}>
+                                    <View style={styles.portfolioReturnRow}>
+                                        <Text style={[styles.portfolioReturnAmount, { 
+                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error 
+                                        }]}>
+                                            {portfolioReturns.totalReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.totalReturn)}
+                                        </Text>
+                                        <Text style={[styles.portfolioReturnPercentage, { 
+                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error 
+                                        }]}>
+                                            {portfolioReturns.totalReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.totalReturnPercentage.toFixed(2)}%
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>
+                                        Total Return
+                                    </Text>
+                                </View>
+
+                                {/* Year to Date Returns */}
+                                <View style={styles.portfolioReturn}>
+                                    <View style={styles.portfolioReturnRow}>
+                                        <Text style={[styles.portfolioReturnAmount, { 
+                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error 
+                                        }]}>
+                                            {portfolioReturns.yearReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.yearReturn)}
+                                        </Text>
+                                        <Text style={[styles.portfolioReturnPercentage, { 
+                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error 
+                                        }]}>
+                                            {portfolioReturns.yearReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.yearReturnPercentage.toFixed(2)}%
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>
+                                        This Year
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Total Invested */}
+                            <Text style={[styles.portfolioTotalInvested, { color: colors.icon }]}>
+                                Total Invested: {formatCurrency(portfolioReturns.totalInvested)}
+                            </Text>
+
+                            {!portfolioReturns.hasCurrentPrices && (
+                                <Text style={[styles.portfolioDisclaimer, { color: colors.icon }]}>
+                                    * Some investments lack current prices
+                                </Text>
+                            )}
                         </View>
-                        <Text style={[styles.statNumber, { color: colors.text }]}>
-                            {expensesGroups.filter(g => g.membership_status === 'confirmed').length}
-                        </Text>
-                        <Text style={[styles.statLabel, { color: colors.icon }]}>
-                            Active Groups
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Quick Actions */}
-                <View style={styles.actionsContainer}>
-                    <TouchableOpacity
-                        style={[styles.primaryAction, { backgroundColor: colors.primary }]}
-                        onPress={handleAddExpense}
-                    >
-                        <Ionicons name="add" size={24} color="white" />
-                        <Text style={styles.primaryActionText}>Add Expense</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.secondaryAction, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.text }]}
-                        onPress={handleViewGroups}
-                    >
-                        <Ionicons name="people-outline" size={24} color={colors.primary} />
-                        <Text style={[styles.secondaryActionText, { color: colors.primary }]}>Manage Groups</Text>
-                    </TouchableOpacity>
+                    ) : (
+                        <View style={styles.noPortfolioContainer}>
+                            <View style={[styles.noPortfolioIcon, { backgroundColor: colors.primary + '20' }]}>
+                                <Ionicons name="trending-up-outline" size={32} color={colors.primary} />
+                            </View>
+                            <Text style={[styles.noPortfolioText, { color: colors.text }]}>
+                                Start investing
+                            </Text>
+                            <Text style={[styles.noPortfolioSubtext, { color: colors.icon }]}>
+                                Create your first investment portfolio to track returns
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.createPortfolioButton, { backgroundColor: colors.primary }]}
+                                onPress={() => router.push('/(protected)/create-portfolio')}
+                            >
+                                <Text style={styles.createPortfolioButtonText}>Create Portfolio</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
 
                 <View style={{ height: 100 }} />
@@ -508,70 +605,106 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-    statsContainer: {
-        flexDirection: 'row',
+    portfolioCard: {
         marginBottom: 24,
-        gap: 16,
-    },
-    statCard: {
-        flex: 1,
-        padding: 20,
-        borderRadius: 16,
-        alignItems: 'center',
+        padding: 24,
+        borderRadius: 20,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 4,
     },
-    statIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+    portfolioHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
+        marginBottom: 20,
     },
-    statNumber: {
-        fontSize: 20,
+    portfolioTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    portfolioMainValue: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    portfolioValueAmount: {
+        fontSize: 32,
         fontWeight: '700',
         marginBottom: 4,
     },
-    statLabel: {
+    portfolioValueLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    portfolioReturnsContainer: {
+        flexDirection: 'row',
+        marginBottom: 20,
+        gap: 16,
+    },
+    portfolioReturn: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    portfolioReturnRow: {
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    portfolioReturnAmount: {
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    portfolioReturnPercentage: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    portfolioReturnLabel: {
         fontSize: 12,
         fontWeight: '500',
         textAlign: 'center',
     },
-    actionsContainer: {
-        gap: 16,
-        marginBottom: 32,
+    portfolioTotalInvested: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 8,
     },
-    primaryAction: {
-        flexDirection: 'row',
+    portfolioDisclaimer: {
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    noPortfolioContainer: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    noPortfolioIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 16,
-        gap: 8,
+        marginBottom: 16,
     },
-    primaryActionText: {
-        color: 'white',
-        fontSize: 16,
+    noPortfolioText: {
+        fontSize: 18,
         fontWeight: '600',
+        marginBottom: 8,
+        textAlign: 'center',
     },
-    secondaryAction: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        gap: 8,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+    noPortfolioSubtext: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 20,
     },
-    secondaryActionText: {
+    createPortfolioButton: {
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        borderRadius: 12,
+    },
+    createPortfolioButtonText: {
+        color: 'white',
         fontSize: 16,
         fontWeight: '600',
     },

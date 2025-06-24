@@ -67,9 +67,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             .eq('user_id', user.id);
 
         if (!portfolios || portfolios.length === 0) {
-            await apiCreatePortfolio(user, username, publicKey, {
+            await apiCreatePortfolio(user, username, publicKey, createEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey, {
                 name: 'Personal Investments',
                 description: 'My personal investment portfolio',
+                private: true,
             });
         }
     };
