@@ -423,6 +423,30 @@ export default function HomeScreen() {
                     )}
                 </View>
 
+                {/* Guides Call-to-Action Card */}
+                <View style={[styles.guidesCtaCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <View style={styles.guidesCtaContent}>
+                        <View style={[styles.guidesCtaIcon, { backgroundColor: colors.accent + '20' }]}>
+                            <Ionicons name="book-outline" size={28} color={colors.accent} />
+                        </View>
+                        <View style={styles.guidesCtaText}>
+                            <Text style={[styles.guidesCtaTitle, { color: colors.text }]}>
+                                Financial Education
+                            </Text>
+                            <Text style={[styles.guidesCtaSubtitle, { color: colors.icon }]}>
+                                Master your finances with our comprehensive guides
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.guidesCtaButton, { backgroundColor: colors.accent }]}
+                            onPress={() => router.push('/(protected)/(tabs)/guides')}
+                        >
+                            <Text style={styles.guidesCtaButtonText}>Learn</Text>
+                            <Ionicons name="chevron-forward" size={16} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 <View style={{ height: 100 }} />
             </ScrollView>
 
@@ -706,6 +730,53 @@ const styles = StyleSheet.create({
     createPortfolioButtonText: {
         color: 'white',
         fontSize: 16,
+        fontWeight: '600',
+    },
+    guidesCtaCard: {
+        marginBottom: 24,
+        padding: 20,
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    guidesCtaContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    guidesCtaIcon: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    guidesCtaText: {
+        flex: 1,
+        marginRight: 16,
+    },
+    guidesCtaTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    guidesCtaSubtitle: {
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    guidesCtaButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 4,
+    },
+    guidesCtaButtonText: {
+        color: 'white',
+        fontSize: 14,
         fontWeight: '600',
     },
     backdrop: {
