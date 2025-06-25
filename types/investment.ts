@@ -7,6 +7,7 @@ export type InvestmentData = {
   purchase_date: string;
   purchase_price: number;
   quantity: number;
+  currency: string;
   current_price: number | null;
   last_updated: string | null;
   notes: string | null;
