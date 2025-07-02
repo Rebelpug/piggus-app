@@ -6,6 +6,7 @@ import {
 import { InvestmentData, InvestmentWithDecryptedData } from '@/types/investment';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+// Use services instead of direct client imports
 import {
   apiCreatePortfolio,
   apiFetchPortfolios,
@@ -16,7 +17,19 @@ import {
   apiHandlePortfolioInvitation,
   apiUpdatePortfolio,
   apiRemoveUserFromPortfolio,
-} from '@/client/investment';
+} from '@/services/investmentService';
+// Keep old client imports as backup
+// import {
+//   apiCreatePortfolio,
+//   apiFetchPortfolios,
+//   apiAddInvestment,
+//   apiUpdateInvestment,
+//   apiDeleteInvestment,
+//   apiInviteUserToPortfolio,
+//   apiHandlePortfolioInvitation,
+//   apiUpdatePortfolio,
+//   apiRemoveUserFromPortfolio,
+// } from '@/client/investment';
 import {useEncryption} from "@/context/EncryptionContext";
 
 interface InvestmentContextType {

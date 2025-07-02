@@ -14,6 +14,7 @@ import {
 } from '@/context/EncryptionContext';
 import { SecureKeyManager } from '@/lib/secureKeyManager';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import { resetHttpClient } from "@/client/http";
 
 // Define the AuthContext type
 type AuthContextType = {
@@ -392,6 +393,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           setEncryptionInitialized(false);
           signupPassword.current = null;
           setNeedsPasswordPrompt(false);
+          resetHttpClient();
         } else if (event === 'USER_UPDATED' && session?.user) {
           setUser(session.user);
         } else if (event === 'TOKEN_REFRESHED' && session?.user && session) {
@@ -548,6 +550,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       setEncryptionInitialized(false);
       signupPassword.current = null;
       setNeedsPasswordPrompt(false);
+      resetHttpClient();
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;

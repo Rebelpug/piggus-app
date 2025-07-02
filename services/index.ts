@@ -1,0 +1,43 @@
+// Service layer exports - clean API for all business logic services
+
+// Expense services
+export {
+  apiFetchExpenses,
+  apiCreateExpensesGroup,
+  apiAddExpense,
+  apiUpdateExpense,
+  apiDeleteExpense,
+  apiInviteUserToGroup,
+  apiHandleGroupInvitation,
+  apiUpdateExpenseGroup,
+  apiRemoveUserFromGroup,
+} from './expenseService';
+
+// Investment/Portfolio services
+export {
+  apiFetchPortfolios,
+  apiCreatePortfolio,
+  apiAddInvestment,
+  apiUpdateInvestment,
+  apiDeleteInvestment,
+  apiInviteUserToPortfolio,
+  apiHandlePortfolioInvitation,
+  apiUpdatePortfolio,
+  apiRemoveUserFromPortfolio,
+} from './investmentService';
+
+// Profile services
+export {
+  apiFetchProfile,
+  apiCreateProfile,
+  apiUpdateProfile,
+} from './profileService';
+
+// Recurring expense services
+export {
+  apiFetchRecurringExpenses,
+  apiCreateRecurringExpense,
+  apiUpdateRecurringExpense,
+  apiDeleteRecurringExpense,
+  apiProcessRecurringExpenses,
+} from './recurringExpenseService';

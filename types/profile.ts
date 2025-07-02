@@ -33,6 +33,7 @@ export type Profile = {
   id: string;
   username: string;
   encryption_public_key: string;
+  encrypted_data: string;
   profile: ProfileData;
   created_at: string;
   updated_at: string;

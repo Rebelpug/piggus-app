@@ -4,9 +4,14 @@ import type { Profile } from '@/types/profile';
 
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { apiCreatePortfolio } from '@/client/investment';
-import { apiCreateExpensesGroup } from '@/client/expense';
-import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/client/profile';
+// Use services instead of direct client imports
+import { apiCreatePortfolio } from '@/services/investmentService';
+import { apiCreateExpensesGroup } from '@/services/expenseService';
+import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/services/profileService';
+// Keep old client imports as backup
+// import { apiCreatePortfolio } from '@/client/investment';
+// import { apiCreateExpensesGroup } from '@/client/expense';
+// import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/client/profile';
 import {useEncryption} from "@/context/EncryptionContext";
 
 // Import the form component normally since we fixed the circular dependency

@@ -9,6 +9,7 @@ import {
 } from '@/types/expense';
 import { useAuth } from '@/context/AuthContext'; // Updated import path
 import { useProfile } from '@/context/ProfileContext';
+// Use services instead of direct client imports
 import {
   apiCreateExpensesGroup,
   apiFetchExpenses,
@@ -19,14 +20,33 @@ import {
   apiHandleGroupInvitation,
   apiUpdateExpenseGroup,
   apiRemoveUserFromGroup,
-} from '@/client/expense';
+} from '@/services/expenseService';
 import {
   apiFetchRecurringExpenses,
   apiCreateRecurringExpense,
   apiUpdateRecurringExpense,
   apiDeleteRecurringExpense,
   apiProcessRecurringExpenses,
-} from '@/client/recurringExpense';
+} from '@/services/recurringExpenseService';
+// Keep old client imports as backup
+// import {
+//   apiCreateExpensesGroup,
+//   apiFetchExpenses,
+//   apiAddExpense,
+//   apiUpdateExpense,
+//   apiDeleteExpense,
+//   apiInviteUserToGroup,
+//   apiHandleGroupInvitation,
+//   apiUpdateExpenseGroup,
+//   apiRemoveUserFromGroup,
+// } from '@/client/expense';
+// import {
+//   apiFetchRecurringExpenses,
+//   apiCreateRecurringExpense,
+//   apiUpdateRecurringExpense,
+//   apiDeleteRecurringExpense,
+//   apiProcessRecurringExpenses,
+// } from '@/client/recurringExpense';
 import {useEncryption} from "@/context/EncryptionContext";
 
 interface ExpenseContextType {
