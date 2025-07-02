@@ -74,6 +74,20 @@ export interface RecurringExpense {
     updated_at: string;
 }
 
+// Guide Types
+export interface Guide {
+    id: string;
+    icon: string;
+    title: string;
+    subtitle: string;
+    content: string;
+    category: string;
+    created_at: string;
+    updated_at: string;
+    is_active: boolean;
+    sort_order: number;
+}
+
 export interface PiggusApi {
     healthCheck: () => Promise<HealthCheckResponse>;
 
@@ -115,6 +129,10 @@ export interface PiggusApi {
     updateRecurringExpense: (recurringId: string, data: { groupId: string; encryptedData: any }) => Promise<RecurringExpense>;
     deleteRecurringExpense: (recurringId: string, data: { groupId: string }) => Promise<{ success: boolean }>;
     generateExpenseFromRecurring: (recurringId: string, data: { expenseId: string; groupId: string; encryptedExpenseData: any; updatedRecurringData: any }) => Promise<{ expense: any; updatedRecurring: RecurringExpense }>;
+
+    // Guide Methods
+    getGuides: () => Promise<Guide[]>;
+    getGuide: (guideId: string) => Promise<Guide>;
 }
 
 export const piggusApi: PiggusApi = {
@@ -323,6 +341,19 @@ export const piggusApi: PiggusApi = {
     generateExpenseFromRecurring: async (recurringId: string, data) => {
         const httpClient = getHttpClient();
         const response = await httpClient.post(`${BASE_URL}/api/v1/recurring-expenses/${recurringId}/generate`, data);
+        return response.data;
+    },
+
+    // Guide Methods
+    getGuides: async () => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.get(`${BASE_URL}/api/v1/guides`);
+        return response.data;
+    },
+
+    getGuide: async (guideId: string) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.get(`${BASE_URL}/api/v1/guides/${guideId}`);
         return response.data;
     }
 };

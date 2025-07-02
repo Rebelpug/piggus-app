@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { GuideProvider } from "@/context/GuideContext";
 import { Stack } from "expo-router";
 import React from 'react';
 import * as eva from '@eva-design/eva';
@@ -30,9 +31,11 @@ function ThemedApp() {
     return (
         <ApplicationProvider {...eva} theme={theme}>
             <AuthProvider>
-                <Stack screenOptions={{
-                    headerShown: false,
-                }} />
+                <GuideProvider>
+                    <Stack screenOptions={{
+                        headerShown: false,
+                    }} />
+                </GuideProvider>
             </AuthProvider>
         </ApplicationProvider>
     );

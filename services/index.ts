@@ -41,3 +41,9 @@ export {
   apiDeleteRecurringExpense,
   apiProcessRecurringExpenses,
 } from './recurringExpenseService';
+
+// Guide services
+export {
+  apiFetchGuides,
+  apiFetchGuide,
+} from './guideService';
