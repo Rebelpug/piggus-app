@@ -370,7 +370,7 @@ export default function ExpensesScreen() {
     }
 
     const renderExpensesTab = () => (
-        <Layout style={styles.tabContent}>
+        <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
             {filteredExpenses.length === 0 ? (
                 renderExpensesEmptyState()
             ) : (
@@ -391,11 +391,11 @@ export default function ExpensesScreen() {
                     }
                 />
             )}
-        </Layout>
+        </View>
     );
 
     const renderRecurringTab = () => (
-        <Layout style={styles.tabContent}>
+        <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
             {allRecurringExpenses.length === 0 ? (
                 renderRecurringEmptyState()
             ) : (
@@ -415,7 +415,7 @@ export default function ExpensesScreen() {
                     }
                 />
             )}
-        </Layout>
+        </View>
     );
 
     return (
@@ -507,6 +507,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     list: {
+        paddingTop: 10,
         flex: 1,
     },
     listContent: {
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
         opacity: 0.8,
     },
     monthSelector: {
-        paddingVertical: 12,
+        paddingBottom: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#E5E5E5',
     },

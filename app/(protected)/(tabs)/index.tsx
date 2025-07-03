@@ -88,7 +88,7 @@ export default function HomeScreen() {
     const portfolioReturns = useMemo(() => {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 1);
-        
+
         let totalInvested = 0;
         let currentValue = 0;
         let yearStartValue = 0;
@@ -96,20 +96,20 @@ export default function HomeScreen() {
 
         // Only consider private portfolios (membership_status === 'confirmed' and private === true)
         const privatePortfolios = portfolios.filter(p => p.membership_status === 'confirmed' && p.data.private === true);
-        
+
         privatePortfolios.forEach(portfolio => {
             portfolio.investments.forEach(investment => {
                 const purchasePrice = investment.data.purchase_price;
                 const quantity = investment.data.quantity;
                 const currentPrice = investment.data.current_price;
                 const purchaseDate = new Date(investment.data.purchase_date);
-                
+
                 totalInvested += purchasePrice * quantity;
-                
+
                 if (currentPrice !== null && currentPrice > 0) {
                     currentValue += currentPrice * quantity;
                     hasCurrentPrices = true;
-                    
+
                     // For year-to-date calculation, use purchase price if bought this year, otherwise use current price
                     if (purchaseDate >= startOfYear) {
                         yearStartValue += purchasePrice * quantity;
@@ -126,7 +126,7 @@ export default function HomeScreen() {
 
         const totalReturn = currentValue - totalInvested;
         const totalReturnPercentage = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
-        
+
         const yearReturn = currentValue - yearStartValue;
         const yearReturnPercentage = yearStartValue > 0 ? (yearReturn / yearStartValue) * 100 : 0;
 
@@ -355,13 +355,13 @@ export default function HomeScreen() {
                                 {/* Total Returns */}
                                 <View style={styles.portfolioReturn}>
                                     <View style={styles.portfolioReturnRow}>
-                                        <Text style={[styles.portfolioReturnAmount, { 
-                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error 
+                                        <Text style={[styles.portfolioReturnAmount, {
+                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error
                                         }]}>
                                             {portfolioReturns.totalReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.totalReturn)}
                                         </Text>
-                                        <Text style={[styles.portfolioReturnPercentage, { 
-                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error 
+                                        <Text style={[styles.portfolioReturnPercentage, {
+                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error
                                         }]}>
                                             {portfolioReturns.totalReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.totalReturnPercentage.toFixed(2)}%
                                         </Text>
@@ -374,13 +374,13 @@ export default function HomeScreen() {
                                 {/* Year to Date Returns */}
                                 <View style={styles.portfolioReturn}>
                                     <View style={styles.portfolioReturnRow}>
-                                        <Text style={[styles.portfolioReturnAmount, { 
-                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error 
+                                        <Text style={[styles.portfolioReturnAmount, {
+                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error
                                         }]}>
                                             {portfolioReturns.yearReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.yearReturn)}
                                         </Text>
-                                        <Text style={[styles.portfolioReturnPercentage, { 
-                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error 
+                                        <Text style={[styles.portfolioReturnPercentage, {
+                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error
                                         }]}>
                                             {portfolioReturns.yearReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.yearReturnPercentage.toFixed(2)}%
                                         </Text>
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     welcomeSection: {
-        paddingVertical: 20,
+        paddingVertical: 0,
         paddingBottom: 16,
     },
     welcomeText: {

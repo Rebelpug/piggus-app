@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useGuides } from '@/context/GuideContext';
 import { Guide } from '@/client/piggusApi';
+import ProfileHeader from '@/components/ProfileHeader';
 
 
 export default function GuidesScreen() {
@@ -19,10 +20,10 @@ export default function GuidesScreen() {
   const handleGuidePress = (guide: Guide) => {
     router.push({
       pathname: '/(protected)/guide-detail',
-      params: { 
+      params: {
         id: guide.id,
         title: guide.title,
-        content: guide.content 
+        content: guide.content
       }
     });
   };
@@ -53,14 +54,19 @@ export default function GuidesScreen() {
     </TouchableOpacity>
   );
 
+  const renderLeftActions = () => (
+    <ProfileHeader />
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation
         title='Financial Guides'
         alignment='center'
+        accessoryLeft={renderLeftActions}
         style={{ backgroundColor: colors.background }}
       />
-      
+
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -108,7 +114,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   header: {
-    paddingVertical: 20,
+    paddingBottom: 20,
     paddingBottom: 24,
   },
   headerTitle: {

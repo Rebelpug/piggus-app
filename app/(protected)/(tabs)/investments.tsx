@@ -34,15 +34,15 @@ export default function InvestmentsScreen() {
     // Find the default personal portfolio (created by the current user or with single member)
     const personalPortfolio = React.useMemo(() => {
         if (!portfolios || portfolios.length === 0) return null;
-        
+
         // Look for a portfolio with only the current user as member
-        const singleMemberPortfolio = portfolios.find(portfolio => 
-            portfolio.members && portfolio.members.length === 1 && 
+        const singleMemberPortfolio = portfolios.find(portfolio =>
+            portfolio.members && portfolio.members.length === 1 &&
             portfolio.members[0].user_id === user?.id
         );
-        
+
         if (singleMemberPortfolio) return singleMemberPortfolio;
-        
+
         // Fallback to first portfolio
         return portfolios[0];
     }, [portfolios, user?.id]);
@@ -102,7 +102,7 @@ export default function InvestmentsScreen() {
     const totalPortfolioValue = React.useMemo(() => {
         return filteredInvestments.reduce((sum, investment) => {
             try {
-                const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const currentValue = investment.data.current_price || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 return sum + currentValue;
             } catch {
                 return sum;
@@ -114,7 +114,7 @@ export default function InvestmentsScreen() {
     const totalGainLoss = React.useMemo(() => {
         return filteredInvestments.reduce((sum, investment) => {
             try {
-                const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const currentValue = investment.data.current_price || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 const initialValue = investment.data.quantity * investment.data.purchase_price;
                 return sum + (currentValue - initialValue);
             } catch {
@@ -193,7 +193,7 @@ export default function InvestmentsScreen() {
             return null;
         }
 
-        const currentValue = item.data.current_value || (item.data.quantity * (item.data.current_price || item.data.purchase_price));
+        const currentValue = item.data.current_price || (item.data.quantity * (item.data.current_price || item.data.purchase_price));
         const initialValue = item.data.quantity * item.data.purchase_price;
         const gainLoss = currentValue - initialValue;
         const gainLossPercentage = (gainLoss / initialValue) * 100;
@@ -268,15 +268,15 @@ export default function InvestmentsScreen() {
                             placeholder="Select portfolio"
                         >
                             {portfolios.map((portfolio, index) => (
-                                <SelectItem 
-                                    key={portfolio.id} 
+                                <SelectItem
+                                    key={portfolio.id}
                                     title={portfolio.data?.name || `Portfolio ${index + 1}`}
                                 />
                             ))}
                         </Select>
                     </View>
                 )}
-                
+
                 <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text style={[styles.summaryTitle, { color: colors.text }]}>
                         {selectedPortfolio ? selectedPortfolio.data?.name || 'Portfolio' : 'Total Portfolio'} Value
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingBottom: 16,
     },
     selectorCard: {
         padding: 16,

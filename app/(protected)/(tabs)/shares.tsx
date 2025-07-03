@@ -171,7 +171,7 @@ export default function SharesScreen() {
         const memberCount = item.members?.length || 0;
         const totalValue = item.investments?.reduce((sum, investment) => {
             try {
-                const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const currentValue = investment.data.current_price || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 return sum + currentValue;
             } catch {
                 return sum;
@@ -180,7 +180,7 @@ export default function SharesScreen() {
 
         const totalGainLoss = item.investments?.reduce((sum, investment) => {
             try {
-                const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const currentValue = investment.data.current_price || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 const initialValue = investment.data.quantity * investment.data.purchase_price;
                 return sum + (currentValue - initialValue);
             } catch {
@@ -287,7 +287,7 @@ export default function SharesScreen() {
     );
 
     const renderExpenseGroupsTab = () => (
-        <Layout style={styles.tabContent}>
+        <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
             {expensesGroups.length === 0 ? (
                 renderExpenseGroupsEmptyState()
             ) : (
@@ -312,11 +312,11 @@ export default function SharesScreen() {
                     <View style={{ height: 100 }} />
                 </ScrollView>
             )}
-        </Layout>
+        </View>
     );
 
     const renderPortfoliosTab = () => (
-        <Layout style={styles.tabContent}>
+        <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
             {portfolios.length === 0 ? (
                 renderPortfoliosEmptyState()
             ) : (
@@ -341,7 +341,7 @@ export default function SharesScreen() {
                     <View style={{ height: 100 }} />
                 </ScrollView>
             )}
-        </Layout>
+        </View>
     );
 
     const renderLeftActions = () => (
