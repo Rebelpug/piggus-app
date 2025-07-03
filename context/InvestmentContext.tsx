@@ -92,7 +92,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiFetchPortfolios(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
 
-      if (result.success && result.data) {
+      if (result.data) {
         setPortfolios(result.data);
       } else {
         setPortfolios([]);
@@ -117,7 +117,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       }
       const result = await apiCreatePortfolio(user, userProfile.username, publicKey, createEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey, portfolioData);
       const newPortfolio = result.data;
-      if (result.success && newPortfolio) {
+      if (newPortfolio) {
         setPortfolios(prev => [...prev, newPortfolio]);
       } else {
         setError(result.error || 'Failed to create portfolio');
@@ -154,7 +154,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiAddInvestment(user, portfolioId, portfolioKey, investment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
       const addedInvestment = result.data;
-      if (result.success && addedInvestment) {
+      if (addedInvestment) {
         // Add to local state
         setPortfolios(prev =>
             prev.map(portfolio => {
@@ -205,7 +205,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiUpdateInvestment(user, portfolioId, portfolioKey, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
       const changedInvestment = result.data;
-      if (result.success && changedInvestment) {
+      if (changedInvestment) {
         // Update in local state
         setPortfolios(prev =>
             prev.map(portfolio => {
@@ -242,7 +242,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiDeleteInvestment(user, portfolioId, id);
 
-      if (result.success) {
+      if (result) {
         // Remove from local state
         setPortfolios(prev =>
             prev.map(portfolio => {
@@ -256,7 +256,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
             })
         );
       } else {
-        setError(result.error || 'Failed to delete investment');
+        setError(result || 'Failed to delete investment');
       }
     } catch (error: any) {
       console.error('Failed to delete investment:', error);
@@ -274,11 +274,11 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiInviteUserToPortfolio(user, portfolioId, username, decryptWithPrivateKey, encryptWithExternalPublicKey);
 
-      if (result.success) {
+      if (result) {
         // Refresh the portfolios list to get the updated members
         await fetchPortfolios();
       } else {
-        setError(result.error || 'Failed to invite user');
+        setError(result || 'Failed to invite user');
       }
 
       return result;
@@ -299,7 +299,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiRemoveUserFromPortfolio(user, portfolioId, userId);
 
-      if (result.success) {
+      if (result) {
         // Update local state to remove the user from the portfolio
         setPortfolios(prev =>
             prev.map(portfolio => {
@@ -313,7 +313,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
             })
         );
       } else {
-        setError(result.error || 'Failed to remove user');
+        setError(result || 'Failed to remove user');
       }
 
       return result;
@@ -334,7 +334,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiHandlePortfolioInvitation(user, portfolioId, accept);
 
-      if (result.success) {
+      if (result) {
         // Update local state
         setPortfolios(prev => {
           if (accept) {
@@ -355,7 +355,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           }
         });
       } else {
-        setError(result.error || 'Failed to handle invitation');
+        setError(result || 'Failed to handle invitation');
       }
 
       return result;
@@ -392,7 +392,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       const result = await apiUpdatePortfolio(user, portfolioId, encryptedKey, portfolioData, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
 
-      if (result.success && result.data) {
+      if (result.data) {
         // Update local state
         setPortfolios(prev =>
             prev.map(portfolio => {

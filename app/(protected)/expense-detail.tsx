@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, Alert, View } from 'react-native';
 import {
     Layout,
     Text,
@@ -15,8 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { ExpenseWithDecryptedData, calculateUserShare } from '@/types/expense';
-import { EXPENSE_CATEGORIES, PAYMENT_METHODS, CURRENCIES, getCategoryDisplayInfo } from '@/types/expense';
+import { ExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo } from '@/types/expense';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -103,239 +102,219 @@ export default function ExpenseDetailScreen() {
         try {
             return new Date(dateString).toLocaleDateString('en-US', {
                 weekday: 'long',
+                year: 'numeric',
                 month: 'long',
                 day: 'numeric',
-                year: 'numeric',
             });
         } catch {
             return dateString;
         }
     };
 
-    const getCategoryLabel = (categoryValue: string) => {
-        const categoryInfo = getCategoryDisplayInfo(categoryValue, userProfile?.profile?.budgeting?.categoryOverrides);
-        return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`;
+    const getCategoryInfo = (categoryId: string) => {
+        return getCategoryDisplayInfo(categoryId, userProfile?.profile?.budgeting?.categoryOverrides);
     };
 
-    const getPaymentMethodLabel = (methodValue: string) => {
-        const method = PAYMENT_METHODS.find(m => m.value === methodValue);
-        return method ? method.label : methodValue;
+    const getUsernameFromId = (userId: string) => {
+        const member = groupMembers.find(m => m.user_id === userId);
+        return member ? member.username : 'Unknown User';
     };
 
-    const getCategoryColor = (category: string) => {
-        const colors: { [key: string]: string } = {
-            food: '#FF6B6B',
-            transportation: '#4ECDC4',
-            housing: '#45B7D1',
-            utilities: '#96CEB4',
-            entertainment: '#FFEAA7',
-            shopping: '#DDA0DD',
-            health: '#98D8C8',
-            education: '#A8E6CF',
-            personal: '#FFB6C1',
-            travel: '#87CEEB',
-            other: '#D3D3D3',
-        };
-        return colors[category] || colors.other;
-    };
+    const userShare = expense?.data.participants.find(p => p.user_id === user?.id)?.share_amount || 0;
+    const isPayer = expense?.data.payer_user_id === user?.id;
 
-    const BackIcon = (props: any) => (
-        <Ionicons name="arrow-back" size={24} color={colors.icon} />
+    const renderBackAction = () => (
+        <TopNavigationAction
+            icon={(props) => <Ionicons name="arrow-back" size={24} color={colors.text} />}
+            onPress={navigateBack}
+        />
     );
 
-    const BackAction = () => (
-        <TopNavigationAction icon={BackIcon} onPress={navigateBack} />
+    const renderEditAction = () => (
+        <TopNavigationAction
+            icon={(props) => <Ionicons name="pencil-outline" size={24} color={colors.text} />}
+            onPress={handleEdit}
+        />
     );
 
     if (!expense) {
         return (
-            <ThemedView style={styles.container}>
-                <SafeAreaView style={styles.safeArea}>
-                    <TopNavigation
-                        title="Expense Details"
-                        alignment="center"
-                        accessoryLeft={BackAction}
-                        style={{ backgroundColor: colors.background }}
-                    />
-                    <Divider />
-                    <Layout style={styles.loadingContainer}>
-                        <Text style={{ color: colors.text }}>Loading expense details...</Text>
-                    </Layout>
-                </SafeAreaView>
-            </ThemedView>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <TopNavigation
+                    title='Expense Details'
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                    style={{ backgroundColor: colors.background }}
+                />
+                <Layout style={styles.loadingContainer}>
+                    <Text category='h6'>Expense not found</Text>
+                </Layout>
+            </SafeAreaView>
         );
     }
 
-    const userShare = calculateUserShare(expense, user?.id || '');
-    const isPayer = expense.data.payer_user_id === user?.id;
-    const isSharedExpense = expense.data.participants.length > 1;
-    const payerMember = groupMembers.find(member => member.user_id === expense.data.payer_user_id);
+    const categoryInfo = getCategoryInfo(expense.data.category);
 
     return (
-        <ThemedView style={styles.container}>
-            <SafeAreaView style={styles.safeArea}>
-                <TopNavigation
-                    title="Expense Details"
-                    alignment="center"
-                    accessoryLeft={BackAction}
-                    style={{ backgroundColor: colors.background }}
-                />
-                <Divider />
-            <ScrollView style={styles.scrollView}>
-                <Card style={styles.card}>
-                    <Layout style={styles.headerContainer}>
-                        <Layout style={[styles.categoryIndicator, { backgroundColor: getCategoryColor(expense.data.category) }]} />
-                        <Text category="h5" style={styles.expenseName}>{expense.data.name}</Text>
-                    </Layout>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <TopNavigation
+                title='Expense Details'
+                alignment='center'
+                accessoryLeft={renderBackAction}
+                accessoryRight={renderEditAction}
+                style={{ backgroundColor: colors.background }}
+            />
+            <Divider />
 
-                    <Text category="h3" style={styles.amount}>
-                        {formatCurrency(expense.data.amount, expense.data.currency)}
-                    </Text>
-
-                    {/* User's Share Section */}
-                    {isSharedExpense && (
-                        <Card style={styles.shareCard}>
-                            <Text category="h6" style={styles.shareTitle}>Your Share</Text>
-                            <Layout style={styles.shareInfo}>
-                                <Text category="h4" style={[styles.userShareAmount, { color: isPayer ? '#4CAF50' : '#2E7D32' }]}>
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <ThemedView style={[styles.contentContainer, { backgroundColor: colors.background }]}>
+                    {/* Header Card */}
+                    <Card style={[styles.headerCard, { backgroundColor: colors.card }]}>
+                        <View style={styles.headerContent}>
+                            <View style={styles.headerLeft}>
+                                <Text style={[styles.expenseTitle, { color: colors.text }]}>
+                                    {expense.data.name}
+                                </Text>
+                                <Text style={[styles.groupName, { color: colors.icon }]}>
+                                    {groupName} • {formatDate(expense.data.date)}
+                                </Text>
+                                {expense.data.is_recurring && (
+                                    <View style={styles.statusBadge}>
+                                        <View style={[
+                                            styles.statusIndicator,
+                                            { backgroundColor: colors.primary }
+                                        ]} />
+                                        <Text style={[styles.statusText, { color: colors.text }]}>
+                                            Recurring Expense
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.headerRight}>
+                                <Text style={[styles.amount, { color: colors.text }]}>
                                     {formatCurrency(userShare, expense.data.currency)}
                                 </Text>
-                                {isPayer && (
-                                    <Layout style={styles.payerBadge}>
-                                        <Ionicons name="card-outline" size={16} color="#4CAF50" />
-                                        <Text style={styles.payerText}>You paid this expense</Text>
-                                    </Layout>
+                                {expense.data.participants.length > 1 && (
+                                    <Text style={[styles.totalAmount, { color: colors.icon }]}>
+                                        of {formatCurrency(expense.data.amount, expense.data.currency)}
+                                    </Text>
                                 )}
-                            </Layout>
+                                {expense.data.is_recurring && (
+                                    <View style={[styles.recurringBadge, { backgroundColor: colors.primary + '20' }]}>
+                                        <Ionicons name="repeat" size={12} color={colors.primary} />
+                                        <Text style={[styles.recurringText, { color: colors.primary }]}>
+                                            Recurring
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+                    </Card>
+
+                    {/* Expense Details */}
+                    <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Details</Text>
+                        <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Category:</Text>
+                            <Text style={[styles.detailValue, { color: colors.text }]}>
+                                {categoryInfo.icon} {categoryInfo.name}
+                                {categoryInfo.isDeleted ? ' (Deleted)' : ''}
+                            </Text>
+                        </View>
+                        {expense.data.description && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Description:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {expense.data.description}
+                                </Text>
+                            </View>
+                        )}
+                        <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Amount:</Text>
+                            <Text style={[styles.detailValue, { color: colors.text }]}>
+                                {formatCurrency(expense.data.amount, expense.data.currency)}
+                            </Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Date:</Text>
+                            <Text style={[styles.detailValue, { color: colors.text }]}>
+                                {formatDate(expense.data.date)}
+                            </Text>
+                        </View>
+                        {groupMembers.length > 1 && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Split Method:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {expense.data.split_method === 'equal' ? 'Split Equally' :
+                                     expense.data.split_method === 'custom' ? 'Custom Amounts' : 'By Percentage'}
+                                </Text>
+                            </View>
+                        )}
+                    </Card>
+
+                    {/* Participants - Only show if more than one group member */}
+                    {groupMembers.length > 1 && (
+                        <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {getUsernameFromId(expense.data.payer_user_id)}
+                                    {isPayer && ' (You)'}
+                                </Text>
+                            </View>
+                            {expense.data.participants.map((participant, index) => (
+                                <View key={participant.user_id} style={styles.participantRow}>
+                                    <Text style={[styles.participantName, { color: colors.text }]}>
+                                        {getUsernameFromId(participant.user_id)}
+                                        {participant.user_id === user?.id && ' (You)'}
+                                    </Text>
+                                    <Text style={[styles.participantAmount, { color: colors.text }]}>
+                                        {formatCurrency(participant.share_amount, expense.data.currency)}
+                                    </Text>
+                                </View>
+                            ))}
                         </Card>
                     )}
 
-                    <Layout style={styles.detailRow}>
-                        <Text appearance="hint">Category:</Text>
-                        <Text>{getCategoryLabel(expense.data.category)}</Text>
-                    </Layout>
-
-                    <Layout style={styles.detailRow}>
-                        <Text appearance="hint">Date:</Text>
-                        <Text>{formatDate(expense.data.date)}</Text>
-                    </Layout>
-
-                    <Layout style={styles.detailRow}>
-                        <Text appearance="hint">Group:</Text>
-                        <Text>{groupName}</Text>
-                    </Layout>
-
-                    <Layout style={styles.detailRow}>
-                        <Text appearance="hint">Paid by:</Text>
-                        <Text>
-                            {payerMember?.username || expense.data.payer_username || 'Unknown'}
-                            {isPayer && ' (You)'}
-                        </Text>
-                    </Layout>
-
-
-                    <Layout style={styles.detailRow}>
-                        <Text appearance="hint">Split Method:</Text>
-                        <Text style={styles.splitMethodText}>
-                            {expense.data.split_method === 'equal' ? 'Split Equally' :
-                                expense.data.split_method === 'custom' ? 'Custom Amounts' :
-                                    expense.data.split_method === 'percentage' ? 'By Percentage' :
-                                        'Equal Split'}
-                        </Text>
-                    </Layout>
-
-                    {expense.data.is_recurring && (
-                        <Layout style={styles.detailRow}>
-                            <Text appearance="hint">Recurring:</Text>
-                            <Text>
-                                {expense.data.recurring_interval || 'Monthly'}
-                                {expense.data.recurring_end_date ? ` until ${formatDate(expense.data.recurring_end_date)}` : ''}
-                            </Text>
-                        </Layout>
+                    {/* Single group member - show simplified payer info */}
+                    {groupMembers.length >= 1 && (
+                        <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment</Text>
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {getUsernameFromId(expense.data.payer_user_id)}
+                                    {isPayer && ' (You)'}
+                                </Text>
+                            </View>
+                        </Card>
                     )}
 
-                    {expense.data.status && (
-                        <Layout style={styles.detailRow}>
-                            <Text appearance="hint">Status:</Text>
-                            <Text style={styles.statusText}>{expense.data.status}</Text>
-                        </Layout>
-                    )}
-
-
-                    {expense.data.description && (
-                        <Layout style={styles.descriptionContainer}>
-                            <Text appearance="hint" style={styles.descriptionLabel}>Description:</Text>
-                            <Text style={styles.description}>{expense.data.description}</Text>
-                        </Layout>
-                    )}
-                </Card>
-
-                {/* Participants Section */}
-                {isSharedExpense && (
-                    <Card style={styles.card}>
-                        <Text category="h6" style={styles.participantsTitle}>
-                            Shared with ({expense.data.participants.length} participants)
-                        </Text>
-                        {expense.data.participants.map((participant, index) => {
-                            const member = groupMembers.find(m => m.user_id === participant.user_id);
-                            const isCurrentUser = participant.user_id === user?.id;
-
-                            return (
-                                <Layout key={participant.user_id} style={styles.participantRow}>
-                                    <Layout style={styles.participantInfo}>
-                                        <Text category="s1" style={styles.participantName}>
-                                            {member?.username || participant.username || 'Unknown User'}
-                                            {isCurrentUser && ' (You)'}
-                                        </Text>
-                                    </Layout>
-                                    <Text category="s1" style={[styles.participantShare, { color: isCurrentUser ? '#2E7D32' : '#666' }]}>
-                                        {formatCurrency(participant.share_amount, expense.data.currency)}
-                                    </Text>
-                                </Layout>
-                            );
-                        })}
-
-                        <Layout style={styles.totalShareRow}>
-                            <Text category="s1" style={styles.totalShareLabel}>Total:</Text>
-                            <Text category="s1" style={styles.totalShareAmount}>
-                                {formatCurrency(
-                                    expense.data.participants.reduce((sum, p) => sum + p.share_amount, 0),
-                                    expense.data.currency
-                                )}
-                            </Text>
-                        </Layout>
-                    </Card>
-                )}
-
-                {/* Metadata */}
-                <Card style={styles.card}>
-                    <Layout style={styles.metaContainer}>
-                        <Text appearance="hint" category="c1">Created: {new Date(expense.created_at).toLocaleString()}</Text>
-                        <Text appearance="hint" category="c1">Last updated: {new Date(expense.updated_at).toLocaleString()}</Text>
-                    </Layout>
-                </Card>
-
-                <Layout style={styles.actionsContainer}>
-                    <Button
-                        style={styles.editButton}
-                        status="info"
-                        onPress={handleEdit}
-                        accessoryLeft={(props) => <Ionicons name="pencil" size={20} color={props?.tintColor || '#FFFFFF'} />}
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        style={styles.deleteButton}
-                        status="danger"
-                        onPress={handleDelete}
-                        accessoryLeft={(props) => <Ionicons name="trash" size={20} color={props?.tintColor || '#FFFFFF'} />}
-                    >
-                        Delete
-                    </Button>
-                </Layout>
-                </ScrollView>
-            </SafeAreaView>
-        </ThemedView>
+                    {/* Action Buttons */}
+                    <View style={styles.actionButtons}>
+                        <Button
+                            style={[styles.actionButton, styles.editButton]}
+                            appearance='outline'
+                            status='primary'
+                            accessoryLeft={() => <Ionicons name="pencil-outline" size={20} color={colors.primary} />}
+                            onPress={handleEdit}
+                        >
+                            Edit
+                        </Button>
+                        <Button
+                            style={[styles.actionButton, styles.deleteButton]}
+                            appearance='outline'
+                            status='danger'
+                            accessoryLeft={() => <Ionicons name="trash-outline" size={20} color={colors.error} />}
+                            onPress={handleDelete}
+                        >
+                            Delete
+                        </Button>
+                    </View>
+                </ThemedView>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -343,145 +322,135 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    safeArea: {
-        flex: 1,
-    },
-    scrollView: {
-        flex: 1,
-    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    card: {
-        margin: 16,
-        marginBottom: 0,
-        borderRadius: 8,
-    },
-    headerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    categoryIndicator: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        marginRight: 12,
-    },
-    expenseName: {
+    scrollView: {
         flex: 1,
     },
-    amount: {
-        marginBottom: 24,
-        color: '#2E7D32',
-        textAlign: 'center',
-    },
-    shareCard: {
-        backgroundColor: '#F8F9FA',
-        marginBottom: 16,
+    contentContainer: {
         padding: 16,
     },
-    shareTitle: {
+    headerCard: {
+        marginBottom: 16,
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    headerLeft: {
+        flex: 1,
+        marginRight: 16,
+    },
+    headerRight: {
+        alignItems: 'flex-end',
+    },
+    expenseTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    groupName: {
+        fontSize: 14,
         marginBottom: 8,
-        textAlign: 'center',
     },
-    shareInfo: {
-        alignItems: 'center',
-    },
-    userShareAmount: {
-        marginBottom: 8,
-    },
-    payerBadge: {
+    statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E8F5E8',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
     },
-    payerText: {
-        color: '#4CAF50',
-        marginLeft: 4,
+    statusIndicator: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    statusText: {
         fontSize: 12,
         fontWeight: '500',
+    },
+    amount: {
+        fontSize: 24,
+        fontWeight: '800',
+        marginBottom: 4,
+    },
+    totalAmount: {
+        fontSize: 12,
+        marginBottom: 8,
+    },
+    recurringBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    recurringText: {
+        fontSize: 10,
+        fontWeight: '600',
+        marginLeft: 4,
+    },
+    detailCard: {
+        marginBottom: 16,
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 12,
     },
     detailRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    splitMethodText: {
-        textTransform: 'capitalize',
-    },
-    statusText: {
-        textTransform: 'capitalize',
-        color: '#4CAF50',
-    },
-    descriptionContainer: {
-        marginTop: 16,
-    },
-    descriptionLabel: {
+        alignItems: 'flex-start',
         marginBottom: 8,
     },
-    description: {
-        lineHeight: 20,
+    detailLabel: {
+        fontSize: 14,
+        flex: 1,
     },
-    participantsTitle: {
-        marginBottom: 16,
+    detailValue: {
+        fontSize: 14,
+        fontWeight: '500',
+        flex: 2,
+        textAlign: 'right',
     },
     participantRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    participantInfo: {
-        flex: 1,
+        paddingVertical: 4,
+        marginBottom: 4,
     },
     participantName: {
+        fontSize: 14,
+        flex: 1,
+    },
+    participantAmount: {
+        fontSize: 14,
         fontWeight: '500',
     },
-    participantShare: {
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    totalShareRow: {
+    actionButtons: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        marginTop: 8,
-        borderTopWidth: 2,
-        borderTopColor: '#E0E0E0',
+        gap: 12,
+        marginTop: 16,
+        marginBottom: 32,
     },
-    totalShareLabel: {
-        fontWeight: '600',
-    },
-    totalShareAmount: {
-        fontWeight: '700',
-        color: '#2E7D32',
-        fontSize: 16,
-    },
-    metaContainer: {
-        paddingVertical: 16,
-    },
-    actionsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 16,
-    },
-    editButton: {
+    actionButton: {
         flex: 1,
-        marginRight: 8,
+        borderRadius: 12,
     },
-    deleteButton: {
-        flex: 1,
-        marginLeft: 8,
-    },
+    editButton: {},
+    deleteButton: {},
 });

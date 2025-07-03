@@ -109,17 +109,6 @@ export default function RecurringExpenseItem({ item }: RecurringExpenseItemProps
         });
     };
 
-    const handleEdit = (e: any) => {
-        e.stopPropagation();
-        router.push({
-            pathname: '/(protected)/edit-recurring-expense',
-            params: {
-                recurringExpenseId: item.id,
-                groupId: item.group_id
-            }
-        });
-    };
-
     return (
         <TouchableOpacity
             style={[styles.expenseCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
@@ -157,15 +146,9 @@ export default function RecurringExpenseItem({ item }: RecurringExpenseItemProps
                                 of {formatCurrency(totalAmount, item.data.currency)}
                             </Text>
                         )}
-                        <TouchableOpacity
-                            style={styles.editButton}
-                            onPress={handleEdit}
-                        >
-                            <Ionicons name="pencil-outline" size={18} color={colors.icon} />
-                        </TouchableOpacity>
                     </View>
                 </View>
-                
+
                 <View style={styles.expenseFooter}>
                     <View style={styles.expenseCategory}>
                         <Text style={[styles.categoryText, { color: colors.icon }]}>

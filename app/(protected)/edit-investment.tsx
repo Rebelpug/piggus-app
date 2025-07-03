@@ -234,17 +234,14 @@ export default function EditInvestmentScreen() {
         }
     };
 
-    const renderBackAction = () => (
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.icon} />
-        </TouchableOpacity>
-    );
+    const navigateBack = () => {
+        router.back();
+    };
 
-    const renderDeleteAction = () => (
-        <TopNavigationAction
-            icon={(props) => <Ionicons name="trash-outline" size={24} color="#F44336" />}
-            onPress={handleDelete}
-        />
+    const renderBackAction = () => (
+        <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
     );
 
     const calculateCurrentValue = () => {
@@ -278,18 +275,8 @@ export default function EditInvestmentScreen() {
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
                 />
-                <Layout style={styles.emptyState}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-                    <Text category='h6' style={styles.emptyTitle}>Investment not found</Text>
-                    <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                        The investment you're trying to edit could not be found
-                    </Text>
-                    <Button
-                        style={styles.goBackButton}
-                        onPress={() => router.back()}
-                    >
-                        Go Back
-                    </Button>
+                <Layout style={styles.loadingContainer}>
+                    <Text category='h6'>Investment not found</Text>
                 </Layout>
             </SafeAreaView>
         );
@@ -297,232 +284,195 @@ export default function EditInvestmentScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <TopNavigation
                 title='Edit Investment'
                 alignment='center'
                 accessoryLeft={renderBackAction}
-                accessoryRight={renderDeleteAction}
+                accessoryRight={() => (
+                    <TouchableOpacity onPress={handleSubmit} style={styles.saveButton} disabled={isSubmitting}>
+                        {isSubmitting ? (
+                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>Saving...</Text>
+                        ) : (
+                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>Save</Text>
+                        )}
+                    </TouchableOpacity>
+                )}
                 style={{ backgroundColor: colors.background }}
             />
 
-            <KeyboardAvoidingView
-                style={styles.keyboardAvoidingView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
-                <ScrollView 
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    <Layout style={styles.form}>
-                        {/* Portfolio Selection */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Portfolio *
-                            </Text>
-                            <Select
-                                selectedIndex={selectedPortfolioIndex}
-                                onSelect={(index) => setSelectedPortfolioIndex(index as IndexPath)}
-                                value={selectedPortfolio?.data?.name || 'Select Portfolio'}
-                                style={[styles.input, errors.portfolio && styles.inputError]}
-                            >
-                                {portfolios.map((portfolio, index) => (
-                                    <SelectItem key={index} title={portfolio.data?.name || `Portfolio ${index + 1}`} />
-                                ))}
-                            </Select>
-                            {errors.portfolio && <Text style={styles.errorText}>{errors.portfolio}</Text>}
-                        </View>
-
-                        {/* Investment Type */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Investment Type *
-                            </Text>
-                            <Select
-                                selectedIndex={selectedTypeIndex}
-                                onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
-                                value={selectedType?.name}
-                                style={styles.input}
-                            >
-                                {investmentTypes.map((type, index) => (
-                                    <SelectItem key={index} title={type.name} />
-                                ))}
-                            </Select>
-                        </View>
-
-                        {/* Investment Name */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Investment Name *
-                            </Text>
-                            <Input
-                                value={formData.name}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
-                                placeholder="e.g., Apple Inc."
-                                style={[styles.input, errors.name && styles.inputError]}
-                                status={errors.name ? 'danger' : 'basic'}
-                            />
-                            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-                        </View>
-
-                        {/* Symbol */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Symbol (Optional)
-                            </Text>
-                            <Input
-                                value={formData.symbol}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
-                                placeholder="e.g., AAPL"
-                                style={styles.input}
-                            />
-                        </View>
-
-                        {/* Quantity */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Quantity *
-                            </Text>
-                            <Input
-                                value={formData.quantity}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, quantity: text }))}
-                                placeholder="Number of shares/units"
-                                keyboardType="numeric"
-                                style={[styles.input, errors.quantity && styles.inputError]}
-                                status={errors.quantity ? 'danger' : 'basic'}
-                            />
-                            {errors.quantity && <Text style={styles.errorText}>{errors.quantity}</Text>}
-                        </View>
-
-                        {/* Currency */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Currency
-                            </Text>
-                            <Select
-                                selectedIndex={selectedCurrencyIndex}
-                                onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
-                                value={selectedCurrency}
-                                style={styles.input}
-                            >
-                                {currencies.map((currency, index) => (
-                                    <SelectItem key={index} title={currency} />
-                                ))}
-                            </Select>
-                        </View>
-
-                        {/* Purchase Price */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Purchase Price per Unit *
-                            </Text>
-                            <Input
-                                value={formData.purchase_price}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, purchase_price: text }))}
-                                placeholder="0.00"
-                                keyboardType="numeric"
-                                style={[styles.input, errors.purchase_price && styles.inputError]}
-                                status={errors.purchase_price ? 'danger' : 'basic'}
-                            />
-                            {errors.purchase_price && <Text style={styles.errorText}>{errors.purchase_price}</Text>}
-                        </View>
-
-                        {/* Current Price */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Current Price per Unit (Optional)
-                            </Text>
-                            <Input
-                                value={formData.current_price}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, current_price: text }))}
-                                placeholder="Leave empty to use purchase price"
-                                keyboardType="numeric"
-                                style={[styles.input, errors.current_price && styles.inputError]}
-                                status={errors.current_price ? 'danger' : 'basic'}
-                            />
-                            {errors.current_price && <Text style={styles.errorText}>{errors.current_price}</Text>}
-                        </View>
-
-                        {/* Purchase Date */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Purchase Date *
-                            </Text>
-                            <Datepicker
-                                date={formData.purchase_date}
-                                onSelect={(date) => setFormData(prev => ({ ...prev, purchase_date: date }))}
-                                style={styles.input}
-                            />
-                        </View>
-
-                        {/* Notes */}
-                        <View style={styles.formGroup}>
-                            <Text category='label' style={[styles.label, { color: colors.text }]}>
-                                Notes (Optional)
-                            </Text>
-                            <Input
-                                value={formData.notes}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
-                                placeholder="Any additional notes..."
-                                multiline
-                                textStyle={{ minHeight: 80 }}
-                                style={styles.input}
-                            />
-                        </View>
-
-                        {/* Summary Card */}
-                        {formData.quantity && formData.purchase_price && (
-                            <Card style={[styles.summaryCard, { backgroundColor: colors.card }]}>
-                                <Text category='h6' style={[styles.summaryTitle, { color: colors.text }]}>
-                                    Investment Summary
-                                </Text>
-                                <View style={styles.summaryRow}>
-                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                        Total Investment:
-                                    </Text>
-                                    <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                        {formatCurrency(Number(formData.quantity) * Number(formData.purchase_price))}
-                                    </Text>
-                                </View>
-                                {formData.current_price && (
-                                    <>
-                                        <View style={styles.summaryRow}>
-                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                Current Value:
-                                            </Text>
-                                            <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                {formatCurrency(calculateCurrentValue())}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.summaryRow}>
-                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                Gain/Loss:
-                                            </Text>
-                                            <Text style={[
-                                                styles.summaryValue,
-                                                { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
-                                            ]}>
-                                                {formatCurrency(calculateGainLoss())}
-                                            </Text>
-                                        </View>
-                                    </>
-                                )}
-                            </Card>
-                        )}
-
-                        <Button
-                            style={styles.submitButton}
-                            onPress={handleSubmit}
-                            disabled={isSubmitting || isDeleting}
-                            accessoryLeft={isSubmitting ? undefined : (props) => 
-                                <Ionicons name="checkmark" size={20} color={props?.tintColor} />
-                            }
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <ThemedView style={[styles.contentContainer, { backgroundColor: colors.background }]}>
+                    {/* Basic Information */}
+                    <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Basic Information</Text>
+                        
+                        <Select
+                            label='Portfolio *'
+                            selectedIndex={selectedPortfolioIndex}
+                            onSelect={(index) => setSelectedPortfolioIndex(index as IndexPath)}
+                            value={selectedPortfolio?.data?.name || 'Select Portfolio'}
+                            style={[styles.input, errors.portfolio && styles.inputError]}
                         >
-                            {isSubmitting ? 'Updating Investment...' : 'Update Investment'}
+                            {portfolios.map((portfolio, index) => (
+                                <SelectItem key={index} title={portfolio.data?.name || `Portfolio ${index + 1}`} />
+                            ))}
+                        </Select>
+                        {errors.portfolio && <Text style={styles.errorText}>{errors.portfolio}</Text>}
+
+                        <Input
+                            label='Investment Name *'
+                            placeholder='e.g., Apple Inc.'
+                            value={formData.name}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+                            style={[styles.input, errors.name && styles.inputError]}
+                            status={errors.name ? 'danger' : 'basic'}
+                        />
+                        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+                        <Input
+                            label='Symbol (Optional)'
+                            placeholder='e.g., AAPL'
+                            value={formData.symbol}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
+                            style={styles.input}
+                        />
+
+                        <Select
+                            label='Investment Type *'
+                            selectedIndex={selectedTypeIndex}
+                            onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
+                            value={selectedType?.name}
+                            style={styles.input}
+                        >
+                            {investmentTypes.map((type, index) => (
+                                <SelectItem key={index} title={type.name} />
+                            ))}
+                        </Select>
+
+                        <Select
+                            label='Currency'
+                            selectedIndex={selectedCurrencyIndex}
+                            onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
+                            value={selectedCurrency}
+                            style={styles.input}
+                        >
+                            {currencies.map((currency, index) => (
+                                <SelectItem key={index} title={currency} />
+                            ))}
+                        </Select>
+                    </Card>
+
+                    {/* Investment Details */}
+                    <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Details</Text>
+                        
+                        <Input
+                            label='Quantity *'
+                            placeholder='Number of shares/units'
+                            value={formData.quantity}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, quantity: text }))}
+                            keyboardType='numeric'
+                            style={[styles.input, errors.quantity && styles.inputError]}
+                            status={errors.quantity ? 'danger' : 'basic'}
+                        />
+                        {errors.quantity && <Text style={styles.errorText}>{errors.quantity}</Text>}
+
+                        <Input
+                            label='Purchase Price per Unit *'
+                            placeholder='0.00'
+                            value={formData.purchase_price}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, purchase_price: text }))}
+                            keyboardType='numeric'
+                            style={[styles.input, errors.purchase_price && styles.inputError]}
+                            status={errors.purchase_price ? 'danger' : 'basic'}
+                        />
+                        {errors.purchase_price && <Text style={styles.errorText}>{errors.purchase_price}</Text>}
+
+                        <Input
+                            label='Current Price per Unit (Optional)'
+                            placeholder='Leave empty to use purchase price'
+                            value={formData.current_price}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, current_price: text }))}
+                            keyboardType='numeric'
+                            style={[styles.input, errors.current_price && styles.inputError]}
+                            status={errors.current_price ? 'danger' : 'basic'}
+                        />
+                        {errors.current_price && <Text style={styles.errorText}>{errors.current_price}</Text>}
+
+                        <Datepicker
+                            label='Purchase Date *'
+                            date={formData.purchase_date}
+                            onSelect={(date) => setFormData(prev => ({ ...prev, purchase_date: date }))}
+                            style={styles.input}
+                        />
+
+                        <Input
+                            label='Notes (Optional)'
+                            placeholder='Any additional notes...'
+                            value={formData.notes}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
+                            multiline={true}
+                            textStyle={{ minHeight: 64 }}
+                            style={styles.input}
+                        />
+                    </Card>
+
+                    {/* Summary Card */}
+                    {formData.quantity && formData.purchase_price && (
+                        <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Summary</Text>
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                    Total Investment:
+                                </Text>
+                                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                    {formatCurrency(Number(formData.quantity) * Number(formData.purchase_price))}
+                                </Text>
+                            </View>
+                            {formData.current_price && (
+                                <>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                            Current Value:
+                                        </Text>
+                                        <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                            {formatCurrency(calculateCurrentValue())}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                            Gain/Loss:
+                                        </Text>
+                                        <Text style={[
+                                            styles.summaryValue,
+                                            { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
+                                        ]}>
+                                            {formatCurrency(calculateGainLoss())}
+                                        </Text>
+                                    </View>
+                                </>
+                            )}
+                        </Card>
+                    )}
+
+                    {/* Delete Button */}
+                    <View style={styles.deleteButtonContainer}>
+                        <Button
+                            style={styles.deleteButton}
+                            appearance='outline'
+                            status='danger'
+                            accessoryLeft={() => <Ionicons name="trash-outline" size={20} color={colors.error} />}
+                            onPress={handleDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete Investment'}
                         </Button>
-                    </Layout>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                    </View>
+
+                    <View style={styles.bottomPadding} />
+                </ThemedView>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -531,28 +481,42 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    keyboardAvoidingView: {
+    loadingContainer: {
         flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    backButton: {
+        padding: 8,
+    },
+    saveButton: {
+        padding: 8,
+    },
+    saveButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     scrollView: {
         flex: 1,
     },
-    scrollContent: {
-        flexGrow: 1,
+    contentContainer: {
+        padding: 16,
     },
-    form: {
-        padding: 20,
+    formCard: {
+        marginBottom: 16,
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    formGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
+    sectionTitle: {
+        fontSize: 16,
         fontWeight: '600',
-        marginBottom: 8,
+        marginBottom: 16,
     },
     input: {
-        borderRadius: 12,
+        marginBottom: 16,
     },
     inputError: {
         borderColor: '#FF6B6B',
@@ -561,15 +525,7 @@ const styles = StyleSheet.create({
         color: '#FF6B6B',
         fontSize: 12,
         marginTop: 4,
-    },
-    summaryCard: {
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 20,
-    },
-    summaryTitle: {
-        marginBottom: 12,
-        textAlign: 'center',
+        marginBottom: 16,
     },
     summaryRow: {
         flexDirection: 'row',
@@ -585,33 +541,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
-    submitButton: {
-        borderRadius: 12,
-        paddingVertical: 16,
-        marginTop: 20,
+    deleteButtonContainer: {
+        marginTop: 16,
     },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    emptyIcon: {
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptyDescription: {
-        marginBottom: 24,
-        textAlign: 'center',
-    },
-    goBackButton: {
-        paddingHorizontal: 24,
+    deleteButton: {
         borderRadius: 12,
     },
-    backButton: {
-        padding: 12,
+    bottomPadding: {
+        height: 32,
     },
 });

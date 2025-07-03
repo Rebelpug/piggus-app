@@ -95,7 +95,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             // Fetch profile using the API function
             const result = await apiFetchProfile(user, encryptData, decryptData);
 
-            if (result.success && result.data) {
+            if (result.data) {
                 console.log('Profile found and loaded');
                 setUserProfile(result.data);
             } else {
@@ -137,7 +137,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 // Create profile using the API function
                 const result = await apiCreateProfile(user, username, encryptData, decryptData);
 
-                if (!result.success || !result.data) {
+                if (!result.data) {
                     throw new Error(result.error || 'Failed to create profile');
                 }
 
@@ -193,7 +193,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                     decryptData
                 );
 
-                if (!result.success || !result.data) {
+                if (!result.data) {
                     throw new Error(result.error || 'Failed to update profile');
                 }
 

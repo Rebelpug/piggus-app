@@ -120,19 +120,19 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       if (result.success && result.data) {
         setExpensesGroups(result.data);
-        
+
         // Fetch recurring expenses
         const recurringResult = await apiFetchRecurringExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
-        
+
         if (recurringResult.success && recurringResult.data) {
           setRecurringExpenses(recurringResult.data);
-          
+
           // Process recurring expenses to generate any due expenses
           const groupMemberships = result.data.map(group => ({
             group_id: group.id,
             encrypted_group_key: group.encrypted_key,
           }));
-          
+
           const processResult = await apiProcessRecurringExpenses(
             user,
             recurringResult.data,
@@ -140,10 +140,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             decryptWithPrivateKey,
             encryptWithExternalEncryptionKey
           );
-          
+
           if (processResult.success && processResult.generatedExpenses && processResult.generatedExpenses.length > 0) {
             // Update groups with new generated expenses
-            setExpensesGroups(prev => 
+            setExpensesGroups(prev =>
               prev.map(group => {
                 const newExpenses = processResult.generatedExpenses?.filter(exp => exp.group_id === group.id) || [];
                 if (newExpenses.length > 0) {
@@ -155,10 +155,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                 return group;
               })
             );
-            
+
             // Update recurring expenses with new generation dates
             if (processResult.updatedRecurring) {
-              setRecurringExpenses(prev => 
+              setRecurringExpenses(prev =>
                 prev.map(recurring => {
                   const updated = processResult.updatedRecurring?.find(upd => upd.id === recurring.id);
                   return updated || recurring;
@@ -282,7 +282,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       const result = await apiUpdateExpense(user, groupId, groupKey, updatedExpense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
       const changedExpense = result.data;
-      if (result.success && changedExpense) {
+      if (changedExpense) {
         // Update in local state
         setExpensesGroups(prev =>
             prev.map(group => {
@@ -319,7 +319,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       const result = await apiDeleteExpense(user, groupId, id);
 
-      if (result.success) {
+      if (result) {
         // Remove from local state
         setExpensesGroups(prev =>
             prev.map(group => {
@@ -333,7 +333,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             })
         );
       } else {
-        setError(result.error || 'Failed to delete expense');
+        setError(result || 'Failed to delete expense');
       }
     } catch (error: any) {
       console.error('Failed to delete expense:', error);

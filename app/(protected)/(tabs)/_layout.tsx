@@ -58,7 +58,7 @@ export default function TabLayout() {
                 name="shares"
                 options={{
                     title: 'Shares',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="people-outline" color={color} />,
+                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
                 }}
             />
             <Tabs.Screen

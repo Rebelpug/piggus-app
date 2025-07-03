@@ -18,7 +18,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'chart.line.uptrend.xyaxis': 'trending-up',
-  'people-outline': 'people',
+  'person.2.fill': 'people-outline'
 } as IconMapping;
 
 /**
@@ -26,12 +26,13 @@ const MAPPING = {
  * This ensures a consistent look across platforms, and optimal resource usage.
  * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
  */
-export function IconSymbol({
-                             name,
-                             size = 24,
-                             color,
-                             style,
-                           }: {
+export function IconSymbol(
+    {
+     name,
+     size = 24,
+     color,
+     style,
+   }: {
   name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
