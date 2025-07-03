@@ -12,6 +12,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { CURRENCIES } from '@/types/expense';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 interface ProfileCreationProps {
     onComplete: () => void;
@@ -20,6 +22,8 @@ interface ProfileCreationProps {
 
 export default function ProfileCreationForm({ onComplete, onCreateProfile }: ProfileCreationProps) {
     const { user } = useAuth();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const [customName, setCustomName] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('EUR'); // Default to EUR
     const [isCreating, setIsCreating] = useState(false);
@@ -162,32 +166,37 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
     const selectedCurrencyLabel = CURRENCIES.find(c => c.value === selectedCurrency)?.label || selectedCurrency;
 
     return (
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Complete Your Registration</Text>
-                    <Text style={styles.cardDescription}>
+        <ScrollView contentContainerStyle={[styles.scrollContainer, { backgroundColor: colors.background }]}>
+            <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>Complete Your Registration</Text>
+                    <Text style={[styles.cardDescription, { color: colors.icon }]}>
                         One more step! We need to create your profile to store your encrypted data.
                     </Text>
                 </View>
 
                 <View style={styles.cardContent}>
                     {error && (
-                        <View style={styles.errorContainer}>
-                            <Text style={styles.errorText}>{error}</Text>
+                        <View style={[styles.errorContainer, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
+                            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
                         </View>
                     )}
 
-                    <Text style={styles.paragraph}>
+                    <Text style={[styles.paragraph, { color: colors.text }]}>
                         You can share your things with family and friends. This means that they will need to be
                         able to find you. Unless you choose a unique name, you will be assigned something random.
                     </Text>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Username (Optional)</Text>
+                        <Text style={[styles.label, { color: colors.text }]}>Username (Optional)</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { 
+                                borderColor: colors.border, 
+                                backgroundColor: colors.background,
+                                color: colors.text 
+                            }]}
                             placeholder="Enter a custom name (optional)"
+                            placeholderTextColor={colors.icon}
                             value={customName}
                             onChangeText={setCustomName}
                             autoCapitalize="none"
@@ -196,24 +205,32 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Default Currency</Text>
+                        <Text style={[styles.label, { color: colors.text }]}>Default Currency</Text>
                         <TouchableOpacity
-                            style={styles.currencySelector}
+                            style={[styles.currencySelector, { 
+                                borderColor: colors.border, 
+                                backgroundColor: colors.background 
+                            }]}
                             onPress={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
                         >
-                            <Text style={styles.currencyText}>{selectedCurrencyLabel}</Text>
-                            <Text style={styles.dropdownArrow}>▼</Text>
+                            <Text style={[styles.currencyText, { color: colors.text }]}>{selectedCurrencyLabel}</Text>
+                            <Text style={[styles.dropdownArrow, { color: colors.icon }]}>▼</Text>
                         </TouchableOpacity>
 
                         {showCurrencyDropdown && (
-                            <View style={styles.currencyDropdown}>
+                            <View style={[styles.currencyDropdown, { 
+                                backgroundColor: colors.card, 
+                                borderColor: colors.border,
+                                shadowColor: colors.text
+                            }]}>
                                 <ScrollView style={styles.currencyList} nestedScrollEnabled>
                                     {CURRENCIES.map((currency) => (
                                         <TouchableOpacity
                                             key={currency.value}
                                             style={[
                                                 styles.currencyOption,
-                                                selectedCurrency === currency.value && styles.selectedCurrencyOption
+                                                { borderBottomColor: colors.border },
+                                                selectedCurrency === currency.value && [styles.selectedCurrencyOption, { backgroundColor: colors.primary + '20' }]
                                             ]}
                                             onPress={() => {
                                                 setSelectedCurrency(currency.value);
@@ -222,7 +239,8 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                                         >
                                             <Text style={[
                                                 styles.currencyOptionText,
-                                                selectedCurrency === currency.value && styles.selectedCurrencyText
+                                                { color: colors.text },
+                                                selectedCurrency === currency.value && [styles.selectedCurrencyText, { color: colors.primary }]
                                             ]}>
                                                 {currency.label}
                                             </Text>
@@ -231,7 +249,7 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                                 </ScrollView>
                             </View>
                         )}
-                        <Text style={styles.helperText}>
+                        <Text style={[styles.helperText, { color: colors.icon }]}>
                             This will be your default currency for expenses and budgets
                         </Text>
                     </View>
@@ -239,16 +257,17 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                     <TouchableOpacity
                         style={[
                             styles.button,
-                            (isCreating || isCheckingName) && styles.buttonDisabled
+                            { backgroundColor: colors.primary },
+                            (isCreating || isCheckingName) && [styles.buttonDisabled, { backgroundColor: colors.icon }]
                         ]}
                         onPress={handleCreateProfile}
                         disabled={isCreating || isCheckingName}
                     >
                         {isCreating || isCheckingName ? (
                             <View style={styles.buttonContent}>
-                                <ActivityIndicator size="small" color="#FFFFFF" style={styles.spinner} />
+                                <ActivityIndicator size="small" color="white" style={styles.spinner} />
                                 <Text style={styles.buttonText}>
-                                    {isCheckingName ? 'Checking name...' : 'Creating Profile...'}
+                                    {isCheckingName ? 'Checking...' : 'Creating...'}
                                 </Text>
                             </View>
                         ) : (
@@ -268,9 +287,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     card: {
-        backgroundColor: '#FFFFFF',
         borderRadius: 8,
-        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -282,7 +299,6 @@ const styles = StyleSheet.create({
     cardHeader: {
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
     },
     cardTitle: {
         fontSize: 20,
@@ -291,7 +307,6 @@ const styles = StyleSheet.create({
     },
     cardDescription: {
         fontSize: 14,
-        color: '#666666',
     },
     cardContent: {
         padding: 16,
@@ -299,14 +314,10 @@ const styles = StyleSheet.create({
     errorContainer: {
         marginBottom: 16,
         padding: 12,
-        backgroundColor: '#FEF2F2',
         borderWidth: 1,
-        borderColor: '#F87171',
         borderRadius: 4,
     },
-    errorText: {
-        color: '#B91C1C',
-    },
+    errorText: {},
     paragraph: {
         marginBottom: 16,
         fontSize: 14,
@@ -318,48 +329,39 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#333',
         marginBottom: 8,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#D1D5DB',
         borderRadius: 4,
         padding: 12,
         fontSize: 16,
     },
     currencySelector: {
         borderWidth: 1,
-        borderColor: '#D1D5DB',
         borderRadius: 4,
         padding: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
     },
     currencyText: {
         fontSize: 16,
-        color: '#333',
         flex: 1,
     },
     dropdownArrow: {
         fontSize: 12,
-        color: '#666',
     },
     currencyDropdown: {
         position: 'absolute',
         top: 60,
         left: 0,
         right: 0,
-        backgroundColor: '#FFFFFF',
         borderWidth: 1,
-        borderColor: '#D1D5DB',
         borderRadius: 4,
         maxHeight: 200,
         zIndex: 1000,
         elevation: 5,
-        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -370,35 +372,26 @@ const styles = StyleSheet.create({
     currencyOption: {
         padding: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
     },
-    selectedCurrencyOption: {
-        backgroundColor: '#E7F3FF',
-    },
+    selectedCurrencyOption: {},
     currencyOptionText: {
         fontSize: 16,
-        color: '#333',
     },
     selectedCurrencyText: {
-        color: '#3B82F6',
         fontWeight: '500',
     },
     helperText: {
         fontSize: 12,
-        color: '#666',
         marginTop: 4,
     },
     button: {
-        backgroundColor: '#3B82F6',
         borderRadius: 4,
         padding: 12,
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 8,
     },
-    buttonDisabled: {
-        backgroundColor: '#93C5FD',
-    },
+    buttonDisabled: {},
     buttonContent: {
         flexDirection: 'row',
         alignItems: 'center',

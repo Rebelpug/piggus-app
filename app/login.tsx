@@ -190,7 +190,7 @@ const LoginScreen = () => {
                                 <View style={styles.progressContainer}>
                                     <ActivityIndicator color="#FFF" size="small" />
                                     <Text style={styles.progressText}>
-                                        {encryptionStep || 'Signing In...'}
+                                        Signing In...
                                     </Text>
                                     {encryptionProgress > 0 && (
                                         <>

@@ -114,7 +114,7 @@ export default function InvestmentsScreen() {
     const totalGainLoss = React.useMemo(() => {
         return filteredInvestments.reduce((sum, investment) => {
             try {
-                const currentValue = investment.data.current_price || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const currentValue = (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 const initialValue = investment.data.quantity * investment.data.purchase_price;
                 return sum + (currentValue - initialValue);
             } catch {
