@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList } from 'react-native';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
 import {
     Layout,
     Text,
@@ -102,7 +102,7 @@ export default function InvestmentsScreen() {
     const totalPortfolioValue = React.useMemo(() => {
         return filteredInvestments.reduce((sum, investment) => {
             try {
-                const currentValue = investment.data.current_price || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+                const currentValue = (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
                 return sum + currentValue;
             } catch {
                 return sum;
@@ -193,7 +193,7 @@ export default function InvestmentsScreen() {
             return null;
         }
 
-        const currentValue = item.data.current_price || (item.data.quantity * (item.data.current_price || item.data.purchase_price));
+        const currentValue = (item.data.quantity * (item.data.current_price || item.data.purchase_price));
         const initialValue = item.data.quantity * item.data.purchase_price;
         const gainLoss = currentValue - initialValue;
         const gainLossPercentage = (gainLoss / initialValue) * 100;
@@ -365,7 +365,21 @@ export default function InvestmentsScreen() {
             />
 
             {filteredInvestments.length === 0 ? (
-                renderInvestmentsEmptyState()
+                <ScrollView
+                    style={styles.list}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={colors.primary}
+                        />
+                    }
+                >
+                    {portfolios.length > 1 && renderInvestmentsHeader()}
+                    {renderInvestmentsEmptyState()}
+                </ScrollView>
             ) : (
                 <FlatList
                     style={styles.list}

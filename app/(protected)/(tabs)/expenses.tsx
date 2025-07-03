@@ -436,13 +436,13 @@ export default function ExpensesScreen() {
             >
                 <Tab
                     title={`Expenses (${filteredExpenses.length})`}
-                    icon={(props) => <Ionicons name="card-outline" size={20} color={props?.tintColor} />}
+                    icon={(props) => <Ionicons name="card-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderExpensesTab()}
                 </Tab>
                 <Tab
                     title={`Recurring (${allRecurringExpenses.length})`}
-                    icon={(props) => <Ionicons name="repeat-outline" size={20} color={props?.tintColor} />}
+                    icon={(props) => <Ionicons name="repeat-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderRecurringTab()}
                 </Tab>

@@ -404,13 +404,13 @@ export default function SharesScreen() {
             >
                 <Tab
                     title={`Expense Groups (${expensesGroups.length})`}
-                    icon={(props) => <Ionicons name="people-outline" size={20} color={props?.tintColor} />}
+                    icon={(props) => <Ionicons name="people-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderExpenseGroupsTab()}
                 </Tab>
                 <Tab
                     title="Portfolio Groups"
-                    icon={(props) => <Ionicons name="briefcase-outline" size={20} color={props?.tintColor} />}
+                    icon={(props) => <Ionicons name="briefcase-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderPortfoliosTab()}
                 </Tab>
