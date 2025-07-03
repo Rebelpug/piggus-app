@@ -40,7 +40,7 @@ export const apiFetchRecurringExpenses = async (
             const decryptedGroupKey = await decryptWithPrivateKey(recurringExpense.group_membership.encrypted_group_key);
             // Ensure the decrypted key is a string (base64)
             const groupKeyString = typeof decryptedGroupKey === 'string' ? decryptedGroupKey : JSON.stringify(decryptedGroupKey);
-            
+
             // Decrypt the recurring expense data
             const decryptedData = await decryptWithExternalEncryptionKey(groupKeyString, recurringExpense.encrypted_data);
 
@@ -183,9 +183,9 @@ export const apiProcessRecurringExpenses = async (
     groupMemberships: { group_id: string; encrypted_group_key: string }[],
     decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
     encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
-): Promise<{ 
-  success: boolean; 
-  generatedExpenses?: ExpenseWithDecryptedData[]; 
+): Promise<{
+  success: boolean;
+  generatedExpenses?: ExpenseWithDecryptedData[];
   updatedRecurring?: RecurringExpenseWithDecryptedData[];
   error?: string;
 }> => {
@@ -204,8 +204,8 @@ export const apiProcessRecurringExpenses = async (
     for (const recurringExpense of recurringExpenses) {
       try {
         const now = new Date();
-        const lastGenerated = recurringExpense.data.lastGenerated ? new Date(recurringExpense.data.lastGenerated) : null;
-        const nextDue = recurringExpense.data.nextDue ? new Date(recurringExpense.data.nextDue) : null;
+        const lastGenerated = recurringExpense.data.last_generated_date ? new Date(recurringExpense.data.last_generated_date) : null;
+        const nextDue = recurringExpense.data.next_due_date ? new Date(recurringExpense.data.next_due_date) : null;
 
         // Check if we need to generate a new expense based on the recurring schedule
         if (nextDue && now >= nextDue) {
@@ -222,14 +222,16 @@ export const apiProcessRecurringExpenses = async (
 
           // Create the new expense data
           const expenseData = {
-            ...recurringExpense.data.expenseTemplate,
+            ...recurringExpense.data,
             generatedFrom: recurringExpense.id,
             generatedAt: now.toISOString(),
+            is_recurring: false,
+            date: now.toISOString(),
           };
 
           // Calculate next due date based on frequency
           let newNextDue = new Date(nextDue);
-          switch (recurringExpense.data.frequency) {
+          switch (recurringExpense.data.interval) {
             case 'daily':
               newNextDue.setDate(newNextDue.getDate() + 1);
               break;

@@ -175,7 +175,7 @@ export default function RecurringExpenseItem({ item }: RecurringExpenseItemProps
                             })()}
                         </Text>
                     </View>
-                    {isPayer && (
+                    {isPayer && isSharedExpense && (
                         <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
                             <Text style={[styles.payerText, { color: colors.primary }]}>
                                 You pay

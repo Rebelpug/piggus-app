@@ -454,9 +454,10 @@ export default function EditRecurringExpenseScreen() {
                         </View>
                     </Card>
 
-                    {/* Payment Details */}
-                    <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
+                    {/* Payment Details - Only show if group has multiple members */}
+                    {groupMembers.length > 1 && (
+                        <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
                         
                         <Select
                             label='Paid by'
@@ -486,46 +487,49 @@ export default function EditRecurringExpenseScreen() {
                             ))}
                         </Select>
                     </Card>
+                    )}
 
-                    {/* Participants */}
-                    <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
-                        
-                        {groupMembers.map((member, index) => {
-                            const isParticipant = participants.some(p => p.user_id === member.user_id);
-                            const isCurrentUser = member.user_id === user?.id;
+                    {/* Participants - Only show if group has multiple members */}
+                    {groupMembers.length > 1 && (
+                        <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
                             
-                            return (
-                                <View key={member.user_id} style={styles.participantRow}>
-                                    <View style={styles.participantInfo}>
-                                        <CheckBox
-                                            checked={isParticipant}
-                                            onChange={() => handleParticipantToggle(member)}
-                                        />
-                                        <Text style={[styles.participantName, { color: colors.text }]}>
-                                            {member.username}{isCurrentUser ? ' (You)' : ''}
-                                        </Text>
+                            {groupMembers.map((member, index) => {
+                                const isParticipant = participants.some(p => p.user_id === member.user_id);
+                                const isCurrentUser = member.user_id === user?.id;
+                                
+                                return (
+                                    <View key={member.user_id} style={styles.participantRow}>
+                                        <View style={styles.participantInfo}>
+                                            <CheckBox
+                                                checked={isParticipant}
+                                                onChange={() => handleParticipantToggle(member)}
+                                            />
+                                            <Text style={[styles.participantName, { color: colors.text }]}>
+                                                {member.username}{isCurrentUser ? ' (You)' : ''}
+                                            </Text>
+                                        </View>
+                                        
+                                        {isParticipant && selectedSplitMethodIndex.row === 1 && (
+                                            <Input
+                                                placeholder='0.00'
+                                                value={customAmounts[member.user_id] || ''}
+                                                onChangeText={(value) => handleCustomAmountChange(member.user_id, value)}
+                                                keyboardType='decimal-pad'
+                                                style={styles.customAmountInput}
+                                            />
+                                        )}
+                                        
+                                        {isParticipant && selectedSplitMethodIndex.row === 0 && (
+                                            <Text style={[styles.shareAmount, { color: colors.text }]}>
+                                                {participants.find(p => p.user_id === member.user_id)?.share_amount.toFixed(2) || '0.00'}
+                                            </Text>
+                                        )}
                                     </View>
-                                    
-                                    {isParticipant && selectedSplitMethodIndex.row === 1 && (
-                                        <Input
-                                            placeholder='0.00'
-                                            value={customAmounts[member.user_id] || ''}
-                                            onChangeText={(value) => handleCustomAmountChange(member.user_id, value)}
-                                            keyboardType='decimal-pad'
-                                            style={styles.customAmountInput}
-                                        />
-                                    )}
-                                    
-                                    {isParticipant && selectedSplitMethodIndex.row === 0 && (
-                                        <Text style={[styles.shareAmount, { color: colors.text }]}>
-                                            {participants.find(p => p.user_id === member.user_id)?.share_amount.toFixed(2) || '0.00'}
-                                        </Text>
-                                    )}
-                                </View>
-                            );
-                        })}
-                    </Card>
+                                );
+                            })}
+                        </Card>
+                    )}
 
                     <View style={styles.bottomPadding} />
                 </ThemedView>

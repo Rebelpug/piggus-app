@@ -159,14 +159,14 @@ export default function RecurringExpenseDetailScreen() {
 
     const renderBackAction = () => (
         <TopNavigationAction
-            icon={(props) => <Ionicons name="arrow-back" size={24} color={props?.tintColor} />}
+            icon={(props) => <Ionicons name="arrow-back" size={24} color={colors.text} />}
             onPress={navigateBack}
         />
     );
 
     const renderEditAction = () => (
         <TopNavigationAction
-            icon={(props) => <Ionicons name="pencil-outline" size={24} color={props?.tintColor} />}
+            icon={(props) => <Ionicons name="pencil-outline" size={24} color={colors.text} />}
             onPress={handleEdit}
         />
     );
@@ -307,37 +307,55 @@ export default function RecurringExpenseDetailScreen() {
                                 {formatCurrency(recurringExpense.data.amount, recurringExpense.data.currency)}
                             </Text>
                         </View>
-                        <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Split Method:</Text>
-                            <Text style={[styles.detailValue, { color: colors.text }]}>
-                                {recurringExpense.data.split_method === 'equal' ? 'Split Equally' :
-                                 recurringExpense.data.split_method === 'custom' ? 'Custom Amounts' : 'By Percentage'}
-                            </Text>
-                        </View>
-                    </Card>
-
-                    {/* Participants */}
-                    <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
-                        <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
-                            <Text style={[styles.detailValue, { color: colors.text }]}>
-                                {getUsernameFromId(recurringExpense.data.payer_user_id)}
-                                {isPayer && ' (You)'}
-                            </Text>
-                        </View>
-                        {recurringExpense.data.participants.map((participant, index) => (
-                            <View key={participant.user_id} style={styles.participantRow}>
-                                <Text style={[styles.participantName, { color: colors.text }]}>
-                                    {getUsernameFromId(participant.user_id)}
-                                    {participant.user_id === user?.id && ' (You)'}
-                                </Text>
-                                <Text style={[styles.participantAmount, { color: colors.text }]}>
-                                    {formatCurrency(participant.share_amount, recurringExpense.data.currency)}
+                        {groupMembers.length > 1 && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Split Method:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {recurringExpense.data.split_method === 'equal' ? 'Split Equally' :
+                                     recurringExpense.data.split_method === 'custom' ? 'Custom Amounts' : 'By Percentage'}
                                 </Text>
                             </View>
-                        ))}
+                        )}
                     </Card>
+
+                    {/* Participants - Only show if more than one group member */}
+                    {groupMembers.length > 1 && (
+                        <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {getUsernameFromId(recurringExpense.data.payer_user_id)}
+                                    {isPayer && ' (You)'}
+                                </Text>
+                            </View>
+                            {recurringExpense.data.participants.map((participant, index) => (
+                                <View key={participant.user_id} style={styles.participantRow}>
+                                    <Text style={[styles.participantName, { color: colors.text }]}>
+                                        {getUsernameFromId(participant.user_id)}
+                                        {participant.user_id === user?.id && ' (You)'}
+                                    </Text>
+                                    <Text style={[styles.participantAmount, { color: colors.text }]}>
+                                        {formatCurrency(participant.share_amount, recurringExpense.data.currency)}
+                                    </Text>
+                                </View>
+                            ))}
+                        </Card>
+                    )}
+
+                    {/* Single group member - show simplified payer info */}
+                    {groupMembers.length >= 1 && (
+                        <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment</Text>
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {getUsernameFromId(recurringExpense.data.payer_user_id)}
+                                    {isPayer && ' (You)'}
+                                </Text>
+                            </View>
+                        </Card>
+                    )}
 
                     {/* Action Buttons */}
                     <View style={styles.actionButtons}>
@@ -345,7 +363,7 @@ export default function RecurringExpenseDetailScreen() {
                             style={[styles.actionButton, styles.editButton]}
                             appearance='outline'
                             status='primary'
-                            accessoryLeft={(props) => <Ionicons name="pencil-outline" size={20} color={props?.tintColor} />}
+                            accessoryLeft={() => <Ionicons name="pencil-outline" size={20} color={colors.primary} />}
                             onPress={handleEdit}
                         >
                             Edit
@@ -354,7 +372,7 @@ export default function RecurringExpenseDetailScreen() {
                             style={[styles.actionButton, styles.deleteButton]}
                             appearance='outline'
                             status='danger'
-                            accessoryLeft={(props) => <Ionicons name="trash-outline" size={20} color={props?.tintColor} />}
+                            accessoryLeft={() => <Ionicons name="trash-outline" size={20} color={colors.error} />}
                             onPress={handleDelete}
                         >
                             Delete
