@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import ExpenseItem from '@/components/expenses/ExpenseItem';
+import RecurringExpenseItem from '@/components/expenses/RecurringExpenseItem';
 import BudgetCard from '@/components/budget/BudgetCard';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -180,18 +181,6 @@ export default function ExpensesScreen() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        try {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-            });
-        } catch {
-            return dateString;
-        }
-    };
-
     const getMonthYear = (dateString: string) => {
         try {
             const date = new Date(dateString);
@@ -235,27 +224,6 @@ export default function ExpensesScreen() {
         return result;
     }, [filteredExpenses]);
 
-    const getCategoryColor = (category: string) => {
-        const colors: { [key: string]: string } = {
-            food: '#FF6B6B',
-            transportation: '#4ECDC4',
-            housing: '#45B7D1',
-            utilities: '#96CEB4',
-            entertainment: '#FFEAA7',
-            shopping: '#DDA0DD',
-            health: '#98D8C8',
-            education: '#A8E6CF',
-            personal: '#FFB6C1',
-            travel: '#87CEEB',
-            other: '#D3D3D3',
-        };
-        return colors[category] || colors.other;
-    };
-
-    const getCategoryInfo = (categoryId: string) => {
-        const categoryInfo = getCategoryDisplayInfo(categoryId, userProfile?.profile?.budgeting?.categoryOverrides);
-        return categoryInfo;
-    };
 
     const renderMonthHeader = ({ item }: { item: string }) => (
         <View style={[styles.monthHeader, { backgroundColor: colors.background }]}>
@@ -275,121 +243,7 @@ export default function ExpensesScreen() {
     };
 
     const renderRecurringExpenseItem = ({ item }: { item: RecurringExpenseWithDecryptedData & { groupName?: string } }) => {
-        if (!item || !item.data) {
-            return null;
-        }
-
-        const userShare = item.data.participants.find(p => p.user_id === user?.id)?.share_amount || 0;
-        const totalAmount = item.data.amount || 0;
-        const isPayer = item.data.payer_user_id === user?.id;
-        const isSharedExpense = item.data.participants.length > 1;
-
-        const getIntervalDisplay = (interval: string) => {
-            const intervalMap = {
-                daily: 'Daily',
-                weekly: 'Weekly',
-                monthly: 'Monthly',
-                yearly: 'Yearly'
-            };
-            return intervalMap[interval as keyof typeof intervalMap] || interval;
-        };
-
-        const formatNextDueDate = (dateString: string) => {
-            try {
-                const date = new Date(dateString);
-                const today = new Date();
-                const diffTime = date.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 0) {
-                    return 'Overdue';
-                } else if (diffDays === 0) {
-                    return 'Due today';
-                } else if (diffDays === 1) {
-                    return 'Due tomorrow';
-                } else if (diffDays <= 7) {
-                    return `Due in ${diffDays} days`;
-                } else {
-                    return formatDate(dateString);
-                }
-            } catch {
-                return dateString;
-            }
-        };
-
-        return (
-            <TouchableOpacity
-                style={[styles.expenseCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
-                onPress={() => {
-                    // TODO: Navigate to recurring expense detail screen
-                    Alert.alert('Recurring Expense', `${item.data.name}\n${getIntervalDisplay(item.data.interval)} - ${formatCurrency(userShare, item.data.currency)}`);
-                }}
-            >
-                <View style={styles.expenseCardContent}>
-                    <View style={styles.expenseHeader}>
-                        <View style={styles.expenseMainInfo}>
-                            <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(item.data.category) + '20' }]}>
-                                <Text style={styles.categoryEmoji}>
-                                    {getCategoryInfo(item.data.category).icon}
-                                </Text>
-                                <View style={[styles.recurringBadge, { backgroundColor: colors.primary }]}>
-                                    <Ionicons name="repeat" size={10} color="white" />
-                                </View>
-                            </View>
-                            <View style={styles.expenseDetails}>
-                                <Text style={[styles.expenseTitle, { color: colors.text }]}>
-                                    {item.data.name || 'Unnamed Recurring Expense'}
-                                </Text>
-                                <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
-                                    {item.groupName || 'Unknown Group'} • {getIntervalDisplay(item.data.interval)}
-                                </Text>
-                                <Text style={[styles.nextDueText, { color: item.data.is_active ? colors.primary : colors.icon }]}>
-                                    {item.data.is_active ? formatNextDueDate(item.data.next_due_date) : 'Inactive'}
-                                </Text>
-                            </View>
-                        </View>
-                        <View style={styles.expenseAmount}>
-                            <Text style={[styles.amountText, { color: colors.text }]}>
-                                {formatCurrency(userShare, item.data.currency)}
-                            </Text>
-                            {isSharedExpense && (
-                                <Text style={[styles.totalAmountText, { color: colors.icon }]}>
-                                    of {formatCurrency(totalAmount, item.data.currency)}
-                                </Text>
-                            )}
-                            <TouchableOpacity
-                                style={styles.editButton}
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    // TODO: Navigate to edit recurring expense screen
-                                    Alert.alert('Edit Recurring Expense', 'Feature coming soon!');
-                                }}
-                            >
-                                <Ionicons name="pencil-outline" size={18} color={colors.icon} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    <View style={styles.expenseFooter}>
-                        <View style={styles.expenseCategory}>
-                            <Text style={[styles.categoryText, { color: colors.icon }]}>
-                                {(() => {
-                                    const categoryInfo = getCategoryInfo(item.data.category || 'other');
-                                    return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`;
-                                })()}
-                            </Text>
-                        </View>
-                        {isPayer && (
-                            <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
-                                <Text style={[styles.payerText, { color: colors.primary }]}>
-                                    You pay
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-            </TouchableOpacity>
-        );
+        return <RecurringExpenseItem item={item} />;
     };
 
     const renderMonthSelector = () => (
@@ -431,28 +285,8 @@ export default function ExpensesScreen() {
     };
 
     const renderRecurringHeader = () => {
-        const totalRecurringAmount = allRecurringExpenses.reduce((sum, recurringExpense) => {
-            try {
-                const userShare = recurringExpense.data.participants.find(p => p.user_id === user?.id)?.share_amount || 0;
-                return sum + userShare;
-            } catch {
-                return sum;
-            }
-        }, 0);
-
-        const activeRecurringCount = allRecurringExpenses.filter(item => item.data.is_active).length;
-
         return (
-            <View style={styles.header}>
-                <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.summaryTitle, { color: colors.text }]}>Recurring Expenses</Text>
-                    <Text style={[styles.summaryAmount, { color: colors.primary }]}>
-                        {formatCurrency(totalRecurringAmount)}
-                    </Text>
-                    <Text style={[styles.summarySubtitle, { color: colors.icon }]}>
-                        {activeRecurringCount} active • {allRecurringExpenses.length} total
-                    </Text>
-                </View>
+            <View>
             </View>
         );
     };
@@ -697,21 +531,6 @@ const styles = StyleSheet.create({
     },
     tabContent: {
         flex: 1,
-    },
-    recurringBadge: {
-        position: 'absolute',
-        top: -2,
-        right: -2,
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    nextDueText: {
-        fontSize: 12,
-        fontWeight: '500',
-        marginTop: 2,
     },
     monthHeader: {
         paddingHorizontal: 20,
