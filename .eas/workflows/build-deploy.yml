@@ -1,0 +1,20 @@
+name: Create Production Builds
+
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+    submit:
+      android:
+        track: internal # Submits to Google Play Internal Testing
+
+  build_ios:
+    type: build
+    params:
+      platform: ios
+    submit:
+      ios:
+        appleId: legal@rebelpug.com
+        ascAppId: "6747078622"
+        appleTeamId: "JD7DPD47N7"
