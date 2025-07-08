@@ -30,6 +30,7 @@ const RegisterScreen = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [acceptTerms, setAcceptTerms] = useState(false);
     const [loading, setLoading] = useState(false);
     const { signUp } = useAuth();
     const router = useRouter();
@@ -53,6 +54,11 @@ const RegisterScreen = () => {
 
         if (password !== confirmPassword) {
             Alert.alert('Error', 'Passwords do not match');
+            return;
+        }
+
+        if (!acceptTerms) {
+            Alert.alert('Error', 'You must accept the terms and conditions to create an account');
             return;
         }
 
@@ -165,14 +171,44 @@ const RegisterScreen = () => {
                             </View>
                         </View>
 
+                        {/* Terms and Conditions Checkbox */}
+                        <View style={styles.checkboxContainer}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.checkbox,
+                                    { borderColor: colors.border },
+                                    acceptTerms && { backgroundColor: colors.primary, borderColor: colors.primary }
+                                ]}
+                                onPress={() => setAcceptTerms(!acceptTerms)}
+                                disabled={loading}
+                            >
+                                {acceptTerms && (
+                                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                                )}
+                            </TouchableOpacity>
+                            <View style={styles.checkboxTextContainer}>
+                                <Text style={[styles.checkboxText, { color: colors.text }]}>
+                                    I accept the{' '}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/terms-conditions')}
+                                    disabled={loading}
+                                >
+                                    <Text style={[styles.termsLink, { color: colors.primary }, loading && { opacity: 0.5 }]}>
+                                        terms and conditions
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
                         <TouchableOpacity
                             style={[
                                 styles.button, 
-                                { backgroundColor: loading ? colors.icon : colors.primary },
-                                loading && styles.buttonDisabled
+                                { backgroundColor: loading || !acceptTerms ? colors.icon : colors.primary },
+                                (loading || !acceptTerms) && styles.buttonDisabled
                             ]}
                             onPress={handleRegister}
-                            disabled={loading}
+                            disabled={loading || !acceptTerms}
                         >
                             {loading ? (
                                 <View style={styles.buttonContent}>
@@ -304,6 +340,38 @@ const styles = StyleSheet.create({
     link: {
         fontWeight: '600',
         fontSize: 16,
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+        paddingHorizontal: 4,
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderWidth: 2,
+        borderRadius: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        marginTop: 2,
+    },
+    checkboxTextContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+    },
+    checkboxText: {
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    termsLink: {
+        fontSize: 14,
+        lineHeight: 20,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
     },
 });
 
