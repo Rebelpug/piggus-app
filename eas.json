@@ -7,14 +7,29 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "environment": "development"
+      "environment": "development",
+      "env": {
+        "SENTRY_AUTH_TOKEN": "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG": "rebelpug",
+        "SENTRY_PROJECT": "piggus"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "SENTRY_AUTH_TOKEN": "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG": "rebelpug",
+        "SENTRY_PROJECT": "piggus"
+      }
     },
     "production": {
       "developmentClient": false,
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "SENTRY_AUTH_TOKEN": "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG": "rebelpug",
+        "SENTRY_PROJECT": "piggus"
+      }
     }
   },
   "submit": {

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "piggus",
+    "name": "Piggus",
     "slug": "piggus",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,7 +39,15 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "piggus",
+          "organization": "rebelpug"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
