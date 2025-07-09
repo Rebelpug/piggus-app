@@ -238,13 +238,13 @@ export default function HomeScreen() {
                                 Start investing
                             </Text>
                             <Text style={[styles.noPortfolioSubtext, { color: colors.icon }]}>
-                                Create your first investment portfolio to track returns
+                                Add your first investment to start tracking returns
                             </Text>
                             <TouchableOpacity
                                 style={[styles.createPortfolioButton, { backgroundColor: colors.primary }]}
-                                onPress={() => router.push('/(protected)/create-portfolio')}
+                                onPress={() => router.push('/(protected)/add-investment')}
                             >
-                                <Text style={styles.createPortfolioButtonText}>Create Portfolio</Text>
+                                <Text style={styles.createPortfolioButtonText}>Create Investment</Text>
                             </TouchableOpacity>
                         </View>
                     )}
