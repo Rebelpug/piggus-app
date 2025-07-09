@@ -79,7 +79,6 @@ export default function InvestmentDetailScreen() {
                             if (!portfolioId || !investmentId) return;
 
                             await deleteInvestment(portfolioId, investmentId);
-                            Alert.alert('Success', 'Investment deleted successfully');
                             router.back();
                         } catch (error) {
                             console.error('Failed to delete investment:', error);
@@ -212,16 +211,16 @@ export default function InvestmentDetailScreen() {
                                 <Text style={[styles.totalAmount, { color: colors.icon }]}>
                                     {investment.data.quantity} units
                                 </Text>
-                                <View style={[styles.performanceBadge, { 
-                                    backgroundColor: gainLoss >= 0 ? '#4CAF50' + '20' : '#F44336' + '20' 
+                                <View style={[styles.performanceBadge, {
+                                    backgroundColor: gainLoss >= 0 ? '#4CAF50' + '20' : '#F44336' + '20'
                                 }]}>
-                                    <Ionicons 
-                                        name={gainLoss >= 0 ? "trending-up" : "trending-down"} 
-                                        size={12} 
-                                        color={gainLoss >= 0 ? '#4CAF50' : '#F44336'} 
+                                    <Ionicons
+                                        name={gainLoss >= 0 ? "trending-up" : "trending-down"}
+                                        size={12}
+                                        color={gainLoss >= 0 ? '#4CAF50' : '#F44336'}
                                     />
-                                    <Text style={[styles.performanceText, { 
-                                        color: gainLoss >= 0 ? '#4CAF50' : '#F44336' 
+                                    <Text style={[styles.performanceText, {
+                                        color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
                                     }]}>
                                         {gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%
                                     </Text>
@@ -247,16 +246,16 @@ export default function InvestmentDetailScreen() {
                         </View>
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>Gain/Loss:</Text>
-                            <Text style={[styles.detailValue, { 
-                                color: gainLoss >= 0 ? '#4CAF50' : '#F44336' 
+                            <Text style={[styles.detailValue, {
+                                color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
                                 {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, investment.data.currency)}
                             </Text>
                         </View>
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>Percentage:</Text>
-                            <Text style={[styles.detailValue, { 
-                                color: gainLoss >= 0 ? '#4CAF50' : '#F44336' 
+                            <Text style={[styles.detailValue, {
+                                color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
                                 {gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%
                             </Text>

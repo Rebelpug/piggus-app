@@ -103,7 +103,6 @@ export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProp
             });
 
             setBudgetModalVisible(false);
-            Alert.alert('Success', 'Budget has been set successfully!');
         } catch (error) {
             Alert.alert('Error', 'Failed to set budget. Please try again.');
         } finally {

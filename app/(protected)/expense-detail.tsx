@@ -75,7 +75,6 @@ export default function ExpenseDetailScreen() {
                             if (!groupId || !expenseId) return;
 
                             await deleteExpense(groupId, expenseId);
-                            Alert.alert('Success', 'Expense deleted successfully');
                             router.back();
                         } catch (error) {
                             console.error('Failed to delete expense:', error);

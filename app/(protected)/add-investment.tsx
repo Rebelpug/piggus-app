@@ -22,7 +22,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
-import { lookupISIN, ISINResult } from '@/client/piggusApi';
 
 const investmentTypes = [
     { id: 'stock', name: 'Stock', icon: 'trending-up' },
@@ -46,7 +45,7 @@ export default function AddInvestmentScreen() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLookingUp, setIsLookingUp] = useState(false);
-    const [isinResults, setIsinResults] = useState<ISINResult[]>([]);
+    //const [isinResults, setIsinResults] = useState<ISINResult[]>([]);
     const [showResults, setShowResults] = useState(false);
     const [selectedResultIndex, setSelectedResultIndex] = useState<IndexPath | undefined>(undefined);
 
@@ -72,7 +71,7 @@ export default function AddInvestmentScreen() {
     const selectedPortfolio = portfolios[selectedPortfolioIndex.row];
     const selectedType = investmentTypes[selectedTypeIndex.row];
     const selectedCurrency = currencies[selectedCurrencyIndex.row];
-    const selectedResult = selectedResultIndex ? isinResults[selectedResultIndex.row] : null;
+    //const selectedResult = selectedResultIndex ? isinResults[selectedResultIndex.row] : null;
 
     const validateForm = (): boolean => {
         const newErrors: { [key: string]: string } = {};
@@ -105,95 +104,93 @@ export default function AddInvestmentScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleISINLookup = async () => {
-        if (!formData.isin.trim()) {
-            Alert.alert('Error', 'Please enter an ISIN code');
-            return;
-        }
-
-        setIsLookingUp(true);
-        setIsinResults([]);
-        setShowResults(false);
-        setSelectedResultIndex(undefined);
-
-        try {
-            const response = await lookupISIN(formData.isin);
-
-            if (response.success && response.data) {
-                setIsinResults(response.data);
-
-                if (response.data.length === 1) {
-                    // Single result - prefill form
-                    const result = response.data[0];
-                    setFormData(prev => ({
-                        ...prev,
-                        name: result.Name,
-                        symbol: result.Code,
-                        exchange_market: result.Exchange,
-                        current_price: result.previousClose.toString(),
-                    }));
-
-                    // Set currency based on result
-                    const currencyIndex = currencies.findIndex(c => c === result.Currency);
-                    if (currencyIndex !== -1) {
-                        setSelectedCurrencyIndex(new IndexPath(currencyIndex));
-                    }
-
-                    // Set type based on result
-                    const typeIndex = investmentTypes.findIndex(t => t.id === result.Type.toLowerCase());
-                    if (typeIndex !== -1) {
-                        setSelectedTypeIndex(new IndexPath(typeIndex));
-                    }
-
-                    Alert.alert('Success', 'Investment details have been prefilled based on ISIN lookup.');
-                } else if (response.data.length > 1) {
-                    // Multiple results - show selection
-                    setShowResults(true);
-                } else {
-                    Alert.alert('No Results', 'No investment data found for this ISIN.');
-                }
-            } else {
-                Alert.alert('Error', response.error || 'Failed to lookup ISIN');
-            }
-        } catch (error) {
-            console.error('ISIN lookup error:', error);
-            Alert.alert('Error', 'An unexpected error occurred during ISIN lookup.');
-        } finally {
-            setIsLookingUp(false);
-        }
-    };
-
-    const handleConfirmSelection = () => {
-        if (!selectedResult) {
-            Alert.alert('Error', 'Please select an investment option');
-            return;
-        }
-
-        // Prefill form with selected result
-        setFormData(prev => ({
-            ...prev,
-            name: selectedResult.Name,
-            symbol: selectedResult.Code,
-            exchange_market: selectedResult.Exchange,
-            current_price: selectedResult.previousClose.toString(),
-        }));
-
-        // Set currency based on result
-        const currencyIndex = currencies.findIndex(c => c === selectedResult.Currency);
-        if (currencyIndex !== -1) {
-            setSelectedCurrencyIndex(new IndexPath(currencyIndex));
-        }
-
-        // Set type based on result
-        const typeIndex = investmentTypes.findIndex(t => t.id === selectedResult.Type.toLowerCase());
-        if (typeIndex !== -1) {
-            setSelectedTypeIndex(new IndexPath(typeIndex));
-        }
-
-        setShowResults(false);
-        setSelectedResultIndex(undefined);
-        Alert.alert('Success', 'Investment details have been prefilled.');
-    };
+    // const handleISINLookup = async () => {
+    //     if (!formData.isin.trim()) {
+    //         Alert.alert('Error', 'Please enter an ISIN code');
+    //         return;
+    //     }
+    //
+    //     setIsLookingUp(true);
+    //     setIsinResults([]);
+    //     setShowResults(false);
+    //     setSelectedResultIndex(undefined);
+    //
+    //     try {
+    //         const response = await lookupISIN(formData.isin);
+    //
+    //         if (response.success && response.data) {
+    //             setIsinResults(response.data);
+    //
+    //             if (response.data.length === 1) {
+    //                 // Single result - prefill form
+    //                 const result = response.data[0];
+    //                 setFormData(prev => ({
+    //                     ...prev,
+    //                     name: result.Name,
+    //                     symbol: result.Code,
+    //                     exchange_market: result.Exchange,
+    //                     current_price: result.previousClose.toString(),
+    //                 }));
+    //
+    //                 // Set currency based on result
+    //                 const currencyIndex = currencies.findIndex(c => c === result.Currency);
+    //                 if (currencyIndex !== -1) {
+    //                     setSelectedCurrencyIndex(new IndexPath(currencyIndex));
+    //                 }
+    //
+    //                 // Set type based on result
+    //                 const typeIndex = investmentTypes.findIndex(t => t.id === result.Type.toLowerCase());
+    //                 if (typeIndex !== -1) {
+    //                     setSelectedTypeIndex(new IndexPath(typeIndex));
+    //                 }
+    //             } else if (response.data.length > 1) {
+    //                 // Multiple results - show selection
+    //                 setShowResults(true);
+    //             } else {
+    //                 Alert.alert('No Results', 'No investment data found for this ISIN.');
+    //             }
+    //         } else {
+    //             Alert.alert('Error', response.error || 'Failed to lookup ISIN');
+    //         }
+    //     } catch (error) {
+    //         console.error('ISIN lookup error:', error);
+    //         Alert.alert('Error', 'An unexpected error occurred during ISIN lookup.');
+    //     } finally {
+    //         setIsLookingUp(false);
+    //     }
+    // };
+    //
+    // const handleConfirmSelection = () => {
+    //     if (!selectedResult) {
+    //         Alert.alert('Error', 'Please select an investment option');
+    //         return;
+    //     }
+    //
+    //     // Prefill form with selected result
+    //     setFormData(prev => ({
+    //         ...prev,
+    //         name: selectedResult.Name,
+    //         symbol: selectedResult.Code,
+    //         exchange_market: selectedResult.Exchange,
+    //         current_price: selectedResult.previousClose.toString(),
+    //     }));
+    //
+    //     // Set currency based on result
+    //     const currencyIndex = currencies.findIndex(c => c === selectedResult.Currency);
+    //     if (currencyIndex !== -1) {
+    //         setSelectedCurrencyIndex(new IndexPath(currencyIndex));
+    //     }
+    //
+    //     // Set type based on result
+    //     const typeIndex = investmentTypes.findIndex(t => t.id === selectedResult.Type.toLowerCase());
+    //     if (typeIndex !== -1) {
+    //         setSelectedTypeIndex(new IndexPath(typeIndex));
+    //     }
+    //
+    //     setShowResults(false);
+    //     setSelectedResultIndex(undefined);
+    //     Alert.alert('Success', 'Investment details have been prefilled.');
+    // };
 
     const handleSubmit = async () => {
         if (!validateForm()) {
@@ -334,14 +331,15 @@ export default function AddInvestmentScreen() {
                             style={[styles.input, styles.findButton]}
                             size='medium'
                             appearance='outline'
-                            onPress={handleISINLookup}
-                            disabled={isLookingUp || !formData.isin.trim()}
+                            onPress={() => {}}
+                            //disabled={isLookingUp || !formData.isin.trim()}
+                            disabled={true}
                             accessoryLeft={isLookingUp ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
                         >
-                            {isLookingUp ? 'Searching...' : 'Find (Premium)'}
+                            {isLookingUp ? 'Searching...' : 'Find (Coming soon)'}
                         </Button>
 
-                        {showResults && isinResults.length > 1 && (
+                        {/*{showResults && isinResults.length > 1 && (
                             <>
                                 <Select
                                     style={styles.input}
@@ -369,7 +367,7 @@ export default function AddInvestmentScreen() {
                                     Confirm Selection
                                 </Button>
                             </>
-                        )}
+                        )}*/}
                         <Select
                             style={styles.input}
                             label='Portfolio'

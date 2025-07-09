@@ -22,9 +22,9 @@ export default function CreatePortfolioScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { createPortfolio } = useInvestment();
-    
+
     const [loading, setLoading] = useState(false);
-    
+
     // Form state
     const [formData, setFormData] = useState({
         name: '',
@@ -40,7 +40,7 @@ export default function CreatePortfolioScreen() {
             Alert.alert('Validation Error', 'Please enter a portfolio name');
             return false;
         }
-        
+
         return true;
     };
 
@@ -52,15 +52,10 @@ export default function CreatePortfolioScreen() {
             const portfolioData: PortfolioData = {
                 name: formData.name.trim(),
                 description: formData.description.trim() || undefined,
+                private: false,
             };
 
             await createPortfolio(portfolioData);
-            
-            Alert.alert(
-                'Success',
-                'Portfolio created successfully!',
-                [{ text: 'OK', onPress: () => router.back() }]
-            );
         } catch (error) {
             console.error('Error creating portfolio:', error);
             Alert.alert('Error', 'Failed to create portfolio. Please try again.');
@@ -115,28 +110,28 @@ export default function CreatePortfolioScreen() {
 
                     <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>About Portfolios</Text>
-                        
+
                         <View style={styles.infoRow}>
                             <Ionicons name="folder-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
                                 Organize your investments into separate portfolios
                             </Text>
                         </View>
-                        
+
                         <View style={styles.infoRow}>
                             <Ionicons name="people-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
                                 Share portfolios with family or advisors
                             </Text>
                         </View>
-                        
+
                         <View style={styles.infoRow}>
                             <Ionicons name="analytics-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
                                 Track performance across different strategies
                             </Text>
                         </View>
-                        
+
                         <View style={styles.infoRow}>
                             <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>

@@ -41,19 +41,21 @@ export default function EditInvestmentScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { portfolios, updateInvestment, deleteInvestment } = useInvestment();
-    
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [investment, setInvestment] = useState<any>(null);
     const [portfolio, setPortfolio] = useState<any>(null);
-    
+
     // Form state
     const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedTypeIndex, setSelectedTypeIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
-    
+
     const [formData, setFormData] = useState({
         name: '',
+        isin: '',
+        exchange_market: '',
         symbol: '',
         quantity: '',
         purchase_price: '',
@@ -73,16 +75,18 @@ export default function EditInvestmentScreen() {
                 if (foundInvestment) {
                     setInvestment(foundInvestment);
                     setPortfolio(foundPortfolio);
-                    
+
                     // Pre-fill form data
                     setFormData({
                         name: foundInvestment.data.name || '',
+                        isin: foundInvestment.data.isin || '',
+                        exchange_market: foundInvestment.data.exchange_market || '',
                         symbol: foundInvestment.data.symbol || '',
                         quantity: foundInvestment.data.quantity?.toString() || '',
                         purchase_price: foundInvestment.data.purchase_price?.toString() || '',
                         current_price: foundInvestment.data.current_price?.toString() || '',
-                        purchase_date: foundInvestment.data.purchase_date 
-                            ? new Date(foundInvestment.data.purchase_date) 
+                        purchase_date: foundInvestment.data.purchase_date
+                            ? new Date(foundInvestment.data.purchase_date)
                             : new Date(),
                         notes: foundInvestment.data.notes || '',
                     });
@@ -152,35 +156,27 @@ export default function EditInvestmentScreen() {
         try {
             const investmentData: InvestmentData = {
                 name: formData.name.trim(),
-                symbol: formData.symbol.trim() || undefined,
+                isin: formData.isin.trim(),
+                exchange_market: formData.exchange_market.trim(),
+                symbol: formData.symbol.trim() || null,
                 type: selectedType.id,
                 quantity: Number(formData.quantity),
                 purchase_price: Number(formData.purchase_price),
-                current_price: formData.current_price ? Number(formData.current_price) : undefined,
+                current_price: formData.current_price ? Number(formData.current_price) : null,
                 purchase_date: formData.purchase_date.toISOString(),
                 currency: selectedCurrency,
-                notes: formData.notes.trim() || undefined,
+                last_updated: new Date().toISOString(),
+                notes: formData.notes.trim() || null,
             };
 
             const updatedInvestment = {
                 ...investment,
                 data: investmentData
             };
-            
+
             const result = await updateInvestment(selectedPortfolio.id, updatedInvestment);
 
-            if (result) {
-                Alert.alert(
-                    'Success',
-                    'Investment updated successfully!',
-                    [
-                        {
-                            text: 'OK',
-                            onPress: () => router.back()
-                        }
-                    ]
-                );
-            } else {
+            if (!result) {
                 Alert.alert('Error', 'Failed to update investment. Please try again.');
             }
         } catch (error) {
@@ -306,7 +302,7 @@ export default function EditInvestmentScreen() {
                     {/* Basic Information */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>Basic Information</Text>
-                        
+
                         <Select
                             label='Portfolio *'
                             selectedIndex={selectedPortfolioIndex}
@@ -329,6 +325,22 @@ export default function EditInvestmentScreen() {
                             status={errors.name ? 'danger' : 'basic'}
                         />
                         {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+                        <Input
+                            label='ISIN (Optional)'
+                            placeholder='e.g., IT9282990139'
+                            value={formData.isin}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text.toUpperCase() }))}
+                            style={styles.input}
+                        />
+
+                        <Input
+                            label='Exchange Market (Optional)'
+                            placeholder='e.g., MX'
+                            value={formData.exchange_market}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text.toUpperCase() }))}
+                            style={styles.input}
+                        />
 
                         <Input
                             label='Symbol (Optional)'
@@ -366,7 +378,7 @@ export default function EditInvestmentScreen() {
                     {/* Investment Details */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Details</Text>
-                        
+
                         <Input
                             label='Quantity *'
                             placeholder='Number of shares/units'

@@ -72,7 +72,6 @@ export default function GroupDetailScreen() {
             const result = await inviteUserToGroup(group.id, inviteUsername.trim());
 
             if (result.success) {
-                Alert.alert('Success', 'User invited successfully!');
                 setInviteModalVisible(false);
                 setInviteUsername('');
             } else {
@@ -99,9 +98,7 @@ export default function GroupDetailScreen() {
                     onPress: async () => {
                         try {
                             const result = await removeUserFromGroup(group.id, userId);
-                            if (result.success) {
-                                Alert.alert('Success', 'Member removed successfully');
-                            } else {
+                            if (!result.success) {
                                 Alert.alert('Error', result.error || 'Failed to remove member');
                             }
                         } catch (error) {
@@ -119,13 +116,7 @@ export default function GroupDetailScreen() {
         try {
             const result = await handleGroupInvitation(group.id, accept);
 
-            if (result.success) {
-                Alert.alert(
-                    'Success',
-                    accept ? 'Invitation accepted!' : 'Invitation declined',
-                    [{ text: 'OK', onPress: () => router.back() }]
-                );
-            } else {
+            if (!result.success) {
                 Alert.alert('Error', result.error || 'Failed to handle invitation');
             }
         } catch (error) {

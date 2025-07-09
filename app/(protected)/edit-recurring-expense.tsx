@@ -50,7 +50,7 @@ export default function EditRecurringExpenseScreen() {
     const { recurringExpenseId, groupId } = useLocalSearchParams<{ recurringExpenseId: string, groupId: string }>();
     const { expensesGroups, recurringExpenses, updateRecurringExpense } = useExpense();
     const { userProfile } = useProfile();
-    
+
     // Compute categories with user's customizations
     const availableCategories = computeExpenseCategories(
         userProfile?.profile?.budgeting?.categoryOverrides
@@ -71,7 +71,7 @@ export default function EditRecurringExpenseScreen() {
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [hasEndDate, setHasEndDate] = useState(false);
     const [isActive, setIsActive] = useState(true);
-    
+
     // Sharing state
     const [selectedPayerIndex, setSelectedPayerIndex] = useState<IndexPath | undefined>();
     const [selectedSplitMethodIndex, setSelectedSplitMethodIndex] = useState<IndexPath>(new IndexPath(0)); // Default to equal split
@@ -91,7 +91,7 @@ export default function EditRecurringExpenseScreen() {
         setRecurringExpense(foundRecurringExpense);
         setGroupName(group.data?.name || 'Unknown Group');
         setGroupMembers(group.members || []);
-        
+
         // Populate form with existing recurring expense data
         setName(foundRecurringExpense.data.name);
         setDescription(foundRecurringExpense.data.description || '');
@@ -110,10 +110,10 @@ export default function EditRecurringExpenseScreen() {
         if (categoryIndex === -1) {
             const categoryInfo = getCategoryDisplayInfo(foundRecurringExpense.data.category, userProfile?.profile?.budgeting?.categoryOverrides);
             categoryIndex = availableCategories.length;
-            availableCategories.push({ 
-                id: foundRecurringExpense.data.category, 
-                name: `${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`, 
-                icon: categoryInfo.icon 
+            availableCategories.push({
+                id: foundRecurringExpense.data.category,
+                name: `${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`,
+                icon: categoryInfo.icon
             });
         }
         setSelectedCategoryIndex(new IndexPath(categoryIndex));
@@ -236,12 +236,8 @@ export default function EditRecurringExpenseScreen() {
 
             const result = await updateRecurringExpense(groupId, updatedRecurringExpense);
 
-            if (result.success) {
-                Alert.alert('Success', 'Recurring expense updated successfully', [
-                    { text: 'OK', onPress: () => router.back() }
-                ]);
-            } else {
-                Alert.alert('Error', result.error || 'Failed to update recurring expense');
+            if (!result?.data) {
+                Alert.alert('Error', 'Failed to update recurring expense');
             }
         } catch (error: any) {
             console.error('Failed to update recurring expense:', error);
@@ -253,7 +249,7 @@ export default function EditRecurringExpenseScreen() {
 
     const handleParticipantToggle = (member: any) => {
         const isParticipant = participants.some(p => p.user_id === member.user_id);
-        
+
         if (isParticipant) {
             setParticipants(prev => prev.filter(p => p.user_id !== member.user_id));
             // Remove from custom amounts
@@ -269,7 +265,7 @@ export default function EditRecurringExpenseScreen() {
                 share_amount: 0, // Will be calculated based on split method
             };
             setParticipants(prev => [...prev, newParticipant]);
-            
+
             // Initialize custom amount
             if (selectedSplitMethodIndex.row === 1) { // Custom split
                 setCustomAmounts(prev => ({
@@ -351,7 +347,7 @@ export default function EditRecurringExpenseScreen() {
                     {/* Basic Information */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>Basic Information</Text>
-                        
+
                         <Input
                             label='Name'
                             placeholder='Enter recurring expense name'
@@ -408,7 +404,7 @@ export default function EditRecurringExpenseScreen() {
                     {/* Schedule */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>Schedule</Text>
-                        
+
                         <Select
                             label='Frequency'
                             selectedIndex={selectedIntervalIndex}
@@ -458,7 +454,7 @@ export default function EditRecurringExpenseScreen() {
                     {groupMembers.length > 1 && (
                         <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
                             <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
-                        
+
                         <Select
                             label='Paid by'
                             placeholder='Select who pays'
@@ -468,9 +464,9 @@ export default function EditRecurringExpenseScreen() {
                             style={styles.input}
                         >
                             {groupMembers.map((member, index) => (
-                                <SelectItem 
-                                    key={index} 
-                                    title={`${member.username}${member.user_id === user?.id ? ' (You)' : ''}`} 
+                                <SelectItem
+                                    key={index}
+                                    title={`${member.username}${member.user_id === user?.id ? ' (You)' : ''}`}
                                 />
                             ))}
                         </Select>
@@ -493,11 +489,11 @@ export default function EditRecurringExpenseScreen() {
                     {groupMembers.length > 1 && (
                         <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
                             <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
-                            
+
                             {groupMembers.map((member, index) => {
                                 const isParticipant = participants.some(p => p.user_id === member.user_id);
                                 const isCurrentUser = member.user_id === user?.id;
-                                
+
                                 return (
                                     <View key={member.user_id} style={styles.participantRow}>
                                         <View style={styles.participantInfo}>
@@ -509,7 +505,7 @@ export default function EditRecurringExpenseScreen() {
                                                 {member.username}{isCurrentUser ? ' (You)' : ''}
                                             </Text>
                                         </View>
-                                        
+
                                         {isParticipant && selectedSplitMethodIndex.row === 1 && (
                                             <Input
                                                 placeholder='0.00'
@@ -519,7 +515,7 @@ export default function EditRecurringExpenseScreen() {
                                                 style={styles.customAmountInput}
                                             />
                                         )}
-                                        
+
                                         {isParticipant && selectedSplitMethodIndex.row === 0 && (
                                             <Text style={[styles.shareAmount, { color: colors.text }]}>
                                                 {participants.find(p => p.user_id === member.user_id)?.share_amount.toFixed(2) || '0.00'}

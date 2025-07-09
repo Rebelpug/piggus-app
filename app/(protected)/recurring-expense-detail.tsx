@@ -76,7 +76,6 @@ export default function RecurringExpenseDetailScreen() {
                             if (!groupId || !recurringExpenseId) return;
 
                             await deleteRecurringExpense(groupId, recurringExpenseId);
-                            Alert.alert('Success', 'Recurring expense deleted successfully');
                             router.back();
                         } catch (error) {
                             console.error('Failed to delete recurring expense:', error);

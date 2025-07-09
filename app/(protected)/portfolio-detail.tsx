@@ -77,7 +77,6 @@ export default function PortfolioDetailScreen() {
             const result = await inviteUserToPortfolio(portfolio.id, inviteUsername.trim());
 
             if (result.success) {
-                Alert.alert('Success', 'User invited successfully!');
                 setInviteModalVisible(false);
                 setInviteUsername('');
             } else {
@@ -185,7 +184,7 @@ export default function PortfolioDetailScreen() {
             return null;
         }
 
-        const currentValue = item.data.current_value || (item.data.quantity * (item.data.current_price || item.data.purchase_price));
+        const currentValue = item.data.quantity * (item.data.current_price || item.data.purchase_price);
         const initialValue = item.data.quantity * item.data.purchase_price;
         const gainLoss = currentValue - initialValue;
         const gainLossPercentage = initialValue > 0 ? (gainLoss / initialValue) * 100 : 0;
@@ -295,17 +294,17 @@ export default function PortfolioDetailScreen() {
         // Calculate performance by type
         const performanceByType = portfolio.investments.reduce((acc, investment) => {
             const type = investment.data.type;
-            const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+            const currentValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
             const initialValue = investment.data.quantity * investment.data.purchase_price;
-            
+
             if (!acc[type]) {
                 acc[type] = { currentValue: 0, initialValue: 0, count: 0 };
             }
-            
+
             acc[type].currentValue += currentValue;
             acc[type].initialValue += initialValue;
             acc[type].count += 1;
-            
+
             return acc;
         }, {} as Record<string, { currentValue: number; initialValue: number; count: number }>);
 
@@ -317,7 +316,7 @@ export default function PortfolioDetailScreen() {
                             const gainLoss = data.currentValue - data.initialValue;
                             const gainLossPercentage = data.initialValue > 0 ? (gainLoss / data.initialValue) * 100 : 0;
                             const typeInfo = investmentTypes.find(t => t.id === type);
-                            
+
                             return (
                                 <Card key={type} style={[styles.performanceCard, { backgroundColor: colors.card }]}>
                                     <View style={styles.performanceHeader}>
@@ -400,7 +399,7 @@ export default function PortfolioDetailScreen() {
 
     const totalValue = portfolio.investments?.reduce((sum, investment) => {
         try {
-            const currentValue = investment.data.current_value || (investment.data.quantity * (investment.data.current_price || investment.data.purchase_price));
+            const currentValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
             return sum + currentValue;
         } catch {
             return sum;

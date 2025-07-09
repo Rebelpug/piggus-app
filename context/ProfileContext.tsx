@@ -202,7 +202,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 setUserProfile(result.data);
-                Alert.alert('Profile updated', 'Your profile has been updated successfully.');
             } catch (error: any) {
                 console.error('Error updating profile:', error);
                 setError(error.message || 'Failed to update profile');
