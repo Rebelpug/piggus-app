@@ -65,7 +65,8 @@ export const apiCreateProfile = async (
   user: User,
   username: string,
   encryptData: (data: any) => Promise<string | null>,
-  decryptData: (encryptedData: string) => Promise<any>
+  decryptData: (encryptedData: string) => Promise<any>,
+  defaultCurrency: string = 'EUR'
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
     if (!user || !encryptData || !decryptData) {
@@ -95,6 +96,7 @@ export const apiCreateProfile = async (
       name: null,
       avatar_url: null,
       bio: null,
+      defaultCurrency: defaultCurrency,
     };
 
     // Encrypt the profile data

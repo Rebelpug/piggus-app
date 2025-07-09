@@ -139,31 +139,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 setLoading(true);
 
                 // Create profile using the API function
-                const result = await apiCreateProfile(user, username, encryptData, decryptData);
+                const result = await apiCreateProfile(user, username, encryptData, decryptData, defaultCurrency);
 
                 if (!result.data) {
                     throw new Error(result.error || 'Failed to create profile');
                 }
 
-                // Initialize with default currency in profile
-                const profileWithCurrency = {
-                    ...result.data,
-                    profile: {
-                        ...result.data.profile,
-                        defaultCurrency: defaultCurrency
-                    }
-                };
-
                 await initialisePersonalExpensesGroup(username, defaultCurrency);
                 await initialisePersonalPortfolio(username);
 
-                // Update the profile with the default currency
-                await updateProfile({ defaultCurrency: defaultCurrency });
-
-                setUserProfile(profileWithCurrency);
+                setUserProfile(result.data);
                 setLoading(false);
                 setProfileInitialized(true);
-                return profileWithCurrency;
+                return result.data;
             } catch (error: any) {
                 console.error('Error creating profile:', error);
                 setError(error.message || 'Failed to create profile');
