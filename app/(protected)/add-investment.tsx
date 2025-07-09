@@ -447,7 +447,7 @@ export default function AddInvestmentScreen() {
                         <Input
                             style={styles.input}
                             label='Current Price per Unit (Optional)'
-                            placeholder='Leave empty to use purchase price'
+                            placeholder='0.00'
                             value={formData.current_price}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, current_price: text }))}
                             keyboardType='decimal-pad'
