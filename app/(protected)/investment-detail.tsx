@@ -163,7 +163,78 @@ export default function InvestmentDetailScreen() {
         );
     }
 
-    const currentValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
+    // Bond-specific calculations
+    const calculateBondInterestReturn = () => {
+        if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
+        
+        const quantity = investment.data.quantity || 0;
+        const purchasePrice = investment.data.purchase_price || 0;
+        const interestRate = investment.data.interest_rate || 0;
+        
+        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
+        
+        const initialValue = quantity * purchasePrice;
+        
+        // Calculate time periods
+        const currentDate = new Date();
+        const purchaseDate = new Date(investment.data.purchase_date);
+        const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
+        
+        // Determine the end date for interest calculation
+        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+        
+        // Calculate days since purchase until end date
+        const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+        const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
+        
+        // For demonstration purposes, if purchase date is today, use 1 year as example
+        const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
+        
+        // Calculate annual interest return
+        const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
+        
+        console.log('INVESTMENT DETAIL Bond interest calculation:', {
+            investmentType: investment.data.type,
+            quantity,
+            purchasePrice,
+            interestRate,
+            initialValue,
+            daysSincePurchase,
+            yearsSincePurchase,
+            yearsForCalculation,
+            annualInterestReturn
+        });
+        
+        return annualInterestReturn;
+    };
+
+    const getBondStatus = () => {
+        if (investment.data.type !== 'bond' || !investment.data.maturity_date) return 'active';
+        
+        const currentDate = new Date();
+        const maturityDate = new Date(investment.data.maturity_date);
+        
+        return currentDate >= maturityDate ? 'matured' : 'active';
+    };
+
+    const getDaysToMaturity = () => {
+        if (investment.data.type !== 'bond' || !investment.data.maturity_date) return null;
+        
+        const currentDate = new Date();
+        const maturityDate = new Date(investment.data.maturity_date);
+        
+        if (currentDate >= maturityDate) {
+            return 0;
+        }
+        
+        const daysToMaturity = Math.floor((maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+        return daysToMaturity;
+    };
+
+    const isBond = investment.data.type === 'bond';
+    const interestEarned = calculateBondInterestReturn();
+    const marketValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
+    const currentValue = isBond ? marketValue + interestEarned : marketValue;
     const totalInvestment = investment.data.quantity * investment.data.purchase_price;
     const gainLoss = currentValue - totalInvestment;
     const gainLossPercentage = totalInvestment > 0 ? ((gainLoss / totalInvestment) * 100) : 0;
@@ -238,14 +309,41 @@ export default function InvestmentDetailScreen() {
                                 {formatCurrency(totalInvestment, investment.data.currency)}
                             </Text>
                         </View>
+                        
+                        {isBond && interestEarned > 0 && (
+                            <>
+                                <View style={styles.detailRow}>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Market Value:</Text>
+                                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                                        {formatCurrency(marketValue, investment.data.currency)}
+                                    </Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Interest Earned:</Text>
+                                    <Text style={[styles.detailValue, { color: '#4CAF50' }]}>
+                                        {formatCurrency(interestEarned, investment.data.currency)}
+                                    </Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Total Current Value:</Text>
+                                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                                        {formatCurrency(currentValue, investment.data.currency)}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
+                        
+                        {!isBond && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Current Value:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {formatCurrency(currentValue, investment.data.currency)}
+                                </Text>
+                            </View>
+                        )}
+                        
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Current Value:</Text>
-                            <Text style={[styles.detailValue, { color: colors.text }]}>
-                                {formatCurrency(currentValue, investment.data.currency)}
-                            </Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Gain/Loss:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Total Gain/Loss:</Text>
                             <Text style={[styles.detailValue, {
                                 color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
@@ -291,12 +389,50 @@ export default function InvestmentDetailScreen() {
                                 </Text>
                             </View>
                         )}
+                        
+                        {isBond && investment.data.interest_rate && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Interest Rate:</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {investment.data.interest_rate}% per year
+                                </Text>
+                            </View>
+                        )}
+                        
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>Purchase Date:</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatDate(investment.data.purchase_date)}
                             </Text>
                         </View>
+                        
+                        {isBond && investment.data.maturity_date && (
+                            <>
+                                <View style={styles.detailRow}>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Maturity Date:</Text>
+                                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                                        {formatDate(investment.data.maturity_date)}
+                                    </Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Status:</Text>
+                                    <Text style={[styles.detailValue, { 
+                                        color: getBondStatus() === 'matured' ? '#FF9800' : '#4CAF50'
+                                    }]}>
+                                        {getBondStatus() === 'matured' ? 'Matured' : 'Active'}
+                                    </Text>
+                                </View>
+                                {getDaysToMaturity() !== null && getBondStatus() === 'active' && (
+                                    <View style={styles.detailRow}>
+                                        <Text style={[styles.detailLabel, { color: colors.icon }]}>Days to Maturity:</Text>
+                                        <Text style={[styles.detailValue, { color: colors.text }]}>
+                                            {getDaysToMaturity()} days
+                                        </Text>
+                                    </View>
+                                )}
+                            </>
+                        )}
+                        
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>Currency:</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>

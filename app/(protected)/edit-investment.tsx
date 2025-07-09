@@ -69,6 +69,8 @@ export default function EditInvestmentScreen() {
         current_price: '',
         purchase_date: new Date(),
         notes: '',
+        interest_rate: '',
+        maturity_date: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000), // 5 years from now
     });
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -96,6 +98,10 @@ export default function EditInvestmentScreen() {
                             ? new Date(foundInvestment.data.purchase_date)
                             : new Date(),
                         notes: foundInvestment.data.notes || '',
+                        interest_rate: foundInvestment.data.interest_rate?.toString() || '',
+                        maturity_date: foundInvestment.data.maturity_date
+                            ? new Date(foundInvestment.data.maturity_date)
+                            : new Date(),
                     });
 
                     // Set selected indices
@@ -145,6 +151,14 @@ export default function EditInvestmentScreen() {
             newErrors.current_price = 'Current price must be a positive number';
         }
 
+        if (selectedType.id === 'bond' && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
+            newErrors.interest_rate = 'Interest rate must be a positive number';
+        }
+
+        if (selectedType.id === 'bond' && formData.maturity_date && formData.maturity_date <= formData.purchase_date) {
+            newErrors.maturity_date = 'Maturity date must be after purchase date';
+        }
+
         if (!selectedPortfolio) {
             newErrors.portfolio = 'Please select a portfolio';
         }
@@ -174,6 +188,8 @@ export default function EditInvestmentScreen() {
                 currency: selectedCurrency,
                 last_updated: new Date().toISOString(),
                 notes: formData.notes.trim() || null,
+                interest_rate: selectedType.id === 'bond' && formData.interest_rate ? Number(formData.interest_rate) : null,
+                maturity_date: selectedType.id === 'bond' && formData.maturity_date ? formData.maturity_date.toISOString() : null,
             };
 
             const updatedInvestment = {
@@ -241,7 +257,15 @@ export default function EditInvestmentScreen() {
     const calculateCurrentValue = () => {
         const quantity = Number(formData.quantity) || 0;
         const currentPrice = Number(formData.current_price) || Number(formData.purchase_price) || 0;
-        return quantity * currentPrice;
+        const marketValue = quantity * currentPrice;
+        
+        // For bonds, add accrued interest to the current value
+        if (selectedType.id === 'bond') {
+            const interestReturn = calculateBondInterestReturn();
+            return marketValue + interestReturn;
+        }
+        
+        return marketValue;
     };
 
     const calculateGainLoss = () => {
@@ -249,8 +273,105 @@ export default function EditInvestmentScreen() {
         const purchasePrice = Number(formData.purchase_price) || 0;
         const currentPrice = Number(formData.current_price) || purchasePrice;
         const initialValue = quantity * purchasePrice;
-        const currentValue = quantity * currentPrice;
-        return currentValue - initialValue;
+        const currentMarketValue = quantity * currentPrice;
+        
+        // For bonds, the gain/loss should include both market value change AND interest earned
+        if (selectedType.id === 'bond') {
+            const interestReturn = calculateBondInterestReturn();
+            const totalCurrentValue = currentMarketValue + interestReturn;
+            return totalCurrentValue - initialValue;
+        }
+        
+        return currentMarketValue - initialValue;
+    };
+
+    const calculateBondInterestReturn = () => {
+        console.log('=== calculateBondInterestReturn DEBUG ===');
+        console.log('selectedType:', selectedType);
+        console.log('selectedType.id:', selectedType?.id);
+        console.log('formData.interest_rate:', formData.interest_rate);
+        console.log('formData:', formData);
+        
+        if (selectedType?.id !== 'bond') {
+            console.log('Not a bond, returning 0');
+            return 0;
+        }
+        
+        if (!formData.interest_rate || formData.interest_rate === '') {
+            console.log('No interest rate, returning 0');
+            return 0;
+        }
+        
+        const quantity = Number(formData.quantity) || 0;
+        const purchasePrice = Number(formData.purchase_price) || 0;
+        const interestRate = Number(formData.interest_rate) || 0;
+        
+        console.log('Parsed values:', { quantity, purchasePrice, interestRate });
+        
+        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) {
+            console.log('One of the values is 0, returning 0');
+            return 0;
+        }
+        
+        const initialValue = quantity * purchasePrice;
+        
+        // Calculate time periods
+        const currentDate = new Date();
+        const purchaseDate = formData.purchase_date;
+        const maturityDate = formData.maturity_date;
+        
+        console.log('Dates:', { currentDate, purchaseDate, maturityDate });
+        
+        // Determine the end date for interest calculation (current date or maturity date, whichever is earlier)
+        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+        
+        // Calculate days since purchase until end date
+        const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+        const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
+        
+        // For demonstration purposes, if purchase date is today, use 1 year as example
+        const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
+        
+        // Calculate annual interest return
+        const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
+        
+        console.log('Final calculation:', {
+            initialValue,
+            interestRate,
+            daysSincePurchase,
+            yearsSincePurchase,
+            yearsForCalculation,
+            annualInterestReturn
+        });
+        
+        return annualInterestReturn;
+    };
+
+    const getBondStatus = () => {
+        if (selectedType.id !== 'bond' || !formData.maturity_date) return 'active';
+        
+        const currentDate = new Date();
+        const maturityDate = formData.maturity_date;
+        
+        if (currentDate >= maturityDate) {
+            return 'matured';
+        } else {
+            return 'active';
+        }
+    };
+
+    const getDaysToMaturity = () => {
+        if (selectedType.id !== 'bond' || !formData.maturity_date) return null;
+        
+        const currentDate = new Date();
+        const maturityDate = formData.maturity_date;
+        
+        if (currentDate >= maturityDate) {
+            return 0;
+        }
+        
+        const daysToMaturity = Math.floor((maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+        return daysToMaturity;
     };
 
     const formatCurrency = (amount: number) => {
@@ -418,6 +539,32 @@ export default function EditInvestmentScreen() {
                             Coming soon premium feature: In the future, current prices will be updated automatically
                         </Text>
 
+                        {selectedType.id === 'bond' && (
+                            <>
+                                <Input
+                                    label='Interest Rate (% per year)'
+                                    placeholder='e.g., 3.5'
+                                    value={formData.interest_rate}
+                                    onChangeText={(text) => setFormData(prev => ({ ...prev, interest_rate: text }))}
+                                    keyboardType='numeric'
+                                    style={[styles.input, errors.interest_rate && styles.inputError]}
+                                    status={errors.interest_rate ? 'danger' : 'basic'}
+                                />
+                                {errors.interest_rate && <Text style={styles.errorText}>{errors.interest_rate}</Text>}
+                                
+                                <Datepicker
+                                    label='Maturity Date'
+                                    date={formData.maturity_date}
+                                    onSelect={(date) => setFormData(prev => ({ ...prev, maturity_date: date }))}
+                                    style={[styles.input, errors.maturity_date && styles.inputError]}
+                                    status={errors.maturity_date ? 'danger' : 'basic'}
+                                    min={new Date(formData.purchase_date.getTime() + 24 * 60 * 60 * 1000)}
+                                    max={new Date(2050, 11, 31)}
+                                />
+                                {errors.maturity_date && <Text style={styles.errorText}>{errors.maturity_date}</Text>}
+                            </>
+                        )}
+
                         <Datepicker
                             label='Purchase Date *'
                             date={formData.purchase_date}
@@ -450,25 +597,81 @@ export default function EditInvestmentScreen() {
                             </View>
                             {formData.current_price && (
                                 <>
-                                    <View style={styles.summaryRow}>
-                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                            Current Value:
-                                        </Text>
-                                        <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                            {formatCurrency(calculateCurrentValue())}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.summaryRow}>
-                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                            Gain/Loss:
-                                        </Text>
-                                        <Text style={[
-                                            styles.summaryValue,
-                                            { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
-                                        ]}>
-                                            {formatCurrency(calculateGainLoss())}
-                                        </Text>
-                                    </View>
+                                    {selectedType.id === 'bond' && formData.interest_rate ? (
+                                        <>
+                                            <View style={styles.summaryRow}>
+                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                    Market Value:
+                                                </Text>
+                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                                    {formatCurrency(Number(formData.quantity) * Number(formData.current_price))}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.summaryRow}>
+                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                    Interest Earned:
+                                                </Text>
+                                                <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+                                                    {formatCurrency(calculateBondInterestReturn())}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.summaryRow}>
+                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                    Total Current Value:
+                                                </Text>
+                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                                    {formatCurrency(calculateCurrentValue())}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.summaryRow}>
+                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                    Total Gain/Loss:
+                                                </Text>
+                                                <Text style={[
+                                                    styles.summaryValue,
+                                                    { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
+                                                ]}>
+                                                    {formatCurrency(calculateGainLoss())}
+                                                </Text>
+                                            </View>
+                                            
+                                            {getDaysToMaturity() !== null && (
+                                                <View style={styles.summaryRow}>
+                                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                        Days to Maturity:
+                                                    </Text>
+                                                    <Text style={[
+                                                        styles.summaryValue, 
+                                                        { color: getBondStatus() === 'matured' ? '#FF9800' : colors.text }
+                                                    ]}>
+                                                        {getBondStatus() === 'matured' ? 'Matured' : `${getDaysToMaturity()} days`}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <View style={styles.summaryRow}>
+                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                    Current Value:
+                                                </Text>
+                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                                    {formatCurrency(calculateCurrentValue())}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.summaryRow}>
+                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                    Gain/Loss:
+                                                </Text>
+                                                <Text style={[
+                                                    styles.summaryValue,
+                                                    { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
+                                                ]}>
+                                                    {formatCurrency(calculateGainLoss())}
+                                                </Text>
+                                            </View>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </Card>

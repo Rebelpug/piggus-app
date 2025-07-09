@@ -25,6 +25,39 @@ export default function HomeScreen() {
     const { portfolios } = useInvestment();
     const [refreshing, setRefreshing] = useState(false);
 
+    // Helper function to calculate bond interest
+    const calculateBondInterest = (investment: any) => {
+        if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
+        
+        const quantity = investment.data.quantity || 0;
+        const purchasePrice = investment.data.purchase_price || 0;
+        const interestRate = investment.data.interest_rate || 0;
+        
+        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
+        
+        const initialValue = quantity * purchasePrice;
+        
+        // Calculate time periods
+        const currentDate = new Date();
+        const purchaseDate = new Date(investment.data.purchase_date);
+        const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
+        
+        // Determine the end date for interest calculation
+        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+        
+        // Calculate days since purchase until end date
+        const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+        const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
+        
+        // For demonstration purposes, if purchase date is today, use 1 year as example
+        const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
+        
+        // Calculate annual interest return
+        const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
+        
+        return annualInterestReturn;
+    };
+
     // Calculate investment portfolio returns
     const portfolioReturns = useMemo(() => {
         const now = new Date();
@@ -44,23 +77,37 @@ export default function HomeScreen() {
                 const quantity = investment.data.quantity;
                 const currentPrice = investment.data.current_price;
                 const purchaseDate = new Date(investment.data.purchase_date);
+                const isBond = investment.data.type === 'bond';
 
                 totalInvested += purchasePrice * quantity;
 
+                // Calculate bond interest if applicable
+                const bondInterest = calculateBondInterest(investment);
+
                 if (currentPrice !== null && currentPrice > 0) {
-                    currentValue += currentPrice * quantity;
+                    const marketValue = currentPrice * quantity;
+                    const totalCurrentValue = isBond ? marketValue + bondInterest : marketValue;
+                    currentValue += totalCurrentValue;
                     hasCurrentPrices = true;
 
                     // For year-to-date calculation, use purchase price if bought this year, otherwise use current price
                     if (purchaseDate >= startOfYear) {
                         yearStartValue += purchasePrice * quantity;
                     } else {
-                        yearStartValue += currentPrice * quantity; // Approximation - ideally we'd have historical prices
+                        // For bonds, include estimated interest from start of year
+                        if (isBond) {
+                            const startYearInterest = calculateBondInterestFromDate(investment, startOfYear);
+                            yearStartValue += marketValue + startYearInterest;
+                        } else {
+                            yearStartValue += marketValue; // Approximation - ideally we'd have historical prices
+                        }
                     }
                 } else {
-                    // If no current price, use purchase price as fallback
-                    currentValue += purchasePrice * quantity;
-                    yearStartValue += purchasePrice * quantity;
+                    // If no current price, use purchase price as fallback + bond interest
+                    const marketValue = purchasePrice * quantity;
+                    const totalCurrentValue = isBond ? marketValue + bondInterest : marketValue;
+                    currentValue += totalCurrentValue;
+                    yearStartValue += marketValue;
                 }
             });
         });
@@ -82,6 +129,39 @@ export default function HomeScreen() {
             hasCurrentPrices
         };
     }, [portfolios]);
+
+    // Helper function to calculate bond interest from a specific date
+    const calculateBondInterestFromDate = (investment: any, fromDate: Date) => {
+        if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
+        
+        const quantity = investment.data.quantity || 0;
+        const purchasePrice = investment.data.purchase_price || 0;
+        const interestRate = investment.data.interest_rate || 0;
+        
+        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
+        
+        const initialValue = quantity * purchasePrice;
+        const currentDate = new Date();
+        const purchaseDate = new Date(investment.data.purchase_date);
+        const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
+        
+        // Use the later of purchase date or from date as start
+        const startDate = purchaseDate > fromDate ? purchaseDate : fromDate;
+        
+        // Determine the end date for interest calculation
+        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+        
+        if (startDate >= endDate) return 0;
+        
+        // Calculate days from start date until end date
+        const daysSinceStart = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const yearsSinceStart = Math.max(0, daysSinceStart / 365.25);
+        
+        // Calculate interest return from start date
+        const interestReturn = initialValue * (interestRate / 100) * yearsSinceStart;
+        
+        return interestReturn;
+    };
 
     const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
 
