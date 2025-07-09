@@ -11,9 +11,10 @@ import { Colors } from '@/constants/Colors';
 
 interface BudgetCardProps {
     selectedMonth?: string; // 'current' for default behavior, or specific month like '2025-05'
+    variant?: 'default' | 'list'; // 'default' for index screen, 'list' for expenses screen
 }
 
-export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProps) {
+export default function BudgetCard({ selectedMonth = 'current', variant = 'default' }: BudgetCardProps) {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
@@ -131,7 +132,11 @@ export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProp
 
     return (
         <>
-            <View style={[styles.budgetCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+            <View style={[
+                styles.budgetCard,
+                variant === 'list' && styles.budgetCardList,
+                { backgroundColor: colors.card, shadowColor: colors.text }
+            ]}>
                 <View style={styles.budgetHeader}>
                     <Text style={[styles.budgetTitle, { color: colors.text }]}>Monthly Budget</Text>
                     {budget ? (
@@ -254,14 +259,18 @@ export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProp
 
 const styles = StyleSheet.create({
     budgetCard: {
-        marginBottom: 8,
-        padding: 16,
+        marginBottom: 24,
+        padding: 24,
         borderRadius: 20,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 4,
+    },
+    budgetCardList: {
         marginHorizontal: 20,
+        marginBottom: 16,
+        padding: 16,
     },
     budgetHeader: {
         flexDirection: 'row',

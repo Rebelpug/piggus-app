@@ -281,7 +281,7 @@ export default function ExpensesScreen() {
     );
 
     const renderExpensesHeader = () => {
-        return <BudgetCard selectedMonth={selectedMonth} />;
+        return <BudgetCard selectedMonth={selectedMonth} variant="list" />;
     };
 
     const renderRecurringHeader = () => {
