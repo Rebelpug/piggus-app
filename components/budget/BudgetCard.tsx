@@ -149,7 +149,7 @@ export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProp
                                     {formatCurrency(currentMonthData.totalSpent)}
                                 </Text>
                                 <Text style={[styles.budgetSpentLabel, { color: colors.icon }]}>
-                                    {selectedMonth === 'current' ? 'Spent this month' : 'Spent this period'}
+                                    {selectedMonth === 'current' ? 'Spending this month' : 'Spending this period'}
                                 </Text>
                             </View>
                             <View style={styles.budgetRemaining}>
@@ -184,10 +184,6 @@ export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProp
                                 </Text>
                             </View>
                         </View>
-
-                        <Text style={[styles.budgetTotal, { color: colors.icon }]}>
-                            Total Budget: {formatCurrency(budgetAmount_profile)}
-                        </Text>
                     </View>
                 ) : (
                     <View style={styles.noBudgetContainer}>
@@ -258,8 +254,8 @@ export default function BudgetCard({ selectedMonth = 'current' }: BudgetCardProp
 
 const styles = StyleSheet.create({
     budgetCard: {
-        marginBottom: 24,
-        padding: 24,
+        marginBottom: 8,
+        padding: 16,
         borderRadius: 20,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -308,7 +304,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     progressContainer: {
-        marginBottom: 16,
+        marginBottom: 4,
     },
     progressTrack: {
         height: 8,
