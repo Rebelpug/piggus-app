@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
+import { useProfile } from '@/context/ProfileContext';
 import { InvestmentData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -42,6 +43,7 @@ export default function AddInvestmentScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { portfolios, addInvestment } = useInvestment();
+    const { userProfile } = useProfile();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLookingUp, setIsLookingUp] = useState(false);
@@ -49,10 +51,15 @@ export default function AddInvestmentScreen() {
     const [showResults, setShowResults] = useState(false);
     const [selectedResultIndex, setSelectedResultIndex] = useState<IndexPath | undefined>(undefined);
 
+    // Get user's default currency and find its index
+    const userDefaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
+    const defaultCurrencyIndex = currencies.findIndex(c => c === userDefaultCurrency);
+    const initialCurrencyIndex = defaultCurrencyIndex >= 0 ? defaultCurrencyIndex : 0;
+
     // Form state
     const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedTypeIndex, setSelectedTypeIndex] = useState<IndexPath>(new IndexPath(0));
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(initialCurrencyIndex));
 
     const [formData, setFormData] = useState({
         isin: '',
@@ -208,7 +215,7 @@ export default function AddInvestmentScreen() {
                 exchange_market: formData.exchange_market.trim() || undefined,
                 quantity: Number(formData.quantity),
                 purchase_price: Number(formData.purchase_price),
-                current_price: formData.current_price ? Number(formData.current_price) : null,
+                current_price: formData.current_price ? Number(formData.current_price) : Number(formData.purchase_price),
                 purchase_date: formData.purchase_date.toISOString(),
                 currency: selectedCurrency,
                 notes: formData.notes.trim() || null,
@@ -327,7 +334,7 @@ export default function AddInvestmentScreen() {
                             disabled={true}
                             accessoryLeft={isLookingUp ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
                         >
-                            {isLookingUp ? 'Searching...' : 'Find (Coming soon)'}
+                            {isLookingUp ? 'Searching...' : 'Find (Coming soon premium feature)'}
                         </Button>
 
                         {/*{showResults && isinResults.length > 1 && (
@@ -439,7 +446,12 @@ export default function AddInvestmentScreen() {
                             label='Purchase Price per Unit'
                             placeholder='0.00'
                             value={formData.purchase_price}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, purchase_price: text }))}
+                            onChangeText={(text) => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    purchase_price: text,
+                                }));
+                            }}
                             keyboardType='decimal-pad'
                             status={formData.purchase_price.trim() && !isNaN(Number(formData.purchase_price)) && Number(formData.purchase_price) > 0 ? 'basic' : 'danger'}
                         />
@@ -452,6 +464,9 @@ export default function AddInvestmentScreen() {
                             onChangeText={(text) => setFormData(prev => ({ ...prev, current_price: text }))}
                             keyboardType='decimal-pad'
                         />
+                        <Text style={[styles.premiumNote, { color: colors.icon }]}>
+                            Coming soon premium feature: In the future, current prices will be updated automatically
+                        </Text>
 
                         <Datepicker
                             style={styles.input}
@@ -619,6 +634,12 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     confirmButton: {
+        marginBottom: 16,
+    },
+    premiumNote: {
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: -12,
         marginBottom: 16,
     },
 });

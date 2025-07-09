@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
+import { useProfile } from '@/context/ProfileContext';
 import { InvestmentData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -41,16 +42,22 @@ export default function EditInvestmentScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { portfolios, updateInvestment, deleteInvestment } = useInvestment();
+    const { userProfile } = useProfile();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [investment, setInvestment] = useState<any>(null);
     const [portfolio, setPortfolio] = useState<any>(null);
 
+    // Get user's default currency and find its index
+    const userDefaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
+    const defaultCurrencyIndex = currencies.findIndex(c => c === userDefaultCurrency);
+    const initialCurrencyIndex = defaultCurrencyIndex >= 0 ? defaultCurrencyIndex : 0;
+
     // Form state
     const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedTypeIndex, setSelectedTypeIndex] = useState<IndexPath>(new IndexPath(0));
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(initialCurrencyIndex));
 
     const [formData, setFormData] = useState({
         name: '',
@@ -162,7 +169,7 @@ export default function EditInvestmentScreen() {
                 type: selectedType.id,
                 quantity: Number(formData.quantity),
                 purchase_price: Number(formData.purchase_price),
-                current_price: formData.current_price ? Number(formData.current_price) : null,
+                current_price: formData.current_price ? Number(formData.current_price) : Number(formData.purchase_price),
                 purchase_date: formData.purchase_date.toISOString(),
                 currency: selectedCurrency,
                 last_updated: new Date().toISOString(),
@@ -385,7 +392,12 @@ export default function EditInvestmentScreen() {
                             label='Purchase Price per Unit *'
                             placeholder='0.00'
                             value={formData.purchase_price}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, purchase_price: text }))}
+                            onChangeText={(text) => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    purchase_price: text,
+                                }));
+                            }}
                             keyboardType='numeric'
                             style={[styles.input, errors.purchase_price && styles.inputError]}
                             status={errors.purchase_price ? 'danger' : 'basic'}
@@ -402,6 +414,9 @@ export default function EditInvestmentScreen() {
                             status={errors.current_price ? 'danger' : 'basic'}
                         />
                         {errors.current_price && <Text style={styles.errorText}>{errors.current_price}</Text>}
+                        <Text style={[styles.premiumNote, { color: colors.icon }]}>
+                            Coming soon premium feature: In the future, current prices will be updated automatically
+                        </Text>
 
                         <Datepicker
                             label='Purchase Date *'
@@ -552,5 +567,11 @@ const styles = StyleSheet.create({
     },
     bottomPadding: {
         height: 32,
+    },
+    premiumNote: {
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: -12,
+        marginBottom: 16,
     },
 });

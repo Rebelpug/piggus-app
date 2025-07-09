@@ -218,11 +218,6 @@ export default function HomeScreen() {
                                 </View>
                             </View>
 
-                            {/* Total Invested */}
-                            <Text style={[styles.portfolioTotalInvested, { color: colors.icon }]}>
-                                Total Invested: {formatCurrency(portfolioReturns.totalInvested)}
-                            </Text>
-
                             {!portfolioReturns.hasCurrentPrices && (
                                 <Text style={[styles.portfolioDisclaimer, { color: colors.icon }]}>
                                     * Some investments lack current prices
@@ -336,7 +331,7 @@ const styles = StyleSheet.create({
     },
     portfolioReturnsContainer: {
         flexDirection: 'row',
-        marginBottom: 20,
+        marginBottom: 8,
         gap: 16,
     },
     portfolioReturn: {

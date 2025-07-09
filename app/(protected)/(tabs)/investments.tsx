@@ -195,6 +195,7 @@ export default function InvestmentsScreen() {
 
         const currentValue = (item.data.quantity * (item.data.current_price || item.data.purchase_price));
         const initialValue = item.data.quantity * item.data.purchase_price;
+        const investmentCurrency = item.data.currency || 'USD';
         const gainLoss = currentValue - initialValue;
         const gainLossPercentage = (gainLoss / initialValue) * 100;
 
@@ -236,13 +237,13 @@ export default function InvestmentsScreen() {
                         </View>
                         <View style={styles.investmentAmount}>
                             <Text style={[styles.currentValueText, { color: colors.text }]}>
-                                {formatCurrency(currentValue)}
+                                {formatCurrency(currentValue, investmentCurrency)}
                             </Text>
                             <Text style={[
                                 styles.gainLossText,
                                 { color: gainLoss >= 0 ? '#4CAF50' : '#F44336' }
                             ]}>
-                                {formatCurrency(gainLoss)} ({formatPercentage(gainLossPercentage)})
+                                {formatCurrency(gainLoss, investmentCurrency)} ({formatPercentage(gainLossPercentage)})
                             </Text>
                         </View>
                     </View>
