@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {View, Text, ActivityIndicator, StyleSheet, Alert} from 'react-native';
 import type { Profile } from '@/types/profile';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +33,8 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const { user, publicKey, encryptData, decryptData, authInitialized, encryptionInitialized } = useAuth();
     const { encryptWithExternalPublicKey, createEncryptionKey, encryptWithExternalEncryptionKey } = useEncryption();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
     const [userProfile, setUserProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -246,10 +250,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         // If we have a user but profile is not initialized yet, show loading
         if (user && !profileInitialized) {
             return (
-                <View style={styles.container}>
+                <View style={[styles.container, { backgroundColor: colors.background }]}>
                     <View style={styles.centerContent}>
                         <ActivityIndicator size="large" color="#0000ff" />
-                        <Text style={styles.loadingText}>Loading profile...</Text>
+                        <Text style={[styles.loadingText, { color: colors.text }]}>Loading profile...</Text>
                     </View>
                 </View>
             );
@@ -258,7 +262,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         // If we have a user and profile is initialized but no profile exists, show profile creation
         if (user && profileInitialized && !userProfile) {
             return (
-                <View style={styles.container}>
+                <View style={[styles.container, { backgroundColor: colors.background }]}>
                     <View style={styles.formContainer}>
                         <ProfileCreationForm
                             onComplete={() => refreshProfile()}

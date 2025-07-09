@@ -147,13 +147,6 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                 return;
             }
 
-            showToast(
-                'Profile Created',
-                finalUsername
-                    ? `Your profile has been created with the name: ${finalUsername} and default currency: ${selectedCurrency}`
-                    : `Your profile has been created with the name: ${finalUsername} and default currency: ${selectedCurrency}`
-            );
-
             onComplete();
         } catch (err) {
             setError(`An error occurred: ${err instanceof Error ? err.message : String(err)}`);
@@ -190,10 +183,10 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Username (Optional)</Text>
                         <TextInput
-                            style={[styles.input, { 
-                                borderColor: colors.border, 
+                            style={[styles.input, {
+                                borderColor: colors.border,
                                 backgroundColor: colors.background,
-                                color: colors.text 
+                                color: colors.text
                             }]}
                             placeholder="Enter a custom name (optional)"
                             placeholderTextColor={colors.icon}
@@ -207,9 +200,9 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: colors.text }]}>Default Currency</Text>
                         <TouchableOpacity
-                            style={[styles.currencySelector, { 
-                                borderColor: colors.border, 
-                                backgroundColor: colors.background 
+                            style={[styles.currencySelector, {
+                                borderColor: colors.border,
+                                backgroundColor: colors.background
                             }]}
                             onPress={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
                         >
@@ -218,8 +211,8 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                         </TouchableOpacity>
 
                         {showCurrencyDropdown && (
-                            <View style={[styles.currencyDropdown, { 
-                                backgroundColor: colors.card, 
+                            <View style={[styles.currencyDropdown, {
+                                backgroundColor: colors.card,
                                 borderColor: colors.border,
                                 shadowColor: colors.text
                             }]}>
