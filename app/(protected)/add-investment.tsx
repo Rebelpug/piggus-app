@@ -218,16 +218,7 @@ export default function AddInvestmentScreen() {
             const result = await addInvestment(selectedPortfolio.id, investmentData);
 
             if (result) {
-                Alert.alert(
-                    'Success',
-                    'Investment added successfully!',
-                    [
-                        {
-                            text: 'OK',
-                            onPress: () => router.back()
-                        }
-                    ]
-                );
+                router.back();
             } else {
                 Alert.alert('Error', 'Failed to add investment. Please try again.');
             }

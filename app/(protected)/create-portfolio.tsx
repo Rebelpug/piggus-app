@@ -56,6 +56,7 @@ export default function CreatePortfolioScreen() {
             };
 
             await createPortfolio(portfolioData);
+            router.back();
         } catch (error) {
             console.error('Error creating portfolio:', error);
             Alert.alert('Error', 'Failed to create portfolio. Please try again.');

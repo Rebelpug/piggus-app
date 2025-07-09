@@ -215,7 +215,9 @@ export default function EditExpenseScreen() {
 
             const result = await updateExpense(groupId, updatedExpense);
 
-            if (!result) {
+            if (result) {
+                router.back();
+            } else {
                 Alert.alert('Error', result || 'Failed to update expense');
             }
         } catch (error: any) {

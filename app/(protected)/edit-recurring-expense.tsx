@@ -236,7 +236,9 @@ export default function EditRecurringExpenseScreen() {
 
             const result = await updateRecurringExpense(groupId, updatedRecurringExpense);
 
-            if (!result?.data) {
+            if (result?.data) {
+                router.back();
+            } else {
                 Alert.alert('Error', 'Failed to update recurring expense');
             }
         } catch (error: any) {

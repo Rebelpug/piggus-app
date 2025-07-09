@@ -176,7 +176,9 @@ export default function EditInvestmentScreen() {
 
             const result = await updateInvestment(selectedPortfolio.id, updatedInvestment);
 
-            if (!result) {
+            if (result) {
+                router.back();
+            } else {
                 Alert.alert('Error', 'Failed to update investment. Please try again.');
             }
         } catch (error) {
@@ -210,18 +212,7 @@ export default function EditInvestmentScreen() {
 
         try {
             await deleteInvestment(selectedPortfolio.id, params.investmentId as string);
-
-            // If we reach here, deletion was successful (no error thrown)
-            Alert.alert(
-                'Success',
-                'Investment deleted successfully!',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => router.back()
-                    }
-                ]
-            );
+            router.back();
         } catch (error) {
             console.error('Error deleting investment:', error);
             Alert.alert('Error', 'An unexpected error occurred. Please try again.');

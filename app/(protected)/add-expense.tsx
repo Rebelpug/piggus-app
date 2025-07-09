@@ -45,10 +45,12 @@ export default function AddExpenseScreen() {
     const { user } = useAuth();
     const { expensesGroups, addExpense, addRecurringExpense } = useExpense();
     const { userProfile } = useProfile();
-    
+
     // Compute categories with user's customizations
-    const availableCategories = computeExpenseCategories(
-        userProfile?.profile?.budgeting?.categoryOverrides
+    const availableCategories = React.useMemo(() =>
+        computeExpenseCategories(
+            userProfile?.profile?.budgeting?.categoryOverrides
+        ), [userProfile?.profile?.budgeting?.categoryOverrides]
     );
     const [loading, setLoading] = useState(false);
 
@@ -86,7 +88,6 @@ export default function AddExpenseScreen() {
     // Set default group to private group
     useEffect(() => {
         if (availableGroups.length > 0) {
-            console.log('Available groups:', availableGroups);
             const privateGroupIndex = availableGroups.findIndex(group => group.data.private === true);
             if (privateGroupIndex !== -1) {
                 setSelectedGroupIndex(new IndexPath(privateGroupIndex));
@@ -233,7 +234,7 @@ export default function AddExpenseScreen() {
                 // Create recurring expense entry
                 const today = date.toISOString().split('T')[0];
                 const nextDueDate = calculateNextDueDate(recurringInterval, today);
-                
+
                 const recurringExpenseData: RecurringExpenseData = {
                     name: name.trim(),
                     description: description.trim(),
@@ -252,7 +253,7 @@ export default function AddExpenseScreen() {
                 };
 
                 const recurringResult = await addRecurringExpense(selectedGroup.id, recurringExpenseData);
-                
+
                 if (!recurringResult) {
                     Alert.alert('Error', 'Failed to create recurring expense. Please try again.');
                     return;
@@ -276,16 +277,10 @@ export default function AddExpenseScreen() {
                 };
 
                 const expenseResult = await addExpense(selectedGroup.id, expenseData);
-
                 if (expenseResult) {
-                    Alert.alert(
-                        'Success',
-                        'Recurring expense created successfully! The first expense has been added for the current period.',
-                        [{ text: 'OK', onPress: () => router.back() }]
-                    );
+                    router.back();
                 } else {
                     Alert.alert('Warning', 'Recurring expense was created, but failed to add the initial expense. You may need to add it manually.');
-                    router.back();
                 }
             } else {
                 // Create regular one-time expense
@@ -307,11 +302,7 @@ export default function AddExpenseScreen() {
                 const result = await addExpense(selectedGroup.id, expenseData);
 
                 if (result) {
-                    Alert.alert(
-                        'Success',
-                        'Expense added successfully!',
-                        [{ text: 'OK', onPress: () => router.back() }]
-                    );
+                    router.back();
                 } else {
                     Alert.alert('Error', 'Failed to add expense. Please try again.');
                 }
@@ -614,9 +605,9 @@ export default function AddExpenseScreen() {
                         status={selectedCategoryIndex ? 'basic' : 'danger'}
                     >
                         {availableCategories.map((category) => (
-                            <SelectItem 
-                                key={category.id} 
-                                title={`${category.icon} ${category.name}`} 
+                            <SelectItem
+                                key={category.id}
+                                title={`${category.icon} ${category.name}`}
                             />
                         ))}
                     </Select>

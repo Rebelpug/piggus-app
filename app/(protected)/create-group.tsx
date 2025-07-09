@@ -65,6 +65,7 @@ export default function CreateGroupScreen() {
             };
 
             await createExpensesGroup(groupData);
+            router.back();
         } catch (error) {
             console.error('Error creating group:', error);
             Alert.alert('Error', 'Failed to create group. Please try again.');

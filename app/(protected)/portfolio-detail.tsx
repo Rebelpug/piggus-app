@@ -103,9 +103,7 @@ export default function PortfolioDetailScreen() {
                     onPress: async () => {
                         try {
                             const result = await removeUserFromPortfolio(portfolio.id, userId);
-                            if (result.success) {
-                                Alert.alert('Success', 'Member removed successfully');
-                            } else {
+                            if (!result.success) {
                                 Alert.alert('Error', result.error || 'Failed to remove member');
                             }
                         } catch (error) {
@@ -124,11 +122,7 @@ export default function PortfolioDetailScreen() {
             const result = await handlePortfolioInvitation(portfolio.id, accept);
 
             if (result.success) {
-                Alert.alert(
-                    'Success',
-                    accept ? 'Invitation accepted!' : 'Invitation declined',
-                    [{ text: 'OK', onPress: () => router.back() }]
-                );
+                router.back();
             } else {
                 Alert.alert('Error', result.error || 'Failed to handle invitation');
             }
