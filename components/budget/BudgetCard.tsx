@@ -18,7 +18,7 @@ export default function BudgetCard({ selectedMonth = 'current', variant = 'defau
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
-    const { expensesGroups } = useExpense();
+    const { expensesGroups, recurringExpenses } = useExpense();
     const { userProfile, updateProfile } = useProfile();
     const [budgetModalVisible, setBudgetModalVisible] = useState(false);
     const [budgetAmount, setBudgetAmount] = useState(userProfile?.profile?.budgeting?.budget?.amount?.toString() || '');
@@ -66,6 +66,38 @@ export default function BudgetCard({ selectedMonth = 'current', variant = 'defau
             }
         });
 
+        // Add recurring expenses that are due in the current month with dates later than today
+        if (selectedMonth === 'current' && recurringExpenses) {
+            recurringExpenses.forEach(recurringExpense => {
+                // Check if recurring expense is active
+                if (!recurringExpense.data.is_active) return;
+
+                // Find the group for this recurring expense
+                const group = expensesGroups.find(g => g.id === recurringExpense.group_id);
+                if (!group || group.membership_status !== 'confirmed') return;
+
+                // Check if the next due date is in the current month and later than today
+                const nextDueDate = new Date(recurringExpense.data.next_due_date);
+                const todayStr = now.toISOString().split('T')[0];
+                const nextDueDateStr = recurringExpense.data.next_due_date;
+
+                if (nextDueDate.getMonth() === now.getMonth() &&
+                    nextDueDate.getFullYear() === now.getFullYear() &&
+                    nextDueDateStr > todayStr) {
+
+                    // Calculate user's share from the recurring expense participants
+                    const userParticipant = recurringExpense.data.participants.find(p => p.user_id === user?.id);
+                    if (userParticipant && userParticipant.share_amount > 0) {
+                        totalSpent += userParticipant.share_amount;
+                        transactionCount++;
+
+                        const category = recurringExpense.data.category || 'other';
+                        categories[category] = (categories[category] || 0) + userParticipant.share_amount;
+                    }
+                }
+            });
+        }
+
         // Get top spending category
         const topCategory = Object.entries(categories).reduce(
             (max, [category, amount]) => amount > max.amount ? { category, amount } : max,
@@ -77,7 +109,7 @@ export default function BudgetCard({ selectedMonth = 'current', variant = 'defau
             transactionCount,
             topCategory: topCategory.category !== 'none' ? topCategory : null
         };
-    }, [expensesGroups, user?.id, selectedMonth]);
+    }, [expensesGroups, recurringExpenses, user?.id, selectedMonth]);
 
     // Get budget information from profile
     const budget = userProfile?.profile?.budgeting?.budget;
@@ -269,7 +301,7 @@ const styles = StyleSheet.create({
     },
     budgetCardList: {
         marginHorizontal: 20,
-        marginBottom: 16,
+        marginBottom: 12,
         padding: 16,
     },
     budgetHeader: {
