@@ -51,10 +51,6 @@ export default function ExpenseStatisticsScreen() {
   const { expensesGroups } = useExpense();
   const { userProfile } = useProfile();
 
-  // Debug logging
-  console.log('ExpenseStatistics - colorScheme:', colorScheme);
-  console.log('ExpenseStatistics - colors.card:', colors.card);
-
   const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
 
   // Period filter state
