@@ -191,10 +191,10 @@ export default function ProfileScreen() {
                                 style={[styles.themeButton, { backgroundColor: colors.primary }]}
                                 onPress={toggleColorScheme}
                             >
-                                <Ionicons 
-                                    name={currentTheme === 'dark' ? 'sunny-outline' : 'moon-outline'} 
-                                    size={20} 
-                                    color="white" 
+                                <Ionicons
+                                    name={currentTheme === 'dark' ? 'sunny-outline' : 'moon-outline'}
+                                    size={20}
+                                    color="white"
                                 />
                             </TouchableOpacity>
                         </View>
@@ -272,11 +272,11 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
                                 <Ionicons name="grid-outline" size={20} color={colors.accent} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Manage Categories</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Expenses Categories</Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
-                                Customize expense categories
+                                Customize
                             </Text>
                             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                         </View>
@@ -289,13 +289,14 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity
                         style={styles.preferenceRow}
-                        onPress={() => Alert.alert('Coming Soon', 'Password change will be available soon!')}
+                        disabled={true}
+                        onPress={() => {}}
                     >
                         <View style={styles.infoLabel}>
                             <View style={[styles.iconContainer, { backgroundColor: colors.error + '20' }]}>
                                 <Ionicons name="lock-closed-outline" size={20} color={colors.error} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Change Password</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Change Password (Coming soon)</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                     </TouchableOpacity>
