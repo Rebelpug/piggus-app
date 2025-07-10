@@ -8,18 +8,23 @@ import {
     SafeAreaView,
 } from 'react-native';
 import {Spinner} from "@ui-kitten/components";
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 const AuthSetupLoader = () => {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme || 'light'];
+    
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
                 <View style={styles.contentContainer}>
                     <Spinner size='large' />
-                    <Text style={styles.title}>Loading</Text>
-                    <Text style={styles.subtitle}>Doing some magic to set you up</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>Loading</Text>
+                    <Text style={[styles.subtitle, { color: colors.icon }]}>Doing some magic to set you up</Text>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -29,7 +34,6 @@ const AuthSetupLoader = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
     },
     keyboardView: {
         flex: 1,
@@ -42,12 +46,10 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#333',
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: '#666',
         marginBottom: 30,
     },
     form: {

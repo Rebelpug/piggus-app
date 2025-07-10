@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert } from 'react-native';
 import { Text, Modal, Card, Input, Button, Spinner, Layout } from '@ui-kitten/components';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +16,7 @@ interface BudgetCardProps {
 }
 
 export default function BudgetCard({ selectedMonth = 'current', variant = 'default' }: BudgetCardProps) {
+    const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
@@ -221,6 +223,15 @@ export default function BudgetCard({ selectedMonth = 'current', variant = 'defau
                                 </Text>
                             </View>
                         </View>
+                        
+                        {/* See more stats button */}
+                        <TouchableOpacity
+                            style={[styles.statsButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                            onPress={() => router.push('/(protected)/expense-statistics')}
+                        >
+                            <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
+                            <Text style={[styles.statsButtonText, { color: colors.primary }]}>See more stats</Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
                     <View style={styles.noBudgetContainer}>
@@ -372,6 +383,21 @@ const styles = StyleSheet.create({
     budgetTotal: {
         fontSize: 14,
         textAlign: 'center',
+    },
+    statsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginTop: 16,
+        gap: 6,
+    },
+    statsButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     noBudgetContainer: {
         alignItems: 'center',

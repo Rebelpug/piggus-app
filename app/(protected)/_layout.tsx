@@ -6,11 +6,14 @@ import {InvestmentProvider} from "@/context/InvestmentContext";
 import {Redirect, Stack} from "expo-router";
 import { useIntro } from "@/hooks/useIntro";
 import IntroScreen from "@/components/intro/IntroScreen";
-import { Layout, Spinner } from '@ui-kitten/components';
-import { StyleSheet } from 'react-native';
+import { Spinner } from '@ui-kitten/components';
+import { StyleSheet, View } from 'react-native';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
 
 export default function ProtectedLayout() {
-
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme || 'light'];
     const { isAuthenticated } = useAuth();
     const { introCompleted, loading, markIntroCompleted } = useIntro();
 
@@ -21,9 +24,9 @@ export default function ProtectedLayout() {
     // Show loading while checking intro status
     if (loading) {
         return (
-            <Layout style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <Spinner size='large' />
-            </Layout>
+            </View>
         );
     }
 
