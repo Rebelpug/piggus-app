@@ -272,6 +272,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Failed to restore session:', error);
+        encryption.resetEncryption(); // Reset encryption state on failure
         return false;
       }
 
