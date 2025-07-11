@@ -30,8 +30,6 @@ const LoginScreen = () => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [encryptionProgress, setEncryptionProgress] = useState(0);
-    const [encryptionStep, setEncryptionStep] = useState('');
     const { signIn, user, encryptionInitialized, needsPasswordPrompt, isAuthenticated } = useAuth();
     const router = useRouter();
 
@@ -61,21 +59,11 @@ const LoginScreen = () => {
         }
 
         setLoading(true);
-        setEncryptionProgress(0);
-        setEncryptionStep('');
 
         try {
-            console.log('Attempting login for:', email);
-
             await signIn(email, password, (progress, step) => {
-                setEncryptionProgress(progress);
-                setEncryptionStep(step);
-                console.log(`Login progress: ${Math.round(progress * 100)}% - ${step}`);
             });
-
-            console.log('Login successful');
             router.push('/');
-
         } catch (error: any) {
             setLoading(false);
             console.error('Login failed:', error);
@@ -94,8 +82,6 @@ const LoginScreen = () => {
             Alert.alert('Sign In Error', errorMessage);
         } finally {
             setTimeout(() => {
-                setEncryptionProgress(0);
-                setEncryptionStep('');
             }, 1500);
         }
     };
@@ -192,21 +178,6 @@ const LoginScreen = () => {
                                     <Text style={styles.progressText}>
                                         Signing In...
                                     </Text>
-                                    {encryptionProgress > 0 && (
-                                        <>
-                                            <View style={styles.progressBar}>
-                                                <View
-                                                    style={[
-                                                        styles.progressFill,
-                                                        { width: `${encryptionProgress * 100}%` }
-                                                    ]}
-                                                />
-                                            </View>
-                                            <Text style={styles.progressPercentage}>
-                                                {Math.round(encryptionProgress * 100)}%
-                                            </Text>
-                                        </>
-                                    )}
                                 </View>
                             ) : (
                                 <View style={styles.buttonContent}>

@@ -29,8 +29,6 @@ export const apiFetchProfile = async (
       };
     }
 
-    console.log('Fetched profile:', profile);
-
     // Decrypt the profile data
     const decryptedProfileData = await decryptData(profile.encrypted_data);
 

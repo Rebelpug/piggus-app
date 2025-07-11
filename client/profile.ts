@@ -32,8 +32,6 @@ export const apiFetchProfile = async (
       };
     }
 
-    console.log('Fetched profile:', profiles);
-
     if (!profiles || profiles.length === 0) {
       return {
         success: true,
