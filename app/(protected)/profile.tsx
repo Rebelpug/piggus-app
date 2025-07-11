@@ -220,7 +220,7 @@ export default function ProfileScreen() {
 
                 {/* Preferences */}
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Expenses Preferences</Text>
 
                     <TouchableOpacity
                         style={styles.preferenceRow}
@@ -250,7 +250,7 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
                                 <Ionicons name="grid-outline" size={20} color={colors.accent} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Expenses Categories</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Categories</Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
