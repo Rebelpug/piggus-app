@@ -28,13 +28,14 @@ export default function CreateGroupScreen() {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
+    const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath | undefined>(undefined);
 
     useEffect(() => {
-        if (userProfile) {
-            console.log(userProfile);
-            const currencyIndex = CURRENCIES.findIndex(currency => userProfile?.profile?.defaultCurrency === currency.value);
+        if (userProfile?.profile?.defaultCurrency) {
+            const currencyIndex = CURRENCIES.findIndex(currency => currency.value === userProfile.profile.defaultCurrency);
             setSelectedCurrencyIndex(currencyIndex >= 0 ? new IndexPath(currencyIndex) : new IndexPath(0));
+        } else {
+            setSelectedCurrencyIndex(new IndexPath(0));
         }
     }, [userProfile]);
 
@@ -55,6 +56,11 @@ export default function CreateGroupScreen() {
 
         setLoading(true);
         try {
+            if (!selectedCurrencyIndex) {
+                Alert.alert('Error', 'Please wait for the currency to load');
+                return;
+            }
+
             const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
 
             const groupData: ExpenseGroupData = {
@@ -118,7 +124,7 @@ export default function CreateGroupScreen() {
                         style={styles.input}
                         label='Default Currency'
                         placeholder='Select currency'
-                        value={CURRENCIES[selectedCurrencyIndex.row].label}
+                        value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : 'Loading...'}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
                         caption='This will be the default currency for expenses in this group'

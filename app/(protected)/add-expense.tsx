@@ -16,7 +16,7 @@ import {
     CheckBox
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
@@ -40,6 +40,7 @@ import { ThemedView } from '@/components/ThemedView';
 
 export default function AddExpenseScreen() {
     const router = useRouter();
+    const { groupId } = useLocalSearchParams<{ groupId?: string }>();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
@@ -85,15 +86,25 @@ export default function AddExpenseScreen() {
         }
     }, [expensesGroups]);
 
-    // Set default group to private group
+    // Set default group based on navigation context or fallback to private group
     useEffect(() => {
         if (availableGroups.length > 0) {
+            // If groupId is provided via navigation, try to select that group
+            if (groupId) {
+                const preselectedGroupIndex = availableGroups.findIndex(group => group.id === groupId);
+                if (preselectedGroupIndex !== -1) {
+                    setSelectedGroupIndex(new IndexPath(preselectedGroupIndex));
+                    return;
+                }
+            }
+            
+            // Fallback to private group if no groupId provided or groupId not found
             const privateGroupIndex = availableGroups.findIndex(group => group.data.private === true);
             if (privateGroupIndex !== -1) {
                 setSelectedGroupIndex(new IndexPath(privateGroupIndex));
             }
         }
-    }, [availableGroups]);
+    }, [availableGroups, groupId]);
 
     // Get current group members
     const currentGroupMembers = React.useMemo(() => {

@@ -58,7 +58,7 @@ export default function GroupDetailScreen() {
     };
 
     const handleAddExpense = () => {
-        router.push('/(protected)/add-expense');
+        router.push(`/(protected)/add-expense?groupId=${group.id}`);
     };
 
     const handleInviteUser = async () => {
