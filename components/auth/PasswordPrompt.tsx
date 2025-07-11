@@ -86,10 +86,11 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                 }
             } else {
                 console.log('PasswordPrompt: Biometric authentication failed or was canceled');
+                Alert.alert('Failed to sign in', 'Biometric authentication failed, you will need to login again.');
             }
         } catch (error) {
             console.error('PasswordPrompt: Biometric login error:', error);
-            // Error occurred, stay on password prompt
+            Alert.alert('Failed to sign in', 'Biometric authentication failed, you will need to login again.');
         } finally {
             setLoading(false);
         }
