@@ -230,33 +230,11 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
                                 <Ionicons name="card-outline" size={20} color={colors.success} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Default Currency</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Preferred Currency</Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
                                 {CURRENCIES.find(c => c.value === userProfile?.profile?.defaultCurrency)?.label || 'EUR (€)'}
-                            </Text>
-                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-                        </View>
-                    </TouchableOpacity>
-
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                    <TouchableOpacity
-                        style={styles.preferenceRow}
-                        onPress={() => Alert.alert('Coming Soon', 'Budget preferences will be available soon!')}
-                    >
-                        <View style={styles.infoLabel}>
-                            <View style={[styles.iconContainer, { backgroundColor: colors.warning + '20' }]}>
-                                <Ionicons name="wallet-outline" size={20} color={colors.warning} />
-                            </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Budget Settings</Text>
-                        </View>
-                        <View style={styles.preferenceValue}>
-                            <Text style={[styles.currentValue, { color: colors.icon }]}>
-                                {userProfile?.profile?.budgeting?.budget
-                                    ? `${userProfile.profile.budgeting.budget.amount} ${userProfile.profile.defaultCurrency}`
-                                    : 'Not set'}
                             </Text>
                             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                         </View>
@@ -300,20 +278,6 @@ export default function ProfileScreen() {
                         </View>
                         <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                     </TouchableOpacity>
-
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                    <View style={styles.infoRow}>
-                        <View style={styles.infoLabel}>
-                            <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
-                                <Ionicons name="shield-checkmark-outline" size={20} color={colors.success} />
-                            </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Encryption</Text>
-                        </View>
-                        <Text style={[styles.encryptionStatus, { color: colors.success }]}>
-                            End-to-End Encrypted
-                        </Text>
-                    </View>
                 </View>
 
                 {/* Actions */}
