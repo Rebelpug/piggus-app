@@ -14,7 +14,8 @@ import {
     Platform,
     SafeAreaView,
     Alert,
-    StatusBar
+    StatusBar,
+    Image
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from "expo-router";
@@ -110,9 +111,14 @@ const LoginScreen = () => {
                 <View style={styles.contentContainer}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <View style={[styles.logoContainer, { backgroundColor: colors.primary + '20' }]}>
-                            <Ionicons name="wallet-outline" size={32} color={colors.primary} />
+                        <View style={styles.logoContainer}>
+                            <Image
+                                source={require('@/assets/images/transparent-logo.png')}
+                                style={styles.logo}
+                                resizeMode="contain"
+                            />
                         </View>
+                        <Text style={[styles.titleLogo, { color: colors.text }]}>Piggus</Text>
                         <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
                         <Text style={[styles.subtitle, { color: colors.icon }]}>Sign in to your account</Text>
                     </View>
@@ -225,10 +231,19 @@ const styles = StyleSheet.create({
     logoContainer: {
         width: 80,
         height: 80,
-        borderRadius: 40,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: 0,
+    },
+    logo: {
+        width: 80,
+        height: 80,
+    },
+    titleLogo: {
+        fontSize: 24,
+        fontWeight: '700',
         marginBottom: 24,
+        textAlign: 'center',
     },
     title: {
         fontSize: 32,
