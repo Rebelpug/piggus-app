@@ -179,11 +179,9 @@ const LoginScreen = () => {
                             disabled={loading}
                         >
                             {loading ? (
-                                <View style={styles.progressContainer}>
+                                <View style={styles.buttonContent}>
                                     <ActivityIndicator color="#FFF" size="small" />
-                                    <Text style={styles.progressText}>
-                                        Signing In...
-                                    </Text>
+                                    <Text style={styles.buttonText}>Signing In...</Text>
                                 </View>
                             ) : (
                                 <View style={styles.buttonContent}>
@@ -319,11 +317,6 @@ const styles = StyleSheet.create({
     link: {
         fontWeight: '600',
         fontSize: 16,
-    },
-    progressContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
     },
     progressBar: {
         width: '100%',
