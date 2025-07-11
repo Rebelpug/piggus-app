@@ -97,7 +97,7 @@ export default function AddExpenseScreen() {
                     return;
                 }
             }
-            
+
             // Fallback to private group if no groupId provided or groupId not found
             const privateGroupIndex = availableGroups.findIndex(group => group.data.private === true);
             if (privateGroupIndex !== -1) {
@@ -390,9 +390,6 @@ export default function AddExpenseScreen() {
         if (currentGroupMembers.length <= 1) return null;
 
         const splitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || 'equal';
-        const totalShares = participants.reduce((sum, p) => sum + p.share_amount, 0);
-        const totalAmount = Number(amount) || 0;
-        const isBalanced = Math.abs(totalShares - totalAmount) < 0.01;
 
         return (
             <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
@@ -425,7 +422,7 @@ export default function AddExpenseScreen() {
                     ))}
                 </Select>
 
-                <Layout style={styles.participantsContainer}>
+                <Layout style={[styles.participantsContainer, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text category='s1' style={styles.participantsTitle}>
                         Share with ({participants.filter(p => p.share_amount > 0).length} of {currentGroupMembers.length})
                     </Text>
@@ -436,13 +433,13 @@ export default function AddExpenseScreen() {
                         const shareAmount = participant?.share_amount || 0;
 
                         return (
-                            <Layout key={member.user_id} style={styles.participantRow}>
+                            <Layout key={member.user_id} style={[styles.participantRow, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                                 <CheckBox
                                     checked={!!isActive}
                                     onChange={() => toggleParticipant(member.user_id)}
                                     style={styles.participantCheckbox}
                                 />
-                                <Layout style={styles.participantInfo}>
+                                <Layout style={[styles.participantInfo, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                                     <Text category='s1'>{member.username}</Text>
                                     {member.user_id === user?.id && (
                                         <Text category='c1' appearance='hint'>(You)</Text>
@@ -466,17 +463,6 @@ export default function AddExpenseScreen() {
                             </Layout>
                         );
                     })}
-
-                    <Layout style={styles.totalRow}>
-                        <Text category='s1' style={[styles.totalText, !isBalanced && styles.errorText]}>
-                            Total: {totalShares.toFixed(2)} / {totalAmount.toFixed(2)}
-                        </Text>
-                        {!isBalanced && (
-                            <Text category='c1' style={styles.errorText}>
-                                Shares don't match expense amount
-                            </Text>
-                        )}
-                    </Layout>
                 </Layout>
             </View>
         );
@@ -765,16 +751,14 @@ const styles = StyleSheet.create({
     },
     participantsTitle: {
         fontSize: 16,
-        marginBottom: 16,
+        marginBottom: 4,
         fontWeight: '600',
     },
     participantRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 6,
         paddingHorizontal: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
     },
     participantCheckbox: {
         marginRight: 16,
@@ -793,20 +777,5 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         fontSize: 14,
         fontWeight: '600',
-    },
-    totalRow: {
-        marginTop: 16,
-        paddingTop: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#E0E0E0',
-        alignItems: 'center',
-    },
-    totalText: {
-        fontWeight: '700',
-        fontSize: 18,
-    },
-    errorText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
+    }
 });
