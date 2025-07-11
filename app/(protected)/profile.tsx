@@ -24,6 +24,7 @@ import { Colors } from '@/constants/Colors';
 import { CURRENCIES } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
+import * as Sentry from '@sentry/react-native';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -34,6 +35,9 @@ export default function ProfileScreen() {
     const { userProfile, updateProfile } = useProfile();
     const [loading, setLoading] = useState(false);
     const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [feedbackText, setFeedbackText] = useState('');
+    const [sendingFeedback, setSendingFeedback] = useState(false);
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(() => {
         const currentCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
         const index = CURRENCIES.findIndex(c => c.value === currentCurrency);
@@ -81,6 +85,31 @@ export default function ProfileScreen() {
             Alert.alert('Error', 'Failed to update currency. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSendFeedback = async () => {
+        if (!feedbackText.trim()) {
+            Alert.alert('Validation Error', 'Please enter your feedback');
+            return;
+        }
+
+        setSendingFeedback(true);
+        try {
+            Sentry.captureFeedback({
+                message: feedbackText,
+                email: 'anonymous',
+                name: userProfile?.username || 'Anonymous User',
+                source: 'user_feedback',
+            });
+
+            setFeedbackModalVisible(false);
+            setFeedbackText('');
+            Alert.alert('Thank you!', 'Your feedback has been sent successfully.');
+        } catch (error) {
+            Alert.alert('Error', 'Failed to send feedback. Please try again.');
+        } finally {
+            setSendingFeedback(false);
         }
     };
 
@@ -282,6 +311,16 @@ export default function ProfileScreen() {
 
                 {/* Actions */}
                 <TouchableOpacity
+                    style={[styles.feedbackButton, { backgroundColor: colors.primary }]}
+                    onPress={() => setFeedbackModalVisible(true)}
+                >
+                    <View style={styles.feedbackContent}>
+                        <Ionicons name="chatbubble-outline" size={20} color="white" />
+                        <Text style={styles.feedbackText}>Feedback</Text>
+                    </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                     style={[styles.signOutButton, { backgroundColor: colors.error }]}
                     onPress={handleSignOut}
                     disabled={loading}
@@ -345,6 +384,54 @@ export default function ProfileScreen() {
                                 {loading && <Spinner size='small' status='control' />}
                                 <Text style={[styles.modalButtonText, { color: 'white' }]}>
                                     {loading ? 'Updating...' : 'Update'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Feedback Modal */}
+            <Modal
+                visible={feedbackModalVisible}
+                backdropStyle={styles.backdrop}
+                onBackdropPress={() => setFeedbackModalVisible(false)}
+            >
+                <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Send a feedback</Text>
+                    <Text style={[styles.modalDescription, { color: colors.icon }]}>
+                        We are a small team and we would love your input on Piggus, we really appreciate it!
+                    </Text>
+
+                    <Input
+                        style={styles.feedbackInput}
+                        placeholder='Tell us what you think...'
+                        value={feedbackText}
+                        onChangeText={setFeedbackText}
+                        multiline={true}
+                        numberOfLines={4}
+                        textStyle={styles.feedbackTextInput}
+                    />
+
+                    <View style={styles.modalActions}>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.modalCancelButton, { borderColor: colors.border }]}
+                            onPress={() => {
+                                setFeedbackModalVisible(false);
+                                setFeedbackText('');
+                            }}
+                        >
+                            <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
+                            onPress={handleSendFeedback}
+                            disabled={sendingFeedback}
+                        >
+                            <View style={styles.modalButtonContent}>
+                                {sendingFeedback && <Spinner size='small' status='control' />}
+                                <Text style={[styles.modalButtonText, { color: 'white' }]}>
+                                    {sendingFeedback ? 'Sending...' : 'Send Feedback'}
                                 </Text>
                             </View>
                         </TouchableOpacity>
@@ -482,9 +569,26 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
-    signOutButton: {
+    feedbackButton: {
         marginHorizontal: 20,
         marginTop: 10,
+        paddingVertical: 16,
+        borderRadius: 16,
+        marginBottom: 12,
+    },
+    feedbackContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    feedbackText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    signOutButton: {
+        marginHorizontal: 20,
         paddingVertical: 16,
         borderRadius: 16,
         marginBottom: 20,
@@ -558,5 +662,14 @@ const styles = StyleSheet.create({
     modalButtonText: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    feedbackInput: {
+        marginBottom: 20,
+        borderRadius: 12,
+        minHeight: 100,
+    },
+    feedbackTextInput: {
+        minHeight: 80,
+        textAlignVertical: 'top',
     },
 });
