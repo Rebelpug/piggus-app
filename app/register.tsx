@@ -15,7 +15,8 @@ import {
     SafeAreaView,
     Alert,
     StatusBar,
-    Image
+    Image,
+    Linking
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from "expo-router";
@@ -197,11 +198,22 @@ const RegisterScreen = () => {
                                     I accept the{' '}
                                 </Text>
                                 <TouchableOpacity
-                                    onPress={() => router.push('/terms-conditions')}
+                                    onPress={() => Linking.openURL('https://piggus.finance/toc-app')}
                                     disabled={loading}
                                 >
                                     <Text style={[styles.termsLink, { color: colors.primary }, loading && { opacity: 0.5 }]}>
                                         terms and conditions
+                                    </Text>
+                                </TouchableOpacity>
+                                <Text style={[styles.checkboxText, { color: colors.text }]}>
+                                    {' '}and{' '}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => Linking.openURL('https://piggus.finance/privacy-app')}
+                                    disabled={loading}
+                                >
+                                    <Text style={[styles.termsLink, { color: colors.primary }, loading && { opacity: 0.5 }]}>
+                                        privacy policy
                                     </Text>
                                 </TouchableOpacity>
                             </View>

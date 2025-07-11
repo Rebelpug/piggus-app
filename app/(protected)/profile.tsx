@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image, Switch } from 'react-native';
+import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image, Switch, Linking } from 'react-native';
 import {
     Layout,
     Text,
@@ -337,6 +337,22 @@ export default function ProfileScreen() {
                     </View>
                 </TouchableOpacity>
 
+                {/* Legal Links */}
+                <View style={styles.legalLinks}>
+                    <TouchableOpacity
+                        style={styles.legalLink}
+                        onPress={() => Linking.openURL('https://piggus.finance/toc-app')}
+                    >
+                        <Text style={[styles.legalLinkText, { color: colors.primary }]}>Terms and Conditions</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.legalLink}
+                        onPress={() => Linking.openURL('https://piggus.finance/privacy-app')}
+                    >
+                        <Text style={[styles.legalLinkText, { color: colors.primary }]}>Privacy Policy</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.footer}>
                     <Text style={[styles.version, { color: colors.icon }]}>
                         Version 1.0.0
@@ -604,9 +620,24 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    legalLinks: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginHorizontal: 20,
+        marginBottom: 0,
+        paddingVertical: 2,
+    },
+    legalLink: {
+        padding: 8,
+    },
+    legalLinkText: {
+        fontSize: 14,
+        fontWeight: '500',
+        textDecorationLine: 'underline',
+    },
     footer: {
         alignItems: 'center',
-        paddingVertical: 24,
+        paddingVertical: 12,
     },
     version: {
         fontSize: 12,
