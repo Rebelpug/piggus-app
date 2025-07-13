@@ -13,11 +13,11 @@ if (isProduction) {
   config.transformer = {
     ...config.transformer,
     minifierConfig: {
-      mangle: false, // Disable all name mangling
+      mangle: false,
       compress: {
         drop_console: true,
         drop_debugger: true,
-        dead_code: true, // Start with this disabled
+        dead_code: true,
         unused: false,
         evaluate: false,
         reduce_vars: false,

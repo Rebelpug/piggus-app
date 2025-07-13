@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import * as React from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, ScrollView, View, Dimensions, TouchableOpacity } from 'react-native';
 import { Text, TopNavigation, TopNavigationAction, Button, Modal, Card, Layout } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,11 +8,85 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpense } from '@/context/ExpenseContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
-import { calculateUserShare, getCategoryDisplayInfo } from '@/types/expense';
+import {
+  calculateUserShare,
+  getCategoryDisplayInfo,
+  computeExpenseCategories,
+  getMainCategories,
+  getSubcategories,
+  ExpenseCategory
+} from '@/types/expense';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import Svg, { Path, Circle } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
+
+// Custom SVG Pie Chart Component
+interface PieChartProps {
+  data: PieChartData[];
+  size: number;
+  colors: any;
+}
+
+const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
+  const radius = size / 2 - 20;
+  const centerX = size / 2;
+  const centerY = size / 2;
+
+  // Calculate cumulative percentages for positioning
+  let cumulativePercentage = 0;
+
+  const slices = data.map((item, index) => {
+    const percentage = item.value;
+    const startAngle = (cumulativePercentage / 100) * 360;
+    const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
+
+    cumulativePercentage += percentage;
+
+    // Convert to radians and adjust rotation (start from top)
+    const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
+    const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
+
+    // Calculate arc path
+    const x1 = centerX + radius * Math.cos(startAngleRad);
+    const y1 = centerY + radius * Math.sin(startAngleRad);
+    const x2 = centerX + radius * Math.cos(endAngleRad);
+    const y2 = centerY + radius * Math.sin(endAngleRad);
+
+    const largeArcFlag = percentage > 50 ? 1 : 0;
+
+    const pathData = [
+      `M ${centerX} ${centerY}`, // Move to center
+      `L ${x1} ${y1}`, // Line to start of arc
+      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`, // Arc
+      'Z' // Close path
+    ].join(' ');
+
+    return (
+      <Path
+        key={index}
+        d={pathData}
+        fill={item.color}
+        stroke={colors.background}
+        strokeWidth={2}
+      />
+    );
+  });
+
+  return (
+    <Svg width={size} height={size}>
+      {slices}
+      {/* Center circle for donut effect */}
+      <Circle
+        cx={centerX}
+        cy={centerY}
+        r={radius * 0.3}
+        fill={colors.background}
+      />
+    </Svg>
+  );
+};
 
 interface CategoryStats {
   category: string;
@@ -20,6 +95,14 @@ interface CategoryStats {
   totalAmount: number;
   transactionCount: number;
   percentage: number;
+  parent?: string;
+  subcategories?: CategoryStats[];
+}
+
+interface PieChartData {
+  label: string;
+  value: number;
+  color: string;
 }
 
 interface MonthlyStats {
@@ -43,6 +126,7 @@ interface BudgetComparison {
   isOverBudget: boolean;
 }
 
+
 export default function ExpenseStatisticsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -52,6 +136,12 @@ export default function ExpenseStatisticsScreen() {
   const { userProfile } = useProfile();
 
   const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
+
+  // Get computed categories with user customizations
+  const allCategories = useMemo(() =>
+    computeExpenseCategories(userProfile?.profile?.budgeting?.categoryOverrides),
+    [userProfile?.profile?.budgeting?.categoryOverrides]
+  );
 
   // Period filter state
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>({ type: 'all' });
@@ -116,6 +206,12 @@ export default function ExpenseStatisticsScreen() {
       }
     };
 
+    // Helper function to get parent category ID
+    const getParentCategoryId = (categoryId: string): string => {
+      const category = allCategories.find(cat => cat.id === categoryId);
+      return category?.parent || categoryId;
+    };
+
     // Generate period data based on filter
     const generatePeriodData = () => {
       if (periodFilter.type === 'month') {
@@ -169,7 +265,7 @@ export default function ExpenseStatisticsScreen() {
     const periodData = generatePeriodData();
     let totalSpent = 0;
     let totalTransactions = 0;
-    const categories: { [key: string]: CategoryStats } = {};
+    const rawCategories: { [key: string]: CategoryStats } = {};
     const monthlyData: { [key: string]: MonthlyStats } = {};
 
     periodData.forEach(period => {
@@ -180,6 +276,7 @@ export default function ExpenseStatisticsScreen() {
       };
     });
 
+    // First pass: collect all expenses and organize by actual categories
     expensesGroups.forEach(group => {
       if (group.membership_status === 'confirmed') {
         group.expenses.forEach(expense => {
@@ -193,22 +290,23 @@ export default function ExpenseStatisticsScreen() {
             totalSpent += userShare;
             totalTransactions++;
 
-            const categoryInfo = getCategoryDisplayInfo(expense.data.category);
+            const categoryInfo = getCategoryDisplayInfo(expense.data.category, userProfile?.profile?.budgeting?.categoryOverrides);
             const categoryId = expense.data.category || 'other';
 
-            if (!categories[categoryId]) {
-              categories[categoryId] = {
+            if (!rawCategories[categoryId]) {
+              rawCategories[categoryId] = {
                 category: categoryId,
                 name: categoryInfo.name,
                 icon: categoryInfo.icon,
                 totalAmount: 0,
                 transactionCount: 0,
-                percentage: 0
+                percentage: 0,
+                parent: categoryInfo.parent
               };
             }
 
-            categories[categoryId].totalAmount += userShare;
-            categories[categoryId].transactionCount++;
+            rawCategories[categoryId].totalAmount += userShare;
+            rawCategories[categoryId].transactionCount++;
 
             // Add to period data
             let periodKey: string;
@@ -227,11 +325,62 @@ export default function ExpenseStatisticsScreen() {
       }
     });
 
-    Object.keys(categories).forEach(categoryId => {
-      categories[categoryId].percentage = totalSpent > 0 ? (categories[categoryId].totalAmount / totalSpent) * 100 : 0;
+    // Second pass: organize into hierarchical structure
+    const mainCategories: CategoryStats[] = [];
+    const subcategories: { [parentId: string]: CategoryStats[] } = {};
+
+    // Ensure parent categories exist for all subcategories
+    Object.values(rawCategories).forEach(category => {
+      if (category.parent && !rawCategories[category.parent]) {
+        // Create the missing parent category
+        const parentCategoryInfo = getCategoryDisplayInfo(category.parent, userProfile?.profile?.budgeting?.categoryOverrides);
+        rawCategories[category.parent] = {
+          category: category.parent,
+          name: parentCategoryInfo.name,
+          icon: parentCategoryInfo.icon,
+          totalAmount: 0,
+          transactionCount: 0,
+          percentage: 0,
+          parent: parentCategoryInfo.parent
+        };
+      }
     });
 
-    const sortedCategories = Object.values(categories).sort((a, b) => b.totalAmount - a.totalAmount);
+    // Group subcategories by parent
+    Object.values(rawCategories).forEach(category => {
+      if (category.parent) {
+        if (!subcategories[category.parent]) {
+          subcategories[category.parent] = [];
+        }
+        subcategories[category.parent].push(category);
+      }
+    });
+
+    // Create main categories with their subcategories
+    Object.values(rawCategories).forEach(category => {
+      if (!category.parent) {
+        // This is a main category
+        const categoryWithSubs: CategoryStats = {
+          ...category,
+          subcategories: subcategories[category.category] || []
+        };
+
+        // Add subcategory amounts to main category
+        categoryWithSubs?.subcategories?.forEach(sub => {
+          categoryWithSubs.totalAmount += sub.totalAmount;
+          categoryWithSubs.transactionCount += sub.transactionCount;
+        });
+
+        mainCategories.push(categoryWithSubs);
+      }
+    });
+
+    // Calculate percentages
+    [...mainCategories, ...Object.values(rawCategories).filter(cat => cat.parent)].forEach(category => {
+      category.percentage = totalSpent > 0 ? (category.totalAmount / totalSpent) * 100 : 0;
+    });
+
+    const sortedCategories = mainCategories.sort((a, b) => b.totalAmount - a.totalAmount);
     const sortedMonthlyData = Object.values(monthlyData);
 
     const averageSpending = sortedMonthlyData.length > 0
@@ -243,16 +392,50 @@ export default function ExpenseStatisticsScreen() {
       { month: '', totalAmount: 0, transactionCount: 0 }
     );
 
+    // Create pie chart data (limit to top 8 categories for better readability)
+    const categoryColors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
+    ];
+
+    const topCategories = sortedCategories.slice(0, 8);
+    const otherCategories = sortedCategories.slice(8);
+    const otherTotal = otherCategories.reduce((sum, cat) => sum + cat.totalAmount, 0);
+
+    const pieData: PieChartData[] = [];
+
+    topCategories.forEach((category, index) => {
+      if (category.percentage > 0) {
+        pieData.push({
+          label: `${category.icon} ${category.name}`,
+          value: category.percentage,
+          color: categoryColors[index % categoryColors.length],
+        });
+      }
+    });
+
+    // Add "Others" category if there are more than 8 categories
+    if (otherTotal > 0) {
+      const otherPercentage = totalSpent > 0 ? (otherTotal / totalSpent) * 100 : 0;
+      pieData.push({
+        label: '📊 Others',
+        value: otherPercentage,
+        color: '#95A5A6',
+      });
+    }
+
     return {
       totalSpent,
       totalTransactions,
       categories: sortedCategories,
+      pieData,
       monthlyData: sortedMonthlyData,
       averageSpending,
       highestSpendingPeriod,
       averagePerTransaction: totalTransactions > 0 ? totalSpent / totalTransactions : 0
     };
-  }, [expensesGroups, user?.id, periodFilter]);
+  }, [expensesGroups, user?.id, periodFilter, allCategories, userProfile?.profile?.budgeting?.categoryOverrides]);
 
   // Calculate budget comparison for monthly and yearly periods - separate from main stats
   const budgetComparison: BudgetComparison | null = useMemo(() => {
@@ -468,15 +651,52 @@ export default function ExpenseStatisticsScreen() {
           </View>
         )}
 
+        {/* Category Distribution */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
-          <View style={[styles.categoryContainer, { backgroundColor: colors.card }]}>
-            {expenseStats.categories.slice(0, 8).map((category, index) => (
-              <View key={category.category} style={styles.categoryItem}>
-                <View style={styles.categoryHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Category Distribution</Text>
+
+          {/* Custom SVG Pie Chart */}
+          {expenseStats.pieData.length > 0 && (
+            <View style={styles.pieChartSection}>
+              <CustomPieChart
+                data={expenseStats.pieData}
+                size={280}
+                colors={colors}
+              />
+
+              {/* Custom Legend Below Chart */}
+              <View style={styles.pieChartLegend}>
+                {expenseStats.pieData.map((item, index) => (
+                  <View key={index} style={styles.legendItem}>
+                    <View
+                      style={[
+                        styles.legendColorBox,
+                        { backgroundColor: item.color }
+                      ]}
+                    />
+                    <Text style={[styles.legendText, { color: colors.text }]}>
+                      {item.label} ({item.value.toFixed(1)}%)
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Hierarchical Category Table */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Category Breakdown</Text>
+          <View style={[styles.hierarchicalContainer, { backgroundColor: colors.card }]}>
+            {expenseStats.categories.map((category, index) => (
+              <View key={category.category} style={styles.hierarchicalCategory}>
+                {/* Main Category */}
+                <View style={styles.mainCategoryRow}>
                   <View style={styles.categoryInfo}>
                     <Text style={styles.categoryIcon}>{category.icon}</Text>
-                    <Text style={[styles.categoryName, { color: colors.text }]}>{category.name}</Text>
+                    <Text style={[styles.categoryName, { color: colors.text, fontWeight: '600' }]}>
+                      {category.name}
+                    </Text>
                   </View>
                   <View style={styles.categoryAmounts}>
                     <Text style={[styles.categoryAmount, { color: colors.text }]}>
@@ -487,6 +707,8 @@ export default function ExpenseStatisticsScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {/* Progress Bar for Main Category */}
                 <View style={styles.categoryProgress}>
                   <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
                     <View
@@ -494,7 +716,7 @@ export default function ExpenseStatisticsScreen() {
                         styles.progressFill,
                         {
                           width: `${getProgressWidth(category.totalAmount, maxCategoryAmount)}%`,
-                          backgroundColor: colors.primary
+                          backgroundColor: expenseStats.pieData[index]?.color || colors.primary
                         }
                       ]}
                     />
@@ -503,6 +725,33 @@ export default function ExpenseStatisticsScreen() {
                     {category.transactionCount} transactions
                   </Text>
                 </View>
+
+                {/* Subcategories */}
+                {category.subcategories && category.subcategories.length > 0 && (
+                  <View style={styles.subcategoriesContainer}>
+                    {category.subcategories.map((subcategory) => (
+                      <View key={subcategory.category} style={styles.subcategoryRow}>
+                        <View style={styles.subcategoryInfo}>
+                          <View style={styles.subcategoryIndent}>
+                            <Ionicons name="arrow-forward" size={14} color={colors.icon} />
+                          </View>
+                          <Text style={styles.subcategoryIcon}>{subcategory.icon}</Text>
+                          <Text style={[styles.subcategoryName, { color: colors.text }]}>
+                            {subcategory.name}
+                          </Text>
+                        </View>
+                        <View style={styles.subcategoryAmounts}>
+                          <Text style={[styles.subcategoryAmount, { color: colors.text }]}>
+                            {formatCurrency(subcategory.totalAmount)}
+                          </Text>
+                          <Text style={[styles.subcategoryPercentage, { color: colors.icon }]}>
+                            {subcategory.percentage.toFixed(1)}%
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
           </View>
@@ -966,5 +1215,108 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  // Pie Chart Styles
+  pieChartSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 5,
+  },
+  // Hierarchical Table Styles
+  hierarchicalContainer: {
+    borderRadius: 16,
+    padding: 16,
+  },
+  hierarchicalCategory: {
+    marginBottom: 24,
+  },
+  mainCategoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  subcategoriesContainer: {
+    marginTop: 12,
+    paddingLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  subcategoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  subcategoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  subcategoryIndent: {
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  subcategoryIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  subcategoryName: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  subcategoryAmounts: {
+    alignItems: 'flex-end',
+  },
+  subcategoryAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  subcategoryPercentage: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  // Custom Legend Styles
+  pieChartLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  legendLabelContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  legendLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  legendColorBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+    marginRight: 6,
+  },
+  legendText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

@@ -350,7 +350,7 @@ export default function BudgetingCategoriesScreen() {
                                 <View key={subcategory.id} style={[styles.categoryRow, styles.subcategoryRow]}>
                                     <View style={styles.categoryInfo}>
                                         <View style={styles.subcategoryIndent}>
-                                            <Ionicons name="subdirectory-arrow-right" size={16} color={colors.icon} />
+                                            <Ionicons name="arrow-forward" size={16} color={colors.icon} />
                                         </View>
                                         <Text style={styles.categoryIcon}>{subcategory.icon}</Text>
                                         <Text style={[styles.categoryName, { color: colors.text }]}>{subcategory.name}</Text>
