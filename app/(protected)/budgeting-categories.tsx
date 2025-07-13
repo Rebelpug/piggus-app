@@ -8,7 +8,10 @@ import {
     Input,
     TopNavigation,
     Divider,
-    Spinner
+    Spinner,
+    Select,
+    SelectItem,
+    IndexPath
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,7 +19,14 @@ import { useProfile } from '@/context/ProfileContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import { BASE_EXPENSE_CATEGORIES, computeExpenseCategories } from '@/types/expense';
+import { 
+    BASE_EXPENSE_CATEGORIES, 
+    computeExpenseCategories, 
+    getMainCategories, 
+    getSubcategories, 
+    validateCategoryHierarchy,
+    ExpenseCategory 
+} from '@/types/expense';
 
 const EMOJI_SUGGESTIONS = ['🍽️', '🚗', '🏠', '💡', '🎬', '🛍️', '⚕️', '📚', '💄', '✈️', '🎁', '📈', '💳', '🛡️', '📊', '📱', '📋', '💰', '🏦', '🔧', '🎯', '🌟', '❤️', '🔥', '💎', '🎨', '🍕', '☕', '🎮', '🐶', '🐱', '🌿', '🏋️', '🏃', '🎵', '🛒', '🎪', '🌈'];
 
@@ -30,6 +40,7 @@ export default function BudgetingCategoriesScreen() {
     const [addingCategory, setAddingCategory] = useState(false);
     const [categoryName, setCategoryName] = useState('');
     const [categoryIcon, setCategoryIcon] = useState('📋');
+    const [selectedParent, setSelectedParent] = useState<string | null>(null);
 
     const currentOverrides = userProfile?.profile?.budgeting?.categoryOverrides || {
         edited: {},
@@ -42,18 +53,30 @@ export default function BudgetingCategoriesScreen() {
         [currentOverrides]
     );
 
+    const mainCategories = useMemo(() => 
+        getMainCategories(computedCategories), 
+        [computedCategories]
+    );
+
     const navigateBack = () => {
         router.back();
     };
 
-    const handleEditCategory = (categoryId: string, currentName: string, currentIcon: string) => {
+    const handleEditCategory = (categoryId: string, currentName: string, currentIcon: string, currentParent?: string) => {
         setEditingCategory(categoryId);
         setCategoryName(currentName);
         setCategoryIcon(currentIcon);
+        setSelectedParent(currentParent || null);
     };
 
     const handleSaveEdit = async () => {
         if (!editingCategory || !categoryName.trim()) return;
+
+        // Validate hierarchy
+        if (!validateCategoryHierarchy(computedCategories, editingCategory, selectedParent || undefined)) {
+            Alert.alert('Invalid Hierarchy', 'A subcategory cannot be a child of another subcategory.');
+            return;
+        }
 
         setLoading(true);
         try {
@@ -64,7 +87,8 @@ export default function BudgetingCategoriesScreen() {
             if (baseCategory) {
                 newOverrides.edited[editingCategory] = {
                     name: categoryName.trim(),
-                    icon: categoryIcon
+                    icon: categoryIcon,
+                    parent: selectedParent || undefined
                 };
             } else {
                 // It's a custom category, update it in the added array
@@ -73,7 +97,8 @@ export default function BudgetingCategoriesScreen() {
                     newOverrides.added[addedIndex] = {
                         ...newOverrides.added[addedIndex],
                         name: categoryName.trim(),
-                        icon: categoryIcon
+                        icon: categoryIcon,
+                        parent: selectedParent || undefined
                     };
                 }
             }
@@ -88,6 +113,7 @@ export default function BudgetingCategoriesScreen() {
             setEditingCategory(null);
             setCategoryName('');
             setCategoryIcon('📋');
+            setSelectedParent(null);
         } catch (error) {
             Alert.alert('Error', 'Failed to update category. Please try again.');
         } finally {
@@ -98,6 +124,12 @@ export default function BudgetingCategoriesScreen() {
     const handleAddCategory = async () => {
         if (!categoryName.trim()) return;
 
+        // Validate hierarchy
+        if (!validateCategoryHierarchy(computedCategories, `custom_${Date.now()}`, selectedParent || undefined)) {
+            Alert.alert('Invalid Hierarchy', 'A subcategory cannot be a child of another subcategory.');
+            return;
+        }
+
         setLoading(true);
         try {
             const newOverrides = { ...currentOverrides };
@@ -106,7 +138,8 @@ export default function BudgetingCategoriesScreen() {
             newOverrides.added.push({
                 id: newId,
                 name: categoryName.trim(),
-                icon: categoryIcon
+                icon: categoryIcon,
+                parent: selectedParent || undefined
             });
 
             await updateProfile({
@@ -119,6 +152,7 @@ export default function BudgetingCategoriesScreen() {
             setAddingCategory(false);
             setCategoryName('');
             setCategoryIcon('📋');
+            setSelectedParent(null);
         } catch (error) {
             Alert.alert('Error', 'Failed to add category. Please try again.');
         } finally {
@@ -197,6 +231,48 @@ export default function BudgetingCategoriesScreen() {
         </TouchableOpacity>
     );
 
+    const renderParentSelector = () => {
+        const availableParents = mainCategories.filter(cat => 
+            cat.id !== editingCategory // Can't be parent of itself
+        );
+        
+        const selectedIndex = selectedParent 
+            ? new IndexPath(availableParents.findIndex(cat => cat.id === selectedParent))
+            : undefined;
+
+        return (
+            <View style={styles.parentSelector}>
+                <Select
+                    label="Parent Category (Optional)"
+                    placeholder="Select parent category or leave empty for main category"
+                    value={selectedParent ? availableParents.find(cat => cat.id === selectedParent)?.name : ''}
+                    selectedIndex={selectedIndex}
+                    onSelect={(index) => {
+                        if (Array.isArray(index)) return;
+                        const selectedCategory = availableParents[index.row];
+                        setSelectedParent(selectedCategory ? selectedCategory.id : null);
+                    }}
+                    style={styles.parentSelect}
+                >
+                    {availableParents.map((category) => (
+                        <SelectItem 
+                            key={category.id} 
+                            title={`${category.icon} ${category.name}`}
+                        />
+                    ))}
+                </Select>
+                {selectedParent && (
+                    <TouchableOpacity 
+                        style={[styles.clearParentButton, { backgroundColor: colors.error + '20' }]}
+                        onPress={() => setSelectedParent(null)}
+                    >
+                        <Text style={[styles.clearParentText, { color: colors.error }]}>Clear Parent</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        );
+    };
+
     const renderEmojiPicker = () => (
         <View style={styles.emojiPicker}>
             <Text style={[styles.emojiLabel, { color: colors.text }]}>Select Icon:</Text>
@@ -240,31 +316,66 @@ export default function BudgetingCategoriesScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {computedCategories.map((category) => (
-                        <View key={category.id} style={styles.categoryRow}>
-                            <View style={styles.categoryInfo}>
-                                <Text style={styles.categoryIcon}>{category.icon}</Text>
-                                <Text style={[styles.categoryName, { color: colors.text }]}>{category.name}</Text>
-                                {currentOverrides.edited[category.id] && (
-                                    <View style={[styles.modifiedBadge, { backgroundColor: colors.warning + '20' }]}>
-                                        <Text style={[styles.modifiedText, { color: colors.warning }]}>Modified</Text>
+                    {mainCategories.map((category) => (
+                        <View key={category.id}>
+                            {/* Main Category */}
+                            <View style={styles.categoryRow}>
+                                <View style={styles.categoryInfo}>
+                                    <Text style={styles.categoryIcon}>{category.icon}</Text>
+                                    <Text style={[styles.categoryName, { color: colors.text }]}>{category.name}</Text>
+                                    {currentOverrides.edited[category.id] && (
+                                        <View style={[styles.modifiedBadge, { backgroundColor: colors.warning + '20' }]}>
+                                            <Text style={[styles.modifiedText, { color: colors.warning }]}>Modified</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.categoryActions}>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
+                                        onPress={() => handleEditCategory(category.id, category.name, category.icon, category.parent)}
+                                    >
+                                        <Ionicons name="pencil" size={16} color={colors.primary} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
+                                        onPress={() => handleDeleteCategory(category.id)}
+                                    >
+                                        <Ionicons name="trash" size={16} color={colors.error} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            
+                            {/* Subcategories */}
+                            {getSubcategories(computedCategories, category.id).map((subcategory) => (
+                                <View key={subcategory.id} style={[styles.categoryRow, styles.subcategoryRow]}>
+                                    <View style={styles.categoryInfo}>
+                                        <View style={styles.subcategoryIndent}>
+                                            <Ionicons name="subdirectory-arrow-right" size={16} color={colors.icon} />
+                                        </View>
+                                        <Text style={styles.categoryIcon}>{subcategory.icon}</Text>
+                                        <Text style={[styles.categoryName, { color: colors.text }]}>{subcategory.name}</Text>
+                                        {currentOverrides.edited[subcategory.id] && (
+                                            <View style={[styles.modifiedBadge, { backgroundColor: colors.warning + '20' }]}>
+                                                <Text style={[styles.modifiedText, { color: colors.warning }]}>Modified</Text>
+                                            </View>
+                                        )}
                                     </View>
-                                )}
-                            </View>
-                            <View style={styles.categoryActions}>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
-                                    onPress={() => handleEditCategory(category.id, category.name, category.icon)}
-                                >
-                                    <Ionicons name="pencil" size={16} color={colors.primary} />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
-                                    onPress={() => handleDeleteCategory(category.id)}
-                                >
-                                    <Ionicons name="trash" size={16} color={colors.error} />
-                                </TouchableOpacity>
-                            </View>
+                                    <View style={styles.categoryActions}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
+                                            onPress={() => handleEditCategory(subcategory.id, subcategory.name, subcategory.icon, subcategory.parent)}
+                                        >
+                                            <Ionicons name="pencil" size={16} color={colors.primary} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
+                                            onPress={() => handleDeleteCategory(subcategory.id)}
+                                        >
+                                            <Ionicons name="trash" size={16} color={colors.error} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))}
                         </View>
                     ))}
                 </View>
@@ -322,6 +433,8 @@ export default function BudgetingCategoriesScreen() {
                             style={styles.modalInput}
                         />
 
+                        {renderParentSelector()}
+
                         {renderEmojiPicker()}
 
                         <View style={styles.modalActions}>
@@ -362,6 +475,8 @@ export default function BudgetingCategoriesScreen() {
                             onChangeText={setCategoryName}
                             style={styles.modalInput}
                         />
+
+                        {renderParentSelector()}
 
                         {renderEmojiPicker()}
 
@@ -547,5 +662,31 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         flex: 1,
+    },
+    subcategoryRow: {
+        paddingLeft: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    },
+    subcategoryIndent: {
+        width: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 8,
+    },
+    parentSelector: {
+        marginBottom: 20,
+    },
+    parentSelect: {
+        marginBottom: 8,
+    },
+    clearParentButton: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    clearParentText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });

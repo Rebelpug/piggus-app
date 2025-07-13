@@ -33,7 +33,10 @@ import {
     calculateEqualSplit,
     calculateNextDueDate,
     computeExpenseCategories,
-    getCategoryDisplayInfo
+    getCategoryDisplayInfo,
+    getMainCategories,
+    getSubcategories,
+    ExpenseCategory
 } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
@@ -48,11 +51,36 @@ export default function AddExpenseScreen() {
     const { userProfile } = useProfile();
 
     // Compute categories with user's customizations
-    const availableCategories = React.useMemo(() =>
+    const allCategories = React.useMemo(() =>
         computeExpenseCategories(
             userProfile?.profile?.budgeting?.categoryOverrides
         ), [userProfile?.profile?.budgeting?.categoryOverrides]
     );
+
+    // Create hierarchical display list
+    const availableCategories = React.useMemo(() => {
+        const result: Array<ExpenseCategory & { displayName: string }> = [];
+        const mainCategories = getMainCategories(allCategories);
+        
+        mainCategories.forEach(category => {
+            // Add main category
+            result.push({
+                ...category,
+                displayName: `${category.icon} ${category.name}`
+            });
+            
+            // Add subcategories
+            const subcategories = getSubcategories(allCategories, category.id);
+            subcategories.forEach(subcategory => {
+                result.push({
+                    ...subcategory,
+                    displayName: `  ↳ ${subcategory.icon} ${subcategory.name}`
+                });
+            });
+        });
+        
+        return result;
+    }, [allCategories]);
     const [loading, setLoading] = useState(false);
 
     // Form state
@@ -596,7 +624,7 @@ export default function AddExpenseScreen() {
                         style={styles.input}
                         label='Category'
                         placeholder='Select category'
-                        value={selectedCategoryIndex ? availableCategories[selectedCategoryIndex.row]?.name : ''}
+                        value={selectedCategoryIndex ? availableCategories[selectedCategoryIndex.row]?.displayName : ''}
                         selectedIndex={selectedCategoryIndex}
                         onSelect={(index) => setSelectedCategoryIndex(index as IndexPath)}
                         status={selectedCategoryIndex ? 'basic' : 'danger'}
@@ -604,7 +632,7 @@ export default function AddExpenseScreen() {
                         {availableCategories.map((category) => (
                             <SelectItem
                                 key={category.id}
-                                title={`${category.icon} ${category.name}`}
+                                title={category.displayName}
                             />
                         ))}
                     </Select>

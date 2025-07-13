@@ -151,14 +151,36 @@ export type RecurringExpenseFormData = {
   is_active: boolean;
 };
 
-export const BASE_EXPENSE_CATEGORIES = [
+export type ExpenseCategory = {
+  id: string;
+  name: string;
+  icon: string;
+  parent?: string; // If present, this is a subcategory
+};
+
+export const BASE_EXPENSE_CATEGORIES: ExpenseCategory[] = [
   { id: 'food', name: 'Food & Dining', icon: '🍽️' },
+  { id: 'restaurants', name: 'Restaurants', icon: '🍽️', parent: 'food' },
+  { id: 'groceries', name: 'Groceries', icon: '🛒', parent: 'food' },
   { id: 'transportation', name: 'Transportation', icon: '🚗' },
+  { id: 'gas', name: 'Gas & Fuel', icon: '⛽', parent: 'transportation' },
+  { id: 'public_transport', name: 'Public Transport', icon: '🚌', parent: 'transportation' },
   { id: 'housing', name: 'Housing & Rent', icon: '🏠' },
+  { id: 'rent', name: 'Rent', icon: '🏠', parent: 'housing' },
+  { id: 'maintenance', name: 'Maintenance', icon: '🔧', parent: 'housing' },
   { id: 'utilities', name: 'Utilities', icon: '💡' },
+  { id: 'electricity', name: 'Electricity', icon: '💡', parent: 'utilities' },
+  { id: 'water', name: 'Water', icon: '💧', parent: 'utilities' },
+  { id: 'internet', name: 'Internet', icon: '🌐', parent: 'utilities' },
   { id: 'entertainment', name: 'Entertainment', icon: '🎬' },
+  { id: 'subscriptions', name: 'Subscriptions', icon: '📱', parent: 'entertainment' },
+  { id: 'movies', name: 'Movies & Shows', icon: '🎬', parent: 'entertainment' },
   { id: 'shopping', name: 'Shopping', icon: '🛍️' },
+  { id: 'clothing', name: 'Clothing', icon: '👕', parent: 'shopping' },
+  { id: 'electronics', name: 'Electronics', icon: '📱', parent: 'shopping' },
   { id: 'health', name: 'Health & Medical', icon: '⚕️' },
+  { id: 'doctor', name: 'Doctor Visits', icon: '👨‍⚕️', parent: 'health' },
+  { id: 'pharmacy', name: 'Pharmacy', icon: '💊', parent: 'health' },
   { id: 'education', name: 'Education', icon: '📚' },
   { id: 'personal', name: 'Personal Care', icon: '💄' },
   { id: 'travel', name: 'Travel', icon: '✈️' },
@@ -167,7 +189,6 @@ export const BASE_EXPENSE_CATEGORIES = [
   { id: 'debt', name: 'Debt Payments', icon: '💳' },
   { id: 'insurance', name: 'Insurance', icon: '🛡️' },
   { id: 'taxes', name: 'Taxes', icon: '📊' },
-  { id: 'subscriptions', name: 'Subscriptions', icon: '📱' },
   { id: 'other', name: 'Other', icon: '📋' },
 ];
 
@@ -179,9 +200,9 @@ export const EXPENSE_CATEGORIES = BASE_EXPENSE_CATEGORIES.map(cat => ({
 
 // Utility function to compute categories based on base categories and overrides
 export const computeExpenseCategories = (categoryOverrides?: {
-  edited: { [categoryId: string]: { name: string; icon: string } };
+  edited: { [categoryId: string]: { name: string; icon: string; parent?: string } };
   deleted: string[];
-  added: Array<{ id: string; name: string; icon: string }>;
+  added: Array<{ id: string; name: string; icon: string; parent?: string }>;
 }) => {
   let categories = [...BASE_EXPENSE_CATEGORIES];
 
@@ -189,7 +210,12 @@ export const computeExpenseCategories = (categoryOverrides?: {
     // Apply edits
     categories = categories.map(cat => {
       const override = categoryOverrides.edited[cat.id];
-      return override ? { ...cat, name: override.name, icon: override.icon } : cat;
+      return override ? { 
+        ...cat, 
+        name: override.name, 
+        icon: override.icon,
+        parent: override.parent 
+      } : cat;
     });
 
     // Remove deleted categories
@@ -202,20 +228,46 @@ export const computeExpenseCategories = (categoryOverrides?: {
   return categories;
 };
 
+// Utility function to get only main categories (no parent)
+export const getMainCategories = (categories: ExpenseCategory[]): ExpenseCategory[] => {
+  return categories.filter(cat => !cat.parent);
+};
+
+// Utility function to get subcategories for a specific parent
+export const getSubcategories = (categories: ExpenseCategory[], parentId: string): ExpenseCategory[] => {
+  return categories.filter(cat => cat.parent === parentId);
+};
+
+// Utility function to validate that a subcategory cannot be a child of another subcategory
+export const validateCategoryHierarchy = (categories: ExpenseCategory[], categoryId: string, parentId?: string): boolean => {
+  if (!parentId) return true; // Top-level categories are always valid
+  
+  const parentCategory = categories.find(cat => cat.id === parentId);
+  if (!parentCategory) return false; // Parent doesn't exist
+  
+  // Check if parent is already a subcategory
+  return !parentCategory.parent; // Parent should not have a parent itself
+};
+
 // Utility function to get category display info (including deleted ones for existing expenses)
 export const getCategoryDisplayInfo = (
   categoryId: string, 
   categoryOverrides?: {
-    edited: { [categoryId: string]: { name: string; icon: string } };
+    edited: { [categoryId: string]: { name: string; icon: string; parent?: string } };
     deleted: string[];
-    added: Array<{ id: string; name: string; icon: string }>;
+    added: Array<{ id: string; name: string; icon: string; parent?: string }>;
   }
 ) => {
   // First check if it's a custom added category
   if (categoryOverrides?.added) {
     const customCategory = categoryOverrides.added.find(cat => cat.id === categoryId);
     if (customCategory) {
-      return { name: customCategory.name, icon: customCategory.icon, isDeleted: false };
+      return { 
+        name: customCategory.name, 
+        icon: customCategory.icon, 
+        parent: customCategory.parent,
+        isDeleted: false 
+      };
     }
   }
 
@@ -229,12 +281,13 @@ export const getCategoryDisplayInfo = (
     return {
       name: editedInfo?.name || baseCategory.name,
       icon: editedInfo?.icon || baseCategory.icon,
+      parent: editedInfo?.parent !== undefined ? editedInfo.parent : baseCategory.parent,
       isDeleted
     };
   }
 
   // Fallback for unknown categories
-  return { name: categoryId, icon: '📋', isDeleted: false };
+  return { name: categoryId, icon: '📋', parent: undefined, isDeleted: false };
 };
 
 export const PAYMENT_METHODS = [

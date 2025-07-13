@@ -29,7 +29,10 @@ import {
     ExpenseParticipant,
     calculateEqualSplit,
     computeExpenseCategories,
-    getCategoryDisplayInfo
+    getCategoryDisplayInfo,
+    getMainCategories,
+    getSubcategories,
+    ExpenseCategory
 } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
@@ -44,9 +47,34 @@ export default function EditExpenseScreen() {
     const { userProfile } = useProfile();
 
     // Compute categories with user's customizations
-    const availableCategories = computeExpenseCategories(
+    const allCategories = computeExpenseCategories(
         userProfile?.profile?.budgeting?.categoryOverrides
     );
+
+    // Create hierarchical display list
+    const availableCategories = React.useMemo(() => {
+        const result: Array<ExpenseCategory & { displayName: string }> = [];
+        const mainCategories = getMainCategories(allCategories);
+        
+        mainCategories.forEach(category => {
+            // Add main category
+            result.push({
+                ...category,
+                displayName: `${category.icon} ${category.name}`
+            });
+            
+            // Add subcategories
+            const subcategories = getSubcategories(allCategories, category.id);
+            subcategories.forEach(subcategory => {
+                result.push({
+                    ...subcategory,
+                    displayName: `  ↳ ${subcategory.icon} ${subcategory.name}`
+                });
+            });
+        });
+        
+        return result;
+    }, [allCategories]);
     const [loading, setLoading] = useState(false);
     const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
     const [groupName, setGroupName] = useState<string>('');
@@ -65,6 +93,7 @@ export default function EditExpenseScreen() {
     const [selectedSplitMethodIndex, setSelectedSplitMethodIndex] = useState<IndexPath>(new IndexPath(0)); // Default to equal split
     const [participants, setParticipants] = useState<ExpenseParticipant[]>([]);
     const [customAmounts, setCustomAmounts] = useState<{ [userId: string]: string }>({});
+    const [displayCategories, setDisplayCategories] = useState<Array<ExpenseCategory & { displayName: string }>>(availableCategories);
 
     // Load expense data on mount
     useEffect(() => {
@@ -87,16 +116,21 @@ export default function EditExpenseScreen() {
             setDate(new Date(foundExpense.data.date));
             setParticipants(foundExpense.data.participants);
 
-            // Set category index
-            let categoryIndex = availableCategories.findIndex(cat => cat.id === foundExpense.data.category);
+            // Set category index - need to create a mutable copy for deleted categories
+            const mutableCategories = [...availableCategories];
+            let categoryIndex = mutableCategories.findIndex(cat => cat.id === foundExpense.data.category);
             if (categoryIndex === -1) {
                 const categoryInfo = getCategoryDisplayInfo(foundExpense.data.category, userProfile?.profile?.budgeting?.categoryOverrides);
-                categoryIndex = availableCategories.length;
-                availableCategories.push({
+                categoryIndex = mutableCategories.length;
+                mutableCategories.push({
                     id: foundExpense.data.category,
                     name: `${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`,
-                    icon: categoryInfo.icon
+                    icon: categoryInfo.icon,
+                    displayName: `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`,
+                    parent: categoryInfo.parent
                 });
+                // Update the display categories to include the deleted one
+                setDisplayCategories(mutableCategories);
             }
             setSelectedCategoryIndex(new IndexPath(categoryIndex));
 
@@ -361,11 +395,11 @@ export default function EditExpenseScreen() {
                             placeholder='Select category'
                             selectedIndex={selectedCategoryIndex}
                             onSelect={(index) => setSelectedCategoryIndex(index as IndexPath)}
-                            value={selectedCategoryIndex ? availableCategories[selectedCategoryIndex.row]?.name : ''}
+                            value={selectedCategoryIndex ? displayCategories[selectedCategoryIndex.row]?.displayName : ''}
                             style={styles.input}
                         >
-                            {availableCategories.map((category, index) => (
-                                <SelectItem key={index} title={`${category.icon} ${category.name}`} />
+                            {displayCategories.map((category, index) => (
+                                <SelectItem key={index} title={category.displayName} />
                             ))}
                         </Select>
 
