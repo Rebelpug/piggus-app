@@ -56,8 +56,19 @@ export default function AddInvestmentScreen() {
     const defaultCurrencyIndex = currencies.findIndex(c => c === userDefaultCurrency);
     const initialCurrencyIndex = defaultCurrencyIndex >= 0 ? defaultCurrencyIndex : 0;
 
-    // Form state
-    const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath>(new IndexPath(0));
+    // Form state - Check if portfolioId is passed as parameter
+    const getInitialPortfolioIndex = () => {
+        const portfolioId = params.portfolioId as string;
+        if (portfolioId) {
+            const portfolioIndex = portfolios.findIndex(p => p.id === portfolioId);
+            if (portfolioIndex >= 0) {
+                return new IndexPath(portfolioIndex);
+            }
+        }
+        return new IndexPath(0);
+    };
+    
+    const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath>(getInitialPortfolioIndex());
     const [selectedTypeIndex, setSelectedTypeIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(initialCurrencyIndex));
 

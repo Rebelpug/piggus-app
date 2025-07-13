@@ -303,6 +303,15 @@ export default function HomeScreen() {
                                     * Some investments lack current prices
                                 </Text>
                             )}
+                            
+                            {/* See more stats button */}
+                            <TouchableOpacity
+                                style={[styles.statsButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                                onPress={() => router.push('/(protected)/investment-statistics')}
+                            >
+                                <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
+                                <Text style={[styles.statsButtonText, { color: colors.primary }]}>See more stats</Text>
+                            </TouchableOpacity>
                         </View>
                     ) : (
                         <View style={styles.noPortfolioContainer}>
@@ -524,6 +533,21 @@ const styles = StyleSheet.create({
     },
     guidesCtaButtonText: {
         color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    statsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginTop: 16,
+        gap: 6,
+    },
+    statsButtonText: {
         fontSize: 14,
         fontWeight: '600',
     },

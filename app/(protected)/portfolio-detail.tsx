@@ -63,7 +63,10 @@ export default function PortfolioDetailScreen() {
     };
 
     const handleAddInvestment = () => {
-        router.push('/(protected)/add-investment');
+        router.push({
+            pathname: '/(protected)/add-investment',
+            params: { portfolioId: portfolio?.id }
+        });
     };
 
     const handleInviteUser = async () => {
@@ -481,6 +484,18 @@ export default function PortfolioDetailScreen() {
                                         <Text style={[styles.summaryLabel, { color: colors.icon }]}>Investments</Text>
                                     </View>
                                 </View>
+                                
+                                {/* See more stats button */}
+                                <TouchableOpacity
+                                    style={[styles.statsButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                                    onPress={() => router.push({
+                                        pathname: '/(protected)/investment-statistics',
+                                        params: { portfolioId: portfolio.id }
+                                    })}
+                                >
+                                    <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
+                                    <Text style={[styles.statsButtonText, { color: colors.primary }]}>See more stats</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
 
@@ -928,5 +943,20 @@ const styles = StyleSheet.create({
     modalButton: {
         flex: 1,
         marginHorizontal: 8,
+    },
+    statsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginTop: 16,
+        gap: 6,
+    },
+    statsButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

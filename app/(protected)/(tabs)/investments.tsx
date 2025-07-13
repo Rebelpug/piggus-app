@@ -167,7 +167,10 @@ export default function InvestmentsScreen() {
     }, []);
 
     const handleAddInvestment = () => {
-        router.push('/(protected)/add-investment');
+        router.push({
+            pathname: '/(protected)/add-investment',
+            params: selectedPortfolio ? { portfolioId: selectedPortfolio.id } : {}
+        });
     };
 
     const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -364,6 +367,18 @@ export default function InvestmentsScreen() {
                     ]}>
                         {formatCurrency(totalGainLoss)} ({formatPercentage(gainLossPercentage)})
                     </Text>
+                    
+                    {/* See more stats button */}
+                    <TouchableOpacity
+                        style={[styles.statsButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                        onPress={() => router.push({
+                            pathname: '/(protected)/investment-statistics',
+                            params: selectedPortfolio ? { portfolioId: selectedPortfolio.id } : {}
+                        })}
+                    >
+                        <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
+                        <Text style={[styles.statsButtonText, { color: colors.primary }]}>See more stats</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         );
@@ -650,5 +665,20 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
+    },
+    statsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginTop: 16,
+        gap: 6,
+    },
+    statsButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
