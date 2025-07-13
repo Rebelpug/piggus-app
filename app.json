@@ -12,6 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rebelpug.piggus",
+      "jsEngine": "hermes",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -35,8 +36,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.rebelpug.piggus"
+      "package": "com.rebelpug.piggus",
+      "jsEngine": "hermes"
     },
     "web": {
       "bundler": "metro",
