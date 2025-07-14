@@ -47,3 +47,4 @@ app-example
 .idea
 
 .env.local
+/.claude/settings.local.json

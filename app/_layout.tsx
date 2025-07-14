@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { GuideProvider } from "@/context/GuideContext";
+import { LocalizationProvider } from "@/context/LocalizationContext";
 import { Stack } from "expo-router";
 import React from 'react';
 import * as eva from '@eva-design/eva';
@@ -63,7 +64,9 @@ export default Sentry.wrap(function RootLayout() {
 
     return (
         <ThemeProvider>
-            <ThemedApp />
+            <LocalizationProvider>
+                <ThemedApp />
+            </LocalizationProvider>
         </ThemeProvider>
     );
 });

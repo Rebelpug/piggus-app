@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image, Switch, Linking } from 'react-native';
 import {
     Text,
@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { CURRENCIES } from '@/types/expense';
@@ -28,8 +29,10 @@ export default function ProfileScreen() {
     const { colorScheme: currentTheme, toggleColorScheme, isSystemTheme, setIsSystemTheme } = useTheme();
     const { user, signOut } = useAuth();
     const { userProfile, updateProfile } = useProfile();
+    const { currentLanguage, changeLanguage, t, availableLanguages } = useLocalization();
     const [loading, setLoading] = useState(false);
     const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+    const [languageModalVisible, setLanguageModalVisible] = useState(false);
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
     const [feedbackText, setFeedbackText] = useState('');
     const [sendingFeedback, setSendingFeedback] = useState(false);
@@ -40,6 +43,15 @@ export default function ProfileScreen() {
         const index = CURRENCIES.findIndex(c => c.value === currentCurrency);
         return new IndexPath(index >= 0 ? index : 0);
     });
+    const [selectedLanguageIndex, setSelectedLanguageIndex] = useState<IndexPath>(new IndexPath(0));
+
+    // Update selected language index when context is ready
+    useEffect(() => {
+        if (availableLanguages && currentLanguage) {
+            const index = availableLanguages.findIndex(l => l.code === currentLanguage);
+            setSelectedLanguageIndex(new IndexPath(index >= 0 ? index : 0));
+        }
+    }, [availableLanguages, currentLanguage]);
 
     const navigateBack = () => {
         router.back();
@@ -47,12 +59,12 @@ export default function ProfileScreen() {
 
     const handleSignOut = async () => {
         Alert.alert(
-            'Sign Out',
-            'Are you sure you want to sign out?',
+            t('alerts.signOutTitle'),
+            t('alerts.signOutMessage'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('modals.cancel'), style: 'cancel' },
                 {
-                    text: 'Sign Out',
+                    text: t('profile.signOut'),
                     style: 'destructive',
                     onPress: async () => {
                         setLoading(true);
@@ -60,7 +72,7 @@ export default function ProfileScreen() {
                             await signOut();
                             router.replace('/login');
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to sign out. Please try again.');
+                            Alert.alert(t('alerts.error'), t('alerts.signOutError'));
                         } finally {
                             setLoading(false);
                         }
@@ -79,7 +91,21 @@ export default function ProfileScreen() {
             });
             setCurrencyModalVisible(false);
         } catch (error) {
-            Alert.alert('Error', 'Failed to update currency. Please try again.');
+            Alert.alert(t('alerts.error'), t('alerts.currencyUpdateError'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateLanguage = async () => {
+        setLoading(true);
+        try {
+            const selectedLanguage = availableLanguages?.[selectedLanguageIndex.row];
+            if (!selectedLanguage) return;
+            await changeLanguage(selectedLanguage.code);
+            setLanguageModalVisible(false);
+        } catch (error) {
+            Alert.alert(t('alerts.error'), t('alerts.languageUpdateError'));
         } finally {
             setLoading(false);
         }
@@ -87,7 +113,7 @@ export default function ProfileScreen() {
 
     const handleSendFeedback = async () => {
         if (!feedbackText.trim()) {
-            Alert.alert('Validation Error', 'Please enter your feedback');
+            Alert.alert(t('alerts.validationError'), t('alerts.feedbackRequired'));
             return;
         }
 
@@ -102,9 +128,9 @@ export default function ProfileScreen() {
 
             setFeedbackModalVisible(false);
             setFeedbackText('');
-            Alert.alert('Thank you!', 'Your feedback has been sent successfully.');
+            Alert.alert(t('alerts.thankYou'), t('alerts.feedbackSent'));
         } catch (error) {
-            Alert.alert('Error', 'Failed to send feedback. Please try again.');
+            Alert.alert(t('alerts.error'), t('alerts.feedbackError'));
         } finally {
             setSendingFeedback(false);
         }
@@ -133,7 +159,7 @@ export default function ProfileScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
-                title='Profile'
+                title={t('profile.title')}
                 alignment='center'
                 accessoryLeft={renderBackAction}
                 style={{ backgroundColor: colors.background }}
@@ -144,7 +170,7 @@ export default function ProfileScreen() {
                 <View style={[styles.header, { backgroundColor: colors.card }]}>
                     <ProfileAvatar />
                     <Text style={[styles.username, { color: colors.text }]}>
-                        {userProfile?.username || 'Unknown User'}
+                        {userProfile?.username || t('common.unknownUser')}
                     </Text>
                     <Text style={[styles.email, { color: colors.icon }]}>
                         {user?.email || ''}
@@ -153,14 +179,14 @@ export default function ProfileScreen() {
 
                 {/* Account Information */}
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Information</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.accountInformation')}</Text>
 
                     <View style={styles.infoRow}>
                         <View style={styles.infoLabel}>
                             <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
                                 <Ionicons name="person-outline" size={20} color={colors.primary} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Username</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.username')}</Text>
                         </View>
                         <Text style={[styles.valueText, { color: colors.icon }]}>{userProfile?.username}</Text>
                     </View>
@@ -172,7 +198,7 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.secondary + '20' }]}>
                                 <Ionicons name="mail-outline" size={20} color={colors.secondary} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Email</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.email')}</Text>
                         </View>
                         <Text style={[styles.valueText, { color: colors.icon }]}>{user?.email}</Text>
                     </View>
@@ -184,7 +210,7 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
                                 <Ionicons name="calendar-outline" size={20} color={colors.accent} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Member Since</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.memberSince')}</Text>
                         </View>
                         <Text style={[styles.valueText, { color: colors.icon }]}>
                             {userProfile?.created_at
@@ -193,25 +219,25 @@ export default function ProfileScreen() {
                                     day: 'numeric',
                                     year: 'numeric'
                                 })
-                                : 'Unknown'}
+                                : t('common.unknown')}
                         </Text>
                     </View>
                 </View>
 
                 {/* Appearance */}
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Appearance</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.appearance')}</Text>
 
                     <View style={styles.preferenceRow}>
                         <View style={styles.infoLabel}>
                             <View style={[styles.iconContainer, { backgroundColor: colors.warning + '20' }]}>
                                 <Ionicons name={currentTheme === 'dark' ? 'moon-outline' : 'sunny-outline'} size={20} color={colors.warning} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Theme</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.theme')}</Text>
                         </View>
                         <View style={styles.themeControls}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
-                                {isSystemTheme ? 'Auto' : currentTheme === 'dark' ? 'Dark' : 'Light'}
+                                {isSystemTheme ? t('profile.auto') : currentTheme === 'dark' ? t('profile.dark') : t('profile.light')}
                             </Text>
                             <TouchableOpacity
                                 style={[styles.themeButton, { backgroundColor: colors.primary }]}
@@ -233,7 +259,7 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
                                 <Ionicons name="phone-portrait-outline" size={20} color={colors.success} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Follow System</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.followSystem')}</Text>
                         </View>
                         <Switch
                             value={isSystemTheme}
@@ -242,11 +268,31 @@ export default function ProfileScreen() {
                             thumbColor={isSystemTheme ? colors.primary : colors.icon}
                         />
                     </View>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={() => setLanguageModalVisible(true)}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
+                                <Ionicons name="language-outline" size={20} color={colors.accent} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.language')}</Text>
+                        </View>
+                        <View style={styles.preferenceValue}>
+                            <Text style={[styles.currentValue, { color: colors.icon }]}>
+                                {availableLanguages?.find(l => l.code === currentLanguage)?.nativeName || 'English'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Preferences */}
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Expenses Preferences</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.expensePreferences')}</Text>
 
                     <TouchableOpacity
                         style={styles.preferenceRow}
@@ -256,7 +302,7 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.success + '20' }]}>
                                 <Ionicons name="card-outline" size={20} color={colors.success} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Preferred Currency</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.preferredCurrency')}</Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
@@ -276,11 +322,11 @@ export default function ProfileScreen() {
                             <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
                                 <Ionicons name="grid-outline" size={20} color={colors.accent} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>Categories</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.categories')}</Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
-                                Customize
+                                {t('profile.customize')}
                             </Text>
                             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                         </View>
@@ -401,14 +447,14 @@ export default function ProfileScreen() {
                 onBackdropPress={() => setCurrencyModalVisible(false)}
             >
                 <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.modalTitle, { color: colors.text }]}>Select Default Currency</Text>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.selectDefaultCurrency')}</Text>
                     <Text style={[styles.modalDescription, { color: colors.icon }]}>
-                        This will be your default currency for new expenses and budgets.
+                        {t('modals.currencyDescription')}
                     </Text>
 
                     <Select
                         style={styles.modalSelect}
-                        placeholder='Select currency'
+                        placeholder={t('modals.selectDefaultCurrency')}
                         value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
@@ -423,7 +469,7 @@ export default function ProfileScreen() {
                             style={[styles.modalButton, styles.modalCancelButton, { borderColor: colors.border }]}
                             onPress={() => setCurrencyModalVisible(false)}
                         >
-                            <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
+                            <Text style={[styles.modalButtonText, { color: colors.text }]}>{t('modals.cancel')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.modalButton, styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
@@ -433,7 +479,54 @@ export default function ProfileScreen() {
                             <View style={styles.modalButtonContent}>
                                 {loading && <Spinner size='small' status='control' />}
                                 <Text style={[styles.modalButtonText, { color: 'white' }]}>
-                                    {loading ? 'Updating...' : 'Update'}
+                                    {loading ? t('modals.updating') : t('modals.update')}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Language Selection Modal */}
+            <Modal
+                visible={languageModalVisible}
+                backdropStyle={styles.backdrop}
+                onBackdropPress={() => setLanguageModalVisible(false)}
+            >
+                <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.selectLanguage')}</Text>
+                    <Text style={[styles.modalDescription, { color: colors.icon }]}>
+                        {t('modals.languageDescription')}
+                    </Text>
+
+                    <Select
+                        style={styles.modalSelect}
+                        placeholder={t('modals.selectLanguage')}
+                        value={selectedLanguageIndex && availableLanguages ? availableLanguages[selectedLanguageIndex.row]?.nativeName : ''}
+                        selectedIndex={selectedLanguageIndex}
+                        onSelect={(index) => setSelectedLanguageIndex(index as IndexPath)}
+                    >
+                        {availableLanguages?.map((language) => (
+                            <SelectItem key={language.code} title={language.nativeName} />
+                        )) || []}
+                    </Select>
+
+                    <View style={styles.modalActions}>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.modalCancelButton, { borderColor: colors.border }]}
+                            onPress={() => setLanguageModalVisible(false)}
+                        >
+                            <Text style={[styles.modalButtonText, { color: colors.text }]}>{t('modals.cancel')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
+                            onPress={handleUpdateLanguage}
+                            disabled={loading}
+                        >
+                            <View style={styles.modalButtonContent}>
+                                {loading && <Spinner size='small' status='control' />}
+                                <Text style={[styles.modalButtonText, { color: 'white' }]}>
+                                    {loading ? t('modals.updating') : t('modals.update')}
                                 </Text>
                             </View>
                         </TouchableOpacity>
@@ -471,7 +564,7 @@ export default function ProfileScreen() {
                                 setFeedbackText('');
                             }}
                         >
-                            <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
+                            <Text style={[styles.modalButtonText, { color: colors.text }]}>{t('modals.cancel')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.modalButton, styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
