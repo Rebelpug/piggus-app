@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useInvestment } from '@/context/InvestmentContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { ExpenseGroupWithDecryptedData } from '@/types/expense';
 import { PortfolioWithDecryptedData } from '@/types/portfolio';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ export default function SharesScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const { expensesGroups, isLoading, error } = useExpense();
     const { portfolios, isLoading: portfoliosLoading, error: portfoliosError } = useInvestment();
     const [refreshing, setRefreshing] = useState(false);
@@ -80,13 +82,13 @@ export default function SharesScreen() {
     const getGroupStatusText = (status: string) => {
         switch (status) {
             case 'confirmed':
-                return 'Active';
+                return t('shares.active');
             case 'pending':
-                return 'Pending';
+                return t('shares.pending');
             case 'rejected':
-                return 'Rejected';
+                return t('shares.rejected');
             default:
-                return 'Unknown';
+                return t('shares.unknown');
         }
     };
 
@@ -124,10 +126,10 @@ export default function SharesScreen() {
                             </View>
                             <View style={styles.groupDetails}>
                                 <Text style={[styles.groupTitle, { color: colors.text }]}>
-                                    {item.data.name || 'Unnamed Group'}
+                                    {item.data.name || t('shares.unnamedGroup')}
                                 </Text>
                                 <Text style={[styles.groupSubtitle, { color: colors.icon }]}>
-                                    {item.data.description || 'No description'}
+                                    {item.data.description || t('shares.noDescription')}
                                 </Text>
                             </View>
                         </View>
@@ -146,13 +148,13 @@ export default function SharesScreen() {
                             <View style={styles.statItem}>
                                 <Ionicons name="receipt-outline" size={14} color={colors.icon} />
                                 <Text style={[styles.statText, { color: colors.icon }]}>
-                                    {expenseCount} expense{expenseCount !== 1 ? 's' : ''}
+                                    {t('shares.expenseCount', { count: expenseCount })}
                                 </Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Ionicons name="people-outline" size={14} color={colors.icon} />
                                 <Text style={[styles.statText, { color: colors.icon }]}>
-                                    {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                    {t('shares.memberCount', { count: memberCount })}
                                 </Text>
                             </View>
                         </View>
@@ -211,10 +213,10 @@ export default function SharesScreen() {
                             </View>
                             <View style={styles.groupDetails}>
                                 <Text style={[styles.groupTitle, { color: colors.text }]}>
-                                    {item.data.name || 'Unnamed Portfolio'}
+                                    {item.data.name || t('shares.unnamedPortfolio')}
                                 </Text>
                                 <Text style={[styles.groupSubtitle, { color: colors.icon }]}>
-                                    {item.data.description || 'No description'}
+                                    {item.data.description || t('shares.noDescription')}
                                 </Text>
                             </View>
                         </View>
@@ -236,13 +238,13 @@ export default function SharesScreen() {
                             <View style={styles.statItem}>
                                 <Ionicons name="trending-up" size={14} color={colors.icon} />
                                 <Text style={[styles.statText, { color: colors.icon }]}>
-                                    {investmentCount} investment{investmentCount !== 1 ? 's' : ''}
+                                    {t('shares.investmentCount', { count: investmentCount })}
                                 </Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Ionicons name="people-outline" size={14} color={colors.icon} />
                                 <Text style={[styles.statText, { color: colors.icon }]}>
-                                    {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                    {t('shares.memberCount', { count: memberCount })}
                                 </Text>
                             </View>
                         </View>
@@ -255,16 +257,16 @@ export default function SharesScreen() {
     const renderExpenseGroupsEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>No expense groups yet</Text>
+            <Text category='h6' style={styles.emptyTitle}>{t('shares.noExpenseGroupsYet')}</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Create your first expense group to start sharing expenses with others
+                {t('shares.createFirstExpenseGroup')}
             </Text>
             <Button
                 style={styles.addButton}
                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleCreateGroup}
             >
-                Create Group
+                {t('shares.createGroup')}
             </Button>
         </Layout>
     );
@@ -272,16 +274,16 @@ export default function SharesScreen() {
     const renderPortfoliosEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="briefcase-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>No portfolios yet</Text>
+            <Text category='h6' style={styles.emptyTitle}>{t('shares.noPortfoliosYet')}</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Create your first portfolio to organize and share your investments with others
+                {t('shares.createFirstPortfolio')}
             </Text>
             <Button
                 style={styles.addButton}
                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleCreatePortfolio}
             >
-                Create Portfolio
+                {t('shares.createPortfolio')}
             </Button>
         </Layout>
     );
@@ -353,7 +355,7 @@ export default function SharesScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Shares'
+                    title={t('shares.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
@@ -366,13 +368,13 @@ export default function SharesScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Shares'
+                    title={t('shares.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
                 <Layout style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                    <Text category='h6' style={styles.errorTitle}>Error loading data</Text>
+                    <Text category='h6' style={styles.errorTitle}>{t('shares.errorLoadingData')}</Text>
                     <Text category='s1' appearance='hint' style={styles.errorDescription}>
                         {error || portfoliosError}
                     </Text>
@@ -381,7 +383,7 @@ export default function SharesScreen() {
                         status='primary'
                         onPress={onRefresh}
                     >
-                        Try Again
+                        {t('common.tryAgain')}
                     </Button>
                 </Layout>
             </SafeAreaView>
@@ -391,7 +393,7 @@ export default function SharesScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
-                title='Shares'
+                title={t('shares.title')}
                 alignment='center'
                 accessoryLeft={renderLeftActions}
                 style={{ backgroundColor: colors.background }}
@@ -403,13 +405,13 @@ export default function SharesScreen() {
                 style={styles.tabView}
             >
                 <Tab
-                    title={`Expense Groups (${expensesGroups.length})`}
+                    title={t('shares.expenseGroupsCount', { count: expensesGroups.length })}
                     icon={(props) => <Ionicons name="people-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderExpenseGroupsTab()}
                 </Tab>
                 <Tab
-                    title="Portfolio Groups"
+                    title={t('shares.portfolioGroups')}
                     icon={(props) => <Ionicons name="briefcase-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderPortfoliosTab()}

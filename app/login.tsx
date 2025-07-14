@@ -18,6 +18,7 @@ import {
     Image
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useRouter } from "expo-router";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -27,6 +28,7 @@ import PasswordPrompt from "@/components/auth/PasswordPrompt";
 const LoginScreen = () => {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -45,17 +47,17 @@ const LoginScreen = () => {
     const handleLogin = async () => {
         // Validate inputs
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter both email and password');
+            Alert.alert(t('auth.error'), t('auth.emailPasswordRequired'));
             return;
         }
 
         if (!email.includes('@')) {
-            Alert.alert('Error', 'Please enter a valid email address');
+            Alert.alert(t('auth.error'), t('auth.validEmailRequired'));
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters');
+            Alert.alert(t('auth.error'), t('auth.passwordMinLength'));
             return;
         }
 
@@ -68,19 +70,19 @@ const LoginScreen = () => {
         } catch (error: any) {
             setLoading(false);
             console.error('Login failed:', error);
-            let errorMessage = 'Failed to sign in. Please check your credentials.';
+            let errorMessage = t('auth.signInFailed');
 
             if (error?.message?.includes('Invalid login credentials')) {
-                errorMessage = 'Invalid email or password. Please try again.';
+                errorMessage = t('auth.invalidCredentials');
             } else if (error?.message?.includes('Too many requests')) {
-                errorMessage = 'Too many login attempts. Please wait a moment and try again.';
+                errorMessage = t('auth.tooManyAttempts');
             } else if (error?.message?.includes('Network')) {
-                errorMessage = 'Network error. Please check your connection and try again.';
+                errorMessage = t('auth.networkError');
             } else if (error?.message?.includes('encryption')) {
-                errorMessage = 'Authentication succeeded but failed to initialize encryption. Please try again.';
+                errorMessage = t('auth.encryptionError');
             }
 
-            Alert.alert('Sign In Error', errorMessage);
+            Alert.alert(t('auth.signInError'), errorMessage);
         } finally {
             setTimeout(() => {
             }, 1500);
@@ -119,21 +121,21 @@ const LoginScreen = () => {
                             />
                         </View>
                         <Text style={[styles.titleLogo, { color: colors.text }]}>Piggus</Text>
-                        <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-                        <Text style={[styles.subtitle, { color: colors.icon }]}>Sign in to your account</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t('auth.welcomeBack')}</Text>
+                        <Text style={[styles.subtitle, { color: colors.icon }]}>{t('auth.signInToAccount')}</Text>
                     </View>
 
                     {/* Form */}
                     <View style={styles.form}>
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+                            <Text style={[styles.label, { color: colors.text }]}>{t('auth.email')}</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <Ionicons name="mail-outline" size={20} color={colors.icon} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     value={email}
                                     onChangeText={setEmail}
-                                    placeholder="Enter your email"
+                                    placeholder={t('auth.enterEmail')}
                                     placeholderTextColor={colors.icon}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
@@ -144,14 +146,14 @@ const LoginScreen = () => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+                            <Text style={[styles.label, { color: colors.text }]}>{t('auth.password')}</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <Ionicons name="lock-closed-outline" size={20} color={colors.icon} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     value={password}
                                     onChangeText={setPassword}
-                                    placeholder="Enter your password"
+                                    placeholder={t('auth.enterPassword')}
                                     placeholderTextColor={colors.icon}
                                     secureTextEntry={!showPassword}
                                     editable={!loading}
@@ -181,11 +183,11 @@ const LoginScreen = () => {
                             {loading ? (
                                 <View style={styles.buttonContent}>
                                     <ActivityIndicator color="#FFF" size="small" />
-                                    <Text style={styles.buttonText}>Signing In...</Text>
+                                    <Text style={styles.buttonText}>{t('auth.signingIn')}</Text>
                                 </View>
                             ) : (
                                 <View style={styles.buttonContent}>
-                                    <Text style={styles.buttonText}>Sign In</Text>
+                                    <Text style={styles.buttonText}>{t('auth.signIn')}</Text>
                                     <Ionicons name="arrow-forward" size={20} color="#FFF" />
                                 </View>
                             )}
@@ -194,10 +196,10 @@ const LoginScreen = () => {
 
                     {/* Footer */}
                     <View style={styles.footer}>
-                        <Text style={[styles.footerText, { color: colors.icon }]}>{"Don't have an account?"}</Text>
+                        <Text style={[styles.footerText, { color: colors.icon }]}>{t('auth.noAccount')}</Text>
                         <TouchableOpacity onPress={() => router.push('/register')} disabled={loading}>
                             <Text style={[styles.link, { color: colors.primary }, loading && { opacity: 0.5 }]}>
-                                Sign Up
+                                {t('auth.signUp')}
                             </Text>
                         </TouchableOpacity>
                     </View>

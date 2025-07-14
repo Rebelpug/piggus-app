@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { InvestmentWithDecryptedData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
@@ -25,6 +26,7 @@ export default function InvestmentsScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const { user } = useAuth();
     const { portfolios, isLoading, error } = useInvestment();
     const { userProfile } = useProfile();
@@ -83,7 +85,7 @@ export default function InvestmentsScreen() {
 
                 return portfolio.investments.map(investment => ({
                     ...investment,
-                    portfolioName: portfolio.data?.name || 'Unknown Portfolio'
+                    portfolioName: portfolio.data?.name || t('investments.unknownPortfolio')
                 }));
             }).sort((a, b) => {
                 try {
@@ -301,10 +303,10 @@ export default function InvestmentsScreen() {
                             </View>
                             <View style={styles.investmentDetails}>
                                 <Text style={[styles.investmentTitle, { color: colors.text }]}>
-                                    {item.data.symbol || item.data.name || 'Unknown Investment'}
+                                    {item.data.symbol || item.data.name || t('investments.unknownInvestment')}
                                 </Text>
                                 <Text style={[styles.investmentSubtitle, { color: colors.icon }]}>
-                                    {item.portfolioName || 'Unknown Portfolio'} • {item.data.quantity} shares
+                                    {item.portfolioName || t('investments.unknownPortfolio')} • {item.data.quantity} {t('investments.shares')}
                                 </Text>
                                 <Text style={[styles.purchaseDate, { color: colors.icon }]}>
                                     Purchased {formatDate(item.data.purchase_date)}
@@ -339,7 +341,7 @@ export default function InvestmentsScreen() {
                         <Text style={[styles.selectorLabel, { color: colors.text }]}>Portfolio</Text>
                         <Select
                             style={styles.portfolioSelector}
-                            value={selectedPortfolio?.data?.name || 'All Portfolios'}
+                            value={selectedPortfolio?.data?.name || t('investments.allPortfolios')}
                             selectedIndex={selectedPortfolioIndex}
                             onSelect={(index) => setSelectedPortfolioIndex(index as IndexPath)}
                             placeholder="Select portfolio"
@@ -356,7 +358,7 @@ export default function InvestmentsScreen() {
 
                 <View style={[styles.summaryCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text style={[styles.summaryTitle, { color: colors.text }]}>
-                        {selectedPortfolio ? selectedPortfolio.data?.name || 'Portfolio' : 'Total Portfolio'} Value
+                        {selectedPortfolio ? selectedPortfolio.data?.name || t('investments.portfolio') : t('investments.totalPortfolio')} {t('investments.value')}
                     </Text>
                     <Text style={[styles.summaryAmount, { color: colors.primary }]}>
                         {formatCurrency(totalPortfolioValue)}
@@ -387,16 +389,16 @@ export default function InvestmentsScreen() {
     const renderInvestmentsEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="trending-up-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>No investments yet</Text>
+            <Text category='h6' style={styles.emptyTitle}>{t('investments.noInvestmentsYet')}</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Start building your investment portfolio by adding your first investment
+                {t('investments.startBuildingPortfolio')}
             </Text>
             <Button
                 style={styles.addButton}
                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleAddInvestment}
             >
-                Add Investment
+                {t('investments.addInvestment')}
             </Button>
         </Layout>
     );
@@ -409,7 +411,7 @@ export default function InvestmentsScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Investments'
+                    title={t('investments.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
@@ -422,13 +424,13 @@ export default function InvestmentsScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Investments'
+                    title={t('investments.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
                 <Layout style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                    <Text category='h6' style={styles.errorTitle}>Error loading investments</Text>
+                    <Text category='h6' style={styles.errorTitle}>{t('investments.errorLoadingInvestments')}</Text>
                     <Text category='s1' appearance='hint' style={styles.errorDescription}>
                         {error}
                     </Text>
@@ -437,7 +439,7 @@ export default function InvestmentsScreen() {
                         status='primary'
                         onPress={onRefresh}
                     >
-                        Try Again
+                        {t('common.tryAgain')}
                     </Button>
                 </Layout>
             </SafeAreaView>
@@ -447,7 +449,7 @@ export default function InvestmentsScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
-                title='Investments'
+                title={t('investments.title')}
                 alignment='center'
                 accessoryLeft={renderLeftActions}
                 style={{ backgroundColor: colors.background }}

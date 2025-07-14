@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { ExpenseWithDecryptedData, RecurringExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
@@ -31,6 +32,7 @@ export default function ExpensesScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const { user } = useAuth();
     const { expensesGroups, recurringExpenses, isLoading, error } = useExpense();
     const { userProfile } = useProfile();
@@ -46,7 +48,7 @@ export default function ExpensesScreen() {
         // Add "Current month" option
         months.push({
             key: 'current',
-            label: 'Current month',
+            label: t('expenses.currentMonth'),
             value: 'current'
         });
 
@@ -89,7 +91,7 @@ export default function ExpensesScreen() {
                     })
                     .map(expense => ({
                         ...expense,
-                        groupName: group.data?.name || 'Unknown Group'
+                        groupName: group.data?.name || t('expenses.unknownGroup')
                     }));
             }).sort((a, b) => {
                 try {
@@ -144,7 +146,7 @@ export default function ExpensesScreen() {
                     const group = expensesGroups?.find(g => g.id === recurringExpense.group_id);
                     return {
                         ...recurringExpense,
-                        groupName: group?.data?.name || 'Unknown Group'
+                        groupName: group?.data?.name || t('expenses.unknownGroup')
                     };
                 })
                 .sort((a, b) => {
@@ -188,7 +190,7 @@ export default function ExpensesScreen() {
             const isThisMonth = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
 
             if (isThisMonth) {
-                return 'This month';
+                return t('expenses.thisMonth');
             }
 
             return date.toLocaleDateString('en-US', {
@@ -196,7 +198,7 @@ export default function ExpensesScreen() {
                 year: 'numeric',
             });
         } catch {
-            return 'Unknown';
+            return t('common.unknown');
         }
     };
 
@@ -294,16 +296,16 @@ export default function ExpensesScreen() {
     const renderExpensesEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="document-text-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>No expenses yet</Text>
+            <Text category='h6' style={styles.emptyTitle}>{t('expenses.noExpensesYet')}</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Start tracking your expenses by adding your first one
+                {t('expenses.startTrackingExpenses')}
             </Text>
             <Button
                 style={styles.addButton}
                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleAddExpense}
             >
-                Add Expense
+                {t('expenses.addExpense')}
             </Button>
         </Layout>
     );
@@ -311,16 +313,16 @@ export default function ExpensesScreen() {
     const renderRecurringEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="repeat" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>No recurring expenses</Text>
+            <Text category='h6' style={styles.emptyTitle}>{t('expenses.noRecurringExpenses')}</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Set up recurring expenses to automate your regular payments
+                {t('expenses.setupRecurringExpenses')}
             </Text>
             <Button
                 style={styles.addButton}
                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleAddExpense}
             >
-                Add Recurring Expense
+                {t('expenses.addRecurringExpense')}
             </Button>
         </Layout>
     );
@@ -334,7 +336,7 @@ export default function ExpensesScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Expenses'
+                    title={t('expenses.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
@@ -347,13 +349,13 @@ export default function ExpensesScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Expenses'
+                    title={t('expenses.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
                 <Layout style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                    <Text category='h6' style={styles.errorTitle}>Error loading expenses</Text>
+                    <Text category='h6' style={styles.errorTitle}>{t('expenses.errorLoadingExpenses')}</Text>
                     <Text category='s1' appearance='hint' style={styles.errorDescription}>
                         {error}
                     </Text>
@@ -362,7 +364,7 @@ export default function ExpensesScreen() {
                         status='primary'
                         onPress={onRefresh}
                     >
-                        Try Again
+                        {t('common.tryAgain')}
                     </Button>
                 </Layout>
             </SafeAreaView>
@@ -421,7 +423,7 @@ export default function ExpensesScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
-                title='Expenses'
+                title={t('expenses.title')}
                 alignment='center'
                 accessoryLeft={renderLeftActions}
                 style={{ backgroundColor: colors.background }}
@@ -435,13 +437,13 @@ export default function ExpensesScreen() {
                 style={styles.tabView}
             >
                 <Tab
-                    title={`Expenses (${filteredExpenses.length})`}
+                    title={t('expenses.expensesCount', { count: filteredExpenses.length })}
                     icon={(props) => <Ionicons name="card-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderExpensesTab()}
                 </Tab>
                 <Tab
-                    title={`Recurring (${allRecurringExpenses.length})`}
+                    title={t('expenses.recurringCount', { count: allRecurringExpenses.length })}
                     icon={(props) => <Ionicons name="repeat-outline" size={20} color={props?.focused ? colors.primary : colors.icon} />}
                 >
                     {renderRecurringTab()}

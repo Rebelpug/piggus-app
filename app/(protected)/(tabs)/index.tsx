@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useInvestment } from '@/context/InvestmentContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import BudgetCard from '@/components/budget/BudgetCard';
@@ -20,6 +21,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const { isLoading } = useExpense();
     const { userProfile } = useProfile();
     const { portfolios } = useInvestment();
@@ -194,7 +196,7 @@ export default function HomeScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <TopNavigation
-                    title='Dashboard'
+                    title={t('home.title')}
                     alignment='center'
                     accessoryLeft={renderLeftActions}
                 />
@@ -207,7 +209,7 @@ export default function HomeScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
-                title='Dashboard'
+                title={t('home.title')}
                 alignment='center'
                 accessoryLeft={renderLeftActions}
                 style={{ backgroundColor: colors.background }}
@@ -227,10 +229,10 @@ export default function HomeScreen() {
                 {/* Welcome Section */}
                 <View style={styles.welcomeSection}>
                     <Text style={[styles.welcomeText, { color: colors.text }]}>
-                        Welcome back!
+                        {t('home.welcomeBack')}
                     </Text>
                     <Text style={[styles.welcomeSubtext, { color: colors.icon }]}>
-                        Here's your spending overview
+                        {t('home.spendingOverview')}
                     </Text>
                 </View>
 
@@ -239,7 +241,7 @@ export default function HomeScreen() {
                 {/* Investment Portfolio Returns Card */}
                 <View style={[styles.portfolioCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <View style={styles.portfolioHeader}>
-                        <Text style={[styles.portfolioTitle, { color: colors.text }]}>Investment Portfolio</Text>
+                        <Text style={[styles.portfolioTitle, { color: colors.text }]}>{t('home.investmentPortfolio')}</Text>
                         <TouchableOpacity onPress={() => router.push('/(protected)/(tabs)/investments')}>
                             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
                         </TouchableOpacity>
@@ -253,7 +255,7 @@ export default function HomeScreen() {
                                     {formatCurrency(portfolioReturns.currentValue)}
                                 </Text>
                                 <Text style={[styles.portfolioValueLabel, { color: colors.icon }]}>
-                                    Current Portfolio Value
+                                    {t('home.currentPortfolioValue')}
                                 </Text>
                             </View>
 
@@ -274,7 +276,7 @@ export default function HomeScreen() {
                                         </Text>
                                     </View>
                                     <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>
-                                        Total Return
+                                        {t('home.totalReturn')}
                                     </Text>
                                 </View>
 
@@ -293,14 +295,14 @@ export default function HomeScreen() {
                                         </Text>
                                     </View>
                                     <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>
-                                        This Year
+                                        {t('home.thisYear')}
                                     </Text>
                                 </View>
                             </View>
 
                             {!portfolioReturns.hasCurrentPrices && (
                                 <Text style={[styles.portfolioDisclaimer, { color: colors.icon }]}>
-                                    * Some investments lack current prices
+                                    {t('home.someInvestmentsLackPrices')}
                                 </Text>
                             )}
                             
@@ -310,7 +312,7 @@ export default function HomeScreen() {
                                 onPress={() => router.push('/(protected)/investment-statistics')}
                             >
                                 <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
-                                <Text style={[styles.statsButtonText, { color: colors.primary }]}>See more stats</Text>
+                                <Text style={[styles.statsButtonText, { color: colors.primary }]}>{t('home.seeMoreStats')}</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
@@ -319,16 +321,16 @@ export default function HomeScreen() {
                                 <Ionicons name="trending-up-outline" size={32} color={colors.primary} />
                             </View>
                             <Text style={[styles.noPortfolioText, { color: colors.text }]}>
-                                Start investing
+                                {t('home.startInvesting')}
                             </Text>
                             <Text style={[styles.noPortfolioSubtext, { color: colors.icon }]}>
-                                Add your first investment to start tracking returns
+                                {t('home.addFirstInvestment')}
                             </Text>
                             <TouchableOpacity
                                 style={[styles.createPortfolioButton, { backgroundColor: colors.primary }]}
                                 onPress={() => router.push('/(protected)/add-investment')}
                             >
-                                <Text style={styles.createPortfolioButtonText}>Create Investment</Text>
+                                <Text style={styles.createPortfolioButtonText}>{t('home.createInvestment')}</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -342,17 +344,17 @@ export default function HomeScreen() {
                         </View>
                         <View style={styles.guidesCtaText}>
                             <Text style={[styles.guidesCtaTitle, { color: colors.text }]}>
-                                Financial Education
+                                {t('home.financialEducation')}
                             </Text>
                             <Text style={[styles.guidesCtaSubtitle, { color: colors.icon }]}>
-                                Master your finances with our comprehensive guides
+                                {t('home.masterYourFinances')}
                             </Text>
                         </View>
                         <TouchableOpacity
                             style={[styles.guidesCtaButton, { backgroundColor: colors.accent }]}
                             onPress={() => router.push('/(protected)/(tabs)/guides')}
                         >
-                            <Text style={styles.guidesCtaButtonText}>Learn</Text>
+                            <Text style={styles.guidesCtaButtonText}>{t('home.learn')}</Text>
                             <Ionicons name="chevron-forward" size={16} color="white" />
                         </TouchableOpacity>
                     </View>

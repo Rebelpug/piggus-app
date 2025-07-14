@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useGuides } from '@/context/GuideContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { Guide } from '@/client/piggusApi';
 import ProfileHeader from '@/components/ProfileHeader';
 
@@ -15,6 +16,7 @@ export default function GuidesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { t } = useLocalization();
   const { guides, loading, error } = useGuides();
 
   const handleGuidePress = (guide: Guide) => {
@@ -61,7 +63,7 @@ export default function GuidesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation
-        title='Financial Guides'
+        title={t('guides.title')}
         alignment='center'
         accessoryLeft={renderLeftActions}
         style={{ backgroundColor: colors.background }}
@@ -73,10 +75,10 @@ export default function GuidesScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Learn & Grow
+            {t('guides.learnAndGrow')}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.icon }]}>
-            Master your finances with our comprehensive guides
+            {t('guides.masterYourFinances')}
           </Text>
         </View>
 
@@ -84,7 +86,7 @@ export default function GuidesScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
-              Loading guides...
+              {t('guides.loadingGuides')}
             </Text>
           </View>
         ) : error ? (
@@ -115,7 +117,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingBottom: 20,
-    paddingBottom: 24,
   },
   headerTitle: {
     fontSize: 28,

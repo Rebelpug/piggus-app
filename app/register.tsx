@@ -19,6 +19,7 @@ import {
     Linking
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useRouter } from "expo-router";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -27,6 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 const RegisterScreen = () => {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,27 +42,27 @@ const RegisterScreen = () => {
     const handleRegister = async () => {
         // Validate inputs
         if (!email || !password || !confirmPassword) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert(t('auth.error'), t('auth.fillAllFields'));
             return;
         }
 
         if (!email.includes('@')) {
-            Alert.alert('Error', 'Please enter a valid email address');
+            Alert.alert(t('auth.error'), t('auth.validEmailRequired'));
             return;
         }
 
         if (password.length < 8) {
-            Alert.alert('Error', 'Password must be at least 8 characters');
+            Alert.alert(t('auth.error'), t('auth.passwordMinLengthRegister'));
             return;
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+            Alert.alert(t('auth.error'), t('auth.passwordsNoMatch'));
             return;
         }
 
         if (!acceptTerms) {
-            Alert.alert('Error', 'You must accept the terms and conditions to create an account');
+            Alert.alert(t('auth.error'), t('auth.acceptTermsRequired'));
             return;
         }
 
@@ -69,13 +71,13 @@ const RegisterScreen = () => {
         try {
             await signUp(email, password);
             Alert.alert(
-                'Registration Successful',
-                'Your account has been created. Please check your email to confirm your account.',
-                [{ text: 'OK', onPress: () => router.push('/login') }]
+                t('auth.registrationSuccessful'),
+                t('auth.checkEmailConfirm'),
+                [{ text: t('common.ok'), onPress: () => router.push('/login') }]
             );
         } catch (error: any) {
-            const errorMessage = error?.message || 'Failed to create account. Please try again.';
-            Alert.alert('Registration Error', errorMessage);
+            const errorMessage = error?.message || t('auth.registrationFailed');
+            Alert.alert(t('auth.registrationError'), errorMessage);
         } finally {
             setLoading(false);
         }
@@ -102,21 +104,21 @@ const RegisterScreen = () => {
                             />
                         </View>
                         <Text style={[styles.titleLogo, { color: colors.text }]}>Piggus</Text>
-                        <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-                        <Text style={[styles.subtitle, { color: colors.icon }]}>Sign up to get started</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t('auth.createAccount')}</Text>
+                        <Text style={[styles.subtitle, { color: colors.icon }]}>{t('auth.signUpToStart')}</Text>
                     </View>
 
                     {/* Form */}
                     <View style={styles.form}>
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+                            <Text style={[styles.label, { color: colors.text }]}>{t('auth.email')}</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <Ionicons name="mail-outline" size={20} color={colors.icon} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     value={email}
                                     onChangeText={setEmail}
-                                    placeholder="Enter your email"
+                                    placeholder={t('auth.enterEmail')}
                                     placeholderTextColor={colors.icon}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
@@ -127,14 +129,14 @@ const RegisterScreen = () => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+                            <Text style={[styles.label, { color: colors.text }]}>{t('auth.password')}</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <Ionicons name="lock-closed-outline" size={20} color={colors.icon} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     value={password}
                                     onChangeText={setPassword}
-                                    placeholder="Create a password"
+                                    placeholder={t('auth.createPassword')}
                                     placeholderTextColor={colors.icon}
                                     secureTextEntry={!showPassword}
                                     editable={!loading}
@@ -153,14 +155,14 @@ const RegisterScreen = () => {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+                            <Text style={[styles.label, { color: colors.text }]}>{t('auth.confirmPassword')}</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <Ionicons name="lock-closed-outline" size={20} color={colors.icon} style={styles.inputIcon} />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
-                                    placeholder="Confirm your password"
+                                    placeholder={t('auth.confirmYourPassword')}
                                     placeholderTextColor={colors.icon}
                                     secureTextEntry={!showConfirmPassword}
                                     editable={!loading}
@@ -195,25 +197,25 @@ const RegisterScreen = () => {
                             </TouchableOpacity>
                             <View style={styles.checkboxTextContainer}>
                                 <Text style={[styles.checkboxText, { color: colors.text }]}>
-                                    I accept the{' '}
+                                    {t('auth.iAcceptThe')}{' '}
                                 </Text>
                                 <TouchableOpacity
                                     onPress={() => Linking.openURL('https://piggus.finance/toc-app')}
                                     disabled={loading}
                                 >
                                     <Text style={[styles.termsLink, { color: colors.primary }, loading && { opacity: 0.5 }]}>
-                                        terms and conditions
+                                        {t('auth.termsAndConditions')}
                                     </Text>
                                 </TouchableOpacity>
                                 <Text style={[styles.checkboxText, { color: colors.text }]}>
-                                    {' '}and{' '}
+                                    {' '}{t('auth.and')}{' '}
                                 </Text>
                                 <TouchableOpacity
                                     onPress={() => Linking.openURL('https://piggus.finance/privacy-app')}
                                     disabled={loading}
                                 >
                                     <Text style={[styles.termsLink, { color: colors.primary }, loading && { opacity: 0.5 }]}>
-                                        privacy policy
+                                        {t('auth.privacyPolicy')}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -231,11 +233,11 @@ const RegisterScreen = () => {
                             {loading ? (
                                 <View style={styles.buttonContent}>
                                     <ActivityIndicator color="#FFF" size="small" />
-                                    <Text style={styles.buttonText}>Creating Account...</Text>
+                                    <Text style={styles.buttonText}>{t('auth.creatingAccount')}</Text>
                                 </View>
                             ) : (
                                 <View style={styles.buttonContent}>
-                                    <Text style={styles.buttonText}>Create Account</Text>
+                                    <Text style={styles.buttonText}>{t('auth.createAccount')}</Text>
                                     <Ionicons name="arrow-forward" size={20} color="#FFF" />
                                 </View>
                             )}
@@ -244,10 +246,10 @@ const RegisterScreen = () => {
 
                     {/* Footer */}
                     <View style={styles.footer}>
-                        <Text style={[styles.footerText, { color: colors.icon }]}>Already have an account?</Text>
+                        <Text style={[styles.footerText, { color: colors.icon }]}>{t('auth.alreadyHaveAccount')}</Text>
                         <TouchableOpacity onPress={() => router.push('/login')} disabled={loading}>
                             <Text style={[styles.link, { color: colors.primary }, loading && { opacity: 0.5 }]}>
-                                Sign In
+                                {t('auth.signIn')}
                             </Text>
                         </TouchableOpacity>
                     </View>

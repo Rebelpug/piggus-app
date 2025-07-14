@@ -122,7 +122,7 @@ export default function ProfileScreen() {
             Sentry.captureFeedback({
                 message: feedbackText,
                 email: 'anonymous',
-                name: userProfile?.username || 'Anonymous User',
+                name: userProfile?.username || t('common.unknownUser'),
                 source: 'user_feedback',
             });
 
@@ -412,7 +412,7 @@ export default function ProfileScreen() {
                             <Ionicons name="log-out-outline" size={20} color="white" />
                         )}
                         <Text style={styles.signOutText}>
-                            {loading ? 'Signing Out...' : 'Sign Out'}
+                            {loading ? t('profile.signingOut') : t('profile.signOut')}
                         </Text>
                     </View>
                 </TouchableOpacity>
@@ -423,19 +423,19 @@ export default function ProfileScreen() {
                         style={styles.legalLink}
                         onPress={() => Linking.openURL('https://piggus.finance/toc-app')}
                     >
-                        <Text style={[styles.legalLinkText, { color: colors.primary }]}>Terms and Conditions</Text>
+                        <Text style={[styles.legalLinkText, { color: colors.primary }]}>{t('profile.termsAndConditions')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.legalLink}
                         onPress={() => Linking.openURL('https://piggus.finance/privacy-app')}
                     >
-                        <Text style={[styles.legalLinkText, { color: colors.primary }]}>Privacy Policy</Text>
+                        <Text style={[styles.legalLinkText, { color: colors.primary }]}>{t('profile.privacyPolicy')}</Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.footer}>
                     <Text style={[styles.version, { color: colors.icon }]}>
-                        Version 1.0.0
+                        {t('profile.version')} 1.0.0
                     </Text>
                 </View>
             </ScrollView>
@@ -541,14 +541,14 @@ export default function ProfileScreen() {
                 onBackdropPress={() => setFeedbackModalVisible(false)}
             >
                 <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.modalTitle, { color: colors.text }]}>Send a feedback</Text>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.sendFeedback')}</Text>
                     <Text style={[styles.modalDescription, { color: colors.icon }]}>
-                        We are a small team and we would love your input on Piggus, we really appreciate it!
+                        {t('modals.feedbackDescription')}
                     </Text>
 
                     <Input
                         style={styles.feedbackInput}
-                        placeholder='Tell us what you think...'
+                        placeholder={t('modals.tellUsWhatYouThink')}
                         value={feedbackText}
                         onChangeText={setFeedbackText}
                         multiline={true}
@@ -574,7 +574,7 @@ export default function ProfileScreen() {
                             <View style={styles.modalButtonContent}>
                                 {sendingFeedback && <Spinner size='small' status='control' />}
                                 <Text style={[styles.modalButtonText, { color: 'white' }]}>
-                                    {sendingFeedback ? 'Sending...' : 'Send Feedback'}
+                                    {sendingFeedback ? t('modals.sending') : t('modals.sendFeedbackButton')}
                                 </Text>
                             </View>
                         </TouchableOpacity>
@@ -590,7 +590,7 @@ export default function ProfileScreen() {
             >
                 <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
                     <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: colors.text }]}>Roadmap</Text>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.roadmapTitle')}</Text>
                         <TouchableOpacity
                             style={[styles.closeButton, { backgroundColor: colors.border }]}
                             onPress={() => setRoadmapModalVisible(false)}
@@ -599,38 +599,38 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                     </View>
                     <Text style={[styles.modalDescription, { color: colors.icon }]}>
-                        {`Exciting features coming to Piggus! Here's what we're working on:`}
+                        {t('modals.roadmapDescription')}
                     </Text>
 
                     <View style={styles.roadmapList}>
                         <View style={styles.roadmapItem}>
                             <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
                             <Text style={[styles.roadmapItemText, { color: colors.text }]}>
-                                Automatic tracking of investments
+                                {t('roadmapItems.automaticInvestmentTracking')}
                             </Text>
                         </View>
                         <View style={styles.roadmapItem}>
                             <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
                             <Text style={[styles.roadmapItemText, { color: colors.text }]}>
-                                Imports from your bank account
+                                {t('roadmapItems.bankAccountImports')}
                             </Text>
                         </View>
                         <View style={styles.roadmapItem}>
                             <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
                             <Text style={[styles.roadmapItemText, { color: colors.text }]}>
-                                More interactive guides
+                                {t('roadmapItems.interactiveGuides')}
                             </Text>
                         </View>
                         <View style={styles.roadmapItem}>
                             <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
                             <Text style={[styles.roadmapItemText, { color: colors.text }]}>
-                                AI Assistant
+                                {t('roadmapItems.aiAssistant')}
                             </Text>
                         </View>
                         <View style={styles.roadmapItem}>
                             <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
                             <Text style={[styles.roadmapItemText, { color: colors.text }]}>
-                                And much more
+                                {t('roadmapItems.andMuchMore')}
                             </Text>
                         </View>
                     </View>
@@ -645,7 +645,7 @@ export default function ProfileScreen() {
             >
                 <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
                     <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: colors.text }]}>Support us</Text>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.supportUsTitle')}</Text>
                         <TouchableOpacity
                             style={[styles.closeButton, { backgroundColor: colors.border }]}
                             onPress={() => setSupportModalVisible(false)}
@@ -654,7 +654,7 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                     </View>
                     <Text style={[styles.supportMessage, { color: colors.text }]}>
-                        {`Hey there, thanks for clicking on this button, we really appreciate it. For now we don't have a structured way to get financial support to help cover the costs of the app but please share the word about Piggus, the more people join us the more chances we have to grow and build together a great product! 💪`}
+                        {t('modals.supportUsMessage')}
                     </Text>
                 </View>
             </Modal>

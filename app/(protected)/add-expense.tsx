@@ -22,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { useLocalization } from '@/context/LocalizationContext';
 import {
     ExpenseData,
     RecurringExpenseData,
@@ -49,6 +50,7 @@ export default function AddExpenseScreen() {
     const { user } = useAuth();
     const { expensesGroups, addExpense, addRecurringExpense } = useExpense();
     const { userProfile } = useProfile();
+    const { t } = useLocalization();
 
     // Compute categories with user's customizations
     const allCategories = React.useMemo(() =>
@@ -215,41 +217,41 @@ export default function AddExpenseScreen() {
 
     const validateForm = (): boolean => {
         if (!name.trim()) {
-            Alert.alert('Validation Error', 'Please enter an expense name');
+            Alert.alert(t('validation.error'), t('validation.expenseNameRequired'));
             return false;
         }
         if (!amount.trim() || isNaN(Number(amount)) || Number(amount) <= 0) {
-            Alert.alert('Validation Error', 'Please enter a valid amount');
+            Alert.alert(t('validation.error'), t('validation.validAmountRequired'));
             return false;
         }
         if (!selectedCategoryIndex) {
-            Alert.alert('Validation Error', 'Please select a category');
+            Alert.alert(t('validation.error'), t('validation.categoryRequired'));
             return false;
         }
         if (!selectedGroupIndex) {
-            Alert.alert('Validation Error', 'Please select an expense group');
+            Alert.alert(t('validation.error'), t('validation.expenseGroupRequired'));
             return false;
         }
         if (!selectedPayerIndex) {
-            Alert.alert('Validation Error', 'Please select who paid for this expense');
+            Alert.alert(t('validation.error'), t('validation.payerRequired'));
             return false;
         }
         if (isRecurring && !recurringInterval.trim()) {
-            Alert.alert('Validation Error', 'Please select a recurring interval');
+            Alert.alert(t('validation.error'), t('validation.recurringIntervalRequired'));
             return false;
         }
 
         // Validate participants and shares
         const activeParticipants = participants.filter(p => p.share_amount > 0);
         if (activeParticipants.length === 0) {
-            Alert.alert('Validation Error', 'Please select at least one participant');
+            Alert.alert(t('validation.error'), t('validation.participantRequired'));
             return false;
         }
 
         const totalShares = activeParticipants.reduce((sum, p) => sum + p.share_amount, 0);
         const totalAmount = Number(amount);
         if (Math.abs(totalShares - totalAmount) > 0.01) {
-            Alert.alert('Validation Error', `Total shares (${totalShares.toFixed(2)}) must equal the expense amount (${totalAmount.toFixed(2)})`);
+            Alert.alert(t('validation.error'), t('validation.sharesAmountMismatch', { totalShares: totalShares.toFixed(2), totalAmount: totalAmount.toFixed(2) }));
             return false;
         }
 
@@ -294,7 +296,7 @@ export default function AddExpenseScreen() {
                 const recurringResult = await addRecurringExpense(selectedGroup.id, recurringExpenseData);
 
                 if (!recurringResult) {
-                    Alert.alert('Error', 'Failed to create recurring expense. Please try again.');
+                    Alert.alert(t('alerts.error'), t('alerts.recurringExpenseCreateFailed'));
                     return;
                 }
 
@@ -319,7 +321,7 @@ export default function AddExpenseScreen() {
                 if (expenseResult) {
                     router.back();
                 } else {
-                    Alert.alert('Warning', 'Recurring expense was created, but failed to add the initial expense. You may need to add it manually.');
+                    Alert.alert(t('alerts.warning'), t('alerts.recurringExpensePartialSuccess'));
                 }
             } else {
                 // Create regular one-time expense
@@ -343,12 +345,12 @@ export default function AddExpenseScreen() {
                 if (result) {
                     router.back();
                 } else {
-                    Alert.alert('Error', 'Failed to add expense. Please try again.');
+                    Alert.alert(t('alerts.error'), t('alerts.expenseAddFailed'));
                 }
             }
         } catch (error) {
             console.error('Error adding expense:', error);
-            Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            Alert.alert(t('alerts.error'), t('alerts.unexpectedError'));
         } finally {
             setLoading(false);
         }
@@ -421,12 +423,12 @@ export default function AddExpenseScreen() {
 
         return (
             <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Sharing</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('addExpense.expenseSharing')}</Text>
 
                 <Select
                     style={styles.input}
-                    label='Who Paid?'
-                    placeholder='Select who paid for this expense'
+                    label={t('addExpense.whoPaidLabel')}
+                    placeholder={t('addExpense.whoPaidPlaceholder')}
                     value={selectedPayerIndex ? currentGroupMembers[selectedPayerIndex.row]?.username : ''}
                     selectedIndex={selectedPayerIndex}
                     onSelect={(index) => setSelectedPayerIndex(index as IndexPath)}
@@ -439,20 +441,23 @@ export default function AddExpenseScreen() {
 
                 <Select
                     style={styles.input}
-                    label='Split Method'
-                    placeholder='How to split this expense'
-                    value={selectedSplitMethodIndex ? SPLIT_METHODS[selectedSplitMethodIndex.row]?.label : ''}
+                    label={t('addExpense.splitMethodLabel')}
+                    placeholder={t('addExpense.splitMethodPlaceholder')}
+                    value={selectedSplitMethodIndex ? t(`addExpense.splitMethods.${SPLIT_METHODS[selectedSplitMethodIndex.row]?.value}`) : ''}
                     selectedIndex={selectedSplitMethodIndex}
                     onSelect={(index) => setSelectedSplitMethodIndex(index as IndexPath)}
                 >
                     {SPLIT_METHODS.map((method) => (
-                        <SelectItem key={method.value} title={method.label} />
+                        <SelectItem key={method.value} title={t(`addExpense.splitMethods.${method.value}`)} />
                     ))}
                 </Select>
 
                 <Layout style={[styles.participantsContainer, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text category='s1' style={styles.participantsTitle}>
-                        Share with ({participants.filter(p => p.share_amount > 0).length} of {currentGroupMembers.length})
+                        {t('addExpense.shareWith', { 
+                            activeCount: participants.filter(p => p.share_amount > 0).length, 
+                            totalCount: currentGroupMembers.length 
+                        })}
                     </Text>
 
                     {currentGroupMembers.map((member) => {
@@ -470,13 +475,13 @@ export default function AddExpenseScreen() {
                                 <Layout style={[styles.participantInfo, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                                     <Text category='s1'>{member.username}</Text>
                                     {member.user_id === user?.id && (
-                                        <Text category='c1' appearance='hint'>(You)</Text>
+                                        <Text category='c1' appearance='hint'>({t('addExpense.you')})</Text>
                                     )}
                                 </Layout>
                                 {splitMethod === 'custom' && isActive && (
                                     <Input
                                         style={styles.customAmountInput}
-                                        placeholder='0.00'
+                                        placeholder={t('addExpense.amountPlaceholder')}
                                         value={customAmounts[member.user_id] || shareAmount.toString()}
                                         onChangeText={(text) => updateCustomAmount(member.user_id, text)}
                                         keyboardType='decimal-pad'
@@ -505,7 +510,7 @@ export default function AddExpenseScreen() {
                         backgroundColor={colors.background}
                     />
                     <TopNavigation
-                        title='Add Expense'
+                        title={t('addExpense.title')}
                         alignment='center'
                         accessoryLeft={renderBackAction}
                         style={{ backgroundColor: colors.background }}
@@ -514,15 +519,15 @@ export default function AddExpenseScreen() {
                         <View style={[styles.emptyIconContainer, { backgroundColor: colors.error + '20' }]}>
                             <Ionicons name="folder-outline" size={32} color={colors.error} />
                         </View>
-                        <Text style={[styles.emptyTitle, { color: colors.text }]}>No expense groups available</Text>
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('addExpense.noGroupsTitle')}</Text>
                         <Text style={[styles.emptyDescription, { color: colors.icon }]}>
-                            You need to create or join an expense group before adding expenses.
+                            {t('addExpense.noGroupsDescription')}
                         </Text>
                         <TouchableOpacity
                             style={[styles.goBackButton, { backgroundColor: colors.primary }]}
                             onPress={navigateBack}
                         >
-                            <Text style={styles.goBackButtonText}>Go Back</Text>
+                            <Text style={styles.goBackButtonText}>{t('common.goBack')}</Text>
                         </TouchableOpacity>
                     </View>
                 </SafeAreaView>
@@ -538,7 +543,7 @@ export default function AddExpenseScreen() {
                     backgroundColor={colors.background}
                 />
                 <TopNavigation
-                    title='Add Expense'
+                    title={t('addExpense.title')}
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
@@ -546,12 +551,12 @@ export default function AddExpenseScreen() {
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Details</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('addExpense.expenseDetails')}</Text>
 
                     <Input
                         style={styles.input}
-                        label='Name'
-                        placeholder='Enter expense name'
+                        label={t('addExpense.nameLabel')}
+                        placeholder={t('addExpense.namePlaceholder')}
                         value={name}
                         onChangeText={setName}
                         status={name.trim() ? 'basic' : 'danger'}
@@ -559,8 +564,8 @@ export default function AddExpenseScreen() {
 
                     <Input
                         style={styles.input}
-                        label='Description (Optional)'
-                        placeholder='Enter description'
+                        label={t('addExpense.descriptionLabel')}
+                        placeholder={t('addExpense.descriptionPlaceholder')}
                         value={description}
                         onChangeText={setDescription}
                         multiline
@@ -569,8 +574,8 @@ export default function AddExpenseScreen() {
 
                     <Input
                         style={styles.input}
-                        label='Amount'
-                        placeholder='0.00'
+                        label={t('addExpense.amountLabel')}
+                        placeholder={t('addExpense.amountPlaceholder')}
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType='decimal-pad'
@@ -579,13 +584,13 @@ export default function AddExpenseScreen() {
 
                     <Select
                         style={styles.input}
-                        label='Expense Group'
-                        placeholder='Select expense group'
+                        label={t('addExpense.expenseGroupLabel')}
+                        placeholder={t('addExpense.expenseGroupPlaceholder')}
                         value={selectedGroupIndex ? availableGroups[selectedGroupIndex.row]?.data?.name : ''}
                         selectedIndex={selectedGroupIndex}
                         onSelect={(index) => setSelectedGroupIndex(index as IndexPath)}
                         status={selectedGroupIndex ? 'basic' : 'danger'}
-                        caption='Selecting a group will set its default currency'
+                        caption={t('addExpense.expenseGroupCaption')}
                     >
                         {availableGroups.map((group) => (
                             <SelectItem
@@ -597,14 +602,14 @@ export default function AddExpenseScreen() {
 
                     <Select
                         style={styles.input}
-                        label='Currency'
-                        placeholder='Select currency'
+                        label={t('addExpense.currencyLabel')}
+                        placeholder={t('addExpense.currencyPlaceholder')}
                         value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : ''}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
                         caption={selectedGroupIndex ?
-                            `Default: ${availableGroups[selectedGroupIndex.row]?.data?.currency || 'USD'}` :
-                            'Select a group first to use its default currency'
+                            t('addExpense.currencyDefault', { currency: availableGroups[selectedGroupIndex.row]?.data?.currency || 'USD' }) :
+                            t('addExpense.currencySelectGroupFirst')
                         }
                     >
                         {CURRENCIES.map((currency) => (
@@ -614,7 +619,7 @@ export default function AddExpenseScreen() {
 
                     <Datepicker
                         style={styles.input}
-                        label='Date'
+                        label={t('addExpense.dateLabel')}
                         date={date}
                         onSelect={setDate}
                         accessoryRight={CalendarIcon}
@@ -622,8 +627,8 @@ export default function AddExpenseScreen() {
 
                     <Select
                         style={styles.input}
-                        label='Category'
-                        placeholder='Select category'
+                        label={t('addExpense.categoryLabel')}
+                        placeholder={t('addExpense.categoryPlaceholder')}
                         value={selectedCategoryIndex ? availableCategories[selectedCategoryIndex.row]?.displayName : ''}
                         selectedIndex={selectedCategoryIndex}
                         onSelect={(index) => setSelectedCategoryIndex(index as IndexPath)}
@@ -641,12 +646,12 @@ export default function AddExpenseScreen() {
                 {renderSharingSection()}
 
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <Text category='h6' style={styles.sectionTitle}>Additional Options</Text>
+                    <Text category='h6' style={styles.sectionTitle}>{t('addExpense.additionalOptions')}</Text>
 
                     <Layout style={styles.toggleContainer}>
                         <Layout style={styles.toggleLabelContainer}>
-                            <Text category='s1'>Recurring Expense</Text>
-                            <Text category='c1' appearance='hint'>This expense repeats regularly</Text>
+                            <Text category='s1'>{t('addExpense.recurringExpense')}</Text>
+                            <Text category='c1' appearance='hint'>{t('addExpense.recurringExpenseDescription')}</Text>
                         </Layout>
                         <Toggle
                             checked={isRecurring}
@@ -657,18 +662,18 @@ export default function AddExpenseScreen() {
                     {isRecurring && (
                         <Select
                             style={styles.input}
-                            label='Recurring Interval'
-                            placeholder='Select interval'
-                            value={recurringInterval}
+                            label={t('addExpense.recurringIntervalLabel')}
+                            placeholder={t('addExpense.recurringIntervalPlaceholder')}
+                            value={recurringInterval ? t(`addExpense.recurringIntervals.${recurringInterval}`) : ''}
                             onSelect={(index) => {
                                 const intervals = ['daily', 'weekly', 'monthly', 'yearly'];
                                 setRecurringInterval(intervals[(index as IndexPath).row]);
                             }}
                         >
-                            <SelectItem title='Daily' />
-                            <SelectItem title='Weekly' />
-                            <SelectItem title='Monthly' />
-                            <SelectItem title='Yearly' />
+                            <SelectItem title={t('addExpense.recurringIntervals.daily')} />
+                            <SelectItem title={t('addExpense.recurringIntervals.weekly')} />
+                            <SelectItem title={t('addExpense.recurringIntervals.monthly')} />
+                            <SelectItem title={t('addExpense.recurringIntervals.yearly')} />
                         </Select>
                     )}
                 </View>
@@ -680,7 +685,7 @@ export default function AddExpenseScreen() {
                     disabled={loading}
                     accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
                 >
-                    {loading ? 'Adding Expense...' : 'Add Expense'}
+                    {loading ? t('addExpense.addingExpense') : t('addExpense.addExpense')}
                 </Button>
                 </ScrollView>
             </SafeAreaView>
