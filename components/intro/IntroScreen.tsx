@@ -25,6 +25,14 @@ interface IntroSlide {
 const introSlides: IntroSlide[] = [
     {
         id: 1,
+        title: "We're Just Getting Started",
+        subtitle: "A startup with big dreams",
+        description: "We're a passionate startup working hard to bring you amazing new features. Your feedback helps us build the perfect financial companion for you!",
+        icon: "rocket-outline",
+        iconColor: "#9C27B0"
+    },
+    {
+        id: 2,
         title: "Manage & Share Expenses",
         subtitle: "Track your spending effortlessly",
         description: "Keep track of your personal expenses and easily share costs with friends, family, or roommates. Split bills, manage group expenses, and never forget who owes what.",
@@ -32,7 +40,7 @@ const introSlides: IntroSlide[] = [
         iconColor: "#4CAF50"
     },
     {
-        id: 2,
+        id: 3,
         title: "Investment Tracker",
         subtitle: "Grow your wealth smartly",
         description: "Monitor your investment portfolio, track performance, and make informed financial decisions. Keep all your investments organized in one secure place.",
@@ -40,7 +48,7 @@ const introSlides: IntroSlide[] = [
         iconColor: "#2196F3"
     },
     {
-        id: 3,
+        id: 4,
         title: "Privacy & Security",
         subtitle: "Your data stays yours",
         description: "End-to-end encryption ensures your financial data remains completely private. We use zero-knowledge architecture - not even we can see your personal information.",
@@ -82,21 +90,21 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         <View style={[styles.slide, { width }]}>
             <View style={styles.slideContent}>
                 <View style={[styles.iconContainer, { backgroundColor: slide.iconColor + '20' }]}>
-                    <Ionicons 
-                        name={slide.icon} 
-                        size={80} 
-                        color={slide.iconColor} 
+                    <Ionicons
+                        name={slide.icon}
+                        size={80}
+                        color={slide.iconColor}
                     />
                 </View>
-                
+
                 <Text style={[styles.title, { color: colors.text }]}>
                     {slide.title}
                 </Text>
-                
+
                 <Text style={[styles.subtitle, { color: colors.primary }]}>
                     {slide.subtitle}
                 </Text>
-                
+
                 <Text style={[styles.description, { color: colors.icon }]}>
                     {slide.description}
                 </Text>
@@ -161,10 +169,10 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
                             { opacity: currentSlide === 0 ? 0.3 : 1 }
                         ]}
                         accessoryLeft={(props) => (
-                            <Ionicons 
-                                name="chevron-back" 
-                                size={20} 
-                                color={props?.tintColor} 
+                            <Ionicons
+                                name="chevron-back"
+                                size={20}
+                                color={props?.tintColor}
                             />
                         )}
                     >
@@ -176,10 +184,10 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
                         onPress={handleNext}
                         style={styles.navButton}
                         accessoryRight={(props) => (
-                            <Ionicons 
-                                name={currentSlide === introSlides.length - 1 ? "checkmark" : "chevron-forward"} 
-                                size={20} 
-                                color={props?.tintColor || '#FFFFFF'} 
+                            <Ionicons
+                                name={currentSlide === introSlides.length - 1 ? "checkmark" : "chevron-forward"}
+                                size={20}
+                                color={props?.tintColor || '#FFFFFF'}
                             />
                         )}
                     >
@@ -272,7 +280,6 @@ const styles = StyleSheet.create({
     paginationDot: {
         height: 8,
         borderRadius: 4,
-        transition: 'all 0.3s ease',
     },
     navigationContainer: {
         flexDirection: 'row',
