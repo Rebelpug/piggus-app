@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image, Switch, Linking } from 'react-native';
 import {
-    Layout,
     Text,
-    Card,
-    Button,
     Input,
     Select,
     SelectItem,
     IndexPath,
     TopNavigation,
-    Divider,
     Modal,
     Spinner
 } from '@ui-kitten/components';
@@ -23,7 +19,6 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { CURRENCIES } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
-import ProfileHeader from '@/components/ProfileHeader';
 import * as Sentry from '@sentry/react-native';
 
 export default function ProfileScreen() {
@@ -38,6 +33,8 @@ export default function ProfileScreen() {
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
     const [feedbackText, setFeedbackText] = useState('');
     const [sendingFeedback, setSendingFeedback] = useState(false);
+    const [roadmapModalVisible, setRoadmapModalVisible] = useState(false);
+    const [supportModalVisible, setSupportModalVisible] = useState(false);
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(() => {
         const currentCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
         const index = CURRENCIES.findIndex(c => c.value === currentCurrency);
@@ -309,16 +306,53 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Actions */}
-                <TouchableOpacity
-                    style={[styles.feedbackButton, { backgroundColor: colors.primary }]}
-                    onPress={() => setFeedbackModalVisible(true)}
-                >
-                    <View style={styles.feedbackContent}>
-                        <Ionicons name="chatbubble-outline" size={20} color="white" />
-                        <Text style={styles.feedbackText}>Feedback</Text>
-                    </View>
-                </TouchableOpacity>
+                {/* About */}
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={() => setSupportModalVisible(true)}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
+                                <Ionicons name="heart-outline" size={20} color={colors.accent} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Support us</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={() => setRoadmapModalVisible(true)}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.secondary + '20' }]}>
+                                <Ionicons name="map-outline" size={20} color={colors.secondary} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Roadmap</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={() => setFeedbackModalVisible(true)}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                                <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>Feedback</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity
                     style={[styles.signOutButton, { backgroundColor: colors.error }]}
@@ -454,6 +488,83 @@ export default function ProfileScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Roadmap Modal */}
+            <Modal
+                visible={roadmapModalVisible}
+                backdropStyle={styles.backdrop}
+                onBackdropPress={() => setRoadmapModalVisible(false)}
+            >
+                <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                    <View style={styles.modalHeader}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>Roadmap</Text>
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.border }]}
+                            onPress={() => setRoadmapModalVisible(false)}
+                        >
+                            <Ionicons name="close" size={20} color={colors.text} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={[styles.modalDescription, { color: colors.icon }]}>
+                        {`Exciting features coming to Piggus! Here's what we're working on:`}
+                    </Text>
+
+                    <View style={styles.roadmapList}>
+                        <View style={styles.roadmapItem}>
+                            <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.roadmapItemText, { color: colors.text }]}>
+                                Automatic tracking of investments
+                            </Text>
+                        </View>
+                        <View style={styles.roadmapItem}>
+                            <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.roadmapItemText, { color: colors.text }]}>
+                                Imports from your bank account
+                            </Text>
+                        </View>
+                        <View style={styles.roadmapItem}>
+                            <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.roadmapItemText, { color: colors.text }]}>
+                                More interactive guides
+                            </Text>
+                        </View>
+                        <View style={styles.roadmapItem}>
+                            <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.roadmapItemText, { color: colors.text }]}>
+                                AI Assistant
+                            </Text>
+                        </View>
+                        <View style={styles.roadmapItem}>
+                            <View style={[styles.roadmapBullet, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.roadmapItemText, { color: colors.text }]}>
+                                And much more
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Support Modal */}
+            <Modal
+                visible={supportModalVisible}
+                backdropStyle={styles.backdrop}
+                onBackdropPress={() => setSupportModalVisible(false)}
+            >
+                <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+                    <View style={styles.modalHeader}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>Support us</Text>
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: colors.border }]}
+                            onPress={() => setSupportModalVisible(false)}
+                        >
+                            <Ionicons name="close" size={20} color={colors.text} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={[styles.supportMessage, { color: colors.text }]}>
+                        {`Hey there, thanks for clicking on this button, we really appreciate it. For now we don't have a structured way to get financial support to help cover the costs of the app but please share the word about Piggus, the more people join us the more chances we have to grow and build together a great product! 💪`}
+                    </Text>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -585,24 +696,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
-    feedbackButton: {
-        marginHorizontal: 20,
-        marginTop: 10,
-        paddingVertical: 16,
-        borderRadius: 16,
-        marginBottom: 12,
-    },
-    feedbackContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    feedbackText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
-    },
     signOutButton: {
         marginHorizontal: 20,
         paddingVertical: 16,
@@ -702,5 +795,42 @@ const styles = StyleSheet.create({
     feedbackTextInput: {
         minHeight: 80,
         textAlignVertical: 'top',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    closeButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    roadmapList: {
+        marginTop: 10,
+    },
+    roadmapItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    roadmapBullet: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 12,
+    },
+    roadmapItemText: {
+        fontSize: 16,
+        lineHeight: 24,
+        flex: 1,
+    },
+    supportMessage: {
+        fontSize: 16,
+        lineHeight: 24,
+        textAlign: 'left',
     },
 });
