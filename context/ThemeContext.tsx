@@ -17,8 +17,8 @@ const THEME_STORAGE_KEY = '@piggus_theme';
 const SYSTEM_THEME_STORAGE_KEY = '@piggus_system_theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
-    const [isSystemTheme, setIsSystemTheme] = useState(true);
+    const [colorScheme, setColorScheme] = useState<ColorScheme>('dark');
+    const [isSystemTheme, setIsSystemTheme] = useState(false);
 
     useEffect(() => {
         loadThemeSettings();
@@ -26,12 +26,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (isSystemTheme) {
-            const systemScheme = Appearance.getColorScheme() || 'light';
+            const systemScheme = Appearance.getColorScheme() || 'dark';
             setColorScheme(systemScheme);
 
             const subscription = Appearance.addChangeListener(({ colorScheme: newScheme }) => {
                 if (isSystemTheme) {
-                    setColorScheme(newScheme || 'light');
+                    setColorScheme(newScheme || 'dark');
                 }
             });
 
@@ -44,21 +44,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
             const savedSystemTheme = await AsyncStorage.getItem(SYSTEM_THEME_STORAGE_KEY);
             
-            const useSystemTheme = savedSystemTheme ? JSON.parse(savedSystemTheme) : true;
+            const useSystemTheme = savedSystemTheme ? JSON.parse(savedSystemTheme) : false;
             setIsSystemTheme(useSystemTheme);
 
             if (!useSystemTheme && savedTheme) {
                 setColorScheme(savedTheme as ColorScheme);
+            } else if (!useSystemTheme) {
+                setColorScheme('dark');
             } else {
-                const systemScheme = Appearance.getColorScheme() || 'light';
+                const systemScheme = Appearance.getColorScheme() || 'dark';
                 setColorScheme(systemScheme);
             }
         } catch (error) {
             console.error('Error loading theme settings:', error);
-            // Fallback to system theme if storage fails
-            const systemScheme = Appearance.getColorScheme() || 'light';
-            setColorScheme(systemScheme);
-            setIsSystemTheme(true);
+            // Fallback to dark theme if storage fails
+            setColorScheme('dark');
+            setIsSystemTheme(false);
         }
     };
 
@@ -82,7 +83,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             await AsyncStorage.setItem(SYSTEM_THEME_STORAGE_KEY, JSON.stringify(value));
             
             if (value) {
-                const systemScheme = Appearance.getColorScheme() || 'light';
+                const systemScheme = Appearance.getColorScheme() || 'dark';
                 setColorScheme(systemScheme);
             }
         } catch (error) {

@@ -31,6 +31,30 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
     const [isCheckingName, setIsCheckingName] = useState(false);
     const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
+    // Validate and sanitize username
+    const sanitizeUsername = (input: string): string => {
+        // Remove spaces and special characters, keep only alphanumeric characters
+        return input.replace(/[^a-zA-Z0-9]/g, '');
+    };
+
+    const validateUsername = (username: string): string | null => {
+        if (username.length === 0) return null; // Empty is allowed (will generate random)
+        
+        if (username.length < 3) {
+            return 'Username must be at least 3 characters long';
+        }
+        
+        if (username.length > 20) {
+            return 'Username must be no more than 20 characters long';
+        }
+        
+        if (!/^[a-zA-Z0-9]+$/.test(username)) {
+            return 'Username can only contain letters and numbers (no spaces or special characters)';
+        }
+        
+        return null;
+    };
+
     // Generate a random human-readable name
     const generateRandomName = () => {
         const adjectives = [
@@ -98,8 +122,15 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
         try {
             let finalUsername = customName.trim();
 
-            // If user provided a custom name, check if it's taken
+            // If user provided a custom name, validate and check if it's taken
             if (finalUsername) {
+                // Validate username format
+                const validationError = validateUsername(finalUsername);
+                if (validationError) {
+                    setError(validationError);
+                    setIsCreating(false);
+                    return;
+                }
                 setIsCheckingName(true);
                 const taken = await isUsernameTaken(finalUsername);
                 setIsCheckingName(false);
@@ -191,10 +222,17 @@ export default function ProfileCreationForm({ onComplete, onCreateProfile }: Pro
                             placeholder="Enter a custom name (optional)"
                             placeholderTextColor={colors.icon}
                             value={customName}
-                            onChangeText={setCustomName}
+                            onChangeText={(text) => {
+                                const sanitized = sanitizeUsername(text);
+                                setCustomName(sanitized);
+                                setError(null); // Clear error when user types
+                            }}
                             autoCapitalize="none"
                             autoCorrect={false}
                         />
+                        <Text style={[styles.helperText, { color: colors.icon }]}>
+                            Only letters and numbers allowed (3-20 characters). No spaces or special characters.
+                        </Text>
                     </View>
 
                     <View style={styles.inputGroup}>
