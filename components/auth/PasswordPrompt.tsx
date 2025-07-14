@@ -83,6 +83,23 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                     onSuccess?.();
                 } else {
                     console.log('PasswordPrompt: Biometric authentication succeeded but encryption initialization failed');
+                    Alert.alert(
+                        'Session Expired',
+                        'Your session has expired. Please sign in again.',
+                        [
+                            {
+                                text: 'OK',
+                                onPress: async () => {
+                                    try {
+                                        await signOut();
+                                        onCancel?.();
+                                    } catch (error) {
+                                        console.error('Sign out failed:', error);
+                                    }
+                                }
+                            }
+                        ]
+                    );
                 }
             } else {
                 console.log('PasswordPrompt: Biometric authentication failed or was canceled');

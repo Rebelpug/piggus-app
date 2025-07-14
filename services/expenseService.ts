@@ -7,6 +7,7 @@ import {
   ExpenseGroupData,
   ExpenseGroupWithDecryptedData,
   ExpenseWithDecryptedData,
+  GroupRefund,
 } from '@/types/expense';
 import { User } from '@supabase/supabase-js';
 
@@ -435,6 +436,172 @@ export const apiRemoveUserFromGroup = async (
     return {
       success: false,
       error: error.message || 'Failed to remove user from group',
+    };
+  }
+};
+
+export const apiAddRefund = async (
+    user: User,
+    groupId: string,
+    encryptedKey: string,
+    refundData: Omit<GroupRefund, 'id' | 'created_at' | 'updated_at'>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
+): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData; error?: string }> => {
+  try {
+    if (!user || !groupId || !encryptedKey || !refundData) {
+      return {
+        success: false,
+        error: 'Invalid parameters',
+      };
+    }
+
+    // Get current group data
+    const groupData = await piggusApi.getExpenseGroup(groupId);
+    const decryptedGroupData = await decryptWithExternalEncryptionKey(encryptedKey, groupData.encrypted_data);
+
+    // Create new refund with ID and timestamps
+    const newRefund: GroupRefund = {
+      ...refundData,
+      id: uuidv4(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add refund to group data
+    const updatedGroupData = {
+      ...decryptedGroupData,
+      refunds: [...(decryptedGroupData.refunds || []), newRefund],
+    };
+
+    // Encrypt and update group
+    const encryptedData = await encryptWithExternalEncryptionKey(encryptedKey, updatedGroupData);
+    await piggusApi.updateExpenseGroup(groupId, { encryptedData });
+
+    return {
+      success: true,
+      data: {
+        ...groupData,
+        data: updatedGroupData,
+      } as ExpenseGroupWithDecryptedData,
+    };
+  } catch (error: any) {
+    console.error('Error adding refund:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to add refund',
+    };
+  }
+};
+
+export const apiUpdateRefund = async (
+    user: User,
+    groupId: string,
+    encryptedKey: string,
+    refundId: string,
+    refundData: Partial<Omit<GroupRefund, 'id' | 'created_at'>>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
+): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData; error?: string }> => {
+  try {
+    if (!user || !groupId || !encryptedKey || !refundId || !refundData) {
+      return {
+        success: false,
+        error: 'Invalid parameters',
+      };
+    }
+
+    // Get current group data
+    const groupData = await piggusApi.getExpenseGroup(groupId);
+    const decryptedGroupData = await decryptWithExternalEncryptionKey(encryptedKey, groupData.encrypted_data);
+
+    // Find and update the refund
+    const refundIndex = decryptedGroupData.refunds?.findIndex((r: GroupRefund) => r.id === refundId) ?? -1;
+    if (refundIndex === -1) {
+      return {
+        success: false,
+        error: 'Refund not found',
+      };
+    }
+
+    const updatedRefunds = [...(decryptedGroupData.refunds || [])];
+    updatedRefunds[refundIndex] = {
+      ...updatedRefunds[refundIndex],
+      ...refundData,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update group data
+    const updatedGroupData = {
+      ...decryptedGroupData,
+      refunds: updatedRefunds,
+    };
+
+    // Encrypt and update group
+    const encryptedData = await encryptWithExternalEncryptionKey(encryptedKey, updatedGroupData);
+    await piggusApi.updateExpenseGroup(groupId, { encryptedData });
+
+    return {
+      success: true,
+      data: {
+        ...groupData,
+        data: updatedGroupData,
+      } as ExpenseGroupWithDecryptedData,
+    };
+  } catch (error: any) {
+    console.error('Error updating refund:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update refund',
+    };
+  }
+};
+
+export const apiDeleteRefund = async (
+    user: User,
+    groupId: string,
+    encryptedKey: string,
+    refundId: string,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
+): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData; error?: string }> => {
+  try {
+    if (!user || !groupId || !encryptedKey || !refundId) {
+      return {
+        success: false,
+        error: 'Invalid parameters',
+      };
+    }
+
+    // Get current group data
+    const groupData = await piggusApi.getExpenseGroup(groupId);
+    const decryptedGroupData = await decryptWithExternalEncryptionKey(encryptedKey, groupData.encrypted_data);
+
+    // Remove the refund
+    const updatedRefunds = (decryptedGroupData.refunds || []).filter((r: GroupRefund) => r.id !== refundId);
+
+    // Update group data
+    const updatedGroupData = {
+      ...decryptedGroupData,
+      refunds: updatedRefunds,
+    };
+
+    // Encrypt and update group
+    const encryptedData = await encryptWithExternalEncryptionKey(encryptedKey, updatedGroupData);
+    await piggusApi.updateExpenseGroup(groupId, { encryptedData });
+
+    return {
+      success: true,
+      data: {
+        ...groupData,
+        data: updatedGroupData,
+      } as ExpenseGroupWithDecryptedData,
+    };
+  } catch (error: any) {
+    console.error('Error deleting refund:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete refund',
     };
   }
 };

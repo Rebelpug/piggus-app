@@ -12,6 +12,7 @@ export type ExpenseGroupData = {
   description: string;
   private: boolean;
   currency: string;
+  refunds?: GroupRefund[];
 };
 
 export type ExpenseGroupMember = {
@@ -47,6 +48,18 @@ export type Expense = {
 };
 
 // Updated ExpenseParticipant type
+export type GroupRefund = {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  amount: number;
+  currency: string;
+  description?: string;
+  date: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ExpenseParticipant = {
   user_id: string;
   username: string;
@@ -202,7 +215,7 @@ export const EXPENSE_CATEGORIES = BASE_EXPENSE_CATEGORIES.map(cat => ({
 export const computeExpenseCategories = (categoryOverrides?: {
   edited: { [categoryId: string]: { name: string; icon: string; parent?: string } };
   deleted: string[];
-  added: Array<{ id: string; name: string; icon: string; parent?: string }>;
+  added: { id: string; name: string; icon: string; parent?: string }[];
 }) => {
   let categories = [...BASE_EXPENSE_CATEGORIES];
 
@@ -210,11 +223,11 @@ export const computeExpenseCategories = (categoryOverrides?: {
     // Apply edits
     categories = categories.map(cat => {
       const override = categoryOverrides.edited[cat.id];
-      return override ? { 
-        ...cat, 
-        name: override.name, 
+      return override ? {
+        ...cat,
+        name: override.name,
         icon: override.icon,
-        parent: override.parent 
+        parent: override.parent
       } : cat;
     });
 
@@ -241,32 +254,32 @@ export const getSubcategories = (categories: ExpenseCategory[], parentId: string
 // Utility function to validate that a subcategory cannot be a child of another subcategory
 export const validateCategoryHierarchy = (categories: ExpenseCategory[], categoryId: string, parentId?: string): boolean => {
   if (!parentId) return true; // Top-level categories are always valid
-  
+
   const parentCategory = categories.find(cat => cat.id === parentId);
   if (!parentCategory) return false; // Parent doesn't exist
-  
+
   // Check if parent is already a subcategory
   return !parentCategory.parent; // Parent should not have a parent itself
 };
 
 // Utility function to get category display info (including deleted ones for existing expenses)
 export const getCategoryDisplayInfo = (
-  categoryId: string, 
+  categoryId: string,
   categoryOverrides?: {
     edited: { [categoryId: string]: { name: string; icon: string; parent?: string } };
     deleted: string[];
-    added: Array<{ id: string; name: string; icon: string; parent?: string }>;
+    added: { id: string; name: string; icon: string; parent?: string }[];
   }
 ) => {
   // First check if it's a custom added category
   if (categoryOverrides?.added) {
     const customCategory = categoryOverrides.added.find(cat => cat.id === categoryId);
     if (customCategory) {
-      return { 
-        name: customCategory.name, 
-        icon: customCategory.icon, 
+      return {
+        name: customCategory.name,
+        icon: customCategory.icon,
         parent: customCategory.parent,
-        isDeleted: false 
+        isDeleted: false
       };
     }
   }
@@ -277,7 +290,7 @@ export const getCategoryDisplayInfo = (
     // Check if it's edited
     const editedInfo = categoryOverrides?.edited[categoryId];
     const isDeleted = categoryOverrides?.deleted.includes(categoryId) || false;
-    
+
     return {
       name: editedInfo?.name || baseCategory.name,
       icon: editedInfo?.icon || baseCategory.icon,
@@ -348,7 +361,8 @@ export const calculateUserBalance = (expenses: ExpenseWithDecryptedData[], userI
 
 export const calculateGroupBalances = (
     expenses: ExpenseWithDecryptedData[],
-    members: ExpenseGroupMember[]
+    members: ExpenseGroupMember[],
+    refunds?: GroupRefund[]
 ): { [userId: string]: number } => {
   const balances: { [userId: string]: number } = {};
 
@@ -357,7 +371,7 @@ export const calculateGroupBalances = (
     balances[member.user_id] = 0;
   });
 
-  // Calculate balances
+  // Calculate balances from expenses
   expenses.forEach(expense => {
     // Credit the payer
     if (balances.hasOwnProperty(expense.data.payer_user_id)) {
@@ -372,6 +386,18 @@ export const calculateGroupBalances = (
     });
   });
 
+  // Apply refunds
+  if (refunds) {
+    refunds.forEach(refund => {
+      if (balances.hasOwnProperty(refund.from_user_id)) {
+        balances[refund.from_user_id] -= refund.amount;
+      }
+      if (balances.hasOwnProperty(refund.to_user_id)) {
+        balances[refund.to_user_id] += refund.amount;
+      }
+    });
+  }
+
   // Round to 2 decimal places
   Object.keys(balances).forEach(userId => {
     balances[userId] = Math.round(balances[userId] * 100) / 100;
@@ -383,7 +409,7 @@ export const calculateGroupBalances = (
 // Utility functions for recurring expenses
 export const calculateNextDueDate = (interval: string, lastDate: string): string => {
   const date = new Date(lastDate);
-  
+
   switch (interval) {
     case 'daily':
       date.setDate(date.getDate() + 1);
@@ -400,20 +426,20 @@ export const calculateNextDueDate = (interval: string, lastDate: string): string
     default:
       throw new Error(`Invalid interval: ${interval}`);
   }
-  
+
   return date.toISOString().split('T')[0];
 };
 
 export const isRecurringExpenseDue = (recurringExpense: RecurringExpenseWithDecryptedData): boolean => {
   if (!recurringExpense.data.is_active) return false;
-  
+
   const today = new Date().toISOString().split('T')[0];
   const nextDueDate = recurringExpense.data.next_due_date;
-  
+
   // Check if end date has passed
   if (recurringExpense.data.end_date && today > recurringExpense.data.end_date) {
     return false;
   }
-  
+
   return today >= nextDueDate;
 };

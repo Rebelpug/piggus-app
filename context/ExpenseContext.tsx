@@ -6,6 +6,7 @@ import {
   ExpenseWithDecryptedData,
   RecurringExpenseData,
   RecurringExpenseWithDecryptedData,
+  GroupRefund,
 } from '@/types/expense';
 import { useAuth } from '@/context/AuthContext'; // Updated import path
 import { useProfile } from '@/context/ProfileContext';
@@ -20,6 +21,9 @@ import {
   apiHandleGroupInvitation,
   apiUpdateExpenseGroup,
   apiRemoveUserFromGroup,
+  apiAddRefund,
+  apiUpdateRefund,
+  apiDeleteRefund,
 } from '@/services/expenseService';
 import {
   apiFetchRecurringExpenses,
@@ -90,6 +94,19 @@ interface ExpenseContextType {
       recurringExpense: RecurringExpenseWithDecryptedData
   ) => Promise<RecurringExpenseWithDecryptedData | null>;
   deleteRecurringExpense: (groupId: string, id: string) => Promise<void>;
+  addRefund: (
+      groupId: string,
+      refundData: Omit<GroupRefund, 'id' | 'created_at' | 'updated_at'>
+  ) => Promise<{ success: boolean; error?: string }>;
+  updateRefund: (
+      groupId: string,
+      refundId: string,
+      refundData: Partial<Omit<GroupRefund, 'id' | 'created_at'>>
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteRefund: (
+      groupId: string,
+      refundId: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -603,6 +620,167 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addRefund = async (
+    groupId: string,
+    refundData: Omit<GroupRefund, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (!user) {
+        return {
+          success: false,
+          error: 'You must be logged in to add a refund',
+        };
+      }
+
+      const group = expensesGroups.find(g => g.id === groupId);
+      if (!group) {
+        return {
+          success: false,
+          error: 'Group not found',
+        };
+      }
+
+      const result = await apiAddRefund(
+        user,
+        groupId,
+        group.encrypted_key,
+        refundData,
+        encryptWithExternalEncryptionKey,
+        decryptWithExternalEncryptionKey
+      );
+
+      if (result.success && result.data) {
+        // Update local state
+        setExpensesGroups(prev =>
+          prev.map(g => g.id === groupId ? { ...g, data: result.data!.data } : g)
+        );
+        return { success: true };
+      } else {
+        setError(result.error || 'Failed to add refund');
+        return {
+          success: false,
+          error: result.error || 'Failed to add refund',
+        };
+      }
+    } catch (error: any) {
+      console.error('Failed to add refund:', error);
+      const errorMessage = error.message || 'Failed to add refund';
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  };
+
+  const updateRefund = async (
+    groupId: string,
+    refundId: string,
+    refundData: Partial<Omit<GroupRefund, 'id' | 'created_at'>>
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (!user) {
+        return {
+          success: false,
+          error: 'You must be logged in to update a refund',
+        };
+      }
+
+      const group = expensesGroups.find(g => g.id === groupId);
+      if (!group) {
+        return {
+          success: false,
+          error: 'Group not found',
+        };
+      }
+
+      const result = await apiUpdateRefund(
+        user,
+        groupId,
+        group.encrypted_key,
+        refundId,
+        refundData,
+        encryptWithExternalEncryptionKey,
+        decryptWithExternalEncryptionKey
+      );
+
+      if (result.success && result.data) {
+        // Update local state
+        setExpensesGroups(prev =>
+          prev.map(g => g.id === groupId ? { ...g, data: result.data!.data } : g)
+        );
+        return { success: true };
+      } else {
+        setError(result.error || 'Failed to update refund');
+        return {
+          success: false,
+          error: result.error || 'Failed to update refund',
+        };
+      }
+    } catch (error: any) {
+      console.error('Failed to update refund:', error);
+      const errorMessage = error.message || 'Failed to update refund';
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  };
+
+  const deleteRefund = async (
+    groupId: string,
+    refundId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (!user) {
+        return {
+          success: false,
+          error: 'You must be logged in to delete a refund',
+        };
+      }
+
+      const group = expensesGroups.find(g => g.id === groupId);
+      if (!group) {
+        return {
+          success: false,
+          error: 'Group not found',
+        };
+      }
+
+      const result = await apiDeleteRefund(
+        user,
+        groupId,
+        group.encrypted_key,
+        refundId,
+        encryptWithExternalEncryptionKey,
+        decryptWithExternalEncryptionKey
+      );
+
+      if (result.success && result.data) {
+        // Update local state
+        setExpensesGroups(prev =>
+          prev.map(g => g.id === groupId ? { ...g, data: result.data!.data } : g)
+        );
+        return { success: true };
+      } else {
+        setError(result.error || 'Failed to delete refund');
+        return {
+          success: false,
+          error: result.error || 'Failed to delete refund',
+        };
+      }
+    } catch (error: any) {
+      console.error('Failed to delete refund:', error);
+      const errorMessage = error.message || 'Failed to delete refund';
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  };
+
   useEffect(() => {
     if (isEncryptionInitialized) {
       fetchExpenses().catch(error => console.error('Failed to fetch expenses:', error));
@@ -628,6 +806,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             addRecurringExpense,
             updateRecurringExpense,
             deleteRecurringExpense,
+            addRefund,
+            updateRefund,
+            deleteRefund,
           }}
       >
         {children}

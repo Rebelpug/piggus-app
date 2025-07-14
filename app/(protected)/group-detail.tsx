@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, ScrollView } from 'react-native';
+import { StyleSheet, Alert, TouchableOpacity, View, ScrollView } from 'react-native';
 import {
     Layout,
     Text,
@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
-import { ExpenseWithDecryptedData, calculateGroupBalances, calculateUserShare } from '@/types/expense';
+import { ExpenseWithDecryptedData, calculateGroupBalances, calculateUserShare, GroupRefund } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -31,12 +31,19 @@ export default function GroupDetailScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const { expensesGroups, inviteUserToGroup, handleGroupInvitation, removeUserFromGroup } = useExpense();
-    const [refreshing, setRefreshing] = useState(false);
+    const { expensesGroups, inviteUserToGroup, handleGroupInvitation, removeUserFromGroup, addRefund, updateRefund, deleteRefund } = useExpense();
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [inviteModalVisible, setInviteModalVisible] = useState(false);
     const [inviteUsername, setInviteUsername] = useState('');
     const [inviteLoading, setInviteLoading] = useState(false);
+    const [refundModalVisible, setRefundModalVisible] = useState(false);
+    const [refundFormData, setRefundFormData] = useState({
+        to_user_id: '',
+        amount: '',
+        description: '',
+    });
+    const [editingRefund, setEditingRefund] = useState<GroupRefund | null>(null);
+    const [refundLoading, setRefundLoading] = useState(false);
 
     const group = useMemo(() => {
         return expensesGroups.find(g => g.id === id);
@@ -45,20 +52,15 @@ export default function GroupDetailScreen() {
     // Calculate group balances
     const groupBalances = useMemo(() => {
         if (!group) return {};
-        return calculateGroupBalances(group.expenses, group.members);
+        return calculateGroupBalances(group.expenses, group.members, group.data?.refunds);
     }, [group]);
-
-    const onRefresh = React.useCallback(async () => {
-        setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 2000);
-    }, []);
 
     const navigateBack = () => {
         router.back();
     };
 
     const handleAddExpense = () => {
-        router.push(`/(protected)/add-expense?groupId=${group.id}`);
+        router.push(`/(protected)/add-expense?groupId=${group?.id}`);
     };
 
     const handleInviteUser = async () => {
@@ -122,6 +124,86 @@ export default function GroupDetailScreen() {
         } catch (error) {
             Alert.alert('Error', 'Failed to handle invitation');
         }
+    };
+
+    const handleRefundSubmit = async () => {
+        if (!group || !user || !refundFormData.to_user_id || !refundFormData.amount) {
+            Alert.alert('Error', 'Please fill in all required fields');
+            return;
+        }
+
+        const amount = parseFloat(refundFormData.amount);
+        if (isNaN(amount) || amount <= 0) {
+            Alert.alert('Error', 'Please enter a valid amount');
+            return;
+        }
+
+        setRefundLoading(true);
+        try {
+            const refundData = {
+                from_user_id: user.id,
+                to_user_id: refundFormData.to_user_id,
+                amount,
+                currency: group.data?.currency || 'USD',
+                description: refundFormData.description,
+                date: new Date().toISOString().split('T')[0],
+            };
+
+            let result;
+            if (editingRefund) {
+                result = await updateRefund(group.id, editingRefund.id, refundData);
+            } else {
+                result = await addRefund(group.id, refundData);
+            }
+
+            if (result.success) {
+                setRefundModalVisible(false);
+                setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                setEditingRefund(null);
+            } else {
+                Alert.alert('Error', result.error || 'Failed to save refund');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to save refund');
+        } finally {
+            setRefundLoading(false);
+        }
+    };
+
+    const handleEditRefund = (refund: GroupRefund) => {
+        setEditingRefund(refund);
+        setRefundFormData({
+            to_user_id: refund.to_user_id,
+            amount: refund.amount.toString(),
+            description: refund.description || '',
+        });
+        setRefundModalVisible(true);
+    };
+
+    const handleDeleteRefund = async (refundId: string) => {
+        if (!group) return;
+
+        Alert.alert(
+            'Delete Refund',
+            'Are you sure you want to delete this refund?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const result = await deleteRefund(group.id, refundId);
+                            if (!result.success) {
+                                Alert.alert('Error', result.error || 'Failed to delete refund');
+                            }
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to delete refund');
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -372,12 +454,6 @@ export default function GroupDetailScreen() {
         </TouchableOpacity>
     );
 
-    const renderRightAction = () => (
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={24} color={colors.icon} />
-        </TouchableOpacity>
-    );
-
     if (!group) {
         return (
             <ThemedView style={styles.container}>
@@ -401,14 +477,6 @@ export default function GroupDetailScreen() {
         );
     }
 
-    const totalAmount = group.expenses?.reduce((sum, expense) => {
-        try {
-            return sum + (expense.data?.amount || 0);
-        } catch {
-            return sum;
-        }
-    }, 0) || 0;
-
     const userTotalShare = group.expenses?.reduce((sum, expense) => {
         try {
             return sum + calculateUserShare(expense, user?.id || '');
@@ -426,7 +494,6 @@ export default function GroupDetailScreen() {
                     title={group.data?.name || 'Group Details'}
                     alignment='center'
                     accessoryLeft={renderBackAction}
-                    accessoryRight={renderRightAction}
                     style={{ backgroundColor: colors.background }}
                 />
 
@@ -437,7 +504,7 @@ export default function GroupDetailScreen() {
                             <Ionicons name="mail-outline" size={48} color="#FF9800" style={styles.pendingIcon} />
                             <Text category='h6' style={styles.pendingTitle}>Invitation Pending</Text>
                             <Text category='s1' appearance='hint' style={styles.pendingDescription}>
-                                You've been invited to join "{group.data?.name}". Would you like to accept this invitation?
+                                {`You've been invited to join "{group.data?.name}". Would you like to accept this invitation?`}
                             </Text>
                         </Layout>
                         <Layout style={styles.pendingActions}>
@@ -574,6 +641,110 @@ export default function GroupDetailScreen() {
                                 )}
                             </Layout>
                         </Tab>
+                        <Tab title='Refunds'>
+                            <Layout style={styles.tabContent}>
+                                <Layout style={styles.refundsHeader}>
+                                    <Text category='h6' style={styles.refundsTitle}>Group Refunds</Text>
+                                    <Button
+                                        style={styles.addRefundButton}
+                                        size='small'
+                                        accessoryLeft={(props) => <Ionicons name="add-outline" size={16} color={props?.tintColor || '#FFFFFF'} />}
+                                        onPress={() => {
+                                            setEditingRefund(null);
+                                            setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                                            setRefundModalVisible(true);
+                                        }}
+                                    >
+                                        Add Refund
+                                    </Button>
+                                </Layout>
+                                {group.data?.refunds && group.data.refunds.length > 0 ? (
+                                    <List
+                                        style={styles.refundsList}
+                                        data={group.data.refunds}
+                                        renderItem={({ item }) => {
+                                            const isFromCurrentUser = item.from_user_id === user?.id;
+                                            const isToCurrentUser = item.to_user_id === user?.id;
+                                            const canEdit = isFromCurrentUser;
+
+                                            // Get usernames from group members
+                                            const fromMember = group.members.find(m => m.user_id === item.from_user_id);
+                                            const toMember = group.members.find(m => m.user_id === item.to_user_id);
+                                            const fromUsername = fromMember?.username || 'Unknown';
+                                            const toUsername = toMember?.username || 'Unknown';
+
+                                            return (
+                                                <ListItem
+                                                    title={`${fromUsername} → ${toUsername}`}
+                                                    description={`${formatDate(item.date)}${item.description ? ` • ${item.description}` : ''}`}
+                                                    accessoryLeft={() => (
+                                                        <Layout style={[
+                                                            styles.refundIcon,
+                                                            { backgroundColor: isFromCurrentUser ? '#FF6B6B20' : isToCurrentUser ? '#4CAF5020' : '#8F9BB320' }
+                                                        ]}>
+                                                            <Ionicons
+                                                                name={isFromCurrentUser ? "arrow-up-outline" : "arrow-down-outline"}
+                                                                size={20}
+                                                                color={isFromCurrentUser ? '#FF6B6B' : isToCurrentUser ? '#4CAF50' : '#8F9BB3'}
+                                                            />
+                                                        </Layout>
+                                                    )}
+                                                    accessoryRight={() => (
+                                                        <Layout style={styles.refundAccessory}>
+                                                            <Text
+                                                                category='h6'
+                                                                style={[
+                                                                    styles.refundAmount,
+                                                                    { color: isFromCurrentUser ? '#FF6B6B' : isToCurrentUser ? '#4CAF50' : colors.text }
+                                                                ]}
+                                                            >
+                                                                {formatCurrency(item.amount, item.currency)}
+                                                            </Text>
+                                                            {canEdit && (
+                                                                <Layout style={styles.refundActions}>
+                                                                    <TouchableOpacity
+                                                                        onPress={() => handleEditRefund(item)}
+                                                                        style={styles.refundActionButton}
+                                                                    >
+                                                                        <Ionicons name="pencil-outline" size={16} color="#8F9BB3" />
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity
+                                                                        onPress={() => handleDeleteRefund(item.id)}
+                                                                        style={styles.refundActionButton}
+                                                                    >
+                                                                        <Ionicons name="trash-outline" size={16} color="#F44336" />
+                                                                    </TouchableOpacity>
+                                                                </Layout>
+                                                            )}
+                                                        </Layout>
+                                                    )}
+                                                />
+                                            );
+                                        }}
+                                        ItemSeparatorComponent={Divider}
+                                    />
+                                ) : (
+                                    <Layout style={styles.emptyState}>
+                                        <Ionicons name="swap-horizontal-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
+                                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No refunds yet</Text>
+                                        <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
+                                            Record refunds between group members
+                                        </Text>
+                                        <Button
+                                            style={styles.addButton}
+                                            accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
+                                            onPress={() => {
+                                                setEditingRefund(null);
+                                                setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                                                setRefundModalVisible(true);
+                                            }}
+                                        >
+                                            Add Refund
+                                        </Button>
+                                    </Layout>
+                                )}
+                            </Layout>
+                        </Tab>
                     </TabView>
 
                     <Button
@@ -623,6 +794,86 @@ export default function GroupDetailScreen() {
                                 accessoryLeft={inviteLoading ? () => <Spinner size='small' status='control' /> : undefined}
                             >
                                 {inviteLoading ? 'Inviting...' : 'Send Invite'}
+                            </Button>
+                        </Layout>
+                    </Card>
+                </Modal>
+
+                <Modal
+                    visible={refundModalVisible}
+                    backdropStyle={styles.backdrop}
+                    onBackdropPress={() => {
+                        setRefundModalVisible(false);
+                        setEditingRefund(null);
+                        setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                    }}
+                >
+                    <Card disabled={true}>
+                        <Text category='h6' style={styles.modalTitle}>
+                            {editingRefund ? 'Edit Refund' : 'Add Refund'}
+                        </Text>
+                        <Text category='s1' appearance='hint' style={styles.modalDescription}>
+                            Record a refund payment between group members.
+                        </Text>
+
+                        <Text category='label' style={styles.fieldLabel}>Refund To</Text>
+                        <Layout style={styles.selectContainer}>
+                            {group?.members?.filter(m => m.status === 'confirmed' && m.user_id !== user?.id).map(member => (
+                                <TouchableOpacity
+                                    key={member.user_id}
+                                    style={[
+                                        styles.memberSelectItem,
+                                        refundFormData.to_user_id === member.user_id && styles.memberSelectItemSelected
+                                    ]}
+                                    onPress={() => setRefundFormData(prev => ({ ...prev, to_user_id: member.user_id }))}
+                                >
+                                    <Text style={[
+                                        styles.memberSelectText,
+                                        refundFormData.to_user_id === member.user_id && styles.memberSelectTextSelected
+                                    ]}>
+                                        {member.username}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </Layout>
+
+                        <Input
+                            style={styles.modalInput}
+                            label='Amount'
+                            placeholder='0.00'
+                            value={refundFormData.amount}
+                            onChangeText={(text) => setRefundFormData(prev => ({ ...prev, amount: text }))}
+                            keyboardType='numeric'
+                        />
+
+                        <Input
+                            style={styles.modalInput}
+                            label='Description (Optional)'
+                            placeholder='What is this refund for?'
+                            value={refundFormData.description}
+                            onChangeText={(text) => setRefundFormData(prev => ({ ...prev, description: text }))}
+                            multiline
+                        />
+
+                        <Layout style={styles.modalActions}>
+                            <Button
+                                style={styles.modalButton}
+                                appearance='outline'
+                                onPress={() => {
+                                    setRefundModalVisible(false);
+                                    setEditingRefund(null);
+                                    setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                style={styles.modalButton}
+                                onPress={handleRefundSubmit}
+                                disabled={refundLoading || !refundFormData.to_user_id || !refundFormData.amount}
+                                accessoryLeft={refundLoading ? () => <Spinner size='small' status='control' /> : undefined}
+                            >
+                                {refundLoading ? 'Saving...' : editingRefund ? 'Update' : 'Add Refund'}
                             </Button>
                         </Layout>
                     </Card>
@@ -989,5 +1240,75 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         marginLeft: 8,
+    },
+    refundsHeader: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    refundsTitle: {
+        flex: 1,
+    },
+    addRefundButton: {
+        paddingHorizontal: 16,
+    },
+    refundsList: {
+        flex: 1,
+    },
+    refundIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    refundAccessory: {
+        alignItems: 'flex-end',
+    },
+    refundAmount: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    refundActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    refundActionButton: {
+        padding: 4,
+    },
+    fieldLabel: {
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    selectContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 16,
+    },
+    memberSelectItem: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E4E9F2',
+        backgroundColor: '#FAFBFC',
+    },
+    memberSelectItemSelected: {
+        borderColor: '#3366FF',
+        backgroundColor: '#3366FF20',
+    },
+    memberSelectText: {
+        fontSize: 14,
+        color: '#8F9BB3',
+    },
+    memberSelectTextSelected: {
+        color: '#3366FF',
+        fontWeight: '600',
     },
 });
