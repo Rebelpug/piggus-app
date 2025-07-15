@@ -136,50 +136,64 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
   const centerX = size / 2;
   const centerY = size / 2;
 
-  // Calculate cumulative percentages for positioning
-  let cumulativePercentage = 0;
+  let slices: React.ReactNode[] = [];
 
-  const slices = data.map((item, index) => {
-    const percentage = item.value;
-    const startAngle = (cumulativePercentage / 100) * 360;
-    const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
-
-    cumulativePercentage += percentage;
-
-    // Convert to radians and adjust rotation (start from top)
-    const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
-    const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
-
-    // Calculate arc path
-    const x1 = centerX + radius * Math.cos(startAngleRad);
-    const y1 = centerY + radius * Math.sin(startAngleRad);
-    const x2 = centerX + radius * Math.cos(endAngleRad);
-    const y2 = centerY + radius * Math.sin(endAngleRad);
-
-    const largeArcFlag = percentage > 50 ? 1 : 0;
-
-    const pathData = [
-      `M ${centerX} ${centerY}`, // Move to center
-      `L ${x1} ${y1}`, // Line to start of arc
-      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`, // Arc
-      'Z' // Close path
-    ].join(' ');
-
-    return (
-      <Path
-        key={index}
-        d={pathData}
-        fill={item.color}
-        stroke={colors.background}
-        strokeWidth={2}
+  if (data.length === 0) {
+    return null;
+  } else if (data.length === 1) {
+    // If only one item then draw the full circle
+    slices = [
+      <Circle
+          key="full"
+          cx={centerX}
+          cy={centerY}
+          r={radius}
+          fill={data[0].color}
+          stroke={colors.background}
+          strokeWidth={2}
       />
-    );
-  });
+    ];
+  } else {
+    let cumulativePercentage = 0;
+    slices = data.map((item, index) => {
+      const percentage = item.value;
+      const startAngle = (cumulativePercentage / 100) * 360;
+      const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
+
+      cumulativePercentage += percentage;
+
+      const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
+      const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
+
+      const x1 = centerX + radius * Math.cos(startAngleRad);
+      const y1 = centerY + radius * Math.sin(startAngleRad);
+      const x2 = centerX + radius * Math.cos(endAngleRad);
+      const y2 = centerY + radius * Math.sin(endAngleRad);
+
+      const largeArcFlag = percentage > 50 ? 1 : 0;
+
+      const pathData = [
+        `M ${centerX} ${centerY}`,
+        `L ${x1} ${y1}`,
+        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+        'Z'
+      ].join(' ');
+
+      return (
+          <Path
+              key={index}
+              d={pathData}
+              fill={item.color}
+              stroke={colors.background}
+              strokeWidth={2}
+          />
+      );
+    });
+  }
 
   return (
     <Svg width={size} height={size}>
       {slices}
-      {/* Center circle for donut effect */}
       <Circle
         cx={centerX}
         cy={centerY}
@@ -255,6 +269,20 @@ export default function InvestmentStatisticsScreen() {
   const investmentStats: InvestmentStats = useMemo(() => {
     let investments: any[] = [];
 
+    if (!portfolios?.length) {
+      return {
+        totalValue: 0,
+        totalInvested: 0,
+        totalGainLoss: 0,
+        totalGainLossPercentage: 0,
+        investmentCount: 0,
+        averageValue: 0,
+        typeBreakdown: {},
+        projectedValue10Years: 0,
+        monthlyGrowthRate: 0
+      };
+    }
+
     if (selectedPortfolio) {
       investments = selectedPortfolio.investments || [];
     } else {
@@ -316,6 +344,10 @@ export default function InvestmentStatisticsScreen() {
 
   // Create pie chart data for investment types
   const typesPieData: PieChartData[] = useMemo(() => {
+    if (!investmentStats?.typeBreakdown || investmentStats.totalValue === 0) {
+      return [];
+    }
+
     const typeColors = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
       '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
@@ -338,6 +370,10 @@ export default function InvestmentStatisticsScreen() {
 
   // Create line chart data for 10-year projection
   const projectionLineData: { year: number; value: number }[] = useMemo(() => {
+    if (!investmentStats?.totalValue) {
+      return [];
+    }
+
     const currentYear = new Date().getFullYear();
     const currentValue = investmentStats.totalValue;
     const annualGrowthRate = investmentStats.totalGainLossPercentage > 0
