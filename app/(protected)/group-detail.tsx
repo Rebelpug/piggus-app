@@ -25,6 +25,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {useLocalization} from "@/context/LocalizationContext";
+import { formatDate } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 export default function GroupDetailScreen() {
     const router = useRouter();
@@ -206,29 +208,6 @@ export default function GroupDetailScreen() {
                 }
             ]
         );
-    };
-
-    const formatCurrency = (amount: number, currency: string = 'USD') => {
-        try {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: currency,
-            }).format(amount);
-        } catch {
-            return `${amount.toFixed(2)}`;
-        }
-    };
-
-    const formatDate = (dateString: string) => {
-        try {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-            });
-        } catch {
-            return dateString;
-        }
     };
 
     const getCategoryColor = (category: string) => {
