@@ -42,7 +42,7 @@ export default function EditInvestmentScreen() {
     const params = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
-    const { portfolios, updateInvestment, deleteInvestment } = useInvestment();
+    const { portfolios, updateInvestment, deleteInvestment, addInvestment } = useInvestment();
     const { userProfile } = useProfile();
     const { t } = useLocalization();
     
@@ -196,17 +196,34 @@ export default function EditInvestmentScreen() {
                 maturity_date: selectedType.id === 'bond' && formData.maturity_date ? formData.maturity_date.toISOString() : null,
             };
 
-            const updatedInvestment = {
-                ...investment,
-                data: investmentData
-            };
+            const originalPortfolioId = params.portfolioId as string;
+            const newPortfolioId = selectedPortfolio.id;
 
-            const result = await updateInvestment(selectedPortfolio.id, updatedInvestment);
-
-            if (result) {
-                router.back();
+            // Check if the portfolio has changed
+            if (originalPortfolioId !== newPortfolioId) {
+                // Moving investment to a different portfolio: delete from original, add to new
+                await deleteInvestment(originalPortfolioId, investment.id);
+                const result = await addInvestment(newPortfolioId, investmentData);
+                
+                if (result) {
+                    router.back();
+                } else {
+                    Alert.alert(t('editInvestment.error'), t('editInvestment.updateInvestmentFailed'));
+                }
             } else {
-                Alert.alert(t('editInvestment.error'), t('editInvestment.updateInvestmentFailed'));
+                // Same portfolio: just update the investment
+                const updatedInvestment = {
+                    ...investment,
+                    data: investmentData
+                };
+
+                const result = await updateInvestment(selectedPortfolio.id, updatedInvestment);
+
+                if (result) {
+                    router.back();
+                } else {
+                    Alert.alert(t('editInvestment.error'), t('editInvestment.updateInvestmentFailed'));
+                }
             }
         } catch (error) {
             console.error('Error updating investment:', error);
