@@ -10,6 +10,7 @@ import { Spinner } from '@ui-kitten/components';
 import { StyleSheet, View } from 'react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import {GuideProvider} from "@/context/GuideContext";
 
 export default function ProtectedLayout() {
     const colorScheme = useColorScheme();
@@ -37,13 +38,15 @@ export default function ProtectedLayout() {
 
     return (
         <ProfileProvider>
-            <ExpenseProvider>
-                <InvestmentProvider>
-                    <Stack screenOptions={{
-                        headerShown: false,
-                    }} />
-                </InvestmentProvider>
-            </ExpenseProvider>
+            <GuideProvider>
+                <ExpenseProvider>
+                    <InvestmentProvider>
+                        <Stack screenOptions={{
+                            headerShown: false,
+                        }} />
+                    </InvestmentProvider>
+                </ExpenseProvider>
+            </GuideProvider>
         </ProfileProvider>
     );
 }

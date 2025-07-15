@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Guide } from '@/client/piggusApi';
 import { apiFetchGuides, apiFetchGuide } from '@/services';
+import {useAuth} from "@/context/AuthContext";
+import {useEncryption} from "@/context/EncryptionContext";
+import {useProfile} from "@/context/ProfileContext";
 
 interface GuideContextType {
   guides: Guide[];
@@ -18,6 +21,9 @@ interface GuideProviderProps {
 }
 
 export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
+  const { user } = useAuth(); // Added encryptionInitialized
+  const { isEncryptionInitialized } = useEncryption();
+  const { userProfile } = useProfile();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +68,10 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    refreshGuides();
-  }, []);
+    if (isEncryptionInitialized) {
+      refreshGuides().catch(error => console.error('Failed to fetch guides:', error));
+    }
+  }, [isEncryptionInitialized]);
 
   const value: GuideContextType = {
     guides,
