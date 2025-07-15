@@ -19,6 +19,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {
@@ -45,6 +46,7 @@ export default function EditExpenseScreen() {
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
     const { expensesGroups, updateExpense } = useExpense();
     const { userProfile } = useProfile();
+    const { t } = useLocalization();
 
     // Compute categories with user's customizations
     const allCategories = computeExpenseCategories(
@@ -124,9 +126,9 @@ export default function EditExpenseScreen() {
                 categoryIndex = mutableCategories.length;
                 mutableCategories.push({
                     id: foundExpense.data.category,
-                    name: `${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`,
+                    name: `${categoryInfo.name}${categoryInfo.isDeleted ? ` (${t('expenseDetail.deleted')})` : ''}`,
                     icon: categoryInfo.icon,
-                    displayName: `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ' (Deleted)' : ''}`,
+                    displayName: `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ` (${t('expenseDetail.deleted')})` : ''}`,
                     parent: categoryInfo.parent
                 });
                 // Update the display categories to include the deleted one
@@ -166,22 +168,22 @@ export default function EditExpenseScreen() {
 
         // Validation
         if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a name for the expense');
+            Alert.alert(t('editExpense.error'), t('editExpense.enterExpenseName'));
             return;
         }
 
         if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-            Alert.alert('Error', 'Please enter a valid amount');
+            Alert.alert(t('editExpense.error'), t('editExpense.enterValidAmount'));
             return;
         }
 
         if (!selectedCategoryIndex || !selectedPayerIndex) {
-            Alert.alert('Error', 'Please select a category and payer');
+            Alert.alert(t('editExpense.error'), t('editExpense.selectCategoryAndPayer'));
             return;
         }
 
         if (participants.length === 0) {
-            Alert.alert('Error', 'Please select at least one participant');
+            Alert.alert(t('editExpense.error'), t('editExpense.selectAtLeastOneParticipant'));
             return;
         }
 
@@ -193,7 +195,7 @@ export default function EditExpenseScreen() {
             }, 0);
 
             if (Math.abs(totalCustomAmount - parseFloat(amount)) > 0.01) {
-                Alert.alert('Error', 'Custom amounts must add up to the total amount');
+                Alert.alert(t('editExpense.error'), t('editExpense.customAmountsMustMatch'));
                 return;
             }
         }
@@ -252,11 +254,11 @@ export default function EditExpenseScreen() {
             if (result) {
                 router.back();
             } else {
-                Alert.alert('Error', result || 'Failed to update expense');
+                Alert.alert(t('editExpense.error'), result || t('editExpense.updateExpenseFailed'));
             }
         } catch (error: any) {
             console.error('Failed to update expense:', error);
-            Alert.alert('Error', error.message || 'Failed to update expense');
+            Alert.alert(t('editExpense.error'), error.message || t('editExpense.updateExpenseFailed'));
         } finally {
             setLoading(false);
         }
@@ -318,7 +320,7 @@ export default function EditExpenseScreen() {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TopNavigation
-                    title='Edit Expense'
+                    title={t('editExpense.title')}
                     alignment='center'
                     accessoryLeft={() => (
                         <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
@@ -328,7 +330,7 @@ export default function EditExpenseScreen() {
                     style={{ backgroundColor: colors.background }}
                 />
                 <Layout style={styles.loadingContainer}>
-                    <Text category='h6'>Expense not found</Text>
+                    <Text category='h6'>{t('editExpense.expenseNotFound')}</Text>
                 </Layout>
             </SafeAreaView>
         );
@@ -338,7 +340,7 @@ export default function EditExpenseScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <TopNavigation
-                title='Edit Expense'
+                title={t('editExpense.title')}
                 alignment='center'
                 accessoryLeft={() => (
                     <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
@@ -350,7 +352,7 @@ export default function EditExpenseScreen() {
                         {loading ? (
                             <Spinner size='small' />
                         ) : (
-                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>Save</Text>
+                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>{t('editExpense.save')}</Text>
                         )}
                     </TouchableOpacity>
                 )}
@@ -361,19 +363,19 @@ export default function EditExpenseScreen() {
                 <ThemedView style={[styles.contentContainer, { backgroundColor: colors.background }]}>
                     {/* Basic Information */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Basic Information</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('editExpense.basicInformation')}</Text>
 
                         <Input
-                            label='Name'
-                            placeholder='Enter expense name'
+                            label={t('editExpense.name')}
+                            placeholder={t('editExpense.enterExpenseName')}
                             value={name}
                             onChangeText={setName}
                             style={styles.input}
                         />
 
                         <Input
-                            label='Description (Optional)'
-                            placeholder='Enter description'
+                            label={t('editExpense.description')}
+                            placeholder={t('editExpense.enterDescription')}
                             value={description}
                             onChangeText={setDescription}
                             multiline={true}
@@ -382,7 +384,7 @@ export default function EditExpenseScreen() {
                         />
 
                         <Input
-                            label='Amount'
+                            label={t('editExpense.amount')}
                             placeholder='0.00'
                             value={amount}
                             onChangeText={setAmount}
@@ -391,8 +393,8 @@ export default function EditExpenseScreen() {
                         />
 
                         <Select
-                            label='Category'
-                            placeholder='Select category'
+                            label={t('editExpense.category')}
+                            placeholder={t('editExpense.selectCategory')}
                             selectedIndex={selectedCategoryIndex}
                             onSelect={(index) => setSelectedCategoryIndex(index as IndexPath)}
                             value={selectedCategoryIndex ? displayCategories[selectedCategoryIndex.row]?.displayName : ''}
@@ -404,7 +406,7 @@ export default function EditExpenseScreen() {
                         </Select>
 
                         <Select
-                            label='Currency'
+                            label={t('editExpense.currency')}
                             selectedIndex={selectedCurrencyIndex}
                             onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
                             value={CURRENCIES[selectedCurrencyIndex.row]?.label}
@@ -416,7 +418,7 @@ export default function EditExpenseScreen() {
                         </Select>
 
                         <Datepicker
-                            label='Date'
+                            label={t('editExpense.date')}
                             date={date}
                             onSelect={setDate}
                             style={styles.input}
@@ -426,11 +428,11 @@ export default function EditExpenseScreen() {
                     {/* Payment Details - Only show if group has multiple members */}
                     {groupMembers.length > 1 && (
                         <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('editExpense.paymentDetails')}</Text>
 
                             <Select
-                                label='Paid by'
-                                placeholder='Select who pays'
+                                label={t('editExpense.paidBy')}
+                                placeholder={t('editExpense.selectWhoPays')}
                                 selectedIndex={selectedPayerIndex}
                                 onSelect={(index) => setSelectedPayerIndex(index as IndexPath)}
                                 value={selectedPayerIndex ? groupMembers[selectedPayerIndex.row]?.username : ''}
@@ -439,13 +441,13 @@ export default function EditExpenseScreen() {
                                 {groupMembers.map((member, index) => (
                                     <SelectItem
                                         key={index}
-                                        title={`${member.username}${member.user_id === user?.id ? ' (You)' : ''}`}
+                                        title={`${member.username}${member.user_id === user?.id ? ` ${t('editExpense.you')}` : ''}`}
                                     />
                                 ))}
                             </Select>
 
                             <Select
-                                label='Split Method'
+                                label={t('editExpense.splitMethod')}
                                 selectedIndex={selectedSplitMethodIndex}
                                 onSelect={(index) => setSelectedSplitMethodIndex(index as IndexPath)}
                                 value={SPLIT_METHODS[selectedSplitMethodIndex.row]?.label}
@@ -461,7 +463,7 @@ export default function EditExpenseScreen() {
                     {/* Participants - Only show if group has multiple members */}
                     {groupMembers.length > 1 && (
                         <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('editExpense.participants')}</Text>
 
                             {groupMembers.map((member, index) => {
                                 const isParticipant = participants.some(p => p.user_id === member.user_id);
@@ -475,7 +477,7 @@ export default function EditExpenseScreen() {
                                                 onChange={() => handleParticipantToggle(member)}
                                             />
                                             <Text style={[styles.participantName, { color: colors.text }]}>
-                                                {member.username}{isCurrentUser ? ' (You)' : ''}
+                                                {member.username}{isCurrentUser ? ` ${t('editExpense.you')}` : ''}
                                             </Text>
                                         </View>
 

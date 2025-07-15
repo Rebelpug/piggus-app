@@ -20,12 +20,14 @@ import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
+import { useLocalization } from '@/context/LocalizationContext';
 
 export default function GroupsScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { expensesGroups, isLoading, error } = useExpense();
+    const { t } = useLocalization();
     const [refreshing, setRefreshing] = useState(false);
 
     const onRefresh = React.useCallback(async () => {
@@ -70,13 +72,13 @@ export default function GroupsScreen() {
     const getGroupStatusText = (status: string) => {
         switch (status) {
             case 'confirmed':
-                return 'Active';
+                return t('shares.active');
             case 'pending':
-                return 'Pending';
+                return t('shares.pending');
             case 'rejected':
-                return 'Rejected';
+                return t('shares.rejected');
             default:
-                return 'Unknown';
+                return t('shares.unknown');
         }
     };
 
@@ -114,10 +116,10 @@ export default function GroupsScreen() {
                             </View>
                             <View style={styles.groupDetails}>
                                 <Text style={[styles.groupTitle, { color: colors.text }]}>
-                                    {item.data.name || 'Unnamed Group'}
+                                    {item.data.name || t('shares.unnamedGroup')}
                                 </Text>
                                 <Text style={[styles.groupSubtitle, { color: colors.icon }]}>
-                                    {item.data.description || 'No description'}
+                                    {item.data.description || t('shares.noDescription')}
                                 </Text>
                             </View>
                         </View>
@@ -136,13 +138,13 @@ export default function GroupsScreen() {
                             <View style={styles.statItem}>
                                 <Ionicons name="receipt-outline" size={14} color={colors.icon} />
                                 <Text style={[styles.statText, { color: colors.icon }]}>
-                                    {expenseCount} expense{expenseCount !== 1 ? 's' : ''}
+                                    {t('shares.expenseCount', { count: expenseCount })}
                                 </Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Ionicons name="people-outline" size={14} color={colors.icon} />
                                 <Text style={[styles.statText, { color: colors.icon }]}>
-                                    {memberCount} member{memberCount !== 1 ? 's' : ''}
+                                    {t('shares.memberCount', { count: memberCount })}
                                 </Text>
                             </View>
                         </View>
@@ -155,16 +157,16 @@ export default function GroupsScreen() {
     const renderEmptyState = () => (
         <Layout style={styles.emptyState}>
             <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-            <Text category='h6' style={styles.emptyTitle}>No expense groups yet</Text>
+            <Text category='h6' style={styles.emptyTitle}>{t('shares.noExpenseGroupsYet')}</Text>
             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                Create your first expense group to start sharing expenses with others
+                {t('shares.createFirstExpenseGroup')}
             </Text>
             <Button
                 style={styles.addButton}
                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                 onPress={handleCreateGroup}
             >
-                Create Group
+                {t('shares.createGroup')}
             </Button>
         </Layout>
     );
@@ -190,7 +192,7 @@ export default function GroupsScreen() {
             <ThemedView style={styles.container}>
                 <SafeAreaView style={styles.safeArea}>
                     <TopNavigation
-                        title='Expense Groups'
+                        title={t('groups.title')}
                         alignment='center'
                         accessoryLeft={renderBackAction}
                         accessoryRight={renderRightAction}
@@ -207,7 +209,7 @@ export default function GroupsScreen() {
             <ThemedView style={styles.container}>
                 <SafeAreaView style={styles.safeArea}>
                     <TopNavigation
-                        title='Expense Groups'
+                        title={t('groups.title')}
                         alignment='center'
                         accessoryLeft={renderBackAction}
                         accessoryRight={renderRightAction}
@@ -215,7 +217,7 @@ export default function GroupsScreen() {
                     />
                     <Layout style={styles.errorContainer}>
                         <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" style={styles.errorIcon} />
-                        <Text category='h6' style={styles.errorTitle}>Error loading groups</Text>
+                        <Text category='h6' style={styles.errorTitle}>{t('groups.errorLoadingGroups')}</Text>
                         <Text category='s1' appearance='hint' style={styles.errorDescription}>
                             {error}
                         </Text>
@@ -224,7 +226,7 @@ export default function GroupsScreen() {
                             status='primary'
                             onPress={onRefresh}
                         >
-                            Try Again
+                            {t('groups.tryAgain')}
                         </Button>
                     </Layout>
                 </SafeAreaView>

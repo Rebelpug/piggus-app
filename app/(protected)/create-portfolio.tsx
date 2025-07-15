@@ -16,12 +16,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
+import { useLocalization } from '@/context/LocalizationContext';
 
 export default function CreatePortfolioScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { createPortfolio } = useInvestment();
+    const { t } = useLocalization();
 
     const [loading, setLoading] = useState(false);
 
@@ -37,7 +39,7 @@ export default function CreatePortfolioScreen() {
 
     const validateForm = (): boolean => {
         if (!formData.name.trim()) {
-            Alert.alert('Validation Error', 'Please enter a portfolio name');
+            Alert.alert(t('createPortfolio.validationError'), t('createPortfolio.portfolioNameRequired'));
             return false;
         }
 
@@ -59,7 +61,7 @@ export default function CreatePortfolioScreen() {
             router.back();
         } catch (error) {
             console.error('Error creating portfolio:', error);
-            Alert.alert('Error', 'Failed to create portfolio. Please try again.');
+            Alert.alert(t('createPortfolio.error'), t('createPortfolio.createPortfolioFailed'));
         } finally {
             setLoading(false);
         }
@@ -79,7 +81,7 @@ export default function CreatePortfolioScreen() {
                     backgroundColor={colors.background}
                 />
                 <TopNavigation
-                    title='Create Portfolio'
+                    title={t('createPortfolio.title')}
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
@@ -87,12 +89,12 @@ export default function CreatePortfolioScreen() {
 
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                     <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Portfolio Details</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('createPortfolio.portfolioDetails')}</Text>
 
                         <Input
                             style={styles.input}
-                            label='Portfolio Name'
-                            placeholder='Enter portfolio name'
+                            label={t('createPortfolio.portfolioName')}
+                            placeholder={t('createPortfolio.enterPortfolioName')}
                             value={formData.name}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                             status={formData.name.trim() ? 'basic' : 'danger'}
@@ -100,8 +102,8 @@ export default function CreatePortfolioScreen() {
 
                         <Input
                             style={styles.input}
-                            label='Description (Optional)'
-                            placeholder='Enter portfolio description'
+                            label={t('createPortfolio.description')}
+                            placeholder={t('createPortfolio.enterPortfolioDescription')}
                             value={formData.description}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
                             multiline
@@ -110,33 +112,33 @@ export default function CreatePortfolioScreen() {
                     </View>
 
                     <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>About Portfolios</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('createPortfolio.aboutPortfolios')}</Text>
 
                         <View style={styles.infoRow}>
                             <Ionicons name="folder-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
-                                Organize your investments into separate portfolios
+                                {t('createPortfolio.organizeInvestments')}
                             </Text>
                         </View>
 
                         <View style={styles.infoRow}>
                             <Ionicons name="people-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
-                                Share portfolios with family or advisors
+                                {t('createPortfolio.sharePortfolios')}
                             </Text>
                         </View>
 
                         <View style={styles.infoRow}>
                             <Ionicons name="analytics-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
-                                Track performance across different strategies
+                                {t('createPortfolio.trackPerformance')}
                             </Text>
                         </View>
 
                         <View style={styles.infoRow}>
                             <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} style={styles.infoIcon} />
                             <Text style={[styles.infoText, { color: colors.text }]}>
-                                All data is encrypted for your privacy
+                                {t('createPortfolio.dataEncrypted')}
                             </Text>
                         </View>
                     </View>
@@ -148,7 +150,7 @@ export default function CreatePortfolioScreen() {
                         disabled={loading}
                         accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
                     >
-                        {loading ? 'Creating Portfolio...' : 'Create Portfolio'}
+                        {loading ? t('createPortfolio.creatingPortfolio') : t('createPortfolio.createPortfolio')}
                     </Button>
                 </ScrollView>
             </SafeAreaView>

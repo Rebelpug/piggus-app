@@ -16,26 +16,30 @@ import { useInvestment } from '@/context/InvestmentContext';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { useLocalization } from '@/context/LocalizationContext';
 
-const investmentTypes = [
-    { id: 'stock', name: 'Stock', icon: 'trending-up' },
-    { id: 'bond', name: 'Bond', icon: 'shield-checkmark' },
-    { id: 'crypto', name: 'Cryptocurrency', icon: 'flash' },
-    { id: 'etf', name: 'ETF', icon: 'bar-chart' },
-    { id: 'mutual_fund', name: 'Mutual Fund', icon: 'pie-chart' },
-    { id: 'real_estate', name: 'Real Estate', icon: 'home' },
-    { id: 'commodity', name: 'Commodity', icon: 'diamond' },
-    { id: 'other', name: 'Other', icon: 'ellipsis-horizontal' },
+const getInvestmentTypes = (t: (key: string) => string) => [
+    { id: 'stock', name: t('investmentTypes.stock'), icon: 'trending-up' },
+    { id: 'bond', name: t('investmentTypes.bond'), icon: 'shield-checkmark' },
+    { id: 'crypto', name: t('investmentTypes.cryptocurrency'), icon: 'flash' },
+    { id: 'etf', name: t('investmentTypes.etf'), icon: 'bar-chart' },
+    { id: 'mutual_fund', name: t('investmentTypes.mutualFund'), icon: 'pie-chart' },
+    { id: 'real_estate', name: t('investmentTypes.realEstate'), icon: 'home' },
+    { id: 'commodity', name: t('investmentTypes.commodity'), icon: 'diamond' },
+    { id: 'other', name: t('investmentTypes.other'), icon: 'ellipsis-horizontal' },
 ];
 
 export default function InvestmentDetailScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
     const { investmentId, portfolioId } = useLocalSearchParams<{ investmentId: string, portfolioId: string }>();
     const { portfolios, deleteInvestment } = useInvestment();
     const [investment, setInvestment] = useState<any>(null);
     const [portfolio, setPortfolio] = useState<any>(null);
+
+    const investmentTypes = getInvestmentTypes(t);
 
     useEffect(() => {
         if (!investmentId || !portfolioId || !portfolios) return;
@@ -67,12 +71,12 @@ export default function InvestmentDetailScreen() {
 
     const handleDelete = () => {
         Alert.alert(
-            'Delete Investment',
-            'Are you sure you want to delete this investment?',
+            t('investmentDetail.delete'),
+            t('investmentDetail.deleteInvestmentConfirm'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('investmentDetail.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('investmentDetail.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -82,7 +86,7 @@ export default function InvestmentDetailScreen() {
                             router.back();
                         } catch (error) {
                             console.error('Failed to delete investment:', error);
-                            Alert.alert('Error', 'Failed to delete investment. Please try again.');
+                            Alert.alert(t('investmentDetail.error'), t('investmentDetail.deleteInvestmentFailed'));
                         }
                     }
                 },
@@ -151,13 +155,13 @@ export default function InvestmentDetailScreen() {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TopNavigation
-                    title='Investment Details'
+                    title={t('investmentDetail.title')}
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
                 />
                 <Layout style={styles.loadingContainer}>
-                    <Text category='h6'>Investment not found</Text>
+                    <Text category='h6'>{t('investmentDetail.investmentNotFound')}</Text>
                 </Layout>
             </SafeAreaView>
         );
@@ -243,7 +247,7 @@ export default function InvestmentDetailScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <TopNavigation
-                title='Investment Details'
+                title={t('investmentDetail.title')}
                 alignment='center'
                 accessoryLeft={renderBackAction}
                 accessoryRight={renderEditAction}
@@ -261,7 +265,7 @@ export default function InvestmentDetailScreen() {
                                     {investment.data.name}
                                 </Text>
                                 <Text style={[styles.portfolioName, { color: colors.icon }]}>
-                                    {portfolio.data?.name || 'Unknown Portfolio'} • {getTypeLabel(investment.data.type)}
+                                    {portfolio.data?.name || t('investmentDetail.unknownPortfolio')} • {getTypeLabel(investment.data.type)}
                                 </Text>
                                 {investment.data.symbol && (
                                     <View style={styles.statusBadge}>
@@ -280,7 +284,7 @@ export default function InvestmentDetailScreen() {
                                     {formatCurrency(currentValue, investment.data.currency)}
                                 </Text>
                                 <Text style={[styles.totalAmount, { color: colors.icon }]}>
-                                    {investment.data.quantity} units
+                                    {investment.data.quantity} {t('investmentDetail.units')}
                                 </Text>
                                 <View style={[styles.performanceBadge, {
                                     backgroundColor: gainLoss >= 0 ? '#4CAF50' + '20' : '#F44336' + '20'
@@ -302,9 +306,9 @@ export default function InvestmentDetailScreen() {
 
                     {/* Performance Details */}
                     <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentDetail.performance')}</Text>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Total Investment:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.totalInvestment')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatCurrency(totalInvestment, investment.data.currency)}
                             </Text>
@@ -313,19 +317,19 @@ export default function InvestmentDetailScreen() {
                         {isBond && interestEarned > 0 && (
                             <>
                                 <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Market Value:</Text>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.marketValue')}</Text>
                                     <Text style={[styles.detailValue, { color: colors.text }]}>
                                         {formatCurrency(marketValue, investment.data.currency)}
                                     </Text>
                                 </View>
                                 <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Interest Earned:</Text>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.interestEarned')}</Text>
                                     <Text style={[styles.detailValue, { color: '#4CAF50' }]}>
                                         {formatCurrency(interestEarned, investment.data.currency)}
                                     </Text>
                                 </View>
                                 <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Total Current Value:</Text>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.totalCurrentValue')}</Text>
                                     <Text style={[styles.detailValue, { color: colors.text }]}>
                                         {formatCurrency(currentValue, investment.data.currency)}
                                     </Text>
@@ -335,7 +339,7 @@ export default function InvestmentDetailScreen() {
                         
                         {!isBond && (
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Current Value:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currentValue')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
                                     {formatCurrency(currentValue, investment.data.currency)}
                                 </Text>
@@ -343,7 +347,7 @@ export default function InvestmentDetailScreen() {
                         )}
                         
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Total Gain/Loss:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.totalGainLoss')}</Text>
                             <Text style={[styles.detailValue, {
                                 color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
@@ -351,7 +355,7 @@ export default function InvestmentDetailScreen() {
                             </Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Percentage:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.percentage')}</Text>
                             <Text style={[styles.detailValue, {
                                 color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
@@ -362,28 +366,28 @@ export default function InvestmentDetailScreen() {
 
                     {/* Investment Details */}
                     <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Details</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentDetail.details')}</Text>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Type:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.type')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {getTypeLabel(investment.data.type)}
                             </Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Quantity:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.quantity')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {investment.data.quantity}
                             </Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Purchase Price:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.purchasePrice')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatCurrency(investment.data.purchase_price, investment.data.currency)}
                             </Text>
                         </View>
                         {investment.data.current_price && (
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Current Price:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currentPrice')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
                                     {formatCurrency(investment.data.current_price, investment.data.currency)}
                                 </Text>
@@ -392,15 +396,15 @@ export default function InvestmentDetailScreen() {
                         
                         {isBond && investment.data.interest_rate && (
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Interest Rate:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.interestRate')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
-                                    {investment.data.interest_rate}% per year
+                                    {investment.data.interest_rate}% {t('investmentDetail.perYear')}
                                 </Text>
                             </View>
                         )}
                         
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Purchase Date:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.purchaseDate')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatDate(investment.data.purchase_date)}
                             </Text>
@@ -409,24 +413,24 @@ export default function InvestmentDetailScreen() {
                         {isBond && investment.data.maturity_date && (
                             <>
                                 <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Maturity Date:</Text>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.maturityDate')}</Text>
                                     <Text style={[styles.detailValue, { color: colors.text }]}>
                                         {formatDate(investment.data.maturity_date)}
                                     </Text>
                                 </View>
                                 <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>Status:</Text>
+                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.status')}</Text>
                                     <Text style={[styles.detailValue, { 
                                         color: getBondStatus() === 'matured' ? '#FF9800' : '#4CAF50'
                                     }]}>
-                                        {getBondStatus() === 'matured' ? 'Matured' : 'Active'}
+                                        {getBondStatus() === 'matured' ? t('investmentDetail.matured') : t('investmentDetail.active')}
                                     </Text>
                                 </View>
                                 {getDaysToMaturity() !== null && getBondStatus() === 'active' && (
                                     <View style={styles.detailRow}>
-                                        <Text style={[styles.detailLabel, { color: colors.icon }]}>Days to Maturity:</Text>
+                                        <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.daysToMaturity')}</Text>
                                         <Text style={[styles.detailValue, { color: colors.text }]}>
-                                            {getDaysToMaturity()} days
+                                            {getDaysToMaturity()} {t('investmentDetail.days')}
                                         </Text>
                                     </View>
                                 )}
@@ -434,14 +438,14 @@ export default function InvestmentDetailScreen() {
                         )}
                         
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Currency:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currency')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {investment.data.currency}
                             </Text>
                         </View>
                         {investment.data.notes && (
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Notes:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.notes')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
                                     {investment.data.notes}
                                 </Text>
@@ -458,7 +462,7 @@ export default function InvestmentDetailScreen() {
                             accessoryLeft={() => <Ionicons name="pencil-outline" size={20} color={colors.primary} />}
                             onPress={handleEdit}
                         >
-                            Edit
+                            {t('investmentDetail.edit')}
                         </Button>
                         <Button
                             style={[styles.actionButton, styles.deleteButton]}
@@ -467,7 +471,7 @@ export default function InvestmentDetailScreen() {
                             accessoryLeft={() => <Ionicons name="trash-outline" size={20} color={colors.error} />}
                             onPress={handleDelete}
                         >
-                            Delete
+                            {t('investmentDetail.delete')}
                         </Button>
                     </View>
                 </ThemedView>

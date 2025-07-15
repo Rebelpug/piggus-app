@@ -19,21 +19,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useAuth } from '@/context/AuthContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { InvestmentWithDecryptedData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 
-const investmentTypes = [
-    { id: 'stock', name: 'Stock', icon: 'trending-up' },
-    { id: 'bond', name: 'Bond', icon: 'shield-checkmark' },
-    { id: 'crypto', name: 'Cryptocurrency', icon: 'flash' },
-    { id: 'etf', name: 'ETF', icon: 'bar-chart' },
-    { id: 'mutual_fund', name: 'Mutual Fund', icon: 'pie-chart' },
-    { id: 'real_estate', name: 'Real Estate', icon: 'home' },
-    { id: 'commodity', name: 'Commodity', icon: 'diamond' },
-    { id: 'other', name: 'Other', icon: 'ellipsis-horizontal' },
+const getInvestmentTypes = (t: (key: string) => string) => [
+    { id: 'stock', name: t('investmentTypes.stock'), icon: 'trending-up' },
+    { id: 'bond', name: t('investmentTypes.bond'), icon: 'shield-checkmark' },
+    { id: 'crypto', name: t('investmentTypes.cryptocurrency'), icon: 'flash' },
+    { id: 'etf', name: t('investmentTypes.etf'), icon: 'bar-chart' },
+    { id: 'mutual_fund', name: t('investmentTypes.mutualFund'), icon: 'pie-chart' },
+    { id: 'real_estate', name: t('investmentTypes.realEstate'), icon: 'home' },
+    { id: 'commodity', name: t('investmentTypes.commodity'), icon: 'diamond' },
+    { id: 'other', name: t('investmentTypes.other'), icon: 'ellipsis-horizontal' },
 ];
 
 export default function PortfolioDetailScreen() {
@@ -41,6 +42,7 @@ export default function PortfolioDetailScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
+    const { t } = useLocalization();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { portfolios, inviteUserToPortfolio, handlePortfolioInvitation, removeUserFromPortfolio } = useInvestment();
     const [refreshing, setRefreshing] = useState(false);
@@ -71,7 +73,7 @@ export default function PortfolioDetailScreen() {
 
     const handleInviteUser = async () => {
         if (!inviteUsername.trim() || !portfolio) {
-            Alert.alert('Error', 'Please enter a username');
+            Alert.alert(t('portfolioDetail.error'), t('portfolioDetail.enterUsernameRequired'));
             return;
         }
 
@@ -83,10 +85,10 @@ export default function PortfolioDetailScreen() {
                 setInviteModalVisible(false);
                 setInviteUsername('');
             } else {
-                Alert.alert('Error', result.error || 'Failed to invite user');
+                Alert.alert(t('portfolioDetail.error'), result.error || t('portfolioDetail.inviteUserFailed'));
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to invite user');
+            Alert.alert(t('portfolioDetail.error'), t('portfolioDetail.inviteUserFailed'));
         } finally {
             setInviteLoading(false);
         }
@@ -96,21 +98,21 @@ export default function PortfolioDetailScreen() {
         if (!portfolio) return;
 
         Alert.alert(
-            'Remove Member',
-            `Are you sure you want to remove ${username} from this portfolio?`,
+            t('portfolioDetail.removeMember'),
+            `${t('portfolioDetail.removeMemberConfirm')} ${username} ${t('portfolioDetail.fromPortfolio')}`,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('portfolioDetail.cancel'), style: 'cancel' },
                 {
-                    text: 'Remove',
+                    text: t('portfolioDetail.remove'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             const result = await removeUserFromPortfolio(portfolio.id, userId);
                             if (!result.success) {
-                                Alert.alert('Error', result.error || 'Failed to remove member');
+                                Alert.alert(t('portfolioDetail.error'), result.error || t('portfolioDetail.removeMemberFailed'));
                             }
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to remove member');
+                            Alert.alert(t('portfolioDetail.error'), t('portfolioDetail.removeMemberFailed'));
                         }
                     }
                 }
@@ -127,10 +129,10 @@ export default function PortfolioDetailScreen() {
             if (result.success) {
                 router.back();
             } else {
-                Alert.alert('Error', result.error || 'Failed to handle invitation');
+                Alert.alert(t('portfolioDetail.error'), result.error || t('portfolioDetail.handleInvitationFailed'));
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to handle invitation');
+            Alert.alert(t('portfolioDetail.error'), t('portfolioDetail.handleInvitationFailed'));
         }
     };
 
@@ -172,7 +174,7 @@ export default function PortfolioDetailScreen() {
     };
 
     const getInvestmentTypeIcon = (type: string) => {
-        const typeInfo = investmentTypes.find(t => t.id === type);
+        const typeInfo = getInvestmentTypes(t).find(typeItem => typeItem.id === type);
         return typeInfo?.icon || 'ellipsis-horizontal';
     };
 
@@ -217,7 +219,7 @@ export default function PortfolioDetailScreen() {
                                     {item.data.symbol || item.data.name || 'Unknown Investment'}
                                 </Text>
                                 <Text style={[styles.investmentSubtitle, { color: colors.icon }]}>
-                                    {item.data.quantity} shares • {formatDate(item.data.purchase_date)}
+                                    {item.data.quantity} {t('portfolioDetail.shares')} • {formatDate(item.data.purchase_date)}
                                 </Text>
                             </View>
                         </View>
@@ -248,14 +250,14 @@ export default function PortfolioDetailScreen() {
                     <Layout style={styles.memberInfo}>
                         <Layout style={styles.memberMainInfo}>
                             <Text style={[styles.memberName, { color: colors.text }]}>
-                                {item.username}{isCurrentUser ? ' (You)' : ''}
+                                {item.username}{isCurrentUser ? ` (${t('common.you')})` : ''}
                             </Text>
                             <View style={[
                                 styles.statusBadge,
                                 { backgroundColor: item.status === 'confirmed' ? '#4CAF50' : '#FF9800' }
                             ]}>
                                 <Text style={styles.statusText}>
-                                    {item.status === 'confirmed' ? 'Active' : 'Pending'}
+                                    {item.status === 'confirmed' ? t('portfolioDetail.active') : t('portfolioDetail.pending')}
                                 </Text>
                             </View>
                         </Layout>
@@ -279,9 +281,9 @@ export default function PortfolioDetailScreen() {
                 <Layout style={styles.tabContent}>
                     <Layout style={styles.emptyState}>
                         <Ionicons name="analytics-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
-                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No performance data</Text>
+                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>{t('portfolioDetail.noPerformanceData')}</Text>
                         <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
-                            Add investments to see performance analytics
+                            {t('portfolioDetail.addInvestmentsForAnalytics')}
                         </Text>
                     </Layout>
                 </Layout>
@@ -312,7 +314,7 @@ export default function PortfolioDetailScreen() {
                         {Object.entries(performanceByType).map(([type, data]) => {
                             const gainLoss = data.currentValue - data.initialValue;
                             const gainLossPercentage = data.initialValue > 0 ? (gainLoss / data.initialValue) * 100 : 0;
-                            const typeInfo = investmentTypes.find(t => t.id === type);
+                            const typeInfo = getInvestmentTypes(t).find(typeItem => typeItem.id === type);
 
                             return (
                                 <Card key={type} style={[styles.performanceCard, { backgroundColor: colors.card }]}>
@@ -333,7 +335,7 @@ export default function PortfolioDetailScreen() {
                                                     {typeInfo?.name || type}
                                                 </Text>
                                                 <Text style={[styles.performanceSubtitle, { color: colors.icon }]}>
-                                                    {data.count} investment{data.count !== 1 ? 's' : ''}
+                                                    {data.count} {data.count === 1 ? t('portfolioDetail.investmentCount') : t('portfolioDetail.investmentCount_plural')}
                                                 </Text>
                                             </View>
                                         </View>
@@ -376,18 +378,18 @@ export default function PortfolioDetailScreen() {
             <ThemedView style={styles.container}>
                 <SafeAreaView style={styles.safeArea}>
                     <TopNavigation
-                        title="Portfolio Details"
+                        title={t('portfolioDetail.title')}
                         alignment='center'
                         accessoryLeft={renderBackAction}
                         style={{ backgroundColor: colors.background }}
                     />
                     <Layout style={styles.errorContainer}>
                         <Ionicons name="alert-circle-outline" size={48} color={colors.error} style={styles.errorIcon} />
-                        <Text category='h6' style={[styles.errorTitle, { color: colors.text }]}>Portfolio not found</Text>
+                        <Text category='h6' style={[styles.errorTitle, { color: colors.text }]}>{t('portfolioDetail.portfolioNotFound')}</Text>
                         <Text category='s1' appearance='hint' style={[styles.errorDescription, { color: colors.icon }]}>
-                            The requested portfolio could not be found.
+                            {t('portfolioDetail.portfolioNotFoundDescription')}
                         </Text>
-                        <Button onPress={navigateBack}>Go Back</Button>
+                        <Button onPress={navigateBack}>{t('portfolioDetail.goBack')}</Button>
                     </Layout>
                 </SafeAreaView>
             </ThemedView>
@@ -431,9 +433,9 @@ export default function PortfolioDetailScreen() {
                         <Card style={styles.pendingCard}>
                             <Layout style={styles.pendingHeader}>
                                 <Ionicons name="mail-outline" size={48} color="#FF9800" style={styles.pendingIcon} />
-                                <Text category='h6' style={styles.pendingTitle}>Invitation Pending</Text>
+                                <Text category='h6' style={styles.pendingTitle}>{t('portfolioDetail.invitationPending')}</Text>
                                 <Text category='s1' appearance='hint' style={styles.pendingDescription}>
-                                    You've been invited to join "{portfolio.data?.name}". Would you like to accept this invitation?
+                                    {t('portfolioDetail.invitedToJoin')} "{portfolio.data?.name}". {t('portfolioDetail.acceptInvitation')}
                                 </Text>
                             </Layout>
                             <Layout style={styles.pendingActions}>
@@ -442,14 +444,14 @@ export default function PortfolioDetailScreen() {
                                     status='danger'
                                     onPress={() => handleInvitation(false)}
                                 >
-                                    Decline
+                                    {t('portfolioDetail.decline')}
                                 </Button>
                                 <Button
                                     style={styles.actionButton}
                                     status='success'
                                     onPress={() => handleInvitation(true)}
                                 >
-                                    Accept
+                                    {t('portfolioDetail.accept')}
                                 </Button>
                             </Layout>
                         </Card>
@@ -469,19 +471,19 @@ export default function PortfolioDetailScreen() {
                                         <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                             {formatCurrency(totalValue)}
                                         </Text>
-                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>Total Value</Text>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('portfolioDetail.totalValue')}</Text>
                                     </View>
                                     <View style={styles.summaryItem}>
                                         <Text style={[styles.summaryNumber, { color: totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }]}>
                                             {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss)}
                                         </Text>
-                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>Gain/Loss</Text>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('portfolioDetail.gainLoss')}</Text>
                                     </View>
                                     <View style={styles.summaryItem}>
                                         <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                             {portfolio.investments?.length || 0}
                                         </Text>
-                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>Investments</Text>
+                                        <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('portfolioDetail.investments')}</Text>
                                     </View>
                                 </View>
                                 
@@ -494,7 +496,7 @@ export default function PortfolioDetailScreen() {
                                     })}
                                 >
                                     <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
-                                    <Text style={[styles.statsButtonText, { color: colors.primary }]}>See more stats</Text>
+                                    <Text style={[styles.statsButtonText, { color: colors.primary }]}>{t('portfolioDetail.seeMoreStats')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -504,7 +506,7 @@ export default function PortfolioDetailScreen() {
                             selectedIndex={selectedIndex}
                             onSelect={index => setSelectedIndex(index)}
                         >
-                            <Tab title='Investments'>
+                            <Tab title={t('portfolioDetail.investments')}>
                                 <View style={styles.tabContent}>
                                     {portfolio.investments && portfolio.investments.length > 0 ? (
                                         <ScrollView style={styles.investmentsList} showsVerticalScrollIndicator={false}>
@@ -520,35 +522,35 @@ export default function PortfolioDetailScreen() {
                                     ) : (
                                         <Layout style={styles.emptyState}>
                                             <Ionicons name="trending-up-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
-                                            <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No investments yet</Text>
+                                            <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>{t('portfolioDetail.noInvestmentsYet')}</Text>
                                             <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
-                                                Start building your portfolio by adding investments
+                                                {t('portfolioDetail.startBuildingPortfolio')}
                                             </Text>
                                             <Button
                                                 style={styles.addButton}
                                                 accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                                 onPress={handleAddInvestment}
                                             >
-                                                Add Investment
+                                                {t('portfolioDetail.addInvestment')}
                                             </Button>
                                         </Layout>
                                     )}
                                 </View>
                             </Tab>
-                            <Tab title='Performance'>
+                            <Tab title={t('portfolioDetail.performance')}>
                                 {renderPerformanceTab()}
                             </Tab>
-                            <Tab title='Members'>
+                            <Tab title={t('portfolioDetail.members')}>
                                 <Layout style={styles.tabContent}>
                                     <Layout style={styles.membersHeader}>
-                                        <Text category='h6' style={styles.membersTitle}>Portfolio Members</Text>
+                                        <Text category='h6' style={styles.membersTitle}>{t('portfolioDetail.portfolioMembers')}</Text>
                                         <Button
                                             style={styles.inviteButton}
                                             size='small'
                                             accessoryLeft={(props) => <Ionicons name="person-add-outline" size={16} color={props?.tintColor || '#FFFFFF'} />}
                                             onPress={() => setInviteModalVisible(true)}
                                         >
-                                            Invite
+                                            {t('portfolioDetail.invite')}
                                         </Button>
                                     </Layout>
                                     {portfolio.members && portfolio.members.length > 0 ? (
@@ -561,16 +563,16 @@ export default function PortfolioDetailScreen() {
                                     ) : (
                                         <Layout style={styles.emptyState}>
                                             <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-                                            <Text category='h6' style={styles.emptyTitle}>No members</Text>
+                                            <Text category='h6' style={styles.emptyTitle}>{t('portfolioDetail.noMembers')}</Text>
                                             <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                                                Invite others to collaborate on this portfolio
+                                                {t('portfolioDetail.inviteOthersToCollaborate')}
                                             </Text>
                                             <Button
                                                 style={styles.addButton}
                                                 accessoryLeft={(props) => <Ionicons name="person-add-outline" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                                 onPress={() => setInviteModalVisible(true)}
                                             >
-                                                Invite Member
+                                                {t('portfolioDetail.inviteMember')}
                                             </Button>
                                         </Layout>
                                     )}
@@ -594,9 +596,9 @@ export default function PortfolioDetailScreen() {
                     onBackdropPress={() => setInviteModalVisible(false)}
                 >
                     <Card disabled={true}>
-                        <Text category='h6' style={styles.modalTitle}>Invite User</Text>
+                        <Text category='h6' style={styles.modalTitle}>{t('portfolioDetail.inviteUser')}</Text>
                         <Input
-                            placeholder='Enter username'
+                            placeholder={t('portfolioDetail.enterUsername')}
                             value={inviteUsername}
                             onChangeText={setInviteUsername}
                             style={styles.modalInput}
@@ -610,7 +612,7 @@ export default function PortfolioDetailScreen() {
                                     setInviteUsername('');
                                 }}
                             >
-                                Cancel
+                                {t('portfolioDetail.cancel')}
                             </Button>
                             <Button
                                 style={styles.modalButton}
@@ -618,7 +620,7 @@ export default function PortfolioDetailScreen() {
                                 disabled={inviteLoading}
                                 accessoryLeft={inviteLoading ? () => <Spinner size='small' status='control' /> : undefined}
                             >
-                                {inviteLoading ? 'Inviting...' : 'Invite'}
+                                {inviteLoading ? t('portfolioDetail.inviting') : t('portfolioDetail.inviteButton')}
                             </Button>
                         </Layout>
                     </Card>

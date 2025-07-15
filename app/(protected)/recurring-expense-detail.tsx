@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { RecurringExpenseWithDecryptedData } from '@/types/expense';
 import { getCategoryDisplayInfo } from '@/types/expense';
 import { ThemedView } from '@/components/ThemedView';

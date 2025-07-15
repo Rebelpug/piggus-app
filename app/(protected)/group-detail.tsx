@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import {useLocalization} from "@/context/LocalizationContext";
 
 export default function GroupDetailScreen() {
     const router = useRouter();
@@ -44,6 +45,7 @@ export default function GroupDetailScreen() {
     });
     const [editingRefund, setEditingRefund] = useState<GroupRefund | null>(null);
     const [refundLoading, setRefundLoading] = useState(false);
+    const { t } = useLocalization();
 
     const group = useMemo(() => {
         return expensesGroups.find(g => g.id === id);
@@ -65,7 +67,7 @@ export default function GroupDetailScreen() {
 
     const handleInviteUser = async () => {
         if (!inviteUsername.trim() || !group) {
-            Alert.alert('Error', 'Please enter a username');
+            Alert.alert(t('groupDetail.error'), t('groupDetail.enterUsernameRequired'));
             return;
         }
 
@@ -77,10 +79,10 @@ export default function GroupDetailScreen() {
                 setInviteModalVisible(false);
                 setInviteUsername('');
             } else {
-                Alert.alert('Error', result.error || 'Failed to invite user');
+                Alert.alert(t('groupDetail.error'), result.error || t('groupDetail.inviteUserFailed'));
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to invite user');
+            Alert.alert(t('groupDetail.error'), t('groupDetail.inviteUserFailed'));
         } finally {
             setInviteLoading(false);
         }
@@ -90,21 +92,21 @@ export default function GroupDetailScreen() {
         if (!group) return;
 
         Alert.alert(
-            'Remove Member',
-            `Are you sure you want to remove ${username} from this group?`,
+            t('groupDetail.removeMember'),
+            t('groupDetail.removeMemberConfirm') + ` ${username} ` + t('groupDetail.fromGroup'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('groupDetail.cancel'), style: 'cancel' },
                 {
-                    text: 'Remove',
+                    text: t('groupDetail.removeMember'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             const result = await removeUserFromGroup(group.id, userId);
                             if (!result.success) {
-                                Alert.alert('Error', result.error || 'Failed to remove member');
+                                Alert.alert(t('groupDetail.error'), result.error || t('groupDetail.removeMemberFailed'));
                             }
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to remove member');
+                            Alert.alert(t('groupDetail.error'), t('groupDetail.removeMemberFailed'));
                         }
                     }
                 }
@@ -119,22 +121,22 @@ export default function GroupDetailScreen() {
             const result = await handleGroupInvitation(group.id, accept);
 
             if (!result.success) {
-                Alert.alert('Error', result.error || 'Failed to handle invitation');
+                Alert.alert(t('groupDetail.error'), result.error || t('groupDetail.inviteUserFailed'));
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to handle invitation');
+            Alert.alert(t('groupDetail.error'), t('groupDetail.inviteUserFailed'));
         }
     };
 
     const handleRefundSubmit = async () => {
         if (!group || !user || !refundFormData.to_user_id || !refundFormData.amount) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            Alert.alert(t('groupDetail.error'), t('groupDetail.fillAllFields'));
             return;
         }
 
         const amount = parseFloat(refundFormData.amount);
         if (isNaN(amount) || amount <= 0) {
-            Alert.alert('Error', 'Please enter a valid amount');
+            Alert.alert(t('groupDetail.error'), t('groupDetail.enterValidAmount'));
             return;
         }
 
@@ -161,10 +163,10 @@ export default function GroupDetailScreen() {
                 setRefundFormData({ to_user_id: '', amount: '', description: '' });
                 setEditingRefund(null);
             } else {
-                Alert.alert('Error', result.error || 'Failed to save refund');
+                Alert.alert('Error', result.error || t('groupDetail.saveRefundFailed'));
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to save refund');
+            Alert.alert(t('groupDetail.error'), t('groupDetail.saveRefundFailed'));
         } finally {
             setRefundLoading(false);
         }
@@ -184,21 +186,21 @@ export default function GroupDetailScreen() {
         if (!group) return;
 
         Alert.alert(
-            'Delete Refund',
-            'Are you sure you want to delete this refund?',
+            t('groupDetail.deleteRefund'),
+            t('groupDetail.deleteRefundConfirm'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('groupDetail.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('groupDetail.deleteRefund'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             const result = await deleteRefund(group.id, refundId);
                             if (!result.success) {
-                                Alert.alert('Error', result.error || 'Failed to delete refund');
+                                Alert.alert(t('groupDetail.error'), result.error || t('groupDetail.deleteRefundFailed'));
                             }
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to delete refund');
+                            Alert.alert(t('groupDetail.error'), t('groupDetail.deleteRefundFailed'));
                         }
                     }
                 }
@@ -304,7 +306,7 @@ export default function GroupDetailScreen() {
                         {isPayer && (
                             <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
                                 <Text style={[styles.payerText, { color: colors.primary }]}>
-                                    You paid
+                                    {t('groupDetail.youPaid')}
                                 </Text>
                             </View>
                         )}
@@ -350,7 +352,7 @@ export default function GroupDetailScreen() {
                                 </Text>
                                 {isCurrentUser && (
                                     <Text category='c1' style={styles.currentUserText}>
-                                        (You)
+                                        {t('groupDetail.you')}
                                     </Text>
                                 )}
                             </Layout>
@@ -366,7 +368,7 @@ export default function GroupDetailScreen() {
                                         {isPositive ? '+' : ''}{formatCurrency(balance, group?.data?.currency)}
                                     </Text>
                                     <Text category='c1' appearance='hint' style={styles.balanceStatus}>
-                                        {isZero ? 'Settled' : isPositive ? 'Is owed' : 'Owes'}
+                                        {isZero ? t('groupDetail.settled') : isPositive ? t('groupDetail.isOwed') : t('groupDetail.owesAmount')}
                                     </Text>
                                 </Layout>
                             )}
@@ -399,7 +401,7 @@ export default function GroupDetailScreen() {
                 <Layout style={styles.balancesHeader}>
                     <Text category='h6' style={styles.balancesTitle}>Group Balances</Text>
                     <Text category='c1' appearance='hint' style={styles.balancesSubtitle}>
-                        Who owes what in this group
+                        {t('groupDetail.whoOwesWhat')}
                     </Text>
                 </Layout>
 
@@ -427,7 +429,7 @@ export default function GroupDetailScreen() {
                                                 {isPositive ? '+' : ''}{formatCurrency(item.balance, group?.data?.currency)}
                                             </Text>
                                             <Text category='c1' appearance='hint' style={styles.balanceStatusLarge}>
-                                                {isZero ? 'Settled up' : isPositive ? 'gets back' : 'owes'}
+                                                {isZero ? t('groupDetail.settled') : isPositive ? t('groupDetail.getsBack') : t('groupDetail.owesAmount')}
                                             </Text>
                                         </Layout>
                                     )}
@@ -440,7 +442,7 @@ export default function GroupDetailScreen() {
                     <Layout style={styles.emptyBalances}>
                         <Ionicons name="calculator-outline" size={48} color="#8F9BB3" style={styles.emptyIcon} />
                         <Text category='s1' appearance='hint' style={styles.emptyText}>
-                            No balances to show
+                            {t('groupDetail.noBalancesToShow')}
                         </Text>
                     </Layout>
                 )}
@@ -468,7 +470,7 @@ export default function GroupDetailScreen() {
                         <Ionicons name="alert-circle-outline" size={48} color={colors.error} style={styles.errorIcon} />
                         <Text category='h6' style={[styles.errorTitle, { color: colors.text }]}>Group not found</Text>
                         <Text category='s1' appearance='hint' style={[styles.errorDescription, { color: colors.icon }]}>
-                            The requested group could not be found.
+                            {t('groupDetail.groupNotFoundDescription')}
                         </Text>
                         <Button onPress={navigateBack}>Go Back</Button>
                     </Layout>
@@ -504,7 +506,7 @@ export default function GroupDetailScreen() {
                             <Ionicons name="mail-outline" size={48} color="#FF9800" style={styles.pendingIcon} />
                             <Text category='h6' style={styles.pendingTitle}>Invitation Pending</Text>
                             <Text category='s1' appearance='hint' style={styles.pendingDescription}>
-                                {`You've been invited to join "{group.data?.name}". Would you like to accept this invitation?`}
+                                {t('groupDetail.invitedToJoin') + ` ${group.data?.name} ` + t('groupDetail.acceptInvitation')}
                             </Text>
                         </Layout>
                         <Layout style={styles.pendingActions}>
@@ -513,14 +515,14 @@ export default function GroupDetailScreen() {
                                 status='danger'
                                 onPress={() => handleInvitation(false)}
                             >
-                                Decline
+                                {t('groupDetail.accept')}
                             </Button>
                             <Button
                                 style={styles.actionButton}
                                 status='success'
                                 onPress={() => handleInvitation(true)}
                             >
-                                Accept
+                                {t('groupDetail.decline')}
                             </Button>
                         </Layout>
                     </Card>
@@ -538,7 +540,7 @@ export default function GroupDetailScreen() {
                             <View style={styles.currencyInfo}>
                                 <Ionicons name="card-outline" size={16} color={colors.icon} />
                                 <Text style={[styles.currencyText, { color: colors.icon }]}>
-                                    Default Currency: {group.data?.currency || 'USD'}
+                                    {t('groupDetail.defaultCurrency') + group.data?.currency || 'USD'}
                                 </Text>
                             </View>
                             <View style={styles.summaryRow}>
@@ -546,19 +548,19 @@ export default function GroupDetailScreen() {
                                     <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                         {formatCurrency(userTotalShare, group.data?.currency)}
                                     </Text>
-                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>Your Share</Text>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('groupDetail.yourShare')}</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
                                     <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                         {group.expenses?.length || 0}
                                     </Text>
-                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>Expenses</Text>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('groupDetail.expenses')}</Text>
                                 </View>
                                 <View style={styles.summaryItem}>
                                     <Text style={[styles.summaryNumber, { color: colors.primary }]}>
                                         {group.members?.filter(m => m.status === 'confirmed').length || 0}
                                     </Text>
-                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>Members</Text>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('groupDetail.members')}</Text>
                                 </View>
                             </View>
                         </View>
@@ -585,16 +587,16 @@ export default function GroupDetailScreen() {
                                 ) : (
                                     <Layout style={styles.emptyState}>
                                         <Ionicons name="document-text-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
-                                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No expenses yet</Text>
+                                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>{t('groupDetail.noExpensesYet')}</Text>
                                         <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
-                                            Start tracking expenses for this group
+                                            {t('groupDetail.startTrackingExpenses')}
                                         </Text>
                                         <Button
                                             style={styles.addButton}
                                             accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                             onPress={handleAddExpense}
                                         >
-                                            Add Expense
+                                            {t('groupDetail.addExpense')}
                                         </Button>
                                     </Layout>
                                 )}
@@ -613,7 +615,7 @@ export default function GroupDetailScreen() {
                                         accessoryLeft={(props) => <Ionicons name="person-add-outline" size={16} color={props?.tintColor || '#FFFFFF'} />}
                                         onPress={() => setInviteModalVisible(true)}
                                     >
-                                        Invite
+                                        {t('groupDetail.invite')}
                                     </Button>
                                 </Layout>
                                 {group.members && group.members.length > 0 ? (
@@ -626,16 +628,16 @@ export default function GroupDetailScreen() {
                                 ) : (
                                     <Layout style={styles.emptyState}>
                                         <Ionicons name="people-outline" size={64} color="#8F9BB3" style={styles.emptyIcon} />
-                                        <Text category='h6' style={styles.emptyTitle}>No members</Text>
+                                        <Text category='h6' style={styles.emptyTitle}>{t('groupDetail.noMembers')}</Text>
                                         <Text category='s1' appearance='hint' style={styles.emptyDescription}>
-                                            Invite others to join this group
+                                            {t('groupDetail.inviteOthersToJoin')}
                                         </Text>
                                         <Button
                                             style={styles.addButton}
                                             accessoryLeft={(props) => <Ionicons name="person-add-outline" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                             onPress={() => setInviteModalVisible(true)}
                                         >
-                                            Invite Member
+                                            {t('groupDetail.inviteMember')}
                                         </Button>
                                     </Layout>
                                 )}
@@ -644,7 +646,7 @@ export default function GroupDetailScreen() {
                         <Tab title='Refunds'>
                             <Layout style={styles.tabContent}>
                                 <Layout style={styles.refundsHeader}>
-                                    <Text category='h6' style={styles.refundsTitle}>Group Refunds</Text>
+                                    <Text category='h6' style={styles.refundsTitle}>{t('groupDetail.groupRefunds')}</Text>
                                     <Button
                                         style={styles.addRefundButton}
                                         size='small'
@@ -655,7 +657,7 @@ export default function GroupDetailScreen() {
                                             setRefundModalVisible(true);
                                         }}
                                     >
-                                        Add Refund
+                                        {t('groupDetail.addRefund')}
                                     </Button>
                                 </Layout>
                                 {group.data?.refunds && group.data.refunds.length > 0 ? (
@@ -726,9 +728,9 @@ export default function GroupDetailScreen() {
                                 ) : (
                                     <Layout style={styles.emptyState}>
                                         <Ionicons name="swap-horizontal-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
-                                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>No refunds yet</Text>
+                                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>{t('groupDetail.noRefundsYet')}</Text>
                                         <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
-                                            Record refunds between group members
+                                            {t('groupDetail.recordRefunds')}
                                         </Text>
                                         <Button
                                             style={styles.addButton}
@@ -739,7 +741,7 @@ export default function GroupDetailScreen() {
                                                 setRefundModalVisible(true);
                                             }}
                                         >
-                                            Add Refund
+                                            {t('groupDetail.addRefund')}
                                         </Button>
                                     </Layout>
                                 )}
@@ -765,7 +767,7 @@ export default function GroupDetailScreen() {
                     <Card disabled={true}>
                         <Text category='h6' style={styles.modalTitle}>Invite Member</Text>
                         <Text category='s1' appearance='hint' style={styles.modalDescription}>
-                            Enter the username of the person you want to invite to this group.
+                            {t('groupDetail.inviteMemberDescription')}
                         </Text>
 
                         <Input
@@ -785,7 +787,7 @@ export default function GroupDetailScreen() {
                                     setInviteUsername('');
                                 }}
                             >
-                                Cancel
+                                {t('groupDetail.cancel')}
                             </Button>
                             <Button
                                 style={styles.modalButton}
@@ -793,7 +795,7 @@ export default function GroupDetailScreen() {
                                 disabled={inviteLoading}
                                 accessoryLeft={inviteLoading ? () => <Spinner size='small' status='control' /> : undefined}
                             >
-                                {inviteLoading ? 'Inviting...' : 'Send Invite'}
+                                {inviteLoading ? t('groupDetail.inviting') : t('groupDetail.sendInvite')}
                             </Button>
                         </Layout>
                     </Card>
@@ -810,13 +812,13 @@ export default function GroupDetailScreen() {
                 >
                     <Card disabled={true}>
                         <Text category='h6' style={styles.modalTitle}>
-                            {editingRefund ? 'Edit Refund' : 'Add Refund'}
+                            {editingRefund ? t('groupDetail.editRefund') : t('groupDetail.addRefund')}
                         </Text>
                         <Text category='s1' appearance='hint' style={styles.modalDescription}>
-                            Record a refund payment between group members.
+                            {t('groupDetail.addRefundDescription')}
                         </Text>
 
-                        <Text category='label' style={styles.fieldLabel}>Refund To</Text>
+                        <Text category='label' style={styles.fieldLabel}>{t('groupDetail.refundTo')}</Text>
                         <Layout style={styles.selectContainer}>
                             {group?.members?.filter(m => m.status === 'confirmed' && m.user_id !== user?.id).map(member => (
                                 <TouchableOpacity
@@ -839,7 +841,7 @@ export default function GroupDetailScreen() {
 
                         <Input
                             style={styles.modalInput}
-                            label='Amount'
+                            label={t('groupDetail.amount')}
                             placeholder='0.00'
                             value={refundFormData.amount}
                             onChangeText={(text) => setRefundFormData(prev => ({ ...prev, amount: text }))}
@@ -848,8 +850,8 @@ export default function GroupDetailScreen() {
 
                         <Input
                             style={styles.modalInput}
-                            label='Description (Optional)'
-                            placeholder='What is this refund for?'
+                            label={t('groupDetail.description')}
+                            placeholder={t('groupDetail.refundDescription')}
                             value={refundFormData.description}
                             onChangeText={(text) => setRefundFormData(prev => ({ ...prev, description: text }))}
                             multiline
@@ -873,7 +875,7 @@ export default function GroupDetailScreen() {
                                 disabled={refundLoading || !refundFormData.to_user_id || !refundFormData.amount}
                                 accessoryLeft={refundLoading ? () => <Spinner size='small' status='control' /> : undefined}
                             >
-                                {refundLoading ? 'Saving...' : editingRefund ? 'Update' : 'Add Refund'}
+                                {refundLoading ? t('groupDetail.saving') : editingRefund ? t('groupDetail.update') : t('groupDetail.addRefund')}
                             </Button>
                         </Layout>
                     </Card>

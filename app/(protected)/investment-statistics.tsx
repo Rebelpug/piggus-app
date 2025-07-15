@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useLocalization } from '@/context/LocalizationContext';
 import { Colors } from '@/constants/Colors';
 import Svg, { Path, Circle, Polyline, Line, Text as SvgText } from 'react-native-svg';
 
@@ -221,6 +222,7 @@ export default function InvestmentStatisticsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme || 'light'];
+  const { t } = useLocalization();
   const { portfolioId } = useLocalSearchParams<{ portfolioId?: string }>();
   const { portfolios } = useInvestment();
 
@@ -371,7 +373,7 @@ export default function InvestmentStatisticsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation
-        title="Investment Statistics"
+        title={t('investmentStatistics.title')}
         alignment="center"
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
@@ -386,7 +388,7 @@ export default function InvestmentStatisticsScreen() {
               onPress={() => setPortfolioModalVisible(true)}
             >
               <Text style={[styles.filterButtonText, { color: colors.text }]}>
-                {selectedPortfolio ? selectedPortfolio.data?.name : 'All Portfolios'}
+                {selectedPortfolio ? selectedPortfolio.data?.name : t('investmentStatistics.allPortfolios')}
               </Text>
               <Ionicons name="chevron-down" size={16} color={colors.icon} />
             </TouchableOpacity>
@@ -395,42 +397,42 @@ export default function InvestmentStatisticsScreen() {
 
         {/* Overview Section */}
         <View style={styles.summarySection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Overview</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.overview')}</Text>
 
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: colors.text }]}>
                 {formatCurrency(investmentStats.totalValue)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Current Value</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.currentValue')}</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
                 {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Total Return</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.totalReturn')}</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: investmentStats.totalGainLossPercentage >= 0 ? colors.success : colors.error }]}>
                 {investmentStats.totalGainLossPercentage >= 0 ? '+' : ''}{investmentStats.totalGainLossPercentage.toFixed(2)}%
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Return %</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.returnPercentage')}</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: colors.text }]}>
                 {investmentStats.investmentCount}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Investments</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.investments')}</Text>
             </View>
           </View>
         </View>
 
         {/* Investment Types Distribution */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Types</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.investmentTypes')}</Text>
 
           {typesPieData.length > 0 && (
             <View style={styles.pieChartSection}>
@@ -462,7 +464,7 @@ export default function InvestmentStatisticsScreen() {
 
         {/* 10-Year Projection */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>10-Year Projection</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.tenYearProjection')}</Text>
 
           <View style={[styles.projectionCard, { backgroundColor: colors.card }]}>
             <View style={styles.projectionHeader}>
@@ -470,7 +472,7 @@ export default function InvestmentStatisticsScreen() {
                 {formatCurrency(investmentStats.projectedValue10Years)}
               </Text>
               <Text style={[styles.projectionLabel, { color: colors.icon }]}>
-                Projected Value in 10 Years
+                {t('investmentStatistics.projectedValueTenYears')}
               </Text>
             </View>
 
@@ -488,7 +490,7 @@ export default function InvestmentStatisticsScreen() {
                       {formatCurrency(projectionLineData[0]?.value || 0)}
                     </Text>
                     <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                      Current Value
+                      {t('investmentStatistics.currentValue')}
                     </Text>
                   </View>
                   <View style={styles.projectionStatItem}>
@@ -496,7 +498,7 @@ export default function InvestmentStatisticsScreen() {
                       {formatCurrency(projectionLineData[projectionLineData.length - 1]?.value || 0)}
                     </Text>
                     <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                      Projected (10 years)
+                      {t('investmentStatistics.projectedTenYears')}
                     </Text>
                   </View>
                   <View style={styles.projectionStatItem}>
@@ -504,7 +506,7 @@ export default function InvestmentStatisticsScreen() {
                       {formatCurrency((projectionLineData[projectionLineData.length - 1]?.value || 0) - (projectionLineData[0]?.value || 0))}
                     </Text>
                     <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                      Potential Gains
+                      {t('investmentStatistics.potentialGains')}
                     </Text>
                   </View>
                 </View>
@@ -512,14 +514,14 @@ export default function InvestmentStatisticsScreen() {
             )}
 
             <Text style={[styles.projectionDisclaimer, { color: colors.icon }]}>
-              * Based on historical performance. Past performance doesn't guarantee future results.
+              {t('investmentStatistics.projectionDisclaimer')}
             </Text>
           </View>
         </View>
 
         {/* Type Breakdown */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Detailed Breakdown</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.detailedBreakdown')}</Text>
           <View style={[styles.typeContainer, { backgroundColor: colors.card }]}>
             {Object.entries(investmentStats.typeBreakdown).map(([type, data]) => {
               const typeInfo = investmentTypes.find(t => t.id === type);
@@ -557,7 +559,7 @@ export default function InvestmentStatisticsScreen() {
                       />
                     </View>
                     <Text style={[styles.typeCount, { color: colors.icon }]}>
-                      {data.count} investments • {data.gainLoss >= 0 ? '+' : ''}{formatCurrency(data.gainLoss)}
+                      {data.count} {t('investmentStatistics.investmentsCount')} • {data.gainLoss >= 0 ? '+' : ''}{formatCurrency(data.gainLoss)}
                     </Text>
                   </View>
                 </View>
@@ -576,7 +578,7 @@ export default function InvestmentStatisticsScreen() {
         onBackdropPress={() => setPortfolioModalVisible(false)}
       >
         <Card disabled={true} style={styles.modalCard}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Select Portfolio</Text>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{t('investmentStatistics.selectPortfolio')}</Text>
 
           <View style={styles.portfolioOptions}>
             <TouchableOpacity
@@ -590,7 +592,7 @@ export default function InvestmentStatisticsScreen() {
                 setPortfolioModalVisible(false);
               }}
             >
-              <Text style={[styles.portfolioOptionText, { color: colors.text }]}>All Portfolios</Text>
+              <Text style={[styles.portfolioOptionText, { color: colors.text }]}>{t('investmentStatistics.allPortfolios')}</Text>
             </TouchableOpacity>
 
             {availablePortfolios.map(portfolio => (
@@ -607,7 +609,7 @@ export default function InvestmentStatisticsScreen() {
                 }}
               >
                 <Text style={[styles.portfolioOptionText, { color: colors.text }]}>
-                  {portfolio.data?.name || 'Unnamed Portfolio'}
+                  {portfolio.data?.name || t('investmentStatistics.unnamedPortfolio')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -619,7 +621,7 @@ export default function InvestmentStatisticsScreen() {
               appearance="outline"
               onPress={() => setPortfolioModalVisible(false)}
             >
-              Cancel
+              {t('investmentStatistics.cancel')}
             </Button>
           </Layout>
         </Card>

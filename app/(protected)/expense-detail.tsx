@@ -19,12 +19,14 @@ import { ExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo } 
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { useLocalization } from '@/context/LocalizationContext';
 
 export default function ExpenseDetailScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { user } = useAuth();
+    const { t } = useLocalization();
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
     const { expensesGroups, deleteExpense } = useExpense();
     const { userProfile } = useProfile();
@@ -38,7 +40,7 @@ export default function ExpenseDetailScreen() {
         const group = expensesGroups.find(g => g.id === groupId);
         if (!group) return;
 
-        setGroupName(group.data?.name || 'Unknown Group');
+        setGroupName(group.data?.name || t('common.unknown'));
         setGroupMembers(group.members || []);
 
         const foundExpense = group.expenses.find(e => e.id === expenseId);
@@ -63,12 +65,12 @@ export default function ExpenseDetailScreen() {
 
     const handleDelete = () => {
         Alert.alert(
-            'Delete Expense',
-            'Are you sure you want to delete this expense?',
+            t('expenseDetail.delete'),
+            t('expenseDetail.deleteExpenseConfirm'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('expenseDetail.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('expenseDetail.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -78,7 +80,7 @@ export default function ExpenseDetailScreen() {
                             router.back();
                         } catch (error) {
                             console.error('Failed to delete expense:', error);
-                            Alert.alert('Error', 'Failed to delete expense. Please try again.');
+                            Alert.alert(t('expenseDetail.error'), t('expenseDetail.deleteExpenseFailed'));
                         }
                     }
                 },
@@ -116,7 +118,7 @@ export default function ExpenseDetailScreen() {
 
     const getUsernameFromId = (userId: string) => {
         const member = groupMembers.find(m => m.user_id === userId);
-        return member ? member.username : 'Unknown User';
+        return member ? member.username : t('common.unknownUser');
     };
 
     const userShare = expense?.data.participants.find(p => p.user_id === user?.id)?.share_amount || 0;
@@ -140,13 +142,13 @@ export default function ExpenseDetailScreen() {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TopNavigation
-                    title='Expense Details'
+                    title={t('expenseDetail.title')}
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
                 />
                 <Layout style={styles.loadingContainer}>
-                    <Text category='h6'>Expense not found</Text>
+                    <Text category='h6'>{t('expenseDetail.expenseNotFound')}</Text>
                 </Layout>
             </SafeAreaView>
         );
@@ -157,7 +159,7 @@ export default function ExpenseDetailScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <TopNavigation
-                title='Expense Details'
+                title={t('expenseDetail.title')}
                 alignment='center'
                 accessoryLeft={renderBackAction}
                 accessoryRight={renderEditAction}
@@ -184,7 +186,7 @@ export default function ExpenseDetailScreen() {
                                             { backgroundColor: colors.primary }
                                         ]} />
                                         <Text style={[styles.statusText, { color: colors.text }]}>
-                                            Recurring Expense
+                                            {t('expenseDetail.recurringExpense')}
                                         </Text>
                                     </View>
                                 )}
@@ -202,7 +204,7 @@ export default function ExpenseDetailScreen() {
                                     <View style={[styles.recurringBadge, { backgroundColor: colors.primary + '20' }]}>
                                         <Ionicons name="repeat" size={12} color={colors.primary} />
                                         <Text style={[styles.recurringText, { color: colors.primary }]}>
-                                            Recurring
+                                            {t('expenseDetail.recurring')}
                                         </Text>
                                     </View>
                                 )}
@@ -212,40 +214,40 @@ export default function ExpenseDetailScreen() {
 
                     {/* Expense Details */}
                     <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Details</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('expenseDetail.details')}</Text>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Category:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.category')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {categoryInfo.icon} {categoryInfo.name}
-                                {categoryInfo.isDeleted ? ' (Deleted)' : ''}
+                                {categoryInfo.isDeleted ? ` ${t('expenseDetail.deleted')}` : ''}
                             </Text>
                         </View>
                         {expense.data.description && (
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Description:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.description')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
                                     {expense.data.description}
                                 </Text>
                             </View>
                         )}
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Amount:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.amount')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatCurrency(expense.data.amount, expense.data.currency)}
                             </Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>Date:</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.date')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatDate(expense.data.date)}
                             </Text>
                         </View>
                         {groupMembers.length > 1 && (
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Split Method:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.splitMethod')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
-                                    {expense.data.split_method === 'equal' ? 'Split Equally' :
-                                     expense.data.split_method === 'custom' ? 'Custom Amounts' : 'By Percentage'}
+                                    {expense.data.split_method === 'equal' ? t('expenseDetail.splitEqually') :
+                                     expense.data.split_method === 'custom' ? t('expenseDetail.customAmounts') : t('expenseDetail.byPercentage')}
                                 </Text>
                             </View>
                         )}
@@ -254,19 +256,19 @@ export default function ExpenseDetailScreen() {
                     {/* Participants - Only show if more than one group member */}
                     {groupMembers.length > 1 && (
                         <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Participants</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('expenseDetail.participants')}</Text>
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.paidBy')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
                                     {getUsernameFromId(expense.data.payer_user_id)}
-                                    {isPayer && ' (You)'}
+                                    {isPayer && ` ${t('expenseDetail.you')}`}
                                 </Text>
                             </View>
                             {expense.data.participants.map((participant, index) => (
                                 <View key={participant.user_id} style={styles.participantRow}>
                                     <Text style={[styles.participantName, { color: colors.text }]}>
                                         {getUsernameFromId(participant.user_id)}
-                                        {participant.user_id === user?.id && ' (You)'}
+                                        {participant.user_id === user?.id && ` ${t('expenseDetail.you')}`}
                                     </Text>
                                     <Text style={[styles.participantAmount, { color: colors.text }]}>
                                         {formatCurrency(participant.share_amount, expense.data.currency)}
@@ -279,12 +281,12 @@ export default function ExpenseDetailScreen() {
                     {/* Single group member - show simplified payer info */}
                     {groupMembers.length >= 1 && (
                         <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('expenseDetail.payment')}</Text>
                             <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>Paid by:</Text>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('expenseDetail.paidBy')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
                                     {getUsernameFromId(expense.data.payer_user_id)}
-                                    {isPayer && ' (You)'}
+                                    {isPayer && ` ${t('expenseDetail.you')}`}
                                 </Text>
                             </View>
                         </Card>
@@ -299,7 +301,7 @@ export default function ExpenseDetailScreen() {
                             accessoryLeft={() => <Ionicons name="pencil-outline" size={20} color={colors.primary} />}
                             onPress={handleEdit}
                         >
-                            Edit
+                            {t('expenseDetail.edit')}
                         </Button>
                         <Button
                             style={[styles.actionButton, styles.deleteButton]}
@@ -308,7 +310,7 @@ export default function ExpenseDetailScreen() {
                             accessoryLeft={() => <Ionicons name="trash-outline" size={20} color={colors.error} />}
                             onPress={handleDelete}
                         >
-                            Delete
+                            {t('expenseDetail.delete')}
                         </Button>
                     </View>
                 </ThemedView>

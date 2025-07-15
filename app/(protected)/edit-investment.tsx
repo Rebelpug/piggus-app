@@ -17,21 +17,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { InvestmentData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
 
-const investmentTypes = [
-    { id: 'stock', name: 'Stock', icon: 'trending-up' },
-    { id: 'bond', name: 'Bond', icon: 'shield-checkmark' },
-    { id: 'crypto', name: 'Cryptocurrency', icon: 'flash' },
-    { id: 'etf', name: 'ETF', icon: 'bar-chart' },
-    { id: 'mutual_fund', name: 'Mutual Fund', icon: 'pie-chart' },
-    { id: 'real_estate', name: 'Real Estate', icon: 'home' },
-    { id: 'commodity', name: 'Commodity', icon: 'diamond' },
-    { id: 'other', name: 'Other', icon: 'ellipsis-horizontal' },
+const getInvestmentTypes = (t: (key: string) => string) => [
+    { id: 'stock', name: t('investmentTypes.stock'), icon: 'trending-up' },
+    { id: 'bond', name: t('investmentTypes.bond'), icon: 'shield-checkmark' },
+    { id: 'crypto', name: t('investmentTypes.cryptocurrency'), icon: 'flash' },
+    { id: 'etf', name: t('investmentTypes.etf'), icon: 'bar-chart' },
+    { id: 'mutual_fund', name: t('investmentTypes.mutualFund'), icon: 'pie-chart' },
+    { id: 'real_estate', name: t('investmentTypes.realEstate'), icon: 'home' },
+    { id: 'commodity', name: t('investmentTypes.commodity'), icon: 'diamond' },
+    { id: 'other', name: t('investmentTypes.other'), icon: 'ellipsis-horizontal' },
 ];
 
 const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY'];
@@ -43,6 +44,9 @@ export default function EditInvestmentScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { portfolios, updateInvestment, deleteInvestment } = useInvestment();
     const { userProfile } = useProfile();
+    const { t } = useLocalization();
+    
+    const investmentTypes = getInvestmentTypes(t);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -132,35 +136,35 @@ export default function EditInvestmentScreen() {
         const newErrors: { [key: string]: string } = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Investment name is required';
+            newErrors.name = t('editInvestment.investmentNameRequired');
         }
 
         if (!formData.quantity.trim()) {
-            newErrors.quantity = 'Quantity is required';
+            newErrors.quantity = t('editInvestment.quantityRequired');
         } else if (isNaN(Number(formData.quantity)) || Number(formData.quantity) <= 0) {
-            newErrors.quantity = 'Quantity must be a positive number';
+            newErrors.quantity = t('editInvestment.quantityPositive');
         }
 
         if (!formData.purchase_price.trim()) {
-            newErrors.purchase_price = 'Purchase price is required';
+            newErrors.purchase_price = t('editInvestment.purchasePriceRequired');
         } else if (isNaN(Number(formData.purchase_price)) || Number(formData.purchase_price) <= 0) {
-            newErrors.purchase_price = 'Purchase price must be a positive number';
+            newErrors.purchase_price = t('editInvestment.purchasePricePositive');
         }
 
         if (formData.current_price && (isNaN(Number(formData.current_price)) || Number(formData.current_price) <= 0)) {
-            newErrors.current_price = 'Current price must be a positive number';
+            newErrors.current_price = t('editInvestment.currentPricePositive');
         }
 
         if (selectedType.id === 'bond' && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
-            newErrors.interest_rate = 'Interest rate must be a positive number';
+            newErrors.interest_rate = t('editInvestment.interestRatePositive');
         }
 
         if (selectedType.id === 'bond' && formData.maturity_date && formData.maturity_date <= formData.purchase_date) {
-            newErrors.maturity_date = 'Maturity date must be after purchase date';
+            newErrors.maturity_date = t('editInvestment.maturityDateAfterPurchase');
         }
 
         if (!selectedPortfolio) {
-            newErrors.portfolio = 'Please select a portfolio';
+            newErrors.portfolio = t('editInvestment.selectPortfolioRequired');
         }
 
         setErrors(newErrors);
@@ -202,11 +206,11 @@ export default function EditInvestmentScreen() {
             if (result) {
                 router.back();
             } else {
-                Alert.alert('Error', 'Failed to update investment. Please try again.');
+                Alert.alert(t('editInvestment.error'), t('editInvestment.updateInvestmentFailed'));
             }
         } catch (error) {
             console.error('Error updating investment:', error);
-            Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            Alert.alert(t('editInvestment.error'), t('editInvestment.unexpectedError'));
         } finally {
             setIsSubmitting(false);
         }
@@ -214,15 +218,15 @@ export default function EditInvestmentScreen() {
 
     const handleDelete = () => {
         Alert.alert(
-            'Delete Investment',
-            'Are you sure you want to delete this investment? This action cannot be undone.',
+            t('editInvestment.deleteInvestment'),
+            t('editInvestment.deleteInvestmentConfirm'),
             [
                 {
-                    text: 'Cancel',
+                    text: t('editInvestment.cancel'),
                     style: 'cancel'
                 },
                 {
-                    text: 'Delete',
+                    text: t('editInvestment.delete'),
                     style: 'destructive',
                     onPress: confirmDelete
                 }
@@ -238,7 +242,7 @@ export default function EditInvestmentScreen() {
             router.back();
         } catch (error) {
             console.error('Error deleting investment:', error);
-            Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            Alert.alert(t('editInvestment.error'), t('editInvestment.unexpectedError'));
         } finally {
             setIsDeleting(false);
         }
@@ -385,13 +389,13 @@ export default function EditInvestmentScreen() {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TopNavigation
-                    title='Edit Investment'
+                    title={t('editInvestment.title')}
                     alignment='center'
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
                 />
                 <Layout style={styles.loadingContainer}>
-                    <Text category='h6'>Investment not found</Text>
+                    <Text category='h6'>{t('editInvestment.investmentNotFound')}</Text>
                 </Layout>
             </SafeAreaView>
         );
@@ -401,15 +405,15 @@ export default function EditInvestmentScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
             <TopNavigation
-                title='Edit Investment'
+                title={t('editInvestment.title')}
                 alignment='center'
                 accessoryLeft={renderBackAction}
                 accessoryRight={() => (
                     <TouchableOpacity onPress={handleSubmit} style={styles.saveButton} disabled={isSubmitting}>
                         {isSubmitting ? (
-                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>Saving...</Text>
+                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>{t('editInvestment.saving')}</Text>
                         ) : (
-                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>Save</Text>
+                            <Text style={[styles.saveButtonText, { color: colors.primary }]}>{t('editInvestment.save')}</Text>
                         )}
                     </TouchableOpacity>
                 )}
@@ -420,13 +424,13 @@ export default function EditInvestmentScreen() {
                 <ThemedView style={[styles.contentContainer, { backgroundColor: colors.background }]}>
                     {/* Basic Information */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Basic Information</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('editInvestment.basicInformation')}</Text>
 
                         <Select
-                            label='Portfolio *'
+                            label={t('editInvestment.portfolioRequired')}
                             selectedIndex={selectedPortfolioIndex}
                             onSelect={(index) => setSelectedPortfolioIndex(index as IndexPath)}
-                            value={selectedPortfolio?.data?.name || 'Select Portfolio'}
+                            value={selectedPortfolio?.data?.name || t('editInvestment.selectPortfolio')}
                             style={[styles.input, errors.portfolio && styles.inputError]}
                         >
                             {portfolios.map((portfolio, index) => (
@@ -436,8 +440,8 @@ export default function EditInvestmentScreen() {
                         {errors.portfolio && <Text style={styles.errorText}>{errors.portfolio}</Text>}
 
                         <Input
-                            label='Investment Name *'
-                            placeholder='e.g., Apple Inc.'
+                            label={t('editInvestment.investmentNameRequired')}
+                            placeholder="e.g., Apple Inc."
                             value={formData.name}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                             style={[styles.input, errors.name && styles.inputError]}
@@ -446,31 +450,31 @@ export default function EditInvestmentScreen() {
                         {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
                         <Input
-                            label='ISIN (Optional)'
-                            placeholder='e.g., IT9282990139'
+                            label={t('editInvestment.isinOptional')}
+                            placeholder="e.g., IT9282990139"
                             value={formData.isin}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text.toUpperCase() }))}
                             style={styles.input}
                         />
 
                         <Input
-                            label='Exchange Market (Optional)'
-                            placeholder='e.g., MX'
+                            label={t('editInvestment.exchangeMarketOptional')}
+                            placeholder="e.g., MX"
                             value={formData.exchange_market}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text.toUpperCase() }))}
                             style={styles.input}
                         />
 
                         <Input
-                            label='Symbol (Optional)'
-                            placeholder='e.g., AAPL'
+                            label={t('editInvestment.symbolOptional')}
+                            placeholder="e.g., AAPL"
                             value={formData.symbol}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
                             style={styles.input}
                         />
 
                         <Select
-                            label='Investment Type *'
+                            label={t('editInvestment.investmentTypeRequired')}
                             selectedIndex={selectedTypeIndex}
                             onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
                             value={selectedType?.name}
@@ -482,7 +486,7 @@ export default function EditInvestmentScreen() {
                         </Select>
 
                         <Select
-                            label='Currency'
+                            label={t('editInvestment.currency')}
                             selectedIndex={selectedCurrencyIndex}
                             onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
                             value={selectedCurrency}
@@ -496,11 +500,11 @@ export default function EditInvestmentScreen() {
 
                     {/* Investment Details */}
                     <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Details</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('editInvestment.investmentDetails')}</Text>
 
                         <Input
-                            label='Quantity *'
-                            placeholder='Number of shares/units'
+                            label={t('editInvestment.quantityRequired')}
+                            placeholder={t('editInvestment.quantityDescription')}
                             value={formData.quantity}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, quantity: text }))}
                             keyboardType='numeric'
@@ -510,7 +514,7 @@ export default function EditInvestmentScreen() {
                         {errors.quantity && <Text style={styles.errorText}>{errors.quantity}</Text>}
 
                         <Input
-                            label='Purchase Price per Unit *'
+                            label={t('editInvestment.purchasePriceRequired')}
                             placeholder='0.00'
                             value={formData.purchase_price}
                             onChangeText={(text) => {
@@ -526,8 +530,8 @@ export default function EditInvestmentScreen() {
                         {errors.purchase_price && <Text style={styles.errorText}>{errors.purchase_price}</Text>}
 
                         <Input
-                            label='Current Price per Unit (Optional)'
-                            placeholder='Leave empty to use purchase price'
+                            label={t('editInvestment.currentPriceOptional')}
+                            placeholder={t('editInvestment.currentPriceDescription')}
                             value={formData.current_price}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, current_price: text }))}
                             keyboardType='numeric'
@@ -536,13 +540,13 @@ export default function EditInvestmentScreen() {
                         />
                         {errors.current_price && <Text style={styles.errorText}>{errors.current_price}</Text>}
                         <Text style={[styles.premiumNote, { color: colors.icon }]}>
-                            Coming soon premium feature: In the future, current prices will be updated automatically
+                            {t('editInvestment.automaticPriceUpdates')}
                         </Text>
 
                         {selectedType.id === 'bond' && (
                             <>
                                 <Input
-                                    label='Interest Rate (% per year)'
+                                    label={t('editInvestment.interestRate')}
                                     placeholder='e.g., 3.5'
                                     value={formData.interest_rate}
                                     onChangeText={(text) => setFormData(prev => ({ ...prev, interest_rate: text }))}
@@ -553,7 +557,7 @@ export default function EditInvestmentScreen() {
                                 {errors.interest_rate && <Text style={styles.errorText}>{errors.interest_rate}</Text>}
                                 
                                 <Datepicker
-                                    label='Maturity Date'
+                                    label={t('editInvestment.maturityDate')}
                                     date={formData.maturity_date}
                                     onSelect={(date) => setFormData(prev => ({ ...prev, maturity_date: date }))}
                                     style={[styles.input, errors.maturity_date && styles.inputError]}
@@ -566,15 +570,15 @@ export default function EditInvestmentScreen() {
                         )}
 
                         <Datepicker
-                            label='Purchase Date *'
+                            label={t('editInvestment.purchaseDateRequired')}
                             date={formData.purchase_date}
                             onSelect={(date) => setFormData(prev => ({ ...prev, purchase_date: date }))}
                             style={styles.input}
                         />
 
                         <Input
-                            label='Notes (Optional)'
-                            placeholder='Any additional notes...'
+                            label={t('editInvestment.notesOptional')}
+                            placeholder={t('editInvestment.notesPlaceholder')}
                             value={formData.notes}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
                             multiline={true}
@@ -586,10 +590,10 @@ export default function EditInvestmentScreen() {
                     {/* Summary Card */}
                     {formData.quantity && formData.purchase_price && (
                         <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Summary</Text>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('editInvestment.investmentSummary')}</Text>
                             <View style={styles.summaryRow}>
                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                    Total Investment:
+                                    {t('editInvestment.totalInvestment')}
                                 </Text>
                                 <Text style={[styles.summaryValue, { color: colors.text }]}>
                                     {formatCurrency(Number(formData.quantity) * Number(formData.purchase_price))}
@@ -601,7 +605,7 @@ export default function EditInvestmentScreen() {
                                         <>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    Market Value:
+                                                    {t('editInvestment.marketValue')}
                                                 </Text>
                                                 <Text style={[styles.summaryValue, { color: colors.text }]}>
                                                     {formatCurrency(Number(formData.quantity) * Number(formData.current_price))}
@@ -609,7 +613,7 @@ export default function EditInvestmentScreen() {
                                             </View>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    Interest Earned:
+                                                    {t('editInvestment.interestEarned')}
                                                 </Text>
                                                 <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
                                                     {formatCurrency(calculateBondInterestReturn())}
@@ -617,7 +621,7 @@ export default function EditInvestmentScreen() {
                                             </View>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    Total Current Value:
+                                                    {t('editInvestment.totalCurrentValue')}
                                                 </Text>
                                                 <Text style={[styles.summaryValue, { color: colors.text }]}>
                                                     {formatCurrency(calculateCurrentValue())}
@@ -625,7 +629,7 @@ export default function EditInvestmentScreen() {
                                             </View>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    Total Gain/Loss:
+                                                    {t('editInvestment.totalGainLoss')}
                                                 </Text>
                                                 <Text style={[
                                                     styles.summaryValue,
@@ -638,13 +642,13 @@ export default function EditInvestmentScreen() {
                                             {getDaysToMaturity() !== null && (
                                                 <View style={styles.summaryRow}>
                                                     <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                        Days to Maturity:
+                                                        {t('editInvestment.daysToMaturity')}
                                                     </Text>
                                                     <Text style={[
                                                         styles.summaryValue, 
                                                         { color: getBondStatus() === 'matured' ? '#FF9800' : colors.text }
                                                     ]}>
-                                                        {getBondStatus() === 'matured' ? 'Matured' : `${getDaysToMaturity()} days`}
+                                                        {getBondStatus() === 'matured' ? t('editInvestment.matured') : `${getDaysToMaturity()} days`}
                                                     </Text>
                                                 </View>
                                             )}
@@ -653,7 +657,7 @@ export default function EditInvestmentScreen() {
                                         <>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    Current Value:
+                                                    {t('editInvestment.currentValue')}
                                                 </Text>
                                                 <Text style={[styles.summaryValue, { color: colors.text }]}>
                                                     {formatCurrency(calculateCurrentValue())}
@@ -661,7 +665,7 @@ export default function EditInvestmentScreen() {
                                             </View>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    Gain/Loss:
+                                                    {t('editInvestment.gainLoss')}
                                                 </Text>
                                                 <Text style={[
                                                     styles.summaryValue,
@@ -687,7 +691,7 @@ export default function EditInvestmentScreen() {
                             onPress={handleDelete}
                             disabled={isDeleting}
                         >
-                            {isDeleting ? 'Deleting...' : 'Delete Investment'}
+                            {isDeleting ? t('editInvestment.deleting') : t('editInvestment.deleteInvestment')}
                         </Button>
                     </View>
 

@@ -37,23 +37,26 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const loadSavedLanguage = async () => {
-    try {
-      const savedLanguage = await AsyncStorage.getItem(STORAGE_KEY);
-      if (savedLanguage) {
-        setCurrentLanguage(savedLanguage);
-        i18n.locale = savedLanguage;
-      } else {
-        // If no saved language, detect system language
-        const systemLanguage = getSystemLanguage();
-        setCurrentLanguage(systemLanguage);
-        i18n.locale = systemLanguage;
-      }
-    } catch (error) {
-      console.error('Error loading saved language:', error);
-      // Fallback to English
-      setCurrentLanguage('en');
-      i18n.locale = 'en';
-    }
+    i18n.locale = 'en';
+    setCurrentLanguage('en');
+    return;
+    // try {
+    //   const savedLanguage = await AsyncStorage.getItem(STORAGE_KEY);
+    //   if (savedLanguage) {
+    //     setCurrentLanguage(savedLanguage);
+    //     i18n.locale = savedLanguage;
+    //   } else {
+    //     // If no saved language, detect system language
+    //     const systemLanguage = getSystemLanguage();
+    //     setCurrentLanguage(systemLanguage);
+    //     i18n.locale = systemLanguage;
+    //   }
+    // } catch (error) {
+    //   console.error('Error loading saved language:', error);
+    //   // Fallback to English
+    //   setCurrentLanguage('en');
+    //   i18n.locale = 'en';
+    // }
   };
 
   const changeLanguage = async (language: string) => {

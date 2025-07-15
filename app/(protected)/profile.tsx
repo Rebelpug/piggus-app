@@ -274,12 +274,13 @@ export default function ProfileScreen() {
                     <TouchableOpacity
                         style={styles.preferenceRow}
                         onPress={() => setLanguageModalVisible(true)}
+                        disabled={true}
                     >
                         <View style={styles.infoLabel}>
                             <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
                                 <Ionicons name="language-outline" size={20} color={colors.accent} />
                             </View>
-                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.language')}</Text>
+                            <Text style={[styles.labelText, { color: colors.text }]}>{t('profile.language')} (Coming soon)</Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>

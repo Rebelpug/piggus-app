@@ -20,11 +20,13 @@ import {ExpenseGroupData, CURRENCIES} from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '@/context/ProfileContext';
 import { ThemedView } from '@/components/ThemedView';
+import { useLocalization } from '@/context/LocalizationContext';
 
 export default function CreateGroupScreen() {
     const router = useRouter();
     const { userProfile } = useProfile();
     const { createExpensesGroup } = useExpense();
+    const { t } = useLocalization();
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -45,7 +47,7 @@ export default function CreateGroupScreen() {
 
     const validateForm = (): boolean => {
         if (!name.trim()) {
-            Alert.alert('Validation Error', 'Please enter a group name');
+            Alert.alert(t('createGroup.validationError'), t('createGroup.groupNameRequired'));
             return false;
         }
         return true;
@@ -57,7 +59,7 @@ export default function CreateGroupScreen() {
         setLoading(true);
         try {
             if (!selectedCurrencyIndex) {
-                Alert.alert('Error', 'Please wait for the currency to load');
+                Alert.alert(t('createGroup.error'), t('createGroup.waitForCurrency'));
                 return;
             }
 
@@ -74,7 +76,7 @@ export default function CreateGroupScreen() {
             router.back();
         } catch (error) {
             console.error('Error creating group:', error);
-            Alert.alert('Error', 'Failed to create group. Please try again.');
+            Alert.alert(t('createGroup.error'), t('createGroup.createGroupFailed'));
         } finally {
             setLoading(false);
         }
@@ -90,44 +92,44 @@ export default function CreateGroupScreen() {
         <ThemedView style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <TopNavigation
-                    title='Create Group'
+                    title={t('createGroup.title')}
                     alignment='center'
                     accessoryLeft={renderBackAction}
                 />
 
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 <Card style={styles.card}>
-                    <Text category='h6' style={styles.sectionTitle}>Group Details</Text>
+                    <Text category='h6' style={styles.sectionTitle}>{t('createGroup.groupDetails')}</Text>
 
                     <Input
                         style={styles.input}
-                        label='Group Name'
-                        placeholder='Enter group name'
+                        label={t('createGroup.groupName')}
+                        placeholder={t('createGroup.enterGroupName')}
                         value={name}
                         onChangeText={setName}
                         status={name.trim() ? 'basic' : 'danger'}
-                        caption='Required field'
+                        caption={t('createGroup.requiredField')}
                     />
 
                     <Input
                         style={styles.input}
-                        label='Description (Optional)'
-                        placeholder='Enter group description'
+                        label={t('createGroup.description')}
+                        placeholder={t('createGroup.enterGroupDescription')}
                         value={description}
                         onChangeText={setDescription}
                         multiline
                         textStyle={{ minHeight: 64 }}
-                        caption='Describe the purpose of this group'
+                        caption={t('createGroup.describePurpose')}
                     />
 
                     <Select
                         style={styles.input}
-                        label='Default Currency'
-                        placeholder='Select currency'
-                        value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : 'Loading...'}
+                        label={t('createGroup.defaultCurrency')}
+                        placeholder={t('createGroup.selectCurrency')}
+                        value={selectedCurrencyIndex ? CURRENCIES[selectedCurrencyIndex.row]?.label : t('createGroup.loading')}
                         selectedIndex={selectedCurrencyIndex}
                         onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
-                        caption='This will be the default currency for expenses in this group'
+                        caption={t('createGroup.currencyDescription')}
                     >
                         {CURRENCIES.map((currency) => (
                             <SelectItem key={currency.value} title={currency.label} />
@@ -136,14 +138,14 @@ export default function CreateGroupScreen() {
                 </Card>
 
                 <Card style={styles.card}>
-                    <Text category='h6' style={styles.sectionTitle}>Group Features</Text>
+                    <Text category='h6' style={styles.sectionTitle}>{t('createGroup.groupFeatures')}</Text>
 
                     <Layout style={styles.featureItem}>
                         <Ionicons name="people-outline" size={20} color="#8F9BB3" style={styles.featureIcon} />
                         <Layout style={styles.featureText}>
-                            <Text category='s1'>Shared Expenses</Text>
+                            <Text category='s1'>{t('createGroup.sharedExpenses')}</Text>
                             <Text category='c1' appearance='hint'>
-                                Track and split expenses with group members
+                                {t('createGroup.sharedExpensesDescription')}
                             </Text>
                         </Layout>
                     </Layout>
@@ -151,9 +153,9 @@ export default function CreateGroupScreen() {
                     <Layout style={styles.featureItem}>
                         <Ionicons name="shield-checkmark-outline" size={20} color="#8F9BB3" style={styles.featureIcon} />
                         <Layout style={styles.featureText}>
-                            <Text category='s1'>End-to-End Encryption</Text>
+                            <Text category='s1'>{t('createGroup.endToEndEncryption')}</Text>
                             <Text category='c1' appearance='hint'>
-                                All data is encrypted and secure
+                                {t('createGroup.encryptionDescription')}
                             </Text>
                         </Layout>
                     </Layout>
@@ -161,9 +163,9 @@ export default function CreateGroupScreen() {
                     <Layout style={styles.featureItem}>
                         <Ionicons name="stats-chart-outline" size={20} color="#8F9BB3" style={styles.featureIcon} />
                         <Layout style={styles.featureText}>
-                            <Text category='s1'>Expense Analytics</Text>
+                            <Text category='s1'>{t('createGroup.expenseAnalytics')}</Text>
                             <Text category='c1' appearance='hint'>
-                                View spending patterns and summaries
+                                {t('createGroup.analyticsDescription')}
                             </Text>
                         </Layout>
                     </Layout>
@@ -171,9 +173,9 @@ export default function CreateGroupScreen() {
                     <Layout style={styles.featureItem}>
                         <Ionicons name="card-outline" size={20} color="#8F9BB3" style={styles.featureIcon} />
                         <Layout style={styles.featureText}>
-                            <Text category='s1'>Multi-Currency Support</Text>
+                            <Text category='s1'>{t('createGroup.multiCurrencySupport')}</Text>
                             <Text category='c1' appearance='hint'>
-                                Default currency with option to change per expense
+                                {t('createGroup.multiCurrencyDescription')}
                             </Text>
                         </Layout>
                     </Layout>
@@ -186,7 +188,7 @@ export default function CreateGroupScreen() {
                     disabled={loading}
                     accessoryLeft={loading ? () => <Spinner size='small' status='control' /> : undefined}
                 >
-                    {loading ? 'Creating Group...' : 'Create Group'}
+                    {loading ? t('createGroup.creatingGroup') : t('createGroup.createGroup')}
                 </Button>
                 </ScrollView>
             </SafeAreaView>

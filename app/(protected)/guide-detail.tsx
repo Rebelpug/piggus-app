@@ -6,6 +6,7 @@ import { TopNavigation, TopNavigationAction, Text } from '@ui-kitten/components'
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { useLocalization } from '@/context/LocalizationContext';
 
 export default function GuideDetailScreen() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function GuideDetailScreen() {
   
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { t } = useLocalization();
 
   const renderBackAction = () => (
     <TopNavigationAction
@@ -87,7 +89,7 @@ export default function GuideDetailScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation
-        title={title || 'Guide'}
+        title={title || t('guideDetail.title')}
         alignment='center'
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
