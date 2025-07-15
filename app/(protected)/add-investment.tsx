@@ -36,6 +36,8 @@ const investmentTypes = [
 
 const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY'];
 
+
+
 export default function AddInvestmentScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
@@ -607,6 +609,8 @@ export default function AddInvestmentScreen() {
                             label={t('addInvestment.purchaseDate')}
                             date={formData.purchase_date}
                             onSelect={(date) => setFormData(prev => ({ ...prev, purchase_date: date }))}
+                            min={new Date(2000, 0, 1)} // or whatever lower bound you want
+                            max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
                         />
 
                         <Input
