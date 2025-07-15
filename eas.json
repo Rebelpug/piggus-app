@@ -15,7 +15,11 @@
       }
     },
     "preview": {
-      "distribution": "internal",
+      "developmentClient": false,
+      "autoIncrement": true,
+      "ios": {
+        "simulator": true
+      },
       "env": {
         "SENTRY_AUTH_TOKEN": "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG": "rebelpug",
