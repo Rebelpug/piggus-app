@@ -6,11 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useInvestment } from '@/context/InvestmentContext';
-import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useLocalization } from '@/context/LocalizationContext';
 import { Colors } from '@/constants/Colors';
 import Svg, { Path, Circle, Polyline, Line, Text as SvgText } from 'react-native-svg';
+import { useProfile } from "@/context/ProfileContext";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 const { width } = Dimensions.get('window');
 
@@ -222,6 +223,7 @@ export default function InvestmentStatisticsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme || 'light'];
+  const { userProfile } = useProfile();
   const { t } = useLocalization();
   const { portfolioId } = useLocalSearchParams<{ portfolioId?: string }>();
   const { portfolios } = useInvestment();
@@ -352,17 +354,6 @@ export default function InvestmentStatisticsScreen() {
     return data;
   }, [investmentStats]);
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-      }).format(amount);
-    } catch {
-      return `${amount.toFixed(2)}`;
-    }
-  };
-
   const getProgressWidth = (amount: number, maxAmount: number) => {
     if (maxAmount === 0) return 0;
     return Math.min((amount / maxAmount) * 100, 100);
@@ -402,14 +393,14 @@ export default function InvestmentStatisticsScreen() {
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                {formatCurrency(investmentStats.totalValue)}
+                {formatCurrency(investmentStats.totalValue, userProfile?.profile.defaultCurrency)}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.currentValue')}</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss)}
+                {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss, userProfile?.profile.defaultCurrency)}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.totalReturn')}</Text>
             </View>
@@ -469,7 +460,7 @@ export default function InvestmentStatisticsScreen() {
           <View style={[styles.projectionCard, { backgroundColor: colors.card }]}>
             <View style={styles.projectionHeader}>
               <Text style={[styles.projectionValue, { color: colors.primary }]}>
-                {formatCurrency(investmentStats.projectedValue10Years)}
+                {formatCurrency(investmentStats.projectedValue10Years, userProfile?.profile.defaultCurrency)}
               </Text>
               <Text style={[styles.projectionLabel, { color: colors.icon }]}>
                 {t('investmentStatistics.projectedValueTenYears')}
@@ -487,7 +478,7 @@ export default function InvestmentStatisticsScreen() {
                 <View style={styles.projectionStats}>
                   <View style={styles.projectionStatItem}>
                     <Text style={[styles.projectionStatValue, { color: colors.success }]}>
-                      {formatCurrency(projectionLineData[0]?.value || 0)}
+                      {formatCurrency(projectionLineData[0]?.value || 0, userProfile?.profile.defaultCurrency)}
                     </Text>
                     <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
                       {t('investmentStatistics.currentValue')}
@@ -495,7 +486,7 @@ export default function InvestmentStatisticsScreen() {
                   </View>
                   <View style={styles.projectionStatItem}>
                     <Text style={[styles.projectionStatValue, { color: colors.primary }]}>
-                      {formatCurrency(projectionLineData[projectionLineData.length - 1]?.value || 0)}
+                      {formatCurrency(projectionLineData[projectionLineData.length - 1]?.value || 0, userProfile?.profile.defaultCurrency)}
                     </Text>
                     <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
                       {t('investmentStatistics.projectedTenYears')}
@@ -503,7 +494,7 @@ export default function InvestmentStatisticsScreen() {
                   </View>
                   <View style={styles.projectionStatItem}>
                     <Text style={[styles.projectionStatValue, { color: colors.warning }]}>
-                      {formatCurrency((projectionLineData[projectionLineData.length - 1]?.value || 0) - (projectionLineData[0]?.value || 0))}
+                      {formatCurrency((projectionLineData[projectionLineData.length - 1]?.value || 0) - (projectionLineData[0]?.value || 0), userProfile?.profile.defaultCurrency)}
                     </Text>
                     <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
                       {t('investmentStatistics.potentialGains')}
@@ -538,7 +529,7 @@ export default function InvestmentStatisticsScreen() {
                     </View>
                     <View style={styles.typeAmounts}>
                       <Text style={[styles.typeAmount, { color: colors.text }]}>
-                        {formatCurrency(data.value)}
+                        {formatCurrency(data.value, userProfile?.profile.defaultCurrency)}
                       </Text>
                       <Text style={[styles.typePercentage, { color: colors.icon }]}>
                         {percentage.toFixed(1)}%
@@ -559,7 +550,7 @@ export default function InvestmentStatisticsScreen() {
                       />
                     </View>
                     <Text style={[styles.typeCount, { color: colors.icon }]}>
-                      {data.count} {t('investmentStatistics.investmentsCount')} • {data.gainLoss >= 0 ? '+' : ''}{formatCurrency(data.gainLoss)}
+                      {data.count} {t('investmentStatistics.investmentsCount')} • {data.gainLoss >= 0 ? '+' : ''}{formatCurrency(data.gainLoss, userProfile?.profile.defaultCurrency)}
                     </Text>
                   </View>
                 </View>
