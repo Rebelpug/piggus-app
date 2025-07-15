@@ -293,13 +293,14 @@ export default function AddInvestmentScreen() {
         const initialValue = quantity * purchasePrice;
         const currentMarketValue = quantity * currentPrice;
 
-        // For bonds, the gain/loss should include both market value change AND interest earned
+        // For bonds and interest-bearing accounts, calculate based on the time period to maturity/sell
         if (selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') {
             const interestReturn = calculateBondInterestReturn();
             const totalCurrentValue = currentMarketValue + interestReturn;
             return totalCurrentValue - initialValue;
         }
 
+        // For other investments, gain/loss is simply market value change from purchase to current
         return currentMarketValue - initialValue;
     };
 
@@ -318,28 +319,27 @@ export default function AddInvestmentScreen() {
         const interestRate = Number(formData.interest_rate) || 0;
 
         if (quantity === 0 || purchasePrice === 0 || interestRate === 0) {
-            console.log('One of the values is 0, returning 0');
             return 0;
         }
 
         const initialValue = quantity * purchasePrice;
 
         // Calculate time periods
-        const currentDate = new Date();
         const purchaseDate = formData.purchase_date;
         const maturityDate = formData.maturity_date;
 
-        // Determine the end date for interest calculation (current date or maturity date, whichever is earlier)
-        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+        // For bonds with maturity date, use that as the end date for calculation
+        // For accounts without maturity, use current date
+        const endDate = (selectedType.id === 'bond' && maturityDate) ? maturityDate : new Date();
 
-        // Calculate days since purchase until end date
-        const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-        const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
+        // Calculate days from purchase to end date
+        const daysBetween = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+        const yearsBetween = Math.max(0, daysBetween / 365.25);
 
-        // For demonstration purposes, if purchase date is today, use 1 year as example
-        const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
+        // For demonstration purposes, if dates are the same, use 1 year as example
+        const yearsForCalculation = yearsBetween === 0 ? 1 : yearsBetween;
 
-        // Calculate annual interest return
+        // Calculate annual interest return based on the time period
         return initialValue * (interestRate / 100) * yearsForCalculation;
     };
 
