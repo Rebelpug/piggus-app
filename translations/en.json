@@ -344,6 +344,7 @@
     "currency": "Currency",
     "selectCurrency": "Select currency",
     "purchasePrice": "Purchase Price per Unit",
+    "purchasePriceNote": "For checking and saving accounts set this to 1",
     "currentPrice": "Current Price per Unit (Optional)",
     "currentPriceDescription": "Leave empty to use purchase price",
     "interestRate": "Interest Rate (% per year)",
@@ -476,6 +477,8 @@
     "mutualFund": "Mutual Fund",
     "realEstate": "Real Estate",
     "commodity": "Commodity",
+    "checkingAccount": "Checking Account",
+    "savingsAccount": "Savings Account",
     "other": "Other"
   },
   "investmentStatistics": {

@@ -23,6 +23,7 @@ import {ThemedView} from '@/components/ThemedView';
 import {useLocalization} from '@/context/LocalizationContext';
 
 // Investment types with localized names
+
 const investmentTypes = [
     { id: 'stock', icon: 'trending-up' },
     { id: 'bond', icon: 'shield-checkmark' },
@@ -31,6 +32,8 @@ const investmentTypes = [
     { id: 'mutualFund', icon: 'pie-chart' },
     { id: 'realEstate', icon: 'home' },
     { id: 'commodity', icon: 'diamond' },
+    {id: 'checkingAccount', icon: 'wallet'},
+    {id: 'savingsAccount', icon: 'cash'},
     { id: 'other', icon: 'ellipsis-horizontal' },
 ];
 
@@ -82,7 +85,7 @@ export default function AddInvestmentScreen() {
         quantity: '',
         purchase_price: '',
         current_price: '',
-        purchase_date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 1 year ago for testing
+        purchase_date: new Date(),
         notes: '',
         interest_rate: '',
         maturity_date: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000), // 5 years from now
@@ -119,7 +122,7 @@ export default function AddInvestmentScreen() {
             newErrors.current_price = t('addInvestment.currentPricePositive');
         }
 
-        if (selectedType.id === 'bond' && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
+        if ((selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
             newErrors.interest_rate = t('addInvestment.interestRatePositive');
         }
 
@@ -291,7 +294,7 @@ export default function AddInvestmentScreen() {
         const currentMarketValue = quantity * currentPrice;
 
         // For bonds, the gain/loss should include both market value change AND interest earned
-        if (selectedType.id === 'bond') {
+        if (selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') {
             const interestReturn = calculateBondInterestReturn();
             const totalCurrentValue = currentMarketValue + interestReturn;
             return totalCurrentValue - initialValue;
@@ -301,8 +304,7 @@ export default function AddInvestmentScreen() {
     };
 
     const calculateBondInterestReturn = () => {
-        if (selectedType?.id !== 'bond') {
-            console.log('Not a bond, returning 0');
+        if (selectedType?.id !== 'bond' && selectedType?.id !== 'checkingAccount' && selectedType?.id !== 'savingsAccount') {
             return 0;
         }
 
@@ -565,6 +567,9 @@ export default function AddInvestmentScreen() {
                             keyboardType='decimal-pad'
                             status={formData.purchase_price.trim() && !isNaN(Number(formData.purchase_price)) && Number(formData.purchase_price) > 0 ? 'basic' : 'danger'}
                         />
+                        <Text style={[styles.premiumNote, { color: colors.icon }]}>
+                            {t('addInvestment.purchasePriceNote')}
+                        </Text>
 
                         <Input
                             style={styles.input}
@@ -578,7 +583,7 @@ export default function AddInvestmentScreen() {
                             {t('addInvestment.automaticPriceUpdates')}
                         </Text>
 
-                        {selectedType.id === 'bond' && (
+                        {(selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && (
                             <>
                                 <Input
                                     style={styles.input}
@@ -637,86 +642,83 @@ export default function AddInvestmentScreen() {
                                     {formatCurrency(Number(formData.quantity) * Number(formData.purchase_price))}
                                 </Text>
                             </View>
+                            <>
+                                {(selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && formData.interest_rate ? (
+                                    <>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                {t('addInvestment.marketValue')}
+                                            </Text>
+                                            <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                                {formatCurrency(Number(formData.quantity) * Number(formData.current_price))}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                {t('addInvestment.interestEarned')}
+                                            </Text>
+                                            <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+                                                {formatCurrency(calculateBondInterestReturn())}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                {t('addInvestment.totalCurrentValue')}
+                                            </Text>
+                                            <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                                {formatCurrency(calculateCurrentValue())}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                {t('addInvestment.totalGainLoss')}
+                                            </Text>
+                                            <Text style={[
+                                                styles.summaryValue,
+                                                { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
+                                            ]}>
+                                                {formatCurrency(calculateGainLoss())}
+                                            </Text>
+                                        </View>
 
-                            {formData.current_price && (
-                                <>
-                                    {selectedType.id === 'bond' && formData.interest_rate ? (
-                                        <>
+                                        {getDaysToMaturity() !== null && (
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('addInvestment.marketValue')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                    {formatCurrency(Number(formData.quantity) * Number(formData.current_price))}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('addInvestment.interestEarned')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
-                                                    {formatCurrency(calculateBondInterestReturn())}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('addInvestment.totalCurrentValue')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                    {formatCurrency(calculateCurrentValue())}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('addInvestment.totalGainLoss')}
+                                                    {t('addInvestment.daysToMaturity')}
                                                 </Text>
                                                 <Text style={[
                                                     styles.summaryValue,
-                                                    { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
+                                                    { color: getBondStatus() === 'matured' ? '#FF9800' : colors.text }
                                                 ]}>
-                                                    {formatCurrency(calculateGainLoss())}
+                                                    {getBondStatus() === 'matured' ? t('addInvestment.matured') : `${getDaysToMaturity()} ${t('addInvestment.days')}`}
                                                 </Text>
                                             </View>
-
-                                            {getDaysToMaturity() !== null && (
-                                                <View style={styles.summaryRow}>
-                                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                        {t('addInvestment.daysToMaturity')}
-                                                    </Text>
-                                                    <Text style={[
-                                                        styles.summaryValue,
-                                                        { color: getBondStatus() === 'matured' ? '#FF9800' : colors.text }
-                                                    ]}>
-                                                        {getBondStatus() === 'matured' ? t('addInvestment.matured') : `${getDaysToMaturity()} ${t('addInvestment.days')}`}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('addInvestment.currentValue')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                    {formatCurrency(calculateCurrentValue())}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('addInvestment.gainLoss')}
-                                                </Text>
-                                                <Text style={[
-                                                    styles.summaryValue,
-                                                    { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
-                                                ]}>
-                                                    {formatCurrency(calculateGainLoss())}
-                                                </Text>
-                                            </View>
-                                        </>
-                                    )}
-                                </>
-                            )}
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                {t('addInvestment.currentValue')}
+                                            </Text>
+                                            <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                                {formatCurrency(calculateCurrentValue())}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                                {t('addInvestment.gainLoss')}
+                                            </Text>
+                                            <Text style={[
+                                                styles.summaryValue,
+                                                { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
+                                            ]}>
+                                                {formatCurrency(calculateGainLoss())}
+                                            </Text>
+                                        </View>
+                                    </>
+                                )}
+                            </>
                         </View>
                     )}
 
