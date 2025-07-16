@@ -26,6 +26,8 @@ const getInvestmentTypes = (t: (key: string) => string) => [
     { id: 'mutual_fund', name: t('investmentTypes.mutualFund'), icon: 'pie-chart' },
     { id: 'real_estate', name: t('investmentTypes.realEstate'), icon: 'home' },
     { id: 'commodity', name: t('investmentTypes.commodity'), icon: 'diamond' },
+    { id: 'checkingAccount', name: t('investmentTypes.checkingAccount'), icon: 'card' },
+    { id: 'savingsAccount', name: t('investmentTypes.savingsAccount'), icon: 'wallet' },
     { id: 'other', name: t('investmentTypes.other'), icon: 'ellipsis-horizontal' },
 ];
 
@@ -132,6 +134,8 @@ export default function InvestmentDetailScreen() {
             mutual_fund: '#673AB7',
             real_estate: '#795548',
             commodity: '#FF5722',
+            checkingAccount: '#607D8B',
+            savingsAccount: '#4CAF50',
             other: '#607D8B',
         };
         return colors[type] || colors.other;
@@ -167,9 +171,10 @@ export default function InvestmentDetailScreen() {
         );
     }
 
-    // Bond-specific calculations
+    // Interest calculations for bonds and accounts
     const calculateBondInterestReturn = () => {
-        if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
+        const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
+        if (!supportsInterest || !investment.data.interest_rate) return 0;
         
         const quantity = investment.data.quantity || 0;
         const purchasePrice = investment.data.purchase_price || 0;
@@ -235,10 +240,11 @@ export default function InvestmentDetailScreen() {
         return daysToMaturity;
     };
 
+    const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
     const isBond = investment.data.type === 'bond';
     const interestEarned = calculateBondInterestReturn();
     const marketValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
-    const currentValue = isBond ? marketValue + interestEarned : marketValue;
+    const currentValue = supportsInterest ? marketValue + interestEarned : marketValue;
     const totalInvestment = investment.data.quantity * investment.data.purchase_price;
     const gainLoss = currentValue - totalInvestment;
     const gainLossPercentage = totalInvestment > 0 ? ((gainLoss / totalInvestment) * 100) : 0;
@@ -314,7 +320,7 @@ export default function InvestmentDetailScreen() {
                             </Text>
                         </View>
                         
-                        {isBond && interestEarned > 0 && (
+                        {supportsInterest && interestEarned > 0 && (
                             <>
                                 <View style={styles.detailRow}>
                                     <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.marketValue')}</Text>
@@ -337,7 +343,7 @@ export default function InvestmentDetailScreen() {
                             </>
                         )}
                         
-                        {!isBond && (
+                        {!supportsInterest && (
                             <View style={styles.detailRow}>
                                 <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currentValue')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>
@@ -394,7 +400,7 @@ export default function InvestmentDetailScreen() {
                             </View>
                         )}
                         
-                        {isBond && investment.data.interest_rate && (
+                        {supportsInterest && investment.data.interest_rate && (
                             <View style={styles.detailRow}>
                                 <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.interestRate')}</Text>
                                 <Text style={[styles.detailValue, { color: colors.text }]}>

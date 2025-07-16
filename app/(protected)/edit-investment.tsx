@@ -32,6 +32,8 @@ const getInvestmentTypes = (t: (key: string) => string) => [
     { id: 'mutual_fund', name: t('investmentTypes.mutualFund'), icon: 'pie-chart' },
     { id: 'real_estate', name: t('investmentTypes.realEstate'), icon: 'home' },
     { id: 'commodity', name: t('investmentTypes.commodity'), icon: 'diamond' },
+    { id: 'checkingAccount', name: t('investmentTypes.checkingAccount'), icon: 'card' },
+    { id: 'savingsAccount', name: t('investmentTypes.savingsAccount'), icon: 'wallet' },
     { id: 'other', name: t('investmentTypes.other'), icon: 'ellipsis-horizontal' },
 ];
 
@@ -47,6 +49,16 @@ export default function EditInvestmentScreen() {
     const { t } = useLocalization();
     
     const investmentTypes = getInvestmentTypes(t);
+
+    // Helper function to check if investment type supports interest rates
+    const supportsInterestRate = (typeId: string) => {
+        return ['bond', 'checkingAccount', 'savingsAccount'].includes(typeId);
+    };
+
+    // Helper function to check if investment type supports maturity date (only bonds)
+    const supportsMaturityDate = (typeId: string) => {
+        return typeId === 'bond';
+    };
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -155,11 +167,11 @@ export default function EditInvestmentScreen() {
             newErrors.current_price = t('editInvestment.currentPricePositive');
         }
 
-        if (selectedType.id === 'bond' && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
+        if (supportsInterestRate(selectedType.id) && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
             newErrors.interest_rate = t('editInvestment.interestRatePositive');
         }
 
-        if (selectedType.id === 'bond' && formData.maturity_date && formData.maturity_date <= formData.purchase_date) {
+        if (supportsMaturityDate(selectedType.id) && formData.maturity_date && formData.maturity_date <= formData.purchase_date) {
             newErrors.maturity_date = t('editInvestment.maturityDateAfterPurchase');
         }
 
@@ -192,8 +204,8 @@ export default function EditInvestmentScreen() {
                 currency: selectedCurrency,
                 last_updated: new Date().toISOString(),
                 notes: formData.notes.trim() || null,
-                interest_rate: selectedType.id === 'bond' && formData.interest_rate ? Number(formData.interest_rate) : null,
-                maturity_date: selectedType.id === 'bond' && formData.maturity_date ? formData.maturity_date.toISOString() : null,
+                interest_rate: supportsInterestRate(selectedType.id) && formData.interest_rate ? Number(formData.interest_rate) : null,
+                maturity_date: supportsMaturityDate(selectedType.id) && formData.maturity_date ? formData.maturity_date.toISOString() : null,
             };
 
             const originalPortfolioId = params.portfolioId as string;
@@ -280,8 +292,8 @@ export default function EditInvestmentScreen() {
         const currentPrice = Number(formData.current_price) || Number(formData.purchase_price) || 0;
         const marketValue = quantity * currentPrice;
         
-        // For bonds, add accrued interest to the current value
-        if (selectedType.id === 'bond') {
+        // For interest-bearing accounts, add accrued interest to the current value
+        if (supportsInterestRate(selectedType.id)) {
             const interestReturn = calculateBondInterestReturn();
             return marketValue + interestReturn;
         }
@@ -296,8 +308,8 @@ export default function EditInvestmentScreen() {
         const initialValue = quantity * purchasePrice;
         const currentMarketValue = quantity * currentPrice;
         
-        // For bonds, the gain/loss should include both market value change AND interest earned
-        if (selectedType.id === 'bond') {
+        // For interest-bearing accounts, the gain/loss should include both market value change AND interest earned
+        if (supportsInterestRate(selectedType.id)) {
             const interestReturn = calculateBondInterestReturn();
             const totalCurrentValue = currentMarketValue + interestReturn;
             return totalCurrentValue - initialValue;
@@ -307,14 +319,14 @@ export default function EditInvestmentScreen() {
     };
 
     const calculateBondInterestReturn = () => {
-        console.log('=== calculateBondInterestReturn DEBUG ===');
+        console.log('=== calculateInterestReturn DEBUG ===');
         console.log('selectedType:', selectedType);
         console.log('selectedType.id:', selectedType?.id);
         console.log('formData.interest_rate:', formData.interest_rate);
         console.log('formData:', formData);
         
-        if (selectedType?.id !== 'bond') {
-            console.log('Not a bond, returning 0');
+        if (!supportsInterestRate(selectedType?.id)) {
+            console.log('Type does not support interest rates, returning 0');
             return 0;
         }
         
@@ -369,7 +381,7 @@ export default function EditInvestmentScreen() {
     };
 
     const getBondStatus = () => {
-        if (selectedType.id !== 'bond' || !formData.maturity_date) return 'active';
+        if (!supportsMaturityDate(selectedType.id) || !formData.maturity_date) return 'active';
         
         const currentDate = new Date();
         const maturityDate = formData.maturity_date;
@@ -382,7 +394,7 @@ export default function EditInvestmentScreen() {
     };
 
     const getDaysToMaturity = () => {
-        if (selectedType.id !== 'bond' || !formData.maturity_date) return null;
+        if (!supportsMaturityDate(selectedType.id) || !formData.maturity_date) return null;
         
         const currentDate = new Date();
         const maturityDate = formData.maturity_date;
@@ -560,7 +572,7 @@ export default function EditInvestmentScreen() {
                             {t('editInvestment.automaticPriceUpdates')}
                         </Text>
 
-                        {selectedType.id === 'bond' && (
+                        {supportsInterestRate(selectedType.id) && (
                             <>
                                 <Input
                                     label={t('editInvestment.interestRate')}
@@ -573,16 +585,20 @@ export default function EditInvestmentScreen() {
                                 />
                                 {errors.interest_rate && <Text style={styles.errorText}>{errors.interest_rate}</Text>}
                                 
-                                <Datepicker
-                                    label={t('editInvestment.maturityDate')}
-                                    date={formData.maturity_date}
-                                    onSelect={(date) => setFormData(prev => ({ ...prev, maturity_date: date }))}
-                                    style={[styles.input, errors.maturity_date && styles.inputError]}
-                                    status={errors.maturity_date ? 'danger' : 'basic'}
-                                    min={new Date(formData.purchase_date.getTime() + 24 * 60 * 60 * 1000)}
-                                    max={new Date(2050, 11, 31)}
-                                />
-                                {errors.maturity_date && <Text style={styles.errorText}>{errors.maturity_date}</Text>}
+                                {supportsMaturityDate(selectedType.id) && (
+                                    <>
+                                        <Datepicker
+                                            label={t('editInvestment.maturityDate')}
+                                            date={formData.maturity_date}
+                                            onSelect={(date) => setFormData(prev => ({ ...prev, maturity_date: date }))}
+                                            style={[styles.input, errors.maturity_date && styles.inputError]}
+                                            status={errors.maturity_date ? 'danger' : 'basic'}
+                                            min={new Date(formData.purchase_date.getTime() + 24 * 60 * 60 * 1000)}
+                                            max={new Date(2050, 11, 31)}
+                                        />
+                                        {errors.maturity_date && <Text style={styles.errorText}>{errors.maturity_date}</Text>}
+                                    </>
+                                )}
                             </>
                         )}
 
@@ -618,7 +634,7 @@ export default function EditInvestmentScreen() {
                             </View>
                             {formData.current_price && (
                                 <>
-                                    {selectedType.id === 'bond' && formData.interest_rate ? (
+                                    {supportsInterestRate(selectedType.id) && formData.interest_rate ? (
                                         <>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
@@ -630,7 +646,7 @@ export default function EditInvestmentScreen() {
                                             </View>
                                             <View style={styles.summaryRow}>
                                                 <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('editInvestment.interestEarned')}
+                                                    {selectedType.id === 'bond' ? t('editInvestment.interestEarned') : t('editInvestment.interestEarned')}
                                                 </Text>
                                                 <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
                                                     {formatCurrency(calculateBondInterestReturn())}

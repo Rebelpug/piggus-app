@@ -230,8 +230,44 @@ const investmentTypes = [
   { id: 'mutual_fund', name: 'Mutual Fund', icon: '🏦' },
   { id: 'real_estate', name: 'Real Estate', icon: '🏠' },
   { id: 'commodity', name: 'Commodity', icon: '🥇' },
+  { id: 'checkingAccount', name: 'Checking Account', icon: '💳' },
+  { id: 'savingsAccount', name: 'Savings Account', icon: '💰' },
   { id: 'other', name: 'Other', icon: '📦' },
 ];
+
+// Helper function to calculate interest for bonds and accounts
+const calculateInterestReturn = (investment: any) => {
+  const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
+  if (!supportsInterest || !investment.data.interest_rate) return 0;
+
+  const quantity = investment.data.quantity || 0;
+  const purchasePrice = investment.data.purchase_price || 0;
+  const interestRate = investment.data.interest_rate || 0;
+
+  if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
+
+  const initialValue = quantity * purchasePrice;
+
+  // Calculate time periods
+  const currentDate = new Date();
+  const purchaseDate = new Date(investment.data.purchase_date);
+  const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
+
+  // Determine the end date for interest calculation
+  const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+
+  // Calculate days since purchase until end date
+  const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+  const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
+
+  // For demonstration purposes, if purchase date is today, use 1 year as example
+  const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
+
+  // Calculate annual interest return
+  const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
+
+  return annualInterestReturn;
+};
 
 export default function InvestmentStatisticsScreen() {
   const router = useRouter();
@@ -296,7 +332,9 @@ export default function InvestmentStatisticsScreen() {
     }
 
     const totalValue = investments.reduce((sum, inv) => {
-      const currentValue = inv.data.quantity * (inv.data.current_price || inv.data.purchase_price);
+      const marketValue = inv.data.quantity * (inv.data.current_price || inv.data.purchase_price);
+      const interestEarned = calculateInterestReturn(inv);
+      const currentValue = marketValue + interestEarned;
       return sum + currentValue;
     }, 0);
 
@@ -310,7 +348,9 @@ export default function InvestmentStatisticsScreen() {
     // Type breakdown
     const typeBreakdown = investments.reduce((acc, inv) => {
       const type = inv.data.type || 'other';
-      const currentValue = inv.data.quantity * (inv.data.current_price || inv.data.purchase_price);
+      const marketValue = inv.data.quantity * (inv.data.current_price || inv.data.purchase_price);
+      const interestEarned = calculateInterestReturn(inv);
+      const currentValue = marketValue + interestEarned;
       const invested = inv.data.quantity * inv.data.purchase_price;
       const gainLoss = currentValue - invested;
 
