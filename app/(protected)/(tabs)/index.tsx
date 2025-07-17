@@ -30,33 +30,33 @@ export default function HomeScreen() {
     // Helper function to calculate bond interest
     const calculateBondInterest = (investment: any) => {
         if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
-        
+
         const quantity = investment.data.quantity || 0;
         const purchasePrice = investment.data.purchase_price || 0;
         const interestRate = investment.data.interest_rate || 0;
-        
+
         if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-        
+
         const initialValue = quantity * purchasePrice;
-        
+
         // Calculate time periods
         const currentDate = new Date();
         const purchaseDate = new Date(investment.data.purchase_date);
         const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
-        
+
         // Determine the end date for interest calculation
         const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-        
+
         // Calculate days since purchase until end date
         const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
         const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-        
+
         // For demonstration purposes, if purchase date is today, use 1 year as example
         const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-        
+
         // Calculate annual interest return
         const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
-        
+
         return annualInterestReturn;
     };
 
@@ -135,33 +135,33 @@ export default function HomeScreen() {
     // Helper function to calculate bond interest from a specific date
     const calculateBondInterestFromDate = (investment: any, fromDate: Date) => {
         if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
-        
+
         const quantity = investment.data.quantity || 0;
         const purchasePrice = investment.data.purchase_price || 0;
         const interestRate = investment.data.interest_rate || 0;
-        
+
         if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-        
+
         const initialValue = quantity * purchasePrice;
         const currentDate = new Date();
         const purchaseDate = new Date(investment.data.purchase_date);
         const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
-        
+
         // Use the later of purchase date or from date as start
         const startDate = purchaseDate > fromDate ? purchaseDate : fromDate;
-        
+
         // Determine the end date for interest calculation
         const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-        
+
         if (startDate >= endDate) return 0;
-        
+
         // Calculate days from start date until end date
         const daysSinceStart = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
         const yearsSinceStart = Math.max(0, daysSinceStart / 365.25);
-        
+
         // Calculate interest return from start date
         const interestReturn = initialValue * (interestRate / 100) * yearsSinceStart;
-        
+
         return interestReturn;
     };
 
@@ -239,102 +239,102 @@ export default function HomeScreen() {
                 <BudgetCard />
 
                 {/* Investment Portfolio Returns Card */}
-                <View style={[styles.portfolioCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <View style={styles.portfolioHeader}>
-                        <Text style={[styles.portfolioTitle, { color: colors.text }]}>{t('home.investmentPortfolio')}</Text>
-                        <TouchableOpacity onPress={() => router.push('/(protected)/(tabs)/investments')}>
-                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-                        </TouchableOpacity>
-                    </View>
+                {/*<View style={[styles.portfolioCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>*/}
+                {/*    <View style={styles.portfolioHeader}>*/}
+                {/*        <Text style={[styles.portfolioTitle, { color: colors.text }]}>{t('home.investmentPortfolio')}</Text>*/}
+                {/*        <TouchableOpacity onPress={() => router.push('/(protected)/(tabs)/investments')}>*/}
+                {/*            <Ionicons name="chevron-forward" size={20} color={colors.icon} />*/}
+                {/*        </TouchableOpacity>*/}
+                {/*    </View>*/}
 
-                    {portfolioReturns.hasInvestments ? (
-                        <View>
-                            {/* Current Value */}
-                            <View style={styles.portfolioMainValue}>
-                                <Text style={[styles.portfolioValueAmount, { color: colors.text }]}>
-                                    {formatCurrency(portfolioReturns.currentValue)}
-                                </Text>
-                                <Text style={[styles.portfolioValueLabel, { color: colors.icon }]}>
-                                    {t('home.currentPortfolioValue')}
-                                </Text>
-                            </View>
+                {/*    {portfolioReturns.hasInvestments ? (*/}
+                {/*        <View>*/}
+                {/*            /!* Current Value *!/*/}
+                {/*            <View style={styles.portfolioMainValue}>*/}
+                {/*                <Text style={[styles.portfolioValueAmount, { color: colors.text }]}>*/}
+                {/*                    {formatCurrency(portfolioReturns.currentValue)}*/}
+                {/*                </Text>*/}
+                {/*                <Text style={[styles.portfolioValueLabel, { color: colors.icon }]}>*/}
+                {/*                    {t('home.currentPortfolioValue')}*/}
+                {/*                </Text>*/}
+                {/*            </View>*/}
 
-                            {/* Returns Summary */}
-                            <View style={styles.portfolioReturnsContainer}>
-                                {/* Total Returns */}
-                                <View style={styles.portfolioReturn}>
-                                    <View style={styles.portfolioReturnRow}>
-                                        <Text style={[styles.portfolioReturnAmount, {
-                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error
-                                        }]}>
-                                            {portfolioReturns.totalReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.totalReturn)}
-                                        </Text>
-                                        <Text style={[styles.portfolioReturnPercentage, {
-                                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error
-                                        }]}>
-                                            {portfolioReturns.totalReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.totalReturnPercentage.toFixed(2)}%
-                                        </Text>
-                                    </View>
-                                    <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>
-                                        {t('home.totalReturn')}
-                                    </Text>
-                                </View>
+                {/*            /!* Returns Summary *!/*/}
+                {/*            <View style={styles.portfolioReturnsContainer}>*/}
+                {/*                /!* Total Returns *!/*/}
+                {/*                <View style={styles.portfolioReturn}>*/}
+                {/*                    <View style={styles.portfolioReturnRow}>*/}
+                {/*                        <Text style={[styles.portfolioReturnAmount, {*/}
+                {/*                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error*/}
+                {/*                        }]}>*/}
+                {/*                            {portfolioReturns.totalReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.totalReturn)}*/}
+                {/*                        </Text>*/}
+                {/*                        <Text style={[styles.portfolioReturnPercentage, {*/}
+                {/*                            color: portfolioReturns.totalReturn >= 0 ? colors.success : colors.error*/}
+                {/*                        }]}>*/}
+                {/*                            {portfolioReturns.totalReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.totalReturnPercentage.toFixed(2)}%*/}
+                {/*                        </Text>*/}
+                {/*                    </View>*/}
+                {/*                    <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>*/}
+                {/*                        {t('home.totalReturn')}*/}
+                {/*                    </Text>*/}
+                {/*                </View>*/}
 
-                                {/* Year to Date Returns */}
-                                <View style={styles.portfolioReturn}>
-                                    <View style={styles.portfolioReturnRow}>
-                                        <Text style={[styles.portfolioReturnAmount, {
-                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error
-                                        }]}>
-                                            {portfolioReturns.yearReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.yearReturn)}
-                                        </Text>
-                                        <Text style={[styles.portfolioReturnPercentage, {
-                                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error
-                                        }]}>
-                                            {portfolioReturns.yearReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.yearReturnPercentage.toFixed(2)}%
-                                        </Text>
-                                    </View>
-                                    <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>
-                                        {t('home.thisYear')}
-                                    </Text>
-                                </View>
-                            </View>
+                {/*                /!* Year to Date Returns *!/*/}
+                {/*                <View style={styles.portfolioReturn}>*/}
+                {/*                    <View style={styles.portfolioReturnRow}>*/}
+                {/*                        <Text style={[styles.portfolioReturnAmount, {*/}
+                {/*                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error*/}
+                {/*                        }]}>*/}
+                {/*                            {portfolioReturns.yearReturn >= 0 ? '+' : ''}{formatCurrency(portfolioReturns.yearReturn)}*/}
+                {/*                        </Text>*/}
+                {/*                        <Text style={[styles.portfolioReturnPercentage, {*/}
+                {/*                            color: portfolioReturns.yearReturn >= 0 ? colors.success : colors.error*/}
+                {/*                        }]}>*/}
+                {/*                            {portfolioReturns.yearReturnPercentage >= 0 ? '+' : ''}{portfolioReturns.yearReturnPercentage.toFixed(2)}%*/}
+                {/*                        </Text>*/}
+                {/*                    </View>*/}
+                {/*                    <Text style={[styles.portfolioReturnLabel, { color: colors.icon }]}>*/}
+                {/*                        {t('home.thisYear')}*/}
+                {/*                    </Text>*/}
+                {/*                </View>*/}
+                {/*            </View>*/}
 
-                            {!portfolioReturns.hasCurrentPrices && (
-                                <Text style={[styles.portfolioDisclaimer, { color: colors.icon }]}>
-                                    {t('home.someInvestmentsLackPrices')}
-                                </Text>
-                            )}
-                            
-                            {/* See more stats button */}
-                            <TouchableOpacity
-                                style={[styles.statsButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                onPress={() => router.push('/(protected)/investment-statistics')}
-                            >
-                                <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />
-                                <Text style={[styles.statsButtonText, { color: colors.primary }]}>{t('home.seeMoreStats')}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.noPortfolioContainer}>
-                            <View style={[styles.noPortfolioIcon, { backgroundColor: colors.primary + '20' }]}>
-                                <Ionicons name="trending-up-outline" size={32} color={colors.primary} />
-                            </View>
-                            <Text style={[styles.noPortfolioText, { color: colors.text }]}>
-                                {t('home.startInvesting')}
-                            </Text>
-                            <Text style={[styles.noPortfolioSubtext, { color: colors.icon }]}>
-                                {t('home.addFirstInvestment')}
-                            </Text>
-                            <TouchableOpacity
-                                style={[styles.createPortfolioButton, { backgroundColor: colors.primary }]}
-                                onPress={() => router.push('/(protected)/add-investment')}
-                            >
-                                <Text style={styles.createPortfolioButtonText}>{t('home.createInvestment')}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </View>
+                {/*            {!portfolioReturns.hasCurrentPrices && (*/}
+                {/*                <Text style={[styles.portfolioDisclaimer, { color: colors.icon }]}>*/}
+                {/*                    {t('home.someInvestmentsLackPrices')}*/}
+                {/*                </Text>*/}
+                {/*            )}*/}
+                {/*            */}
+                {/*            /!* See more stats button *!/*/}
+                {/*            <TouchableOpacity*/}
+                {/*                style={[styles.statsButton, { backgroundColor: colors.background, borderColor: colors.border }]}*/}
+                {/*                onPress={() => router.push('/(protected)/investment-statistics')}*/}
+                {/*            >*/}
+                {/*                <Ionicons name="stats-chart-outline" size={16} color={colors.primary} />*/}
+                {/*                <Text style={[styles.statsButtonText, { color: colors.primary }]}>{t('home.seeMoreStats')}</Text>*/}
+                {/*            </TouchableOpacity>*/}
+                {/*        </View>*/}
+                {/*    ) : (*/}
+                {/*        <View style={styles.noPortfolioContainer}>*/}
+                {/*            <View style={[styles.noPortfolioIcon, { backgroundColor: colors.primary + '20' }]}>*/}
+                {/*                <Ionicons name="trending-up-outline" size={32} color={colors.primary} />*/}
+                {/*            </View>*/}
+                {/*            <Text style={[styles.noPortfolioText, { color: colors.text }]}>*/}
+                {/*                {t('home.startInvesting')}*/}
+                {/*            </Text>*/}
+                {/*            <Text style={[styles.noPortfolioSubtext, { color: colors.icon }]}>*/}
+                {/*                {t('home.addFirstInvestment')}*/}
+                {/*            </Text>*/}
+                {/*            <TouchableOpacity*/}
+                {/*                style={[styles.createPortfolioButton, { backgroundColor: colors.primary }]}*/}
+                {/*                onPress={() => router.push('/(protected)/add-investment')}*/}
+                {/*            >*/}
+                {/*                <Text style={styles.createPortfolioButtonText}>{t('home.createInvestment')}</Text>*/}
+                {/*            </TouchableOpacity>*/}
+                {/*        </View>*/}
+                {/*    )}*/}
+                {/*</View>*/}
 
                 {/* Guides Call-to-Action Card */}
                 <View style={[styles.guidesCtaCard, { backgroundColor: colors.card, shadowColor: colors.text }]}>

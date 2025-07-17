@@ -190,3 +190,21 @@ export const apiUpdateProfile = async (
     };
   }
 };
+
+export const apiDeleteProfile = async (
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await piggusApi.deleteProfile();
+
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error('Failed to delete profile:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete profile',
+    };
+  }
+};
+

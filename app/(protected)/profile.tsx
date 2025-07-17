@@ -21,6 +21,7 @@ import { Colors } from '@/constants/Colors';
 import { CURRENCIES } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
+import { apiDeleteProfile } from "@/services/profileService";
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -73,6 +74,32 @@ export default function ProfileScreen() {
                             router.replace('/login');
                         } catch (error) {
                             Alert.alert(t('alerts.error'), t('alerts.signOutError'));
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleDeleteAccount = async () => {
+        Alert.alert(
+            'Delete Account',
+            'Are you sure you want to delete your account? This action cannot be undone.',
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            await apiDeleteProfile();
+                            router.replace('/login');
+                            await signOut();
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to delete account');
                         } finally {
                             setLoading(false);
                         }
@@ -398,6 +425,21 @@ export default function ProfileScreen() {
                             <Text style={[styles.labelText, { color: colors.text }]}>Feedback</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, {backgroundColor: colors.border}]}/>
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={handleDeleteAccount}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, {backgroundColor: colors.error + '20'}]}>
+                                <Ionicons name="trash-outline" size={20} color={colors.error}/>
+                            </View>
+                            <Text style={[styles.labelText, {color: colors.error}]}>Delete Account</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.error}/>
                     </TouchableOpacity>
                 </View>
 

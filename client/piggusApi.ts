@@ -121,6 +121,7 @@ export interface PiggusApi {
     getProfile: () => Promise<Profile>;
     createProfile: (data: { username: string; encryptionPublicKey: string; encryptedProfile: any }) => Promise<Profile>;
     updateProfile: (data: { encryptedProfile: any }) => Promise<Profile>;
+    deleteProfile: () => Promise<{ success: boolean }>;
     searchProfiles: (query: string, limit?: number) => Promise<{ id: string; username: string; encryption_public_key: string }[]>;
 
     // Recurring Expense Methods
@@ -310,6 +311,12 @@ export const piggusApi: PiggusApi = {
     searchProfiles: async (query: string, limit: number = 10) => {
         const httpClient = getHttpClient();
         const response = await httpClient.get(`${BASE_URL}/api/v1/profile/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+        return response.data;
+    },
+
+    deleteProfile: async () => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.delete(`${BASE_URL}/api/v1/profile`);
         return response.data;
     },
 
