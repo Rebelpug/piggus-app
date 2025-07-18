@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.1](https://github.com/Rebelpug/piggus-app/compare/v1.1.0...v1.1.1) (2025-07-18)
+
+
+### Bug Fixes
+
+* Signup and signin error not showing correctly ([1fe77ae](https://github.com/Rebelpug/piggus-app/commit/1fe77ae60ae20b1a5c45d81ab1283756f67fcef5))
+
 ## [1.1.0](https://github.com/Rebelpug/piggus-app/compare/v1.0.0...v1.1.0) (2025-07-18)
 
 
