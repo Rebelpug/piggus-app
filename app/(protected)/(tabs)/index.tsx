@@ -60,6 +60,33 @@ export default function HomeScreen() {
         return annualInterestReturn;
     };
 
+    // Helper function to calculate bond interest from a specific date
+    const calculateBondInterestFromDate = (investment: any, fromDate: Date) => {
+        if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
+
+        const quantity = investment.data.quantity || 0;
+        const purchasePrice = investment.data.purchase_price || 0;
+        const interestRate = investment.data.interest_rate || 0;
+
+        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
+
+        const currentDate = new Date();
+        const initialValue = purchasePrice * quantity;
+        const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
+
+        // Determine the end date for interest calculation
+        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
+
+        // Calculate days since fromDate until end date
+        const daysSinceFromDate = Math.floor((endDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+        const yearsSinceFromDate = Math.max(0, daysSinceFromDate / 365.25);
+
+        // Calculate annual interest return from the specified date
+        const annualInterestReturn = initialValue * (interestRate / 100) * yearsSinceFromDate;
+
+        return annualInterestReturn;
+    };
+
     // Calculate investment portfolio returns
     const portfolioReturns = useMemo(() => {
         const now = new Date();
@@ -131,39 +158,6 @@ export default function HomeScreen() {
             hasCurrentPrices
         };
     }, [portfolios]);
-
-    // Helper function to calculate bond interest from a specific date
-    const calculateBondInterestFromDate = (investment: any, fromDate: Date) => {
-        if (investment.data.type !== 'bond' || !investment.data.interest_rate) return 0;
-
-        const quantity = investment.data.quantity || 0;
-        const purchasePrice = investment.data.purchase_price || 0;
-        const interestRate = investment.data.interest_rate || 0;
-
-        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-
-        const initialValue = quantity * purchasePrice;
-        const currentDate = new Date();
-        const purchaseDate = new Date(investment.data.purchase_date);
-        const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
-
-        // Use the later of purchase date or from date as start
-        const startDate = purchaseDate > fromDate ? purchaseDate : fromDate;
-
-        // Determine the end date for interest calculation
-        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-
-        if (startDate >= endDate) return 0;
-
-        // Calculate days from start date until end date
-        const daysSinceStart = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        const yearsSinceStart = Math.max(0, daysSinceStart / 365.25);
-
-        // Calculate interest return from start date
-        const interestReturn = initialValue * (interestRate / 100) * yearsSinceStart;
-
-        return interestReturn;
-    };
 
     const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
 
