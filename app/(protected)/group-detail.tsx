@@ -494,14 +494,14 @@ export default function GroupDetailScreen() {
                                 status='danger'
                                 onPress={() => handleInvitation(false)}
                             >
-                                {t('groupDetail.accept')}
+                                {t('groupDetail.decline')}
                             </Button>
                             <Button
                                 style={styles.actionButton}
                                 status='success'
                                 onPress={() => handleInvitation(true)}
                             >
-                                {t('groupDetail.decline')}
+                                {t('groupDetail.accept')}
                             </Button>
                         </Layout>
                     </Card>
