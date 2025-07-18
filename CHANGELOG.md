@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.3](https://github.com/Rebelpug/piggus-app/compare/v1.1.2...v1.1.3) (2025-07-18)
+
+
+### Bug Fixes
+
+* Fixed inverted label for accepting groups ([ab6c6b6](https://github.com/Rebelpug/piggus-app/commit/ab6c6b62c6be39c721b7b50ebf3af213a148c822))
+
 ### [1.1.2](https://github.com/Rebelpug/piggus-app/compare/v1.1.1...v1.1.2) (2025-07-18)
 
 
