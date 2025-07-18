@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +35,8 @@ const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
     const { signIn, user, encryptionInitialized, needsPasswordPrompt, isAuthenticated } = useAuth();
     const router = useRouter();
+    const { from } = useLocalSearchParams<{ from?: string }>();
+    const [showRegistrationMessage, setShowRegistrationMessage] = useState(from === 'registration');
 
     // Redirect to main app when user becomes fully authenticated
     useEffect(() => {
@@ -80,6 +82,8 @@ const LoginScreen = () => {
                 errorMessage = t('auth.networkError');
             } else if (error?.message?.includes('encryption')) {
                 errorMessage = t('auth.encryptionError');
+            } else if (error?.message?.includes('Email not confirmed')) {
+                errorMessage = t('auth.emailNotConfirmed');
             }
 
             Alert.alert(t('auth.signInError'), errorMessage);
@@ -124,6 +128,29 @@ const LoginScreen = () => {
                         <Text style={[styles.title, { color: colors.text }]}>{t('auth.welcomeBack')}</Text>
                         <Text style={[styles.subtitle, { color: colors.icon }]}>{t('auth.signInToAccount')}</Text>
                     </View>
+
+                    {/* Registration Success Message */}
+                    {showRegistrationMessage && (
+                        <View style={[styles.successMessage, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
+                            <View style={styles.successMessageContent}>
+                                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                                <View style={styles.successMessageText}>
+                                    <Text style={[styles.successMessageTitle, { color: colors.success }]}>
+                                        {t('auth.registrationSuccessful')}
+                                    </Text>
+                                    <Text style={[styles.successMessageSubtitle, { color: colors.text }]}>
+                                        {t('auth.checkEmailConfirm')}
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setShowRegistrationMessage(false)}
+                                style={styles.successMessageClose}
+                            >
+                                <Ionicons name="close" size={18} color={colors.success} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {/* Form */}
                     <View style={styles.form}>
@@ -343,6 +370,37 @@ const styles = StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.8)',
         fontSize: 12,
         marginTop: 4,
+    },
+    successMessage: {
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 16,
+        marginBottom: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    successMessageContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    successMessageText: {
+        marginLeft: 12,
+        flex: 1,
+    },
+    successMessageTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    successMessageSubtitle: {
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    successMessageClose: {
+        padding: 4,
+        marginLeft: 12,
     },
 });
 

@@ -440,12 +440,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         password,
       });
 
-      console.log('Supabase auth response:', {
-        hasError: !!error,
-        hasUser: !!data?.user,
-        errorMessage: error?.message
-      });
-
       if (error) {
         console.error('Supabase auth error:', error);
         throw error;
@@ -529,11 +523,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       signupPassword.current = password;
       setEncryptionInitialized(true);
       setNeedsPasswordPrompt(false);
-
-      // If the user is already authenticated (auto-confirm), set the user
-      if (data.user && data.session) {
-        setUser(data.user);
-      }
     } catch (error) {
       console.error('Sign up error:', error);
       setIsGeneratingKeys(false);
@@ -573,11 +562,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       );
     }
 
-    // If user is not logged in, render the children (sign-in/sign-up pages)
-    if (!user) {
-      return children;
-    }
-    // All checks passed, render the children
     return children;
   };
 

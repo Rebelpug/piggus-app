@@ -94,6 +94,7 @@
     "tooManyAttempts": "Too many login attempts. Please wait a moment and try again.",
     "networkError": "Network error. Please check your connection and try again.",
     "encryptionError": "Authentication succeeded but failed to initialize encryption. Please try again.",
+    "emailNotConfirmed": "Email not confirmed. Please confirm it.",
     "signInError": "Sign In Error",
     "welcomeBack": "Welcome Back",
     "signInToAccount": "Sign in to your account",

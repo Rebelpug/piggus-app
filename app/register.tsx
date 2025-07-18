@@ -70,11 +70,7 @@ const RegisterScreen = () => {
 
         try {
             await signUp(email, password);
-            Alert.alert(
-                t('auth.registrationSuccessful'),
-                t('auth.checkEmailConfirm'),
-                [{ text: t('common.ok'), onPress: () => router.push('/login') }]
-            );
+            router.push('/login?from=registration');
         } catch (error: any) {
             const errorMessage = error?.message || t('auth.registrationFailed');
             Alert.alert(t('auth.registrationError'), errorMessage);
