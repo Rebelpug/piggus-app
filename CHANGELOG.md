@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.2](https://github.com/Rebelpug/piggus-app/compare/v1.1.1...v1.1.2) (2025-07-18)
+
+
+### Bug Fixes
+
+* App crash when adding bond ([5ac53d1](https://github.com/Rebelpug/piggus-app/commit/5ac53d10cbd07d96c91d38e0b9318a82bf11676f))
+
 ### [1.1.1](https://github.com/Rebelpug/piggus-app/compare/v1.1.0...v1.1.1) (2025-07-18)
 
 
