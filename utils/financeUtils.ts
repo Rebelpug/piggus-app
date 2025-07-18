@@ -1,4 +1,4 @@
-import { InvestmentWithDecryptedData } from '@/types/investment';
+import {InvestmentWithDecryptedData} from '@/types/investment';
 
 export interface InvestmentStats {
   totalValue: number;
@@ -9,6 +9,7 @@ export interface InvestmentStats {
   dividendsInterestEarnedPercentage: number;
   estimatedYearlyGainLoss: number;
   estimatedYearlyGainLossPercentage: number;
+  projectedValue10Years: number;
   investmentCount: number;
   averageValue: number;
   typeBreakdown: { [key: string]: { value: number; count: number; gainLoss: number } };
@@ -36,8 +37,7 @@ export const calculateDividendsInterestEarned = (investment: InvestmentWithDecry
 
   // For bonds and accounts with interest rates
   if (['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type)) {
-    const interestRateStr = investment.data.interest_rate;
-    const interestRate = interestRateStr && interestRateStr !== "" ? parseFloat(interestRateStr) : 0;
+    const interestRate = investment.data.interest_rate || 0;
 
     if (interestRate > 0) {
       const initialValue = quantity * purchasePrice;
@@ -82,8 +82,7 @@ export const calculateEstimatedYearlyGainLoss = (investment: InvestmentWithDecry
   const yearsSincePurchase = Math.max(1, (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)); // Minimum 0.1 years
 
   // Get interest rate for bonds and accounts
-  const interestRateStr = investment.data.interest_rate;
-  const interestRate = (interestRateStr && interestRateStr !== "") ? parseFloat(interestRateStr) : 0;
+  const interestRate = investment.data.interest_rate || 0;
 
   // Calculate: ((current value - invested value) / number of years + interest rate * invested value) / invested value
   const capitalGainPerYear = (currentValue - investedValue) / yearsSincePurchase;
@@ -124,16 +123,12 @@ export const calculateExpectedYearlyYield = (investment: InvestmentWithDecrypted
 
   // For bonds, use stated interest rate
   if (type === 'bond') {
-    const interestRateStr = investment.data.interest_rate;
-    const interestRate = interestRateStr && interestRateStr !== "" ? parseFloat(interestRateStr) : 0;
-    return interestRate;
+    return investment.data.interest_rate || 0;
   }
 
   // For savings/checking accounts, use interest rate
   if (['checkingAccount', 'savingsAccount'].includes(type)) {
-    const interestRateStr = investment.data.interest_rate;
-    const interestRate = interestRateStr && interestRateStr !== "" ? parseFloat(interestRateStr) : 0;
-    return interestRate;
+    return investment.data.interest_rate || 0;
   }
 
   // For stocks and ETFs, use dividend yield if available, otherwise use historical performance
@@ -219,8 +214,7 @@ export const calculateIndividualROI = (investment: InvestmentWithDecryptedData):
   // Special handling for bonds
   if (investment.data.type === 'bond') {
     // For zero coupon bonds, calculate yield to maturity if we have maturity date
-    const interestRateStr = investment.data.interest_rate;
-    const interestRate = interestRateStr && interestRateStr !== "" ? parseFloat(interestRateStr) : 0;
+    const interestRate = investment.data.interest_rate || 0;
 
     if (!interestRate && investment.data.maturity_date) {
       const maturityDate = new Date(investment.data.maturity_date);
@@ -243,8 +237,7 @@ export const calculateIndividualROI = (investment: InvestmentWithDecryptedData):
 
   // Special handling for checking/savings accounts
   if (['checkingAccount', 'savingsAccount'].includes(investment.data.type)) {
-    const interestRateStr = investment.data.interest_rate;
-    const interestRate = interestRateStr && interestRateStr !== "" ? parseFloat(interestRateStr) : 0;
+    const interestRate = investment.data.interest_rate || 0;
 
     // If there's a stated interest rate, use it
     if (interestRate) {
@@ -327,8 +320,11 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
       totalInvested: 0,
       totalGainLoss: 0,
       totalGainLossPercentage: 0,
-      expectedYearlyYield: 0,
       dividendsInterestEarned: 0,
+      dividendsInterestEarnedPercentage: 0,
+      estimatedYearlyGainLoss: 0,
+      estimatedYearlyGainLossPercentage: 0,
+      projectedValue10Years: 0,
       investmentCount: 0,
       averageValue: 0,
       typeBreakdown: {},
@@ -343,7 +339,13 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     return sum + (inv.data.quantity * inv.data.purchase_price);
   }, 0);
 
-  const totalGainLoss = totalValue - totalInvested;
+  // Calculate total dividends and interest earned first
+  const totalDividendsInterestEarned = investments.reduce((sum, inv) => {
+    return sum + calculateDividendsInterestEarned(inv);
+  }, 0);
+
+  const baseGainLoss = totalValue - totalInvested;
+  const totalGainLoss = baseGainLoss + totalDividendsInterestEarned;
   const totalGainLossPercentage = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
 
   // Calculate weighted average CAGR
@@ -369,10 +371,8 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     }
   });
 
-  // Calculate total dividends and interest earned
-  const dividendsInterestEarned = investments.reduce((sum, inv) => {
-    return sum + calculateDividendsInterestEarned(inv);
-  }, 0);
+  // Use the already calculated dividends and interest earned
+  const dividendsInterestEarned = totalDividendsInterestEarned;
 
   // Type breakdown
   const typeBreakdown: TypeBreakdown = investments.reduce((acc, inv) => {
@@ -395,21 +395,27 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
   // Calculate dividends/interest earned percentage
   const dividendsInterestEarnedPercentage = totalInvested > 0 ? (dividendsInterestEarned / totalInvested) * 100 : 0;
 
-  // Calculate estimated yearly gain/loss (weighted average)
-  let totalWeightedYearlyGain = 0;
+  // Calculate estimated yearly gain/loss
+  let totalYearlyGain = 0;
+  let totalWeightedYearlyPercentage = 0;
   let totalYearlyWeight = 0;
 
   investments.forEach(inv => {
     const invested = inv.data.quantity * inv.data.purchase_price;
     if (invested > 0) {
       const yearlyGain = calculateEstimatedYearlyGainLoss(inv);
-      totalWeightedYearlyGain += yearlyGain.absolute * invested;
+      totalYearlyGain += yearlyGain.absolute;
+      totalWeightedYearlyPercentage += yearlyGain.percentage * invested;
       totalYearlyWeight += invested;
     }
   });
 
-  const estimatedYearlyGainLoss = totalYearlyWeight > 0 ? totalWeightedYearlyGain / totalYearlyWeight : 0;
-  const estimatedYearlyGainLossPercentage = totalInvested > 0 ? (estimatedYearlyGainLoss / totalInvested) * 100 : 0;
+  const estimatedYearlyGainLoss = totalYearlyGain;
+  const estimatedYearlyGainLossPercentage = totalYearlyWeight > 0 ? totalWeightedYearlyPercentage / totalYearlyWeight : 0;
+
+  // Calculate projected value for 10 years using the estimated yearly gain/loss rate
+  const yearlyGainLossRate = estimatedYearlyGainLossPercentage / 100;
+  const projectedValue10Years = calculateProjectedValueWithComposition(totalValue, yearlyGainLossRate, 10);
 
   return {
     totalValue,
@@ -420,6 +426,7 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     dividendsInterestEarnedPercentage,
     estimatedYearlyGainLoss,
     estimatedYearlyGainLossPercentage,
+    projectedValue10Years,
     investmentCount: investments.length,
     averageValue: investments.length > 0 ? totalValue / investments.length : 0,
     typeBreakdown,
@@ -493,7 +500,7 @@ export const calculateIndividualInvestmentReturns = (investment: InvestmentWithD
   const currentValue = calculateCurrentValue(investment);
   const baseGainLoss = currentValue - totalInvested;
   const dividendsInterestEarned = calculateDividendsInterestEarned(investment);
-  const totalGainLoss = baseGainLoss === 0 ? dividendsInterestEarned : baseGainLoss;
+  const totalGainLoss = baseGainLoss + dividendsInterestEarned;
   const totalGainLossPercentage = (totalGainLoss / totalInvested) * 100;
   const dividendsInterestEarnedPercentage = (dividendsInterestEarned / totalInvested) * 100;
   const estimatedYearlyGain = calculateEstimatedYearlyGainLoss(investment);

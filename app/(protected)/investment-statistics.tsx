@@ -12,7 +12,7 @@ import { Colors } from '@/constants/Colors';
 import Svg, { Path, Circle, Polyline, Line, Text as SvgText } from 'react-native-svg';
 import { useProfile } from "@/context/ProfileContext";
 import { formatCurrency } from "@/utils/currencyUtils";
-import { calculateInvestmentStatistics, calculateCurrentValue, calculateCAGR, calculateExpectedYearlyYield, calculateDividendsInterestEarned, InvestmentStats, generateProjectionData } from "@/utils/financeUtils";
+import { calculateInvestmentStatistics, InvestmentStats, generateProjectionData } from "@/utils/financeUtils";
 
 const { width } = Dimensions.get('window');
 
@@ -315,7 +315,7 @@ export default function InvestmentStatisticsScreen() {
 
     return generateProjectionData(
       investmentStats.totalValue,
-      investmentStats.yearlyROI,
+      investmentStats.estimatedYearlyGainLossPercentage / 100,
       10
     );
   }, [investmentStats]);
@@ -394,15 +394,6 @@ export default function InvestmentStatisticsScreen() {
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.dividendsInterestEarned')}</Text>
             </View>
           </View>
-
-          {investmentStats.dividendsInterestEarned > 0 && (
-            <View style={[styles.statCard, { backgroundColor: colors.card, marginTop: 12 }]}>
-              <Text style={[styles.statValue, { color: colors.success }]}>
-                {formatCurrency(investmentStats.dividendsInterestEarned, userProfile?.profile.defaultCurrency)}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.dividendsInterestEarned')}</Text>
-            </View>
-          )}
         </View>
 
         {/* Investment Types Distribution */}
