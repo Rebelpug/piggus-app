@@ -543,8 +543,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
       await SecureKeyManager.clearAllData();
       setUser(null);
       encryption.resetEncryption();
@@ -552,6 +550,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       signupPassword.current = null;
       setNeedsPasswordPrompt(false);
       resetHttpClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;

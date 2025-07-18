@@ -265,5 +265,28 @@
     "errorLoadingData": "Fout bij het laden van gegevens",
     "expenseGroupsCount": "Uitgavengroepen ({{count}})",
     "portfolioGroups": "Portefeuillegroepen"
+  },
+  "investmentStatistics": {
+    "title": "Investeringsstatistieken",
+    "allPortfolios": "Alle Portefeuilles",
+    "overview": "Overzicht",
+    "currentValue": "Huidige Waarde",
+    "totalReturn": "Totaalrendement",
+    "returnPercentage": "% Rendement",
+    "currentReturn": "Huidig Rendement",
+    "expectedYearlyReturn": "Verwacht Jaarlijks Rendement",
+    "expectedTotalReturn": "Verwacht Totaalrendement",
+    "investments": "Investeringen",
+    "investmentTypes": "Investeringstypes",
+    "tenYearProjection": "10-Jaars Projectie",
+    "projectedValueTenYears": "Geprojecteerde Waarde in 10 Jaar",
+    "projectedTenYears": "Geprojecteerd (10 jaar)",
+    "potentialGains": "Potentiële Winsten",
+    "projectionDisclaimer": "* Gebaseerd op historische prestaties. Prestaties uit het verleden garanderen geen toekomstige resultaten.",
+    "detailedBreakdown": "Gedetailleerde Uitsplitsing",
+    "investmentsCount": "investeringen",
+    "selectPortfolio": "Portefeuille Selecteren",
+    "unnamedPortfolio": "Naamloze Portefeuille",
+    "cancel": "Annuleren"
   }
 }

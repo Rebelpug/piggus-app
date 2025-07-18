@@ -17,6 +17,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useLocalization } from '@/context/LocalizationContext';
+import { calculateCurrentValue, calculateCAGR, calculateExpectedYearlyYield, calculateDividendsInterestEarned, calculateIndividualInvestmentReturns } from '@/utils/financeUtils';
 
 const getInvestmentTypes = (t: (key: string) => string) => [
     { id: 'stock', name: t('investmentTypes.stock'), icon: 'trending-up' },
@@ -175,33 +176,33 @@ export default function InvestmentDetailScreen() {
     const calculateBondInterestReturn = () => {
         const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
         if (!supportsInterest || !investment.data.interest_rate) return 0;
-        
+
         const quantity = investment.data.quantity || 0;
         const purchasePrice = investment.data.purchase_price || 0;
         const interestRate = investment.data.interest_rate || 0;
-        
+
         if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-        
+
         const initialValue = quantity * purchasePrice;
-        
+
         // Calculate time periods
         const currentDate = new Date();
         const purchaseDate = new Date(investment.data.purchase_date);
         const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
-        
+
         // Determine the end date for interest calculation
         const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-        
+
         // Calculate days since purchase until end date
         const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
         const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-        
+
         // For demonstration purposes, if purchase date is today, use 1 year as example
         const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-        
+
         // Calculate annual interest return
         const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
-        
+
         console.log('INVESTMENT DETAIL Bond interest calculation:', {
             investmentType: investment.data.type,
             quantity,
@@ -213,29 +214,29 @@ export default function InvestmentDetailScreen() {
             yearsForCalculation,
             annualInterestReturn
         });
-        
+
         return annualInterestReturn;
     };
 
     const getBondStatus = () => {
         if (investment.data.type !== 'bond' || !investment.data.maturity_date) return 'active';
-        
+
         const currentDate = new Date();
         const maturityDate = new Date(investment.data.maturity_date);
-        
+
         return currentDate >= maturityDate ? 'matured' : 'active';
     };
 
     const getDaysToMaturity = () => {
         if (investment.data.type !== 'bond' || !investment.data.maturity_date) return null;
-        
+
         const currentDate = new Date();
         const maturityDate = new Date(investment.data.maturity_date);
-        
+
         if (currentDate >= maturityDate) {
             return 0;
         }
-        
+
         const daysToMaturity = Math.floor((maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
         return daysToMaturity;
     };
@@ -248,6 +249,9 @@ export default function InvestmentDetailScreen() {
     const totalInvestment = investment.data.quantity * investment.data.purchase_price;
     const gainLoss = currentValue - totalInvestment;
     const gainLossPercentage = totalInvestment > 0 ? ((gainLoss / totalInvestment) * 100) : 0;
+
+    // Calculate new return metrics
+    const returns = calculateIndividualInvestmentReturns(investment);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -287,23 +291,23 @@ export default function InvestmentDetailScreen() {
                             </View>
                             <View style={styles.headerRight}>
                                 <Text style={[styles.amount, { color: colors.text }]}>
-                                    {formatCurrency(currentValue, investment.data.currency)}
+                                    {formatCurrency(returns.totalValue, investment.data.currency)}
                                 </Text>
                                 <Text style={[styles.totalAmount, { color: colors.icon }]}>
                                     {investment.data.quantity} {t('investmentDetail.units')}
                                 </Text>
                                 <View style={[styles.performanceBadge, {
-                                    backgroundColor: gainLoss >= 0 ? '#4CAF50' + '20' : '#F44336' + '20'
+                                    backgroundColor: returns.totalGainLoss >= 0 ? '#4CAF50' + '20' : '#F44336' + '20'
                                 }]}>
                                     <Ionicons
-                                        name={gainLoss >= 0 ? "trending-up" : "trending-down"}
+                                        name={returns.totalGainLoss >= 0 ? "trending-up" : "trending-down"}
                                         size={12}
-                                        color={gainLoss >= 0 ? '#4CAF50' : '#F44336'}
+                                        color={returns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336'}
                                     />
                                     <Text style={[styles.performanceText, {
-                                        color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
+                                        color: returns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336'
                                     }]}>
-                                        {gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%
+                                        {returns.totalGainLoss >= 0 ? '+' : ''}{returns.totalGainLossPercentage.toFixed(2)}%
                                     </Text>
                                 </View>
                             </View>
@@ -319,55 +323,58 @@ export default function InvestmentDetailScreen() {
                                 {formatCurrency(totalInvestment, investment.data.currency)}
                             </Text>
                         </View>
-                        
-                        {supportsInterest && interestEarned > 0 && (
-                            <>
-                                <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.marketValue')}</Text>
-                                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                                        {formatCurrency(marketValue, investment.data.currency)}
-                                    </Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.interestEarned')}</Text>
-                                    <Text style={[styles.detailValue, { color: '#4CAF50' }]}>
-                                        {formatCurrency(interestEarned, investment.data.currency)}
-                                    </Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.totalCurrentValue')}</Text>
-                                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                                        {formatCurrency(currentValue, investment.data.currency)}
-                                    </Text>
-                                </View>
-                            </>
-                        )}
-                        
-                        {!supportsInterest && (
-                            <View style={styles.detailRow}>
-                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currentValue')}</Text>
-                                <Text style={[styles.detailValue, { color: colors.text }]}>
-                                    {formatCurrency(currentValue, investment.data.currency)}
-                                </Text>
-                            </View>
-                        )}
-                        
+
+                        <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currentValue')}</Text>
+                            <Text style={[styles.detailValue, { color: colors.text }]}>
+                                {formatCurrency(returns.totalValue, investment.data.currency)}
+                            </Text>
+                        </View>
+
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.totalGainLoss')}</Text>
                             <Text style={[styles.detailValue, {
-                                color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
+                                color: returns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
-                                {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, investment.data.currency)}
+                                {returns.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(returns.totalGainLoss, investment.data.currency)}
                             </Text>
                         </View>
+
                         <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.percentage')}</Text>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.totalGainLossPercentage')}</Text>
                             <Text style={[styles.detailValue, {
-                                color: gainLoss >= 0 ? '#4CAF50' : '#F44336'
+                                color: returns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
-                                {gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%
+                                {returns.totalGainLoss >= 0 ? '+' : ''}{returns.totalGainLossPercentage.toFixed(2)}%
                             </Text>
                         </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.estimatedYearlyGainLoss')}</Text>
+                            <Text style={[styles.detailValue, {
+                                color: returns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336'
+                            }]}>
+                                {returns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(returns.estimatedYearlyGainLoss, investment.data.currency)}
+                            </Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.estimatedYearlyGainLossPercentage')}</Text>
+                            <Text style={[styles.detailValue, {
+                                color: returns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336'
+                            }]}>
+                                {returns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{returns.estimatedYearlyGainLossPercentage.toFixed(2)}%
+                            </Text>
+                        </View>
+
+                        {returns.dividendsInterestEarned > 0 && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.dividendsInterestEarned')}</Text>
+                                <Text style={[styles.detailValue, { color: '#4CAF50' }]}>
+                                    {formatCurrency(returns.dividendsInterestEarned, investment.data.currency)} ({returns.dividendsInterestEarnedPercentage.toFixed(2)}%)
+                                </Text>
+                            </View>
+                        )}
                     </Card>
 
                     {/* Investment Details */}
@@ -399,7 +406,7 @@ export default function InvestmentDetailScreen() {
                                 </Text>
                             </View>
                         )}
-                        
+
                         {supportsInterest && investment.data.interest_rate && (
                             <View style={styles.detailRow}>
                                 <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.interestRate')}</Text>
@@ -408,14 +415,14 @@ export default function InvestmentDetailScreen() {
                                 </Text>
                             </View>
                         )}
-                        
+
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.purchaseDate')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>
                                 {formatDate(investment.data.purchase_date)}
                             </Text>
                         </View>
-                        
+
                         {isBond && investment.data.maturity_date && (
                             <>
                                 <View style={styles.detailRow}>
@@ -426,7 +433,7 @@ export default function InvestmentDetailScreen() {
                                 </View>
                                 <View style={styles.detailRow}>
                                     <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.status')}</Text>
-                                    <Text style={[styles.detailValue, { 
+                                    <Text style={[styles.detailValue, {
                                         color: getBondStatus() === 'matured' ? '#FF9800' : '#4CAF50'
                                     }]}>
                                         {getBondStatus() === 'matured' ? t('investmentDetail.matured') : t('investmentDetail.active')}
@@ -442,7 +449,7 @@ export default function InvestmentDetailScreen() {
                                 )}
                             </>
                         )}
-                        
+
                         <View style={styles.detailRow}>
                             <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.currency')}</Text>
                             <Text style={[styles.detailValue, { color: colors.text }]}>

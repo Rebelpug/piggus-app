@@ -12,6 +12,7 @@ import { Colors } from '@/constants/Colors';
 import Svg, { Path, Circle, Polyline, Line, Text as SvgText } from 'react-native-svg';
 import { useProfile } from "@/context/ProfileContext";
 import { formatCurrency } from "@/utils/currencyUtils";
+import { calculateInvestmentStatistics, calculateCurrentValue, calculateCAGR, calculateExpectedYearlyYield, calculateDividendsInterestEarned, InvestmentStats, generateProjectionData } from "@/utils/financeUtils";
 
 const { width } = Dimensions.get('window');
 
@@ -210,17 +211,6 @@ interface PieChartData {
   color: string;
 }
 
-interface InvestmentStats {
-  totalValue: number;
-  totalInvested: number;
-  totalGainLoss: number;
-  totalGainLossPercentage: number;
-  investmentCount: number;
-  averageValue: number;
-  typeBreakdown: { [key: string]: { value: number; count: number; gainLoss: number } };
-  projectedValue10Years: number;
-  monthlyGrowthRate: number;
-}
 
 const investmentTypes = [
   { id: 'stock', name: 'Stock', icon: '📈' },
@@ -235,39 +225,6 @@ const investmentTypes = [
   { id: 'other', name: 'Other', icon: '📦' },
 ];
 
-// Helper function to calculate interest for bonds and accounts
-const calculateInterestReturn = (investment: any) => {
-  const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
-  if (!supportsInterest || !investment.data.interest_rate) return 0;
-
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const interestRate = investment.data.interest_rate || 0;
-
-  if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-
-  const initialValue = quantity * purchasePrice;
-
-  // Calculate time periods
-  const currentDate = new Date();
-  const purchaseDate = new Date(investment.data.purchase_date);
-  const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
-
-  // Determine the end date for interest calculation
-  const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-
-  // Calculate days since purchase until end date
-  const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-  const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-
-  // For demonstration purposes, if purchase date is today, use 1 year as example
-  const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-
-  // Calculate annual interest return
-  const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
-
-  return annualInterestReturn;
-};
 
 export default function InvestmentStatisticsScreen() {
   const router = useRouter();
@@ -306,17 +263,7 @@ export default function InvestmentStatisticsScreen() {
     let investments: any[] = [];
 
     if (!portfolios?.length) {
-      return {
-        totalValue: 0,
-        totalInvested: 0,
-        totalGainLoss: 0,
-        totalGainLossPercentage: 0,
-        investmentCount: 0,
-        averageValue: 0,
-        typeBreakdown: {},
-        projectedValue10Years: 0,
-        monthlyGrowthRate: 0
-      };
+      return calculateInvestmentStatistics([]);
     }
 
     if (selectedPortfolio) {
@@ -331,55 +278,7 @@ export default function InvestmentStatisticsScreen() {
       }, [] as any[]);
     }
 
-    const totalValue = investments.reduce((sum, inv) => {
-      const marketValue = inv.data.quantity * (inv.data.current_price || inv.data.purchase_price);
-      const interestEarned = calculateInterestReturn(inv);
-      const currentValue = marketValue + interestEarned;
-      return sum + currentValue;
-    }, 0);
-
-    const totalInvested = investments.reduce((sum, inv) => {
-      return sum + (inv.data.quantity * inv.data.purchase_price);
-    }, 0);
-
-    const totalGainLoss = totalValue - totalInvested;
-    const totalGainLossPercentage = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
-
-    // Type breakdown
-    const typeBreakdown = investments.reduce((acc, inv) => {
-      const type = inv.data.type || 'other';
-      const marketValue = inv.data.quantity * (inv.data.current_price || inv.data.purchase_price);
-      const interestEarned = calculateInterestReturn(inv);
-      const currentValue = marketValue + interestEarned;
-      const invested = inv.data.quantity * inv.data.purchase_price;
-      const gainLoss = currentValue - invested;
-
-      if (!acc[type]) {
-        acc[type] = { value: 0, count: 0, gainLoss: 0 };
-      }
-
-      acc[type].value += currentValue;
-      acc[type].count += 1;
-      acc[type].gainLoss += gainLoss;
-
-      return acc;
-    }, {} as { [key: string]: { value: number; count: number; gainLoss: number } });
-
-    // Calculate average annual growth rate for 10-year projection
-    const averageAnnualGrowthRate = totalGainLossPercentage > 0 ? Math.min(totalGainLossPercentage, 12) : 7; // Cap at 12% or use 7% default
-    const projectedValue10Years = totalValue * Math.pow(1 + (averageAnnualGrowthRate / 100), 10);
-
-    return {
-      totalValue,
-      totalInvested,
-      totalGainLoss,
-      totalGainLossPercentage,
-      investmentCount: investments.length,
-      averageValue: investments.length > 0 ? totalValue / investments.length : 0,
-      typeBreakdown,
-      projectedValue10Years,
-      monthlyGrowthRate: averageAnnualGrowthRate / 12
-    };
+    return calculateInvestmentStatistics(investments);
   }, [portfolios, selectedPortfolio]);
 
   // Create pie chart data for investment types
@@ -408,26 +307,17 @@ export default function InvestmentStatisticsScreen() {
       .sort((a, b) => b.value - a.value);
   }, [investmentStats]);
 
-  // Create line chart data for 10-year projection
+  // Create line chart data for 10-year projection using yearly return composition
   const projectionLineData: { year: number; value: number }[] = useMemo(() => {
     if (!investmentStats?.totalValue) {
       return [];
     }
 
-    const currentYear = new Date().getFullYear();
-    const currentValue = investmentStats.totalValue;
-    const annualGrowthRate = investmentStats.totalGainLossPercentage > 0
-      ? Math.min(investmentStats.totalGainLossPercentage, 12) / 100 // Cap at 12%
-      : 0.07; // Default 7% if no gains yet
-
-    const data = [];
-    for (let i = 0; i <= 10; i++) {
-      const year = currentYear + i;
-      const value = currentValue * Math.pow(1 + annualGrowthRate, i);
-      data.push({ year, value });
-    }
-
-    return data;
+    return generateProjectionData(
+      investmentStats.totalValue,
+      investmentStats.yearlyROI,
+      10
+    );
   }, [investmentStats]);
 
   const getProgressWidth = (amount: number, maxAmount: number) => {
@@ -478,23 +368,41 @@ export default function InvestmentStatisticsScreen() {
               <Text style={[styles.statValue, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
                 {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss, userProfile?.profile.defaultCurrency)}
               </Text>
+              <Text style={[styles.statPercentage, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
+                {investmentStats.totalGainLossPercentage >= 0 ? '+' : ''}{investmentStats.totalGainLossPercentage.toFixed(2)}%
+              </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.totalReturn')}</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statValue, { color: investmentStats.totalGainLossPercentage >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.totalGainLossPercentage >= 0 ? '+' : ''}{investmentStats.totalGainLossPercentage.toFixed(2)}%
+              <Text style={[styles.statValue, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
+                {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.estimatedYearlyGainLoss, userProfile?.profile?.defaultCurrency)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.returnPercentage')}</Text>
+              <Text style={[styles.statPercentage, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
+                {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{investmentStats.estimatedYearlyGainLossPercentage.toFixed(2)}%
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.estimatedYearlyGainLoss')}</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {investmentStats.investmentCount}
+              <Text style={[styles.statValue, { color: colors.success }]}>
+                {formatCurrency(investmentStats.dividendsInterestEarned, userProfile?.profile?.defaultCurrency)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.investments')}</Text>
+              <Text style={[styles.statPercentage, { color: colors.success }]}>
+                {investmentStats.dividendsInterestEarnedPercentage.toFixed(2)}%
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.dividendsInterestEarned')}</Text>
             </View>
           </View>
+
+          {investmentStats.dividendsInterestEarned > 0 && (
+            <View style={[styles.statCard, { backgroundColor: colors.card, marginTop: 12 }]}>
+              <Text style={[styles.statValue, { color: colors.success }]}>
+                {formatCurrency(investmentStats.dividendsInterestEarned, userProfile?.profile.defaultCurrency)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.dividendsInterestEarned')}</Text>
+            </View>
+          )}
         </View>
 
         {/* Investment Types Distribution */}
@@ -746,6 +654,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
+    marginBottom: 2,
+  },
+  statPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
     marginBottom: 4,
   },
   statLabel: {

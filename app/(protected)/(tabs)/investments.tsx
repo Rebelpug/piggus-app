@@ -24,6 +24,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {formatCurrency} from "@/utils/currencyUtils";
 import { formatPercentage } from '@/utils/stringUtils';
+import { calculateInvestmentStatistics } from '@/utils/financeUtils';
 
 export default function InvestmentsScreen() {
     const router = useRouter();
@@ -103,70 +104,13 @@ export default function InvestmentsScreen() {
         }
     }, [portfolios, selectedPortfolio]);
 
-    // Helper function to calculate bond interest
-    const calculateBondInterestForInvestment = (investment: any) => {
-        const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
-        if (!supportsInterest || !investment.data.interest_rate) return 0;
-
-        const quantity = investment.data.quantity || 0;
-        const purchasePrice = investment.data.purchase_price || 0;
-        const interestRate = investment.data.interest_rate || 0;
-
-        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-
-        const initialValue = quantity * purchasePrice;
-
-        // Calculate time periods
-        const currentDate = new Date();
-        const purchaseDate = new Date(investment.data.purchase_date);
-        const maturityDate = investment.data.maturity_date ? new Date(investment.data.maturity_date) : null;
-
-        // Determine the end date for interest calculation
-        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-
-        // Calculate days since purchase until end date
-        const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-        const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-
-        // For demonstration purposes, if purchase date is today, use 1 year as example
-        const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-
-        // Calculate annual interest return
-        const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
-
-        return annualInterestReturn;
-    };
-
-    // Calculate total portfolio value based on filtered investments
-    const totalPortfolioValue = React.useMemo(() => {
-        return filteredInvestments.reduce((sum, investment) => {
-            try {
-                const marketValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
-                const interestEarned = calculateBondInterestForInvestment(investment);
-                const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
-                const currentValue = supportsInterest ? marketValue + interestEarned : marketValue;
-                return sum + currentValue;
-            } catch {
-                return sum;
-            }
-        }, 0);
+    // Calculate portfolio statistics using the simplified functions
+    const portfolioStats = React.useMemo(() => {
+        return calculateInvestmentStatistics(filteredInvestments);
     }, [filteredInvestments]);
 
-    // Calculate total gain/loss based on filtered investments
-    const totalGainLoss = React.useMemo(() => {
-        return filteredInvestments.reduce((sum, investment) => {
-            try {
-                const marketValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
-                const interestEarned = calculateBondInterestForInvestment(investment);
-                const supportsInterest = ['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type);
-                const currentValue = supportsInterest ? marketValue + interestEarned : marketValue;
-                const initialValue = investment.data.quantity * investment.data.purchase_price;
-                return sum + (currentValue - initialValue);
-            } catch {
-                return sum;
-            }
-        }, 0);
-    }, [filteredInvestments]);
+    const totalPortfolioValue = portfolioStats.totalValue;
+    const totalGainLoss = portfolioStats.totalGainLoss;
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -188,7 +132,7 @@ export default function InvestmentsScreen() {
     };
 
     const renderInvestmentsHeader = () => {
-        const gainLossPercentage = totalPortfolioValue > 0 ? (totalGainLoss / (totalPortfolioValue - totalGainLoss)) * 100 : 0;
+        const gainLossPercentage = portfolioStats.totalGainLossPercentage;
         const showPortfolioSelector = portfolios.length > 1;
 
         return (

@@ -169,18 +169,8 @@ export default function ExpensesScreen() {
     }, []);
 
     const handleAddExpense = () => {
-        router.push('/(protected)/add-expense');
-    };
-
-    const formatCurrency = (amount: number, currency: string = 'USD') => {
-        try {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: currency,
-            }).format(amount);
-        } catch {
-            return `${amount.toFixed(2)}`;
-        }
+        const isRecurring = selectedIndex === 1;
+        router.push(isRecurring ? '/(protected)/add-expense?isRecurring=true' : '/(protected)/add-expense');
     };
 
     const getMonthYear = (dateString: string) => {
@@ -450,14 +440,12 @@ export default function ExpensesScreen() {
                 </Tab>
             </TabView>
 
-            {(allExpenses.length > 0 || allRecurringExpenses.length > 0) && (
-                <TouchableOpacity
-                    style={[styles.fab, { backgroundColor: colors.primary }]}
-                    onPress={handleAddExpense}
-                >
-                    <Ionicons name="add" size={24} color="white" />
-                </TouchableOpacity>
-            )}
+            <TouchableOpacity
+                style={[styles.fab, { backgroundColor: colors.primary }]}
+                onPress={handleAddExpense}
+            >
+                <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }

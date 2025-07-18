@@ -18,6 +18,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useLocalization } from '@/context/LocalizationContext';
+import { calculateCurrentValue, calculateCAGR, calculateExpectedYearlyYield, calculateDividendsInterestEarned, calculateIndividualInvestmentReturns } from '@/utils/financeUtils';
 import { InvestmentData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -47,7 +48,7 @@ export default function EditInvestmentScreen() {
     const { portfolios, updateInvestment, deleteInvestment, addInvestment } = useInvestment();
     const { userProfile } = useProfile();
     const { t } = useLocalization();
-    
+
     const investmentTypes = getInvestmentTypes(t);
 
     // Helper function to check if investment type supports interest rates
@@ -216,7 +217,7 @@ export default function EditInvestmentScreen() {
                 // Moving investment to a different portfolio: delete from original, add to new
                 await deleteInvestment(originalPortfolioId, investment.id);
                 const result = await addInvestment(newPortfolioId, investmentData);
-                
+
                 if (result) {
                     router.back();
                 } else {
@@ -291,13 +292,13 @@ export default function EditInvestmentScreen() {
         const quantity = Number(formData.quantity) || 0;
         const currentPrice = Number(formData.current_price) || Number(formData.purchase_price) || 0;
         const marketValue = quantity * currentPrice;
-        
+
         // For interest-bearing accounts, add accrued interest to the current value
         if (supportsInterestRate(selectedType.id)) {
             const interestReturn = calculateBondInterestReturn();
             return marketValue + interestReturn;
         }
-        
+
         return marketValue;
     };
 
@@ -307,14 +308,14 @@ export default function EditInvestmentScreen() {
         const currentPrice = Number(formData.current_price) || purchasePrice;
         const initialValue = quantity * purchasePrice;
         const currentMarketValue = quantity * currentPrice;
-        
+
         // For interest-bearing accounts, the gain/loss should include both market value change AND interest earned
         if (supportsInterestRate(selectedType.id)) {
             const interestReturn = calculateBondInterestReturn();
             const totalCurrentValue = currentMarketValue + interestReturn;
             return totalCurrentValue - initialValue;
         }
-        
+
         return currentMarketValue - initialValue;
     };
 
@@ -324,50 +325,50 @@ export default function EditInvestmentScreen() {
         console.log('selectedType.id:', selectedType?.id);
         console.log('formData.interest_rate:', formData.interest_rate);
         console.log('formData:', formData);
-        
+
         if (!supportsInterestRate(selectedType?.id)) {
             console.log('Type does not support interest rates, returning 0');
             return 0;
         }
-        
+
         if (!formData.interest_rate || formData.interest_rate === '') {
             console.log('No interest rate, returning 0');
             return 0;
         }
-        
+
         const quantity = Number(formData.quantity) || 0;
         const purchasePrice = Number(formData.purchase_price) || 0;
         const interestRate = Number(formData.interest_rate) || 0;
-        
+
         console.log('Parsed values:', { quantity, purchasePrice, interestRate });
-        
+
         if (quantity === 0 || purchasePrice === 0 || interestRate === 0) {
             console.log('One of the values is 0, returning 0');
             return 0;
         }
-        
+
         const initialValue = quantity * purchasePrice;
-        
+
         // Calculate time periods
         const currentDate = new Date();
         const purchaseDate = formData.purchase_date;
         const maturityDate = formData.maturity_date;
-        
+
         console.log('Dates:', { currentDate, purchaseDate, maturityDate });
-        
+
         // Determine the end date for interest calculation (current date or maturity date, whichever is earlier)
         const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-        
+
         // Calculate days since purchase until end date
         const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
         const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-        
+
         // For demonstration purposes, if purchase date is today, use 1 year as example
         const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-        
+
         // Calculate annual interest return
         const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
-        
+
         console.log('Final calculation:', {
             initialValue,
             interestRate,
@@ -376,16 +377,16 @@ export default function EditInvestmentScreen() {
             yearsForCalculation,
             annualInterestReturn
         });
-        
+
         return annualInterestReturn;
     };
 
     const getBondStatus = () => {
         if (!supportsMaturityDate(selectedType.id) || !formData.maturity_date) return 'active';
-        
+
         const currentDate = new Date();
         const maturityDate = formData.maturity_date;
-        
+
         if (currentDate >= maturityDate) {
             return 'matured';
         } else {
@@ -395,14 +396,14 @@ export default function EditInvestmentScreen() {
 
     const getDaysToMaturity = () => {
         if (!supportsMaturityDate(selectedType.id) || !formData.maturity_date) return null;
-        
+
         const currentDate = new Date();
         const maturityDate = formData.maturity_date;
-        
+
         if (currentDate >= maturityDate) {
             return 0;
         }
-        
+
         const daysToMaturity = Math.floor((maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
         return daysToMaturity;
     };
@@ -412,6 +413,74 @@ export default function EditInvestmentScreen() {
             style: 'currency',
             currency: selectedCurrency,
         }).format(amount);
+    };
+
+    const calculateYearlyROIForInvestment = () => {
+        if (!formData.quantity || !formData.purchase_price || !formData.purchase_date) return 0;
+
+        const quantity = Number(formData.quantity);
+        const purchasePrice = Number(formData.purchase_price);
+        const currentPrice = Number(formData.current_price) || purchasePrice;
+
+        // Calculate days since purchase (can be 0 for same-day investments)
+        const daysSincePurchase = Math.floor((new Date().getTime() - formData.purchase_date.getTime()) / (1000 * 60 * 60 * 24));
+
+        const investmentData = {
+            data: {
+                type: selectedType.id,
+                quantity,
+                purchase_price: purchasePrice,
+                current_price: currentPrice,
+                purchase_date: formData.purchase_date.toISOString(),
+                interest_rate: formData.interest_rate ? Number(formData.interest_rate) : undefined,
+                maturity_date: formData.maturity_date ? formData.maturity_date.toISOString() : undefined
+            }
+        };
+
+        return calculateYearlyROI([investmentData]);
+    };
+
+    const calculateTotalROIPercentage = () => {
+        const totalInvestment = Number(formData.quantity) * Number(formData.purchase_price);
+        const gainLoss = calculateGainLoss();
+        return totalInvestment > 0 ? (gainLoss / totalInvestment) * 100 : 0;
+    };
+
+    const calculateInvestmentReturns = () => {
+        if (!formData.quantity || !formData.purchase_price || !formData.purchase_date) {
+            return {
+                currentReturn: 0,
+                expectedYearlyReturn: 0,
+                expectedTotalReturn: 0,
+                currentReturnPercentage: 0,
+                expectedYearlyReturnPercentage: 0,
+                expectedTotalReturnPercentage: 0
+            };
+        }
+
+        const quantity = Number(formData.quantity);
+        const purchasePrice = Number(formData.purchase_price);
+        const currentPrice = Number(formData.current_price) || purchasePrice;
+
+        const investmentData = {
+            id: investment.id,
+            data: {
+                name: formData.name,
+                type: selectedType.id,
+                quantity: quantity,
+                purchase_price: purchasePrice,
+                current_price: currentPrice,
+                purchase_date: formData.purchase_date.toISOString().split('T')[0],
+                currency: selectedCurrency,
+                interest_rate: formData.interest_rate,
+                maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
+                notes: formData.notes,
+                symbol: formData.symbol,
+                exchange_market: formData.exchange_market
+            }
+        };
+
+        return calculateIndividualInvestmentReturns(investmentData);
     };
 
     if (!investment || portfolios.length === 0) {
@@ -584,7 +653,7 @@ export default function EditInvestmentScreen() {
                                     status={errors.interest_rate ? 'danger' : 'basic'}
                                 />
                                 {errors.interest_rate && <Text style={styles.errorText}>{errors.interest_rate}</Text>}
-                                
+
                                 {supportsMaturityDate(selectedType.id) && (
                                     <>
                                         <Datepicker
@@ -607,6 +676,8 @@ export default function EditInvestmentScreen() {
                             date={formData.purchase_date}
                             onSelect={(date) => setFormData(prev => ({ ...prev, purchase_date: date }))}
                             style={styles.input}
+                            min={new Date(2000, 0, 1)} // or whatever lower bound you want
+                            max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
                         />
 
                         <Input
@@ -632,84 +703,72 @@ export default function EditInvestmentScreen() {
                                     {formatCurrency(Number(formData.quantity) * Number(formData.purchase_price))}
                                 </Text>
                             </View>
-                            {formData.current_price && (
-                                <>
-                                    {supportsInterestRate(selectedType.id) && formData.interest_rate ? (
-                                        <>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('editInvestment.marketValue')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                    {formatCurrency(Number(formData.quantity) * Number(formData.current_price))}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {selectedType.id === 'bond' ? t('editInvestment.interestEarned') : t('editInvestment.interestEarned')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
-                                                    {formatCurrency(calculateBondInterestReturn())}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('editInvestment.totalCurrentValue')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                    {formatCurrency(calculateCurrentValue())}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('editInvestment.totalGainLoss')}
-                                                </Text>
-                                                <Text style={[
-                                                    styles.summaryValue,
-                                                    { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
-                                                ]}>
-                                                    {formatCurrency(calculateGainLoss())}
-                                                </Text>
-                                            </View>
-                                            
-                                            {getDaysToMaturity() !== null && (
-                                                <View style={styles.summaryRow}>
-                                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                        {t('editInvestment.daysToMaturity')}
-                                                    </Text>
-                                                    <Text style={[
-                                                        styles.summaryValue, 
-                                                        { color: getBondStatus() === 'matured' ? '#FF9800' : colors.text }
-                                                    ]}>
-                                                        {getBondStatus() === 'matured' ? t('editInvestment.matured') : `${getDaysToMaturity()} days`}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('editInvestment.currentValue')}
-                                                </Text>
-                                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                                    {formatCurrency(calculateCurrentValue())}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.summaryRow}>
-                                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                                                    {t('editInvestment.gainLoss')}
-                                                </Text>
-                                                <Text style={[
-                                                    styles.summaryValue,
-                                                    { color: calculateGainLoss() >= 0 ? '#4CAF50' : '#F44336' }
-                                                ]}>
-                                                    {formatCurrency(calculateGainLoss())}
-                                                </Text>
-                                            </View>
-                                        </>
-                                    )}
-                                </>
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                    {t('editInvestment.currentValue')}
+                                </Text>
+                                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                    {formatCurrency(calculateInvestmentReturns().totalValue)}
+                                </Text>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                    {t('editInvestment.totalGainLoss')}
+                                </Text>
+                                <Text style={[
+                                    styles.summaryValue,
+                                    { color: calculateInvestmentReturns().totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                ]}>
+                                    {calculateInvestmentReturns().totalGainLoss >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentReturns().totalGainLoss)}
+                                </Text>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                    {t('editInvestment.totalGainLossPercentage')}
+                                </Text>
+                                <Text style={[
+                                    styles.summaryValue,
+                                    { color: calculateInvestmentReturns().totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                ]}>
+                                    {calculateInvestmentReturns().totalGainLoss >= 0 ? '+' : ''}{calculateInvestmentReturns().totalGainLossPercentage.toFixed(2)}%
+                                </Text>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                    {t('editInvestment.estimatedYearlyGainLoss')}
+                                </Text>
+                                <Text style={[
+                                    styles.summaryValue,
+                                    { color: calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                ]}>
+                                    {calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentReturns().estimatedYearlyGainLoss)}
+                                </Text>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                    {t('editInvestment.estimatedYearlyGainLossPercentage')}
+                                </Text>
+                                <Text style={[
+                                    styles.summaryValue,
+                                    { color: calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                ]}>
+                                    {calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '+' : ''}{calculateInvestmentReturns().estimatedYearlyGainLossPercentage.toFixed(2)}%
+                                </Text>
+                            </View>
+
+                            {calculateInvestmentReturns().dividendsInterestEarned > 0 && (
+                                <View style={styles.summaryRow}>
+                                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
+                                        {t('editInvestment.dividendsInterestEarned')}
+                                    </Text>
+                                    <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+                                        {formatCurrency(calculateInvestmentReturns().dividendsInterestEarned)} ({calculateInvestmentReturns().dividendsInterestEarnedPercentage.toFixed(2)}%)
+                                    </Text>
+                                </View>
                             )}
                         </Card>
                     )}

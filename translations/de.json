@@ -265,5 +265,28 @@
     "errorLoadingData": "Fehler beim Laden der Daten",
     "expenseGroupsCount": "Ausgabengruppen ({{count}})",
     "portfolioGroups": "Portfolio-Gruppen"
+  },
+  "investmentStatistics": {
+    "title": "Investitionsstatistiken",
+    "allPortfolios": "Alle Portfolios",
+    "overview": "Übersicht",
+    "currentValue": "Aktueller Wert",
+    "totalReturn": "Gesamtrendite",
+    "returnPercentage": "% Rendite",
+    "currentReturn": "Aktuelle Rendite",
+    "expectedYearlyReturn": "Erwartete Jahresrendite",
+    "expectedTotalReturn": "Erwartete Gesamtrendite",
+    "investments": "Investitionen",
+    "investmentTypes": "Investitionstypen",
+    "tenYearProjection": "10-Jahres-Projektion",
+    "projectedValueTenYears": "Projizierter Wert in 10 Jahren",
+    "projectedTenYears": "Projiziert (10 Jahre)",
+    "potentialGains": "Potenzielle Gewinne",
+    "projectionDisclaimer": "* Basiert auf historischer Performance. Vergangene Performance garantiert keine zukünftigen Ergebnisse.",
+    "detailedBreakdown": "Detaillierte Aufschlüsselung",
+    "investmentsCount": "Investitionen",
+    "selectPortfolio": "Portfolio Auswählen",
+    "unnamedPortfolio": "Unbenanntes Portfolio",
+    "cancel": "Abbrechen"
   }
 }

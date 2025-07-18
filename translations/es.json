@@ -265,5 +265,28 @@
     "errorLoadingData": "Error al cargar datos",
     "expenseGroupsCount": "Grupos de Gastos ({{count}})",
     "portfolioGroups": "Grupos de Carteras"
+  },
+  "investmentStatistics": {
+    "title": "Estadísticas de Inversión",
+    "allPortfolios": "Todas las Carteras",
+    "overview": "Resumen",
+    "currentValue": "Valor Actual",
+    "totalReturn": "Rendimiento Total",
+    "returnPercentage": "% Rendimiento",
+    "currentReturn": "Rendimiento Actual",
+    "expectedYearlyReturn": "Rendimiento Anual Esperado",
+    "expectedTotalReturn": "Rendimiento Total Esperado",
+    "investments": "Inversiones",
+    "investmentTypes": "Tipos de Inversión",
+    "tenYearProjection": "Proyección 10 Años",
+    "projectedValueTenYears": "Valor Proyectado en 10 Años",
+    "projectedTenYears": "Proyectado (10 años)",
+    "potentialGains": "Ganancias Potenciales",
+    "projectionDisclaimer": "* Basado en rendimiento histórico. El rendimiento pasado no garantiza resultados futuros.",
+    "detailedBreakdown": "Desglose Detallado",
+    "investmentsCount": "inversiones",
+    "selectPortfolio": "Seleccionar Cartera",
+    "unnamedPortfolio": "Cartera Sin Nombre",
+    "cancel": "Cancelar"
   }
 }

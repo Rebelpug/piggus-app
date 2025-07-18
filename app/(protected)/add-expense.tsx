@@ -44,6 +44,7 @@ import { ThemedView } from '@/components/ThemedView';
 
 export default function AddExpenseScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const { groupId } = useLocalSearchParams<{ groupId?: string }>();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
@@ -63,14 +64,14 @@ export default function AddExpenseScreen() {
     const availableCategories = React.useMemo(() => {
         const result: Array<ExpenseCategory & { displayName: string }> = [];
         const mainCategories = getMainCategories(allCategories);
-        
+
         mainCategories.forEach(category => {
             // Add main category
             result.push({
                 ...category,
                 displayName: `${category.icon} ${category.name}`
             });
-            
+
             // Add subcategories
             const subcategories = getSubcategories(allCategories, category.id);
             subcategories.forEach(subcategory => {
@@ -80,7 +81,7 @@ export default function AddExpenseScreen() {
                 });
             });
         });
-        
+
         return result;
     }, [allCategories]);
     const [loading, setLoading] = useState(false);
@@ -93,7 +94,7 @@ export default function AddExpenseScreen() {
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<IndexPath | undefined>();
     const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(new IndexPath(0));
     const [selectedGroupIndex, setSelectedGroupIndex] = useState<IndexPath | undefined>();
-    const [isRecurring, setIsRecurring] = useState(false);
+    const [isRecurring, setIsRecurring] = useState(params.isRecurring === 'true');
     const [recurringInterval, setRecurringInterval] = useState('');
     // Sharing state
     const [selectedPayerIndex, setSelectedPayerIndex] = useState<IndexPath | undefined>();
@@ -454,9 +455,9 @@ export default function AddExpenseScreen() {
 
                 <Layout style={[styles.participantsContainer, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text category='s1' style={styles.participantsTitle}>
-                        {t('addExpense.shareWith', { 
-                            activeCount: participants.filter(p => p.share_amount > 0).length, 
-                            totalCount: currentGroupMembers.length 
+                        {t('addExpense.shareWith', {
+                            activeCount: participants.filter(p => p.share_amount > 0).length,
+                            totalCount: currentGroupMembers.length
                         })}
                     </Text>
 
