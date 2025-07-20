@@ -130,7 +130,9 @@
     "and": "i",
     "privacyPolicy": "politykę prywatności",
     "creatingAccount": "Tworzenie Konta...",
-    "alreadyHaveAccount": "Masz już konto?"
+    "alreadyHaveAccount": "Masz już konto?",
+    "encryptionWarningTitle": "Ważne: Szyfrowanie End-to-End",
+    "encryptionWarningMessage": "Twoje dane są chronione szyfrowaniem end-to-end. Jeśli zapomnisz hasła, nie możemy odzyskać Twojego konta lub danych. Przechowuj hasło bezpiecznie."
   },
   "validation": {
     "error": "Błąd Walidacji",

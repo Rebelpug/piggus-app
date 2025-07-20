@@ -130,7 +130,9 @@
     "and": "und",
     "privacyPolicy": "Datenschutzrichtlinie",
     "creatingAccount": "Konto wird erstellt...",
-    "alreadyHaveAccount": "Haben Sie bereits ein Konto?"
+    "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
+    "encryptionWarningTitle": "Wichtig: Ende-zu-Ende-Verschlüsselung",
+    "encryptionWarningMessage": "Ihre Daten sind durch Ende-zu-Ende-Verschlüsselung geschützt. Wenn Sie Ihr Passwort vergessen, können wir Ihr Konto oder Ihre Daten nicht wiederherstellen. Bitte bewahren Sie Ihr Passwort sicher auf."
   },
   "validation": {
     "error": "Validierungsfehler",

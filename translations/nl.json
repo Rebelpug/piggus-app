@@ -130,7 +130,9 @@
     "and": "en",
     "privacyPolicy": "privacybeleid",
     "creatingAccount": "Account Aanmaken...",
-    "alreadyHaveAccount": "Heeft u al een account?"
+    "alreadyHaveAccount": "Heeft u al een account?",
+    "encryptionWarningTitle": "Belangrijk: End-to-End Encryptie",
+    "encryptionWarningMessage": "Uw gegevens zijn beschermd met end-to-end encryptie. Als u uw wachtwoord vergeet, kunnen we uw account of gegevens niet herstellen. Bewaar uw wachtwoord veilig."
   },
   "validation": {
     "error": "Validatiefout",

@@ -124,7 +124,9 @@
     "and": "and",
     "privacyPolicy": "privacy policy",
     "creatingAccount": "Creating Account...",
-    "alreadyHaveAccount": "Already have an account?"
+    "alreadyHaveAccount": "Already have an account?",
+    "encryptionWarningTitle": "Important: End-to-End Encryption",
+    "encryptionWarningMessage": "Your data is protected with end-to-end encryption. If you forget your password, we cannot recover your account or data. Please store your password securely."
   },
   "common": {
     "unknown": "Unknown",

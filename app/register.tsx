@@ -16,7 +16,8 @@ import {
     Alert,
     StatusBar,
     Image,
-    Linking
+    Linking,
+    ScrollView
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
@@ -89,7 +90,12 @@ const RegisterScreen = () => {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
-                <View style={styles.contentContainer}>
+                <ScrollView 
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.contentContainer}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.logoContainer}>
@@ -176,6 +182,19 @@ const RegisterScreen = () => {
                             </View>
                         </View>
 
+                        {/* Encryption Warning Alert */}
+                        <View style={[styles.encryptionAlert, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                            <View style={styles.alertHeader}>
+                                <Ionicons name="shield-checkmark" size={20} color="#f59e0b" style={styles.alertIcon} />
+                                <Text style={[styles.alertTitle, { color: colors.text }]}>
+                                    {t('auth.encryptionWarningTitle')}
+                                </Text>
+                            </View>
+                            <Text style={[styles.alertMessage, { color: colors.icon }]}>
+                                {t('auth.encryptionWarningMessage')}
+                            </Text>
+                        </View>
+
                         {/* Terms and Conditions Checkbox */}
                         <View style={styles.checkboxContainer}>
                             <TouchableOpacity
@@ -249,7 +268,7 @@ const RegisterScreen = () => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -265,10 +284,13 @@ const styles = StyleSheet.create({
     keyboardView: {
         flex: 1,
     },
-    contentContainer: {
+    scrollView: {
         flex: 1,
+    },
+    contentContainer: {
+        flexGrow: 1,
         padding: 24,
-        justifyContent: 'center',
+        paddingTop: 40,
     },
     header: {
         alignItems: 'center',
@@ -358,6 +380,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         gap: 8,
+        paddingBottom: 20,
+        marginTop: 20,
     },
     footerText: {
         fontSize: 16,
@@ -397,6 +421,29 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         fontWeight: '600',
         textDecorationLine: 'underline',
+    },
+    encryptionAlert: {
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+    },
+    alertHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    alertIcon: {
+        marginRight: 8,
+    },
+    alertTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        flex: 1,
+    },
+    alertMessage: {
+        fontSize: 13,
+        lineHeight: 18,
     },
 });
 

@@ -130,7 +130,9 @@
     "and": "e",
     "privacyPolicy": "politica sulla privacy",
     "creatingAccount": "Creazione Account...",
-    "alreadyHaveAccount": "Hai già un account?"
+    "alreadyHaveAccount": "Hai già un account?",
+    "encryptionWarningTitle": "Importante: Crittografia End-to-End",
+    "encryptionWarningMessage": "I tuoi dati sono protetti con crittografia end-to-end. Se dimentichi la password, non possiamo recuperare il tuo account o i dati. Ti preghiamo di conservare la password in modo sicuro."
   },
   "validation": {
     "error": "Errore di Validazione",

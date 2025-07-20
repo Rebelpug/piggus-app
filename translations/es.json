@@ -123,7 +123,9 @@
     "and": "y",
     "privacyPolicy": "política de privacidad",
     "creatingAccount": "Creando Cuenta...",
-    "alreadyHaveAccount": "¿Ya tienes una cuenta?"
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "encryptionWarningTitle": "Importante: Cifrado de Extremo a Extremo",
+    "encryptionWarningMessage": "Tus datos están protegidos con cifrado de extremo a extremo. Si olvidas tu contraseña, no podemos recuperar tu cuenta o datos. Por favor, guarda tu contraseña de forma segura."
   },
   "common": {
     "unknown": "Desconocido",

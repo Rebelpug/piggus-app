@@ -130,7 +130,9 @@
     "and": "e",
     "privacyPolicy": "política de privacidade",
     "creatingAccount": "Criando Conta...",
-    "alreadyHaveAccount": "Já tem uma conta?"
+    "alreadyHaveAccount": "Já tem uma conta?",
+    "encryptionWarningTitle": "Importante: Criptografia de Ponta a Ponta",
+    "encryptionWarningMessage": "Seus dados são protegidos com criptografia de ponta a ponta. Se você esquecer sua senha, não podemos recuperar sua conta ou dados. Por favor, armazene sua senha com segurança."
   },
   "validation": {
     "error": "Erro de Validação",

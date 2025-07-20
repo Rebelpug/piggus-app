@@ -123,7 +123,9 @@
     "and": "et",
     "privacyPolicy": "politique de confidentialité",
     "creatingAccount": "Création du Compte...",
-    "alreadyHaveAccount": "Vous avez déjà un compte ?"
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "encryptionWarningTitle": "Important : Chiffrement de bout en bout",
+    "encryptionWarningMessage": "Vos données sont protégées par un chiffrement de bout en bout. Si vous oubliez votre mot de passe, nous ne pouvons pas récupérer votre compte ou vos données. Veuillez conserver votre mot de passe en sécurité."
   },
   "common": {
     "unknown": "Inconnu",

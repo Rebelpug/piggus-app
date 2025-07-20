@@ -124,7 +124,9 @@
     "and": "och",
     "privacyPolicy": "integritetspolicyn",
     "creatingAccount": "Skapar Konto...",
-    "alreadyHaveAccount": "Har du redan ett konto?"
+    "alreadyHaveAccount": "Har du redan ett konto?",
+    "encryptionWarningTitle": "Viktigt: End-to-End-kryptering",
+    "encryptionWarningMessage": "Dina data skyddas med end-to-end-kryptering. Om du glömmer ditt lösenord kan vi inte återställa ditt konto eller data. Förvara ditt lösenord säkert."
   },
   "expenses": {
     "title": "Utgifter",
