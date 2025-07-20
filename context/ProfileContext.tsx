@@ -18,6 +18,7 @@ import {useEncryption} from "@/context/EncryptionContext";
 
 // Import the form component normally since we fixed the circular dependency
 import ProfileCreationForm from '@/components/account/ProfileCreationForm';
+import RecoveryKeyForm from '@/components/auth/RecoveryKeyForm';
 
 type ProfileContextType = {
     userProfile: Profile | null;
@@ -31,8 +32,8 @@ type ProfileContextType = {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-    const { user, publicKey, encryptData, decryptData, authInitialized, encryptionInitialized } = useAuth();
-    const { encryptWithExternalPublicKey, createEncryptionKey, encryptWithExternalEncryptionKey } = useEncryption();
+    const { user, publicKey, encryptData, decryptData, authInitialized, encryptionInitialized, needsRecoveryKey, storeRecoveryKey } = useAuth();
+    const { encryptWithExternalPublicKey, createEncryptionKey, encryptWithExternalEncryptionKey, getPrivateKey } = useEncryption();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const [userProfile, setUserProfile] = useState<Profile | null>(null);
@@ -246,8 +247,31 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             );
         }
 
+        // If we have a user, encryption is initialized, and they need a recovery key, show recovery key form
+        if (user && encryptionInitialized && needsRecoveryKey) {
+            // Get the private key from the encryption context to generate recovery key
+            const privateKey = getPrivateKey();
+            if (privateKey) {
+                return (
+                    <View style={[styles.container, { backgroundColor: colors.background }]}>
+                        <RecoveryKeyForm
+                            privateKey={privateKey}
+                            onComplete={async (encryptedRecoveryPrivateKey: string) => {
+                                try {
+                                    await storeRecoveryKey(encryptedRecoveryPrivateKey);
+                                    // The needsRecoveryKey state will be automatically updated by AuthContext
+                                } catch (error) {
+                                    console.error('Error storing recovery key:', error);
+                                }
+                            }}
+                        />
+                    </View>
+                );
+            }
+        }
+
         // If we have a user and profile is initialized but no profile exists, show profile creation
-        if (user && profileInitialized && !userProfile) {
+        if (user && profileInitialized && !userProfile && !needsRecoveryKey) {
             return (
                 <View style={[styles.container, { backgroundColor: colors.background }]}>
                     <View style={styles.formContainer}>

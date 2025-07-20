@@ -18,6 +18,7 @@ interface EncryptionContextType {
     // State getters
     encryptionKey: Uint8Array<ArrayBufferLike> | null;
     getPublicKey: () => string | null;
+    getPrivateKey: () => string | null;
     isEncryptionInitialized: boolean;
 
     // Core functions
@@ -419,15 +420,19 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         }
     }, []);
 
-    // Get public key
     const getPublicKey = useCallback((): string | null => {
         return publicKey;
     }, [publicKey]);
+
+    const getPrivateKey = useCallback((): string | null => {
+        return privateKey;
+    }, [privateKey]);
 
     // Context value
     const value: EncryptionContextType = {
         encryptionKey,
         getPublicKey,
+        getPrivateKey,
         isEncryptionInitialized,
         initializeFromSecureStorage,
         initializeFromPassword,
