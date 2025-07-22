@@ -157,7 +157,8 @@
     "unknownUser": "Unknown User",
     "ok": "OK",
     "tryAgain": "Try Again",
-    "goBack": "Go Back"
+    "goBack": "Go Back",
+    "you": "You"
   },
   "validation": {
     "error": "Validation Error",
