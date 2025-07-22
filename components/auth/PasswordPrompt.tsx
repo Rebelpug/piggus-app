@@ -19,6 +19,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {useRouter} from "expo-router";
 import {SecureKeyManager} from "@/lib/secureKeyManager";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PasswordPromptProps {
     onSuccess?: () => void;
@@ -31,11 +32,42 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [failedAttempts, setFailedAttempts] = useState(0);
     const { initializeEncryptionWithPassword, signOut, user, tryBiometricLogin, isAuthenticated } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         handleBiometricLogin();
     }, []);
+
+    // Centralized cleanup function for authentication failures
+    const cleanupAndRedirect = async (reason: string) => {
+        console.log(`Authentication failed: ${reason}. Cleaning up stored data...`);
+
+        try {
+            // Clean up stored session data
+            await SecureKeyManager.clearAllData();
+
+            // Clean up any recovery session data if it exists
+            if (user?.email) {
+                const recoveryStorageKey = `recovery_${user.email}`;
+                await AsyncStorage.removeItem(recoveryStorageKey);
+            }
+
+            // Sign out the user
+            await signOut();
+
+            console.log('Cleanup completed. Redirecting to login...');
+        } catch (error) {
+            console.error('Error during cleanup:', error);
+            // Still try to sign out and redirect even if cleanup fails
+            try {
+                await signOut();
+            } catch (signOutError) {
+                console.error('Failed to sign out during error recovery:', signOutError);
+            }
+        }
+    };
 
     const handleBiometricLogin = async () => {
         try {
@@ -83,31 +115,17 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                     onSuccess?.();
                 } else {
                     console.log('PasswordPrompt: Biometric authentication succeeded but encryption initialization failed');
-                    Alert.alert(
-                        'Session Expired',
-                        'Your session has expired. Please sign in again.',
-                        [
-                            {
-                                text: 'OK',
-                                onPress: async () => {
-                                    try {
-                                        await signOut();
-                                        onCancel?.();
-                                    } catch (error) {
-                                        console.error('Sign out failed:', error);
-                                    }
-                                }
-                            }
-                        ]
-                    );
+                    await cleanupAndRedirect('Biometric authentication succeeded but encryption initialization failed');
                 }
             } else {
                 console.log('PasswordPrompt: Biometric authentication failed or was canceled');
-                Alert.alert('Failed to sign in', 'Biometric authentication failed, you will need to login again.');
+                setFailedAttempts(prev => prev + 1);
+                await cleanupAndRedirect('Biometric authentication failed or was canceled');
             }
         } catch (error) {
             console.error('PasswordPrompt: Biometric login error:', error);
-            Alert.alert('Failed to sign in', 'Biometric authentication failed, you will need to login again.');
+            setFailedAttempts(prev => prev + 1);
+            await cleanupAndRedirect('Biometric login error');
         } finally {
             setLoading(false);
         }
@@ -127,11 +145,8 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
             onSuccess?.();
         } catch (error: any) {
             console.error('Password verification failed:', error);
-            Alert.alert(
-                'Invalid Password',
-                'The password you entered is incorrect. Please try again.',
-                [{ text: 'OK' }]
-            );
+            setFailedAttempts(prev => prev + 1);
+            await cleanupAndRedirect('Password verification failed');
         } finally {
             setLoading(false);
         }
