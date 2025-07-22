@@ -130,6 +130,19 @@ const RegisterScreen = () => {
                             </View>
                         </View>
 
+                        {/* Encryption Warning Alert */}
+                        <View style={[styles.encryptionAlert, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                            <View style={styles.alertHeader}>
+                                <Ionicons name="shield-checkmark" size={20} color="#f59e0b" style={styles.alertIcon} />
+                                <Text style={[styles.alertTitle, { color: colors.text }]}>
+                                    {t('auth.encryptionWarningTitle')}
+                                </Text>
+                            </View>
+                            <Text style={[styles.alertMessage, { color: colors.icon }]}>
+                                {t('auth.encryptionWarningMessage')}
+                            </Text>
+                        </View>
+
                         <View style={styles.inputContainer}>
                             <Text style={[styles.label, { color: colors.text }]}>{t('auth.password')}</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -182,18 +195,74 @@ const RegisterScreen = () => {
                             </View>
                         </View>
 
-                        {/* Encryption Warning Alert */}
-                        <View style={[styles.encryptionAlert, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                            <View style={styles.alertHeader}>
-                                <Ionicons name="shield-checkmark" size={20} color="#f59e0b" style={styles.alertIcon} />
-                                <Text style={[styles.alertTitle, { color: colors.text }]}>
-                                    {t('auth.encryptionWarningTitle')}
+                        {/* Password Requirements */}
+                        {password.length > 0 && (
+                            <View style={[styles.requirementsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <Text style={[styles.requirementsTitle, { color: colors.text }]}>
+                                    Password Requirements
                                 </Text>
+                                <View style={[styles.requirementItem, { opacity: /[a-z]/.test(password) ? 0.4 : 1 }]}>
+                                    <Ionicons 
+                                        name={/[a-z]/.test(password) ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={/[a-z]/.test(password) ? "#10b981" : "#ef4444"} 
+                                    />
+                                    <Text style={[styles.requirementText, { color: colors.text }]}>
+                                        Lowercase letter
+                                    </Text>
+                                </View>
+                                <View style={[styles.requirementItem, { opacity: /[A-Z]/.test(password) ? 0.4 : 1 }]}>
+                                    <Ionicons 
+                                        name={/[A-Z]/.test(password) ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={/[A-Z]/.test(password) ? "#10b981" : "#ef4444"} 
+                                    />
+                                    <Text style={[styles.requirementText, { color: colors.text }]}>
+                                        Uppercase letter
+                                    </Text>
+                                </View>
+                                <View style={[styles.requirementItem, { opacity: /[0-9]/.test(password) ? 0.4 : 1 }]}>
+                                    <Ionicons 
+                                        name={/[0-9]/.test(password) ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={/[0-9]/.test(password) ? "#10b981" : "#ef4444"} 
+                                    />
+                                    <Text style={[styles.requirementText, { color: colors.text }]}>
+                                        Number
+                                    </Text>
+                                </View>
+                                <View style={[styles.requirementItem, { opacity: /[!@#$%^&*(),.?":{}|<>]/.test(password) ? 0.4 : 1 }]}>
+                                    <Ionicons 
+                                        name={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "#10b981" : "#ef4444"} 
+                                    />
+                                    <Text style={[styles.requirementText, { color: colors.text }]}>
+                                        Special character
+                                    </Text>
+                                </View>
+                                <View style={[styles.requirementItem, { opacity: password.length >= 8 ? 0.4 : 1 }]}>
+                                    <Ionicons 
+                                        name={password.length >= 8 ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={password.length >= 8 ? "#10b981" : "#ef4444"} 
+                                    />
+                                    <Text style={[styles.requirementText, { color: colors.text }]}>
+                                        At least 8 characters
+                                    </Text>
+                                </View>
+                                <View style={[styles.requirementItem, { opacity: password === confirmPassword && password.length > 0 ? 0.4 : 1 }]}>
+                                    <Ionicons 
+                                        name={password === confirmPassword && password.length > 0 ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={password === confirmPassword && password.length > 0 ? "#10b981" : "#ef4444"} 
+                                    />
+                                    <Text style={[styles.requirementText, { color: colors.text }]}>
+                                        Passwords match
+                                    </Text>
+                                </View>
                             </View>
-                            <Text style={[styles.alertMessage, { color: colors.icon }]}>
-                                {t('auth.encryptionWarningMessage')}
-                            </Text>
-                        </View>
+                        )}
 
                         {/* Terms and Conditions Checkbox */}
                         <View style={styles.checkboxContainer}>
@@ -444,6 +513,28 @@ const styles = StyleSheet.create({
     alertMessage: {
         fontSize: 13,
         lineHeight: 18,
+    },
+    requirementsContainer: {
+        marginTop: 12,
+        marginBottom: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderRadius: 12,
+        gap: 12,
+    },
+    requirementsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    requirementItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    requirementText: {
+        fontSize: 14,
+        lineHeight: 20,
     },
 });
 
