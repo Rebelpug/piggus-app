@@ -21,6 +21,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
 import { useLocalization } from '@/context/LocalizationContext';
+import {formatCurrency} from "@/utils/currencyUtils";
 
 export default function GroupsScreen() {
     const router = useRouter();
@@ -97,6 +98,9 @@ export default function GroupsScreen() {
             }
         }, 0) || 0;
 
+        console.log("Rendering group");
+        console.log(item);
+
         return (
             <TouchableOpacity
                 style={[styles.groupCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
@@ -125,7 +129,7 @@ export default function GroupsScreen() {
                         </View>
                         <View style={styles.groupAmount}>
                             <Text style={[styles.amountText, { color: colors.text }]}>
-                                ${totalAmount.toFixed(2)}
+                                {formatCurrency(totalAmount, item.data.currency)}
                             </Text>
                             <Text style={[styles.statusText, { color: getGroupStatusColor(item.membership_status || 'confirmed') }]}>
                                 {getGroupStatusText(item.membership_status || 'confirmed')}

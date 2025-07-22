@@ -21,12 +21,15 @@ import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { formatCurrency } from "@/utils/currencyUtils";
+import {useProfile} from "@/context/ProfileContext";
 
 export default function SharesScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
+    const { userProfile } = useProfile();
     const { expensesGroups, isLoading, error } = useExpense();
     const { portfolios, isLoading: portfoliosLoading, error: portfoliosError } = useInvestment();
     const [refreshing, setRefreshing] = useState(false);
@@ -135,7 +138,7 @@ export default function SharesScreen() {
                         </View>
                         <View style={styles.groupAmount}>
                             <Text style={[styles.amountText, { color: colors.text }]}>
-                                ${totalAmount.toFixed(2)}
+                                {formatCurrency(totalAmount, item.data.currency)}
                             </Text>
                             <Text style={[styles.statusText, { color: getGroupStatusColor(item.membership_status || 'confirmed') }]}>
                                 {getGroupStatusText(item.membership_status || 'confirmed')}
@@ -190,12 +193,7 @@ export default function SharesScreen() {
             }
         }, 0) || 0;
 
-        const formatCurrency = (amount: number) => {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-            }).format(amount);
-        };
+        const currency = item.investments?.[0]?.data?.currency || userProfile?.profile?.defaultCurrency;
 
         return (
             <TouchableOpacity
@@ -222,13 +220,13 @@ export default function SharesScreen() {
                         </View>
                         <View style={styles.groupAmount}>
                             <Text style={[styles.amountText, { color: colors.text }]}>
-                                {formatCurrency(totalValue)}
+                                {formatCurrency(totalValue, currency)}
                             </Text>
                             <Text style={[
                                 styles.statusText,
                                 { color: totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                             ]}>
-                                {formatCurrency(totalGainLoss)}
+                                {formatCurrency(totalGainLoss, currency)}
                             </Text>
                         </View>
                     </View>
