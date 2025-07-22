@@ -32,9 +32,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [failedAttempts, setFailedAttempts] = useState(0);
-    const { initializeEncryptionWithPassword, signOut, user, tryBiometricLogin, isAuthenticated } = useAuth();
-    const router = useRouter();
+    const { initializeEncryptionWithPassword, signOut, tryBiometricLogin } = useAuth();
 
     useEffect(() => {
         handleBiometricLogin();
@@ -45,22 +43,10 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
         console.log(`Authentication failed: ${reason}. Cleaning up stored data...`);
 
         try {
-            // Clean up stored session data
             await SecureKeyManager.clearAllData();
-
-            // Clean up any recovery session data if it exists
-            if (user?.email) {
-                const recoveryStorageKey = `recovery_${user.email}`;
-                await AsyncStorage.removeItem(recoveryStorageKey);
-            }
-
-            // Sign out the user
             await signOut();
-
-            console.log('Cleanup completed. Redirecting to login...');
         } catch (error) {
             console.error('Error during cleanup:', error);
-            // Still try to sign out and redirect even if cleanup fails
             try {
                 await signOut();
             } catch (signOutError) {
@@ -119,12 +105,10 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
                 }
             } else {
                 console.log('PasswordPrompt: Biometric authentication failed or was canceled');
-                setFailedAttempts(prev => prev + 1);
                 await cleanupAndRedirect('Biometric authentication failed or was canceled');
             }
         } catch (error) {
             console.error('PasswordPrompt: Biometric login error:', error);
-            setFailedAttempts(prev => prev + 1);
             await cleanupAndRedirect('Biometric login error');
         } finally {
             setLoading(false);
@@ -145,7 +129,6 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({ onSuccess, onCancel }) 
             onSuccess?.();
         } catch (error: any) {
             console.error('Password verification failed:', error);
-            setFailedAttempts(prev => prev + 1);
             await cleanupAndRedirect('Password verification failed');
         } finally {
             setLoading(false);
