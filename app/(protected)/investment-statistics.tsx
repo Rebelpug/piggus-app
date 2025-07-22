@@ -35,27 +35,58 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
   const chartWidth = size.width - (padding * 2);
   const chartHeight = size.height - (padding * 2);
 
-  if (data.length === 0) return null;
+  // Filter out invalid data points
+  const validData = data.filter(point => {
+    return point && 
+           typeof point.year === 'number' && 
+           typeof point.value === 'number' && 
+           isFinite(point.value) && 
+           !isNaN(point.value);
+  });
 
-  const maxValue = Math.max(...data.map(d => d.value));
-  const minValue = Math.min(...data.map(d => d.value));
+  if (validData.length === 0) return null;
+
+  const values = validData.map(d => d.value).filter(v => isFinite(v));
+  if (values.length === 0) return null;
+
+  const maxValue = Math.max(...values);
+  const minValue = Math.min(...values);
   const valueRange = maxValue - minValue;
 
-  // Create points for the line
-  const points = data.map((point, index) => {
-    const x = padding + (index / (data.length - 1)) * chartWidth;
-    const y = padding + chartHeight - ((point.value - minValue) / valueRange) * chartHeight;
-    return `${x},${y}`;
-  }).join(' ');
+  // Handle case where all values are the same
+  if (valueRange === 0 || !isFinite(valueRange)) {
+    return null;
+  }
 
-  // Create area under the curve
+  // Create points for the line with defensive checks
+  const points = validData.map((point, index) => {
+    const x = padding + (index / (validData.length - 1)) * chartWidth;
+    const normalizedValue = (point.value - minValue) / valueRange;
+    const y = padding + chartHeight - normalizedValue * chartHeight;
+    
+    // Validate coordinates
+    if (!isFinite(x) || !isFinite(y)) {
+      return null;
+    }
+    
+    return `${x},${y}`;
+  }).filter(Boolean).join(' ');
+
+  // Create area under the curve with defensive checks
   const areaPoints = [
     `${padding},${padding + chartHeight}`, // Start from bottom left
-    ...data.map((point, index) => {
-      const x = padding + (index / (data.length - 1)) * chartWidth;
-      const y = padding + chartHeight - ((point.value - minValue) / valueRange) * chartHeight;
+    ...validData.map((point, index) => {
+      const x = padding + (index / (validData.length - 1)) * chartWidth;
+      const normalizedValue = (point.value - minValue) / valueRange;
+      const y = padding + chartHeight - normalizedValue * chartHeight;
+      
+      // Validate coordinates
+      if (!isFinite(x) || !isFinite(y)) {
+        return null;
+      }
+      
       return `${x},${y}`;
-    }),
+    }).filter(Boolean),
     `${padding + chartWidth},${padding + chartHeight}` // End at bottom right
   ].join(' ');
 
@@ -93,9 +124,16 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       />
 
       {/* Data points */}
-      {data.map((point, index) => {
-        const x = padding + (index / (data.length - 1)) * chartWidth;
-        const y = padding + chartHeight - ((point.value - minValue) / valueRange) * chartHeight;
+      {validData.map((point, index) => {
+        const x = padding + (index / (validData.length - 1)) * chartWidth;
+        const normalizedValue = (point.value - minValue) / valueRange;
+        const y = padding + chartHeight - normalizedValue * chartHeight;
+        
+        // Validate coordinates before rendering
+        if (!isFinite(x) || !isFinite(y)) {
+          return null;
+        }
+        
         return (
           <Circle
             key={index}
@@ -110,9 +148,15 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       })}
 
       {/* Year labels */}
-      {data.map((point, index) => {
-        if (index % 2 === 0 || index === data.length - 1) { // Show every other year + last year
-          const x = padding + (index / (data.length - 1)) * chartWidth;
+      {validData.map((point, index) => {
+        if (index % 2 === 0 || index === validData.length - 1) { // Show every other year + last year
+          const x = padding + (index / (validData.length - 1)) * chartWidth;
+          
+          // Validate coordinate and year value
+          if (!isFinite(x) || !point.year) {
+            return null;
+          }
+          
           return (
             <SvgText
               key={`year-${index}`}
@@ -137,11 +181,26 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
   const centerX = size / 2;
   const centerY = size / 2;
 
+  // Filter out invalid data
+  const validData = data.filter(item => {
+    const value = Number(item.value);
+    return !isNaN(value) && isFinite(value) && value > 0;
+  });
+
   let slices: React.ReactNode[] = [];
 
-  if (data.length === 0) {
-    return null;
-  } else if (data.length === 1) {
+  if (validData.length === 0) {
+    return (
+      <Svg width={size} height={size}>
+        <Circle
+          cx={centerX}
+          cy={centerY}
+          r={radius * 0.3}
+          fill={colors.background}
+        />
+      </Svg>
+    );
+  } else if (validData.length === 1) {
     // If only one item then draw the full circle
     slices = [
       <Circle
@@ -149,15 +208,21 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
           cx={centerX}
           cy={centerY}
           r={radius}
-          fill={data[0].color}
+          fill={validData[0].color}
           stroke={colors.background}
           strokeWidth={2}
       />
     ];
   } else {
     let cumulativePercentage = 0;
-    slices = data.map((item, index) => {
-      const percentage = item.value;
+    slices = validData.map((item, index) => {
+      const percentage = Number(item.value);
+      
+      // Defensive checks for all calculations
+      if (!isFinite(percentage) || isNaN(percentage) || percentage <= 0) {
+        return null;
+      }
+
       const startAngle = (cumulativePercentage / 100) * 360;
       const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
 
@@ -166,10 +231,25 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
       const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
       const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
 
-      const x1 = centerX + radius * Math.cos(startAngleRad);
-      const y1 = centerY + radius * Math.sin(startAngleRad);
-      const x2 = centerX + radius * Math.cos(endAngleRad);
-      const y2 = centerY + radius * Math.sin(endAngleRad);
+      // Calculate arc path with defensive checks
+      const cosStart = Math.cos(startAngleRad);
+      const sinStart = Math.sin(startAngleRad);
+      const cosEnd = Math.cos(endAngleRad);
+      const sinEnd = Math.sin(endAngleRad);
+
+      if (!isFinite(cosStart) || !isFinite(sinStart) || !isFinite(cosEnd) || !isFinite(sinEnd)) {
+        return null;
+      }
+
+      const x1 = centerX + radius * cosStart;
+      const y1 = centerY + radius * sinStart;
+      const x2 = centerX + radius * cosEnd;
+      const y2 = centerY + radius * sinEnd;
+
+      // Final validation of coordinates
+      if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
+        return null;
+      }
 
       const largeArcFlag = percentage > 50 ? 1 : 0;
 
@@ -189,7 +269,7 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
               strokeWidth={2}
           />
       );
-    });
+    }).filter(Boolean);
   }
 
   return (
@@ -321,11 +401,19 @@ export default function InvestmentStatisticsScreen() {
   }, [investmentStats]);
 
   const getProgressWidth = (amount: number, maxAmount: number) => {
-    if (maxAmount === 0) return 0;
-    return Math.min((amount / maxAmount) * 100, 100);
+    if (!isFinite(amount) || !isFinite(maxAmount) || maxAmount === 0 || isNaN(amount) || isNaN(maxAmount)) {
+      return 0;
+    }
+    const percentage = (amount / maxAmount) * 100;
+    if (!isFinite(percentage) || isNaN(percentage)) {
+      return 0;
+    }
+    return Math.min(percentage, 100);
   };
 
-  const maxTypeValue = Math.max(...Object.values(investmentStats.typeBreakdown).map(t => t.value), 0);
+  const maxTypeValue = Object.values(investmentStats.typeBreakdown || {}).length > 0
+    ? Math.max(...Object.values(investmentStats.typeBreakdown).map(t => isFinite(t.value) ? t.value : 0))
+    : 0;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -369,7 +457,7 @@ export default function InvestmentStatisticsScreen() {
                 {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss, userProfile?.profile.defaultCurrency)}
               </Text>
               <Text style={[styles.statPercentage, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.totalGainLossPercentage >= 0 ? '+' : ''}{investmentStats.totalGainLossPercentage.toFixed(2)}%
+                {investmentStats.totalGainLossPercentage >= 0 ? '+' : ''}{isFinite(investmentStats.totalGainLossPercentage) ? investmentStats.totalGainLossPercentage.toFixed(2) : '0.00'}%
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.totalReturn')}</Text>
             </View>
@@ -379,7 +467,7 @@ export default function InvestmentStatisticsScreen() {
                 {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.estimatedYearlyGainLoss, userProfile?.profile?.defaultCurrency)}
               </Text>
               <Text style={[styles.statPercentage, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{investmentStats.estimatedYearlyGainLossPercentage.toFixed(2)}%
+                {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.estimatedYearlyGainLossPercentage) ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.estimatedYearlyGainLoss')}</Text>
             </View>
@@ -389,7 +477,7 @@ export default function InvestmentStatisticsScreen() {
                 {formatCurrency(investmentStats.dividendsInterestEarned, userProfile?.profile?.defaultCurrency)}
               </Text>
               <Text style={[styles.statPercentage, { color: colors.success }]}>
-                {investmentStats.dividendsInterestEarnedPercentage.toFixed(2)}%
+                {isFinite(investmentStats.dividendsInterestEarnedPercentage) ? investmentStats.dividendsInterestEarnedPercentage.toFixed(2) : '0.00'}%
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.dividendsInterestEarned')}</Text>
             </View>
@@ -419,7 +507,7 @@ export default function InvestmentStatisticsScreen() {
                       ]}
                     />
                     <Text style={[styles.legendText, { color: colors.text }]}>
-                      {item.label} ({item.value.toFixed(1)}%)
+                      {item.label} ({isFinite(item.value) ? item.value.toFixed(1) : '0.0'}%)
                     </Text>
                   </View>
                 ))}
@@ -507,7 +595,7 @@ export default function InvestmentStatisticsScreen() {
                         {formatCurrency(data.value, userProfile?.profile.defaultCurrency)}
                       </Text>
                       <Text style={[styles.typePercentage, { color: colors.icon }]}>
-                        {percentage.toFixed(1)}%
+                        {isFinite(percentage) ? percentage.toFixed(1) : '0.0'}%
                       </Text>
                     </View>
                   </View>

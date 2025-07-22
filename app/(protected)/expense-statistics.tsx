@@ -34,45 +34,102 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
   const centerX = size / 2;
   const centerY = size / 2;
 
-  // Calculate cumulative percentages for positioning
-  let cumulativePercentage = 0;
+  // Filter out invalid data and ensure valid percentages
+  const validData = data.filter(item => {
+    const value = Number(item.value);
+    return !isNaN(value) && isFinite(value) && value > 0;
+  });
 
-  const slices = data.map((item, index) => {
-    const percentage = item.value;
-    const startAngle = (cumulativePercentage / 100) * 360;
-    const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
-
-    cumulativePercentage += percentage;
-
-    // Convert to radians and adjust rotation (start from top)
-    const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
-    const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
-
-    // Calculate arc path
-    const x1 = centerX + radius * Math.cos(startAngleRad);
-    const y1 = centerY + radius * Math.sin(startAngleRad);
-    const x2 = centerX + radius * Math.cos(endAngleRad);
-    const y2 = centerY + radius * Math.sin(endAngleRad);
-
-    const largeArcFlag = percentage > 50 ? 1 : 0;
-
-    const pathData = [
-      `M ${centerX} ${centerY}`, // Move to center
-      `L ${x1} ${y1}`, // Line to start of arc
-      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`, // Arc
-      'Z' // Close path
-    ].join(' ');
-
+  // If no valid data, return empty SVG
+  if (validData.length === 0) {
     return (
-      <Path
-        key={index}
-        d={pathData}
-        fill={item.color}
+      <Svg width={size} height={size}>
+        <Circle
+          cx={centerX}
+          cy={centerY}
+          r={radius * 0.3}
+          fill={colors.background}
+        />
+      </Svg>
+    );
+  }
+
+  let slices: React.ReactNode[] = [];
+
+  if (validData.length === 1) {
+    // If only one category, draw a full circle
+    slices = [
+      <Circle
+        key="full"
+        cx={centerX}
+        cy={centerY}
+        r={radius}
+        fill={validData[0].color}
         stroke={colors.background}
         strokeWidth={2}
       />
-    );
-  });
+    ];
+  } else {
+    // Calculate cumulative percentages for positioning
+    let cumulativePercentage = 0;
+
+    slices = validData.map((item, index) => {
+      const percentage = Number(item.value);
+      
+      // Defensive checks for all calculations
+      if (!isFinite(percentage) || isNaN(percentage) || percentage <= 0) {
+        return null;
+      }
+
+      const startAngle = (cumulativePercentage / 100) * 360;
+      const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
+
+      cumulativePercentage += percentage;
+
+      // Convert to radians and adjust rotation (start from top)
+      const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
+      const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
+
+      // Calculate arc path with defensive checks
+      const cosStart = Math.cos(startAngleRad);
+      const sinStart = Math.sin(startAngleRad);
+      const cosEnd = Math.cos(endAngleRad);
+      const sinEnd = Math.sin(endAngleRad);
+
+      if (!isFinite(cosStart) || !isFinite(sinStart) || !isFinite(cosEnd) || !isFinite(sinEnd)) {
+        return null;
+      }
+
+      const x1 = centerX + radius * cosStart;
+      const y1 = centerY + radius * sinStart;
+      const x2 = centerX + radius * cosEnd;
+      const y2 = centerY + radius * sinEnd;
+
+      // Final validation of coordinates
+      if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
+        return null;
+      }
+
+      const largeArcFlag = percentage > 50 ? 1 : 0;
+
+      const pathData = [
+        `M ${centerX} ${centerY}`, // Move to center
+        `L ${x1} ${y1}`, // Line to start of arc
+        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`, // Arc
+        'Z' // Close path
+      ].join(' ');
+
+      return (
+        <Path
+          key={index}
+          d={pathData}
+          fill={item.color}
+          stroke={colors.background}
+          strokeWidth={2}
+        />
+      );
+    }).filter(Boolean);
+  }
 
   return (
     <Svg width={size} height={size}>
@@ -482,12 +539,20 @@ export default function ExpenseStatisticsScreen() {
   };
 
   const getProgressWidth = (amount: number, maxAmount: number) => {
-    if (maxAmount === 0) return 0;
-    return Math.min((amount / maxAmount) * 100, 100);
+    if (!isFinite(amount) || !isFinite(maxAmount) || maxAmount === 0 || isNaN(amount) || isNaN(maxAmount)) {
+      return 0;
+    }
+    const percentage = (amount / maxAmount) * 100;
+    if (!isFinite(percentage) || isNaN(percentage)) {
+      return 0;
+    }
+    return Math.min(percentage, 100);
   };
 
   const maxCategoryAmount = expenseStats.categories.length > 0 ? expenseStats.categories[0].totalAmount : 0;
-  const maxMonthlyAmount = Math.max(...expenseStats.monthlyData.map(m => m.totalAmount));
+  const maxMonthlyAmount = expenseStats.monthlyData.length > 0 
+    ? Math.max(...expenseStats.monthlyData.map(m => isFinite(m.totalAmount) ? m.totalAmount : 0))
+    : 0;
 
   const getPeriodLabel = () => {
     switch (periodFilter.type) {
@@ -637,14 +702,23 @@ export default function ExpenseStatisticsScreen() {
                     style={[
                       styles.budgetProgressFill,
                       {
-                        width: `${Math.min((budgetComparison.actualSpending / budgetComparison.budgetAmount) * 100, 100)}%`,
+                        width: `${Math.min(
+                          isFinite(budgetComparison.actualSpending / budgetComparison.budgetAmount) && budgetComparison.budgetAmount > 0
+                            ? (budgetComparison.actualSpending / budgetComparison.budgetAmount) * 100
+                            : 0,
+                          100
+                        )}%`,
                         backgroundColor: budgetComparison.isOverBudget ? colors.error : colors.success
                       }
                     ]}
                   />
                 </View>
                 <Text style={[styles.budgetProgressText, { color: colors.icon }]}>
-                  {((budgetComparison.actualSpending / budgetComparison.budgetAmount) * 100).toFixed(1)}% of budget used
+                  {(
+                    isFinite(budgetComparison.actualSpending / budgetComparison.budgetAmount) && budgetComparison.budgetAmount > 0
+                      ? ((budgetComparison.actualSpending / budgetComparison.budgetAmount) * 100).toFixed(1)
+                      : '0.0'
+                  )}% of budget used
                 </Text>
               </View>
             </View>
@@ -675,7 +749,7 @@ export default function ExpenseStatisticsScreen() {
                       ]}
                     />
                     <Text style={[styles.legendText, { color: colors.text }]}>
-                      {item.label} ({item.value.toFixed(1)}%)
+                      {item.label} ({isFinite(item.value) ? item.value.toFixed(1) : '0.0'}%)
                     </Text>
                   </View>
                 ))}
@@ -703,7 +777,7 @@ export default function ExpenseStatisticsScreen() {
                       {formatCurrency(category.totalAmount)}
                     </Text>
                     <Text style={[styles.categoryPercentage, { color: colors.icon }]}>
-                      {category.percentage.toFixed(1)}%
+                      {isFinite(category.percentage) ? category.percentage.toFixed(1) : '0.0'}%
                     </Text>
                   </View>
                 </View>
@@ -745,7 +819,7 @@ export default function ExpenseStatisticsScreen() {
                             {formatCurrency(subcategory.totalAmount)}
                           </Text>
                           <Text style={[styles.subcategoryPercentage, { color: colors.icon }]}>
-                            {subcategory.percentage.toFixed(1)}%
+                            {isFinite(subcategory.percentage) ? subcategory.percentage.toFixed(1) : '0.0'}%
                           </Text>
                         </View>
                       </View>
