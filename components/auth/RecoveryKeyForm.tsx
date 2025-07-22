@@ -172,7 +172,7 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
         {/* Recovery Phrase Display */}
         <View style={[styles.phraseContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.phraseTitle, { color: colors.text }]}>
-            {t('auth.recoveryPhrase') || 'Recovery Phrase'} (BIP39)
+            {t('auth.recoveryPhrase') || 'Recovery Phrase'}
           </Text>
           <View style={styles.phraseGrid}>
             {recoveryPhrase.map((word, index) => (
@@ -231,7 +231,7 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
               • {t('auth.recoveryKeyInstruction4') || 'Keep multiple copies in different secure locations'}
             </Text>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • This uses the BIP39 standard compatible with major cryptocurrency wallets
+              • This uses the BIP39 standard compatible with major security systems
             </Text>
           </View>
         </View>

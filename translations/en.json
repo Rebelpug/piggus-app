@@ -143,7 +143,7 @@
     "recoveryKeyWarning": "This is the ONLY way to recover your account. Store it safely and never share it with anyone.",
     "downloadRecoveryKey": "Download",
     "copyRecoveryKey": "Copy",
-    "recoveryKeyInstructions": "How to store your BIP39 recovery phrase safely:",
+    "recoveryKeyInstructions": "How to store your recovery phrase safely:",
     "recoveryKeyInstruction1": "Write these words down in exact order on paper",
     "recoveryKeyInstruction2": "Never store it digitally (no screenshots or cloud storage)",
     "recoveryKeyInstruction3": "Never share it with anyone",
