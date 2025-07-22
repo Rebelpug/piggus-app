@@ -208,7 +208,19 @@ export default function ExpensesScreen() {
         const result: Array<{ type: 'header' | 'expense'; data: any; key: string }> = [];
         Object.keys(groups).forEach(monthKey => {
             result.push({ type: 'header', data: monthKey, key: `header-${monthKey}` });
-            groups[monthKey].forEach(expense => {
+            // Sort expenses within the same month by created_at descending
+            const sortedMonthExpenses = groups[monthKey].sort((a, b) => {
+                try {
+                    // First sort by date (descending), then by created_at (descending)
+                    const dateCompare = new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+                    if (dateCompare !== 0) return dateCompare;
+
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                } catch {
+                    return 0;
+                }
+            });
+            sortedMonthExpenses.forEach(expense => {
                 result.push({ type: 'expense', data: expense, key: expense.id });
             });
         });
