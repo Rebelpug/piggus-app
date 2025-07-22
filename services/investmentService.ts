@@ -276,16 +276,63 @@ export const apiInviteUserToPortfolio = async (
       };
     }
 
-    // For now, we'll need to get the portfolio key and target user's public key
-    // This is a simplified version - in reality we'd need to decrypt the portfolio key first
-    const encryptedPortfolioKey = 'placeholder'; // This would need proper implementation
+    // 1. Find target user by username and get their public key
+    const targetUsers = await piggusApi.searchProfiles(username, 1);
+    if (!targetUsers || targetUsers.length === 0) {
+      return {
+        success: false,
+        error: 'User not found',
+      };
+    }
+    const targetUser = targetUsers[0];
 
+    if (!targetUser.encryption_public_key) {
+      return {
+        success: false,
+        error: 'Target user has no public key',
+      };
+    }
+
+    // 2. Get the current user's portfolio membership to retrieve their encrypted portfolio key
+    const portfolioMemberships = await piggusApi.getPortfolios();
+    const userMembership = portfolioMemberships.find(membership =>
+      membership.portfolios.id === portfolioId && membership.user_id === user.id
+    );
+
+    if (!userMembership) {
+      return {
+        success: false,
+        error: 'You are not a member of this portfolio',
+      };
+    }
+
+    // 3. Decrypt the portfolio key with the current user's private key
+    const portfolioKey = await decryptWithPrivateKey(userMembership.encrypted_portfolio_key);
+    const portfolioKeyString = typeof portfolioKey === 'string' ? portfolioKey : JSON.stringify(portfolioKey);
+
+    // Validate that this looks like a base64 string
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(portfolioKeyString)) {
+      console.error('Decrypted portfolio key does not appear to be valid base64:', portfolioKeyString.substring(0, 50));
+      return {
+        success: false,
+        error: 'Invalid portfolio key format'
+      };
+    }
+
+    // 4. Re-encrypt the portfolio key with the target user's public key
+    const encryptedPortfolioKeyForNewUser = await encryptWithExternalPublicKey(
+      targetUser.encryption_public_key,
+      portfolioKeyString
+    );
+
+    // 5. Send the invitation with the properly encrypted portfolio key
     await piggusApi.inviteToPortfolio(portfolioId, {
       username,
-      encryptedPortfolioKey,
+      encryptedPortfolioKey: encryptedPortfolioKeyForNewUser,
     });
 
     return { success: true };
+
   } catch (error: any) {
     console.error('Error inviting user to portfolio:', error);
     return {
