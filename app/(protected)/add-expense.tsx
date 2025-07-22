@@ -251,7 +251,7 @@ export default function AddExpenseScreen() {
 
         const totalShares = activeParticipants.reduce((sum, p) => sum + p.share_amount, 0);
         const totalAmount = Number(amount);
-        if (Math.abs(totalShares - totalAmount) > 0.01) {
+        if (Math.abs(totalShares - totalAmount) > 1) {
             Alert.alert(t('validation.error'), t('validation.sharesAmountMismatch', { totalShares: totalShares.toFixed(2), totalAmount: totalAmount.toFixed(2) }));
             return false;
         }
