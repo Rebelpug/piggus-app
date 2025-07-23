@@ -11,6 +11,7 @@ import { StyleSheet, View } from 'react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {GuideProvider} from "@/context/GuideContext";
+import OnboardingGuard from "@/components/layout/OnboardingGuard";
 
 export default function ProtectedLayout() {
     const colorScheme = useColorScheme();
@@ -41,9 +42,11 @@ export default function ProtectedLayout() {
             <GuideProvider>
                 <ExpenseProvider>
                     <InvestmentProvider>
-                        <Stack screenOptions={{
-                            headerShown: false,
-                        }} />
+                        <OnboardingGuard>
+                            <Stack screenOptions={{
+                                headerShown: false,
+                            }} />
+                        </OnboardingGuard>
                     </InvestmentProvider>
                 </ExpenseProvider>
             </GuideProvider>

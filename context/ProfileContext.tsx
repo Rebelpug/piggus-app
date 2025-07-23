@@ -24,6 +24,8 @@ type ProfileContextType = {
     userProfile: Profile | null;
     loading: boolean;
     error: string | null;
+    onboardingCompleted: boolean;
+    setOnboardingCompleted: (completed: boolean) => void;
     createUserProfile: (username: string, defaultCurrency?: string) => Promise<Profile | null>;
     refreshProfile: () => Promise<void>;
     updateProfile: (profileData: Partial<Profile['profile']>) => Promise<void>;
@@ -40,6 +42,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [profileInitialized, setProfileInitialized] = useState(false);
+    const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
     const initialisePersonalExpensesGroup = async (username: string, defaultCurrency: string = 'EUR') => {
         if (!user || !publicKey || !username) {
@@ -103,6 +106,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             if (result.data) {
                 console.log('Profile found and loaded');
                 setUserProfile(result.data);
+                setOnboardingCompleted(!!result.data.profile.budgeting?.budget);
             } else {
                 console.log('No profile found for user, will need to create one', result.error);
                 // We'll let the UI handle profile creation rather than doing it automatically
@@ -150,6 +154,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 await initialisePersonalPortfolio(username);
 
                 setUserProfile(result.data);
+                setOnboardingCompleted(false);
                 setLoading(false);
                 setProfileInitialized(true);
                 return result.data;
@@ -191,6 +196,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 setUserProfile(result.data);
+                // Check if user now has budget after update - if so, onboarding is complete
+                if (result.data.profile.budgeting?.budget) {
+                    setOnboardingCompleted(true);
+                }
             } catch (error: any) {
                 console.error('Error updating profile:', error);
                 setError(error.message || 'Failed to update profile');
@@ -217,6 +226,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             setUserProfile(null);
             setLoading(false);
             setProfileInitialized(false);
+            setOnboardingCompleted(false);
         }
     }, [user, encryptData, decryptData, fetchUserProfile, authInitialized, encryptionInitialized, profileInitialized]);
 
@@ -284,6 +294,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             );
         }
 
+        // If we have a user and profile but onboarding hasn't been completed, we'll handle this in the app layout
+        // For now, just render children and let the layout handle onboarding
+        if (user && profileInitialized && userProfile && !onboardingCompleted && !needsRecoveryKey) {
+            // Don't render onboarding here - let the layout handle it
+            return children;
+        }
+
         // Otherwise, render the children
         return children;
     };
@@ -294,6 +311,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 userProfile,
                 loading: isLoading,
                 error,
+                onboardingCompleted,
+                setOnboardingCompleted,
                 createUserProfile,
                 refreshProfile,
                 updateProfile,
