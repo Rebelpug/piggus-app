@@ -476,6 +476,9 @@ export default function EditInvestmentScreen() {
                             status={errors.quantity ? 'danger' : 'basic'}
                         />
                         {errors.quantity && <Text style={styles.errorText}>{errors.quantity}</Text>}
+                        <Text style={[styles.premiumNote, { color: colors.icon }]}>
+                            {t('addInvestment.purchasePriceNote')}
+                        </Text>
 
                         <Input
                             label={t('editInvestment.purchasePriceRequired')}

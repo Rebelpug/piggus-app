@@ -496,6 +496,9 @@ export default function AddInvestmentScreen() {
                             keyboardType='decimal-pad'
                             status={formData.quantity.trim() && !isNaN(Number(formData.quantity)) && Number(formData.quantity) > 0 ? 'basic' : 'danger'}
                         />
+                        <Text style={[styles.premiumNote, { color: colors.icon }]}>
+                            {t('addInvestment.purchasePriceNote')}
+                        </Text>
 
                         <Select
                             style={styles.input}
@@ -524,9 +527,6 @@ export default function AddInvestmentScreen() {
                             keyboardType='decimal-pad'
                             status={formData.purchase_price.trim() && !isNaN(Number(formData.purchase_price)) && Number(formData.purchase_price) > 0 ? 'basic' : 'danger'}
                         />
-                        <Text style={[styles.premiumNote, { color: colors.icon }]}>
-                            {t('addInvestment.purchasePriceNote')}
-                        </Text>
 
                         <Input
                             style={styles.input}
