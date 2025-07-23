@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {Alert, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {
     Button,
@@ -21,7 +21,15 @@ import {useColorScheme} from '@/hooks/useColorScheme';
 import {Colors} from '@/constants/Colors';
 import {ThemedView} from '@/components/ThemedView';
 import {useLocalization} from '@/context/LocalizationContext';
-import { calculateCurrentValue, calculateCAGR, calculateExpectedYearlyYield, calculateDividendsInterestEarned, calculateIndividualInvestmentReturns } from '@/utils/financeUtils';
+import {
+    calculateCurrentValue,
+    calculateCAGR,
+    calculateExpectedYearlyYield,
+    calculateDividendsInterestEarned,
+    calculateIndividualInvestmentReturns,
+    InvestmentStats
+} from '@/utils/financeUtils';
+import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
 
 // Investment types with localized names
 
@@ -239,7 +247,7 @@ export default function AddInvestmentScreen() {
                 name: formData.name.trim(),
                 symbol: formData.symbol.trim() || null,
                 type: selectedType.id,
-                isin: formData.isin,
+                isin: formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
                 exchange_market: formData.exchange_market.trim() || undefined,
                 quantity: Number(formData.quantity),
                 purchase_price: Number(formData.purchase_price),
@@ -273,104 +281,6 @@ export default function AddInvestmentScreen() {
         </TouchableOpacity>
     );
 
-    const calculateCurrentValue = () => {
-        const quantity = Number(formData.quantity) || 0;
-        const currentPrice = Number(formData.current_price) || Number(formData.purchase_price) || 0;
-        const marketValue = quantity * currentPrice;
-
-        // For bonds, add accrued interest to the current value
-        if (selectedType.id === 'bond') {
-            const interestReturn = calculateBondInterestReturn();
-            return marketValue + interestReturn;
-        }
-
-        return marketValue;
-    };
-
-    const calculateGainLoss = () => {
-        const quantity = Number(formData.quantity) || 0;
-        const purchasePrice = Number(formData.purchase_price) || 0;
-        const currentPrice = Number(formData.current_price) || purchasePrice;
-        const initialValue = quantity * purchasePrice;
-        const currentMarketValue = quantity * currentPrice;
-
-        // For bonds and interest-bearing accounts, calculate based on the time period to maturity/sell
-        if (selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') {
-            const interestReturn = calculateBondInterestReturn();
-            const totalCurrentValue = currentMarketValue + interestReturn;
-            return totalCurrentValue - initialValue;
-        }
-
-        // For other investments, gain/loss is simply market value change from purchase to current
-        return currentMarketValue - initialValue;
-    };
-
-    const calculateBondInterestReturn = () => {
-        if (selectedType?.id !== 'bond' && selectedType?.id !== 'checkingAccount' && selectedType?.id !== 'savingsAccount') {
-            return 0;
-        }
-
-        if (!formData.interest_rate || formData.interest_rate === '') {
-            console.log('No interest rate, returning 0');
-            return 0;
-        }
-
-        const quantity = Number(formData.quantity) || 0;
-        const purchasePrice = Number(formData.purchase_price) || 0;
-        const interestRate = Number(formData.interest_rate) || 0;
-
-        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) {
-            return 0;
-        }
-
-        const initialValue = quantity * purchasePrice;
-
-        // Calculate time periods
-        const purchaseDate = formData.purchase_date;
-        const maturityDate = formData.maturity_date;
-
-        // For bonds with maturity date, use that as the end date for calculation
-        // For accounts without maturity, use current date
-        const endDate = (selectedType.id === 'bond' && maturityDate) ? maturityDate : new Date();
-
-        // Calculate days from purchase to end date
-        const daysBetween = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-        const yearsBetween = Math.max(0, daysBetween / 365.25);
-
-        // For demonstration purposes, if dates are the same, use 1 year as example
-        const yearsForCalculation = yearsBetween === 0 ? 1 : yearsBetween;
-
-        // Calculate annual interest return based on the time period
-        return initialValue * (interestRate / 100) * yearsForCalculation;
-    };
-
-    const getBondStatus = () => {
-        if (selectedType.id !== 'bond' || !formData.maturity_date) return 'active';
-
-        const currentDate = new Date();
-        const maturityDate = formData.maturity_date;
-
-        if (currentDate >= maturityDate) {
-            return 'matured';
-        } else {
-            return 'active';
-        }
-    };
-
-    const getDaysToMaturity = () => {
-        if (selectedType.id !== 'bond' || !formData.maturity_date) return null;
-
-        const currentDate = new Date();
-        const maturityDate = formData.maturity_date;
-
-        if (currentDate >= maturityDate) {
-            return 0;
-        }
-
-        const daysToMaturity = Math.floor((maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-        return daysToMaturity;
-    };
-
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -378,33 +288,42 @@ export default function AddInvestmentScreen() {
         }).format(amount);
     };
 
-    const calculateInvestmentReturns = () => {
+    const investmentReturns = useMemo(() => {
         if (!formData.quantity || !formData.purchase_price || !formData.purchase_date) {
             return {
-                currentReturn: 0,
-                expectedYearlyReturn: 0,
-                expectedTotalReturn: 0,
-                currentReturnPercentage: 0,
-                expectedYearlyReturnPercentage: 0,
-                expectedTotalReturnPercentage: 0
-            };
+                totalValue: 0,
+                totalInvested: 0,
+                totalGainLoss: 0,
+                totalGainLossPercentage: 0,
+                dividendsInterestEarned: 0,
+                dividendsInterestEarnedPercentage: 0,
+                estimatedYearlyGainLoss: 0,
+                estimatedYearlyGainLossPercentage: 0,
+                projectedValue10Years: 0,
+                investmentCount: 0,
+                averageValue: 0,
+                typeBreakdown: {},
+            } as InvestmentStats;
         }
 
         const quantity = Number(formData.quantity);
         const purchasePrice = Number(formData.purchase_price);
         const currentPrice = Number(formData.current_price) || purchasePrice;
 
+
         const investmentData = {
             id: 'temp',
             data: {
                 name: formData.name,
+                isin: formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
                 type: selectedType.id,
                 quantity: quantity,
                 purchase_price: purchasePrice,
                 current_price: currentPrice,
                 purchase_date: formData.purchase_date.toISOString().split('T')[0],
+                last_updated: new Date().toISOString(),
                 currency: selectedCurrency,
-                interest_rate: formData.interest_rate,
+                interest_rate: Number(formData.interest_rate) || 0,
                 maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
                 notes: formData.notes,
                 symbol: formData.symbol,
@@ -413,7 +332,7 @@ export default function AddInvestmentScreen() {
         };
 
         return calculateIndividualInvestmentReturns(investmentData);
-    };
+    }, [formData, selectedType.id, selectedCurrency]);
 
     if (portfolios.length === 0) {
         return (
@@ -472,7 +391,7 @@ export default function AddInvestmentScreen() {
                             label={t('addInvestment.isinCode')}
                             placeholder={t('addInvestment.enterIsinCode')}
                             value={formData.isin}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text.toUpperCase() }))}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text }))}
                         />
 
                         <Button
@@ -685,7 +604,7 @@ export default function AddInvestmentScreen() {
                                     {t('addInvestment.currentValue')}
                                 </Text>
                                 <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                    {formatCurrency(calculateInvestmentReturns().totalValue)}
+                                    {formatCurrency(investmentReturns.totalValue)}
                                 </Text>
                             </View>
 
@@ -695,9 +614,9 @@ export default function AddInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    { color: investmentReturns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                                 ]}>
-                                    {calculateInvestmentReturns().totalGainLoss >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentReturns().totalGainLoss)}
+                                    {investmentReturns.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentReturns.totalGainLoss)}
                                 </Text>
                             </View>
 
@@ -707,9 +626,9 @@ export default function AddInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    {color: investmentReturns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336'}
                                 ]}>
-                                    {calculateInvestmentReturns().totalGainLoss >= 0 ? '+' : ''}{calculateInvestmentReturns().totalGainLossPercentage.toFixed(2)}%
+                                    {investmentReturns.totalGainLoss >= 0 ? '+' : ''}{investmentReturns.totalGainLossPercentage.toFixed(2)}%
                                 </Text>
                             </View>
 
@@ -719,9 +638,9 @@ export default function AddInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    {color: investmentReturns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336'}
                                 ]}>
-                                    {calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentReturns().estimatedYearlyGainLoss)}
+                                    {investmentReturns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentReturns.estimatedYearlyGainLoss)}
                                 </Text>
                             </View>
 
@@ -731,19 +650,19 @@ export default function AddInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    { color: investmentReturns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                                 ]}>
-                                    {calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '+' : ''}{calculateInvestmentReturns().estimatedYearlyGainLossPercentage.toFixed(2)}%
+                                    {investmentReturns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{investmentReturns.estimatedYearlyGainLossPercentage.toFixed(2)}%
                                 </Text>
                             </View>
 
-                            {calculateInvestmentReturns().dividendsInterestEarned > 0 && (
+                            {investmentReturns.dividendsInterestEarned > 0 && (
                                 <View style={styles.summaryRow}>
                                     <Text style={[styles.summaryLabel, { color: colors.icon }]}>
                                         {t('addInvestment.dividendsInterestEarned')}
                                     </Text>
                                     <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
-                                        {formatCurrency(calculateInvestmentReturns().dividendsInterestEarned)} ({calculateInvestmentReturns().dividendsInterestEarnedPercentage.toFixed(2)}%)
+                                        {formatCurrency(investmentReturns.dividendsInterestEarned)} ({investmentReturns.dividendsInterestEarnedPercentage.toFixed(2)}%)
                                     </Text>
                                 </View>
                             )}

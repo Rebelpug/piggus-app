@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import { StyleSheet, ScrollView, Alert, View, KeyboardAvoidingView, Platform, TouchableOpacity, StatusBar } from 'react-native';
 import {
     Layout,
@@ -18,12 +18,20 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useLocalization } from '@/context/LocalizationContext';
-import { calculateCurrentValue, calculateCAGR, calculateExpectedYearlyYield, calculateDividendsInterestEarned, calculateIndividualInvestmentReturns } from '@/utils/financeUtils';
+import {
+    calculateCurrentValue,
+    calculateCAGR,
+    calculateExpectedYearlyYield,
+    calculateDividendsInterestEarned,
+    calculateIndividualInvestmentReturns,
+    InvestmentStats
+} from '@/utils/financeUtils';
 import { InvestmentData } from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
+import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
 
 const getInvestmentTypes = (t: (key: string) => string) => [
     { id: 'stock', name: t('investmentTypes.stock'), icon: 'trending-up' },
@@ -194,7 +202,7 @@ export default function EditInvestmentScreen() {
         try {
             const investmentData: InvestmentData = {
                 name: formData.name.trim(),
-                isin: formData.isin.trim(),
+                isin: formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
                 exchange_market: formData.exchange_market.trim(),
                 symbol: formData.symbol.trim() || null,
                 type: selectedType.id,
@@ -288,126 +296,6 @@ export default function EditInvestmentScreen() {
         </TouchableOpacity>
     );
 
-    const calculateCurrentValue = () => {
-        const quantity = Number(formData.quantity) || 0;
-        const currentPrice = Number(formData.current_price) || Number(formData.purchase_price) || 0;
-        const marketValue = quantity * currentPrice;
-
-        // For interest-bearing accounts, add accrued interest to the current value
-        if (supportsInterestRate(selectedType.id)) {
-            const interestReturn = calculateBondInterestReturn();
-            return marketValue + interestReturn;
-        }
-
-        return marketValue;
-    };
-
-    const calculateGainLoss = () => {
-        const quantity = Number(formData.quantity) || 0;
-        const purchasePrice = Number(formData.purchase_price) || 0;
-        const currentPrice = Number(formData.current_price) || purchasePrice;
-        const initialValue = quantity * purchasePrice;
-        const currentMarketValue = quantity * currentPrice;
-
-        // For interest-bearing accounts, the gain/loss should include both market value change AND interest earned
-        if (supportsInterestRate(selectedType.id)) {
-            const interestReturn = calculateBondInterestReturn();
-            const totalCurrentValue = currentMarketValue + interestReturn;
-            return totalCurrentValue - initialValue;
-        }
-
-        return currentMarketValue - initialValue;
-    };
-
-    const calculateBondInterestReturn = () => {
-        console.log('=== calculateInterestReturn DEBUG ===');
-        console.log('selectedType:', selectedType);
-        console.log('selectedType.id:', selectedType?.id);
-        console.log('formData.interest_rate:', formData.interest_rate);
-        console.log('formData:', formData);
-
-        if (!supportsInterestRate(selectedType?.id)) {
-            console.log('Type does not support interest rates, returning 0');
-            return 0;
-        }
-
-        if (!formData.interest_rate || formData.interest_rate === '') {
-            console.log('No interest rate, returning 0');
-            return 0;
-        }
-
-        const quantity = Number(formData.quantity) || 0;
-        const purchasePrice = Number(formData.purchase_price) || 0;
-        const interestRate = Number(formData.interest_rate) || 0;
-
-        console.log('Parsed values:', { quantity, purchasePrice, interestRate });
-
-        if (quantity === 0 || purchasePrice === 0 || interestRate === 0) {
-            console.log('One of the values is 0, returning 0');
-            return 0;
-        }
-
-        const initialValue = quantity * purchasePrice;
-
-        // Calculate time periods
-        const currentDate = new Date();
-        const purchaseDate = formData.purchase_date;
-        const maturityDate = formData.maturity_date;
-
-        console.log('Dates:', { currentDate, purchaseDate, maturityDate });
-
-        // Determine the end date for interest calculation (current date or maturity date, whichever is earlier)
-        const endDate = maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-
-        // Calculate days since purchase until end date
-        const daysSincePurchase = Math.floor((endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-        const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-
-        // For demonstration purposes, if purchase date is today, use 1 year as example
-        const yearsForCalculation = yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-
-        // Calculate annual interest return
-        const annualInterestReturn = initialValue * (interestRate / 100) * yearsForCalculation;
-
-        console.log('Final calculation:', {
-            initialValue,
-            interestRate,
-            daysSincePurchase,
-            yearsSincePurchase,
-            yearsForCalculation,
-            annualInterestReturn
-        });
-
-        return annualInterestReturn;
-    };
-
-    const getBondStatus = () => {
-        if (!supportsMaturityDate(selectedType.id) || !formData.maturity_date) return 'active';
-
-        const currentDate = new Date();
-        const maturityDate = formData.maturity_date;
-
-        if (currentDate >= maturityDate) {
-            return 'matured';
-        } else {
-            return 'active';
-        }
-    };
-
-    const getDaysToMaturity = () => {
-        if (!supportsMaturityDate(selectedType.id) || !formData.maturity_date) return null;
-
-        const currentDate = new Date();
-        const maturityDate = formData.maturity_date;
-
-        if (currentDate >= maturityDate) {
-            return 0;
-        }
-
-        const daysToMaturity = Math.floor((maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-        return daysToMaturity;
-    };
-
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -415,64 +303,42 @@ export default function EditInvestmentScreen() {
         }).format(amount);
     };
 
-    const calculateYearlyROIForInvestment = () => {
-        if (!formData.quantity || !formData.purchase_price || !formData.purchase_date) return 0;
-
-        const quantity = Number(formData.quantity);
-        const purchasePrice = Number(formData.purchase_price);
-        const currentPrice = Number(formData.current_price) || purchasePrice;
-
-        // Calculate days since purchase (can be 0 for same-day investments)
-        const daysSincePurchase = Math.floor((new Date().getTime() - formData.purchase_date.getTime()) / (1000 * 60 * 60 * 24));
-
-        const investmentData = {
-            data: {
-                type: selectedType.id,
-                quantity,
-                purchase_price: purchasePrice,
-                current_price: currentPrice,
-                purchase_date: formData.purchase_date.toISOString(),
-                interest_rate: formData.interest_rate ? Number(formData.interest_rate) : undefined,
-                maturity_date: formData.maturity_date ? formData.maturity_date.toISOString() : undefined
-            }
-        };
-
-        return calculateYearlyROI([investmentData]);
-    };
-
-    const calculateTotalROIPercentage = () => {
-        const totalInvestment = Number(formData.quantity) * Number(formData.purchase_price);
-        const gainLoss = calculateGainLoss();
-        return totalInvestment > 0 ? (gainLoss / totalInvestment) * 100 : 0;
-    };
-
-    const calculateInvestmentReturns = () => {
+    const investmentReturns = useMemo(() => {
         if (!formData.quantity || !formData.purchase_price || !formData.purchase_date) {
             return {
-                currentReturn: 0,
-                expectedYearlyReturn: 0,
-                expectedTotalReturn: 0,
-                currentReturnPercentage: 0,
-                expectedYearlyReturnPercentage: 0,
-                expectedTotalReturnPercentage: 0
-            };
+                totalValue: 0,
+                totalInvested: 0,
+                totalGainLoss: 0,
+                totalGainLossPercentage: 0,
+                dividendsInterestEarned: 0,
+                dividendsInterestEarnedPercentage: 0,
+                estimatedYearlyGainLoss: 0,
+                estimatedYearlyGainLossPercentage: 0,
+                projectedValue10Years: 0,
+                investmentCount: 0,
+                averageValue: 0,
+                typeBreakdown: {},
+            } as InvestmentStats;
         }
 
         const quantity = Number(formData.quantity);
         const purchasePrice = Number(formData.purchase_price);
         const currentPrice = Number(formData.current_price) || purchasePrice;
 
+
         const investmentData = {
-            id: investment.id,
+            id: 'temp',
             data: {
                 name: formData.name,
+                isin: formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
                 type: selectedType.id,
                 quantity: quantity,
                 purchase_price: purchasePrice,
                 current_price: currentPrice,
                 purchase_date: formData.purchase_date.toISOString().split('T')[0],
+                last_updated: new Date().toISOString(),
                 currency: selectedCurrency,
-                interest_rate: formData.interest_rate,
+                interest_rate: Number(formData.interest_rate) || 0,
                 maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
                 notes: formData.notes,
                 symbol: formData.symbol,
@@ -481,7 +347,7 @@ export default function EditInvestmentScreen() {
         };
 
         return calculateIndividualInvestmentReturns(investmentData);
-    };
+    }, [formData, selectedType.id, selectedCurrency]);
 
     if (!investment || portfolios.length === 0) {
         return (
@@ -551,7 +417,7 @@ export default function EditInvestmentScreen() {
                             label={t('editInvestment.isinOptional')}
                             placeholder="e.g., IT9282990139"
                             value={formData.isin}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text.toUpperCase() }))}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text }))}
                             style={styles.input}
                         />
 
@@ -708,7 +574,7 @@ export default function EditInvestmentScreen() {
                                     {t('editInvestment.currentValue')}
                                 </Text>
                                 <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                    {formatCurrency(calculateInvestmentReturns().totalValue)}
+                                    {formatCurrency(investmentReturns.totalValue)}
                                 </Text>
                             </View>
 
@@ -718,9 +584,9 @@ export default function EditInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    { color: investmentReturns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                                 ]}>
-                                    {calculateInvestmentReturns().totalGainLoss >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentReturns().totalGainLoss)}
+                                    {investmentReturns.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentReturns.totalGainLoss)}
                                 </Text>
                             </View>
 
@@ -730,9 +596,9 @@ export default function EditInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    { color: investmentReturns.totalGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                                 ]}>
-                                    {calculateInvestmentReturns().totalGainLoss >= 0 ? '+' : ''}{calculateInvestmentReturns().totalGainLossPercentage.toFixed(2)}%
+                                    {investmentReturns.totalGainLoss >= 0 ? '+' : ''}{investmentReturns.totalGainLossPercentage.toFixed(2)}%
                                 </Text>
                             </View>
 
@@ -742,9 +608,9 @@ export default function EditInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    { color: investmentReturns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                                 ]}>
-                                    {calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentReturns().estimatedYearlyGainLoss)}
+                                    {investmentReturns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentReturns.estimatedYearlyGainLoss)}
                                 </Text>
                             </View>
 
@@ -754,19 +620,19 @@ export default function EditInvestmentScreen() {
                                 </Text>
                                 <Text style={[
                                     styles.summaryValue,
-                                    { color: calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
+                                    { color: investmentReturns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336' }
                                 ]}>
-                                    {calculateInvestmentReturns().estimatedYearlyGainLoss >= 0 ? '+' : ''}{calculateInvestmentReturns().estimatedYearlyGainLossPercentage.toFixed(2)}%
+                                    {investmentReturns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{investmentReturns.estimatedYearlyGainLossPercentage.toFixed(2)}%
                                 </Text>
                             </View>
 
-                            {calculateInvestmentReturns().dividendsInterestEarned > 0 && (
+                            {investmentReturns.dividendsInterestEarned > 0 && (
                                 <View style={styles.summaryRow}>
                                     <Text style={[styles.summaryLabel, { color: colors.icon }]}>
                                         {t('editInvestment.dividendsInterestEarned')}
                                     </Text>
                                     <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
-                                        {formatCurrency(calculateInvestmentReturns().dividendsInterestEarned)} ({calculateInvestmentReturns().dividendsInterestEarnedPercentage.toFixed(2)}%)
+                                        {formatCurrency(investmentReturns.dividendsInterestEarned)} ({investmentReturns.dividendsInterestEarnedPercentage.toFixed(2)}%)
                                     </Text>
                                 </View>
                             )}

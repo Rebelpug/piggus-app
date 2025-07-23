@@ -1,5 +1,7 @@
 import {InvestmentWithDecryptedData} from '@/types/investment';
 
+export type InvestmentDetails = Omit<InvestmentWithDecryptedData, 'portfolio_id' | 'created_at' | 'updated_at'>;
+
 export interface InvestmentStats {
   totalValue: number;
   totalInvested: number;
@@ -24,7 +26,7 @@ export interface TypeBreakdown {
 }
 
 // Calculate dividends and interest earned for income-generating assets
-export const calculateDividendsInterestEarned = (investment: InvestmentWithDecryptedData): number => {
+export const calculateDividendsInterestEarned = (investment: InvestmentDetails): number => {
   const quantity = investment.data.quantity || 0;
   const purchasePrice = investment.data.purchase_price || 0;
   const currentPrice = investment.data.current_price || purchasePrice;
@@ -58,7 +60,7 @@ export const calculateDividendsInterestEarned = (investment: InvestmentWithDecry
   return 0;
 };
 
-export const calculateCurrentValue = (investment: InvestmentWithDecryptedData): number => {
+export const calculateCurrentValue = (investment: InvestmentDetails): number => {
   const quantity = investment.data.quantity || 0;
   const currentPrice = investment.data.current_price || investment.data.purchase_price || 0;
 
@@ -67,7 +69,7 @@ export const calculateCurrentValue = (investment: InvestmentWithDecryptedData): 
 
 // Calculate estimated yearly gain/loss using the formula:
 // ((current value - invested value) / number of years + interest rate * invested value) / invested value
-export const calculateEstimatedYearlyGainLoss = (investment: InvestmentWithDecryptedData): { absolute: number; percentage: number } => {
+export const calculateEstimatedYearlyGainLoss = (investment: InvestmentDetails): { absolute: number; percentage: number } => {
   const quantity = investment.data.quantity || 0;
   const purchasePrice = investment.data.purchase_price || 0;
   const currentPrice = investment.data.current_price || purchasePrice;
@@ -478,8 +480,8 @@ export const generateProjectionData = (
   return data;
 };
 
-// Calculate individual investment returns with simplified metrics
-export const calculateIndividualInvestmentReturns = (investment: InvestmentWithDecryptedData) => {
+
+export const calculateIndividualInvestmentReturns = (investment: InvestmentDetails) => {
   const quantity = investment.data.quantity || 0;
   const purchasePrice = investment.data.purchase_price || 0;
   const totalInvested = quantity * purchasePrice;
