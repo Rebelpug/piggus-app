@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/Rebelpug/piggus-app/compare/v1.2.0...v1.2.1) (2025-07-23)
+
+
+### Bug Fixes
+
+* Current price of onboarding now is set correctly ([c63eaf8](https://github.com/Rebelpug/piggus-app/commit/c63eaf8b062c5fa0cd88235a8e32bc16152dd700))
+
 ## [1.2.0](https://github.com/Rebelpug/piggus-app/compare/v1.1.3...v1.2.0) (2025-07-23)
 
 
