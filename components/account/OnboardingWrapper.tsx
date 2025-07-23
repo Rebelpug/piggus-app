@@ -25,7 +25,7 @@ export default function OnboardingWrapper({ onComplete, currency }: OnboardingWr
                     purchase_price: amount,
                     quantity: 1,
                     currency: currency,
-                    current_price: 1,
+                    current_price: amount,
                     last_updated: new Date().toISOString(),
                     notes: 'Initial bank account balance added during onboarding',
                     interest_rate: null,
