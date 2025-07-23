@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.2](https://github.com/Rebelpug/piggus-app/compare/v1.2.1...v1.2.2) (2025-07-23)
+
+
+### Bug Fixes
+
+* Failing to invite a person to the group does not break the view ([c62c3f4](https://github.com/Rebelpug/piggus-app/commit/c62c3f4239b4b01981a35cf957f29dc6e7388788))
+* The quantity of investment for checking and saving account need to stay at 1 ([fc5c743](https://github.com/Rebelpug/piggus-app/commit/fc5c743df7bbb56566a52d0ca252d95dc23e2261))
+
 ### [1.2.1](https://github.com/Rebelpug/piggus-app/compare/v1.2.0...v1.2.1) (2025-07-23)
 
 
