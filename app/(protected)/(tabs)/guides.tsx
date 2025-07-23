@@ -135,6 +135,11 @@ export default function GuidesScreen() {
           </View>
         ) : (
           <View>
+            <View style={[styles.disclaimer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.disclaimerText, { color: colors.icon }]}>
+                This content is for educational purposes only and does not constitute financial, investment, or legal advice. Consult with qualified professionals before making financial decisions. All investments carry risk of loss.
+              </Text>
+            </View>
             {(() => {
               const organizedGuides = organizeGuidesByDifficulty();
               return (
@@ -248,5 +253,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  disclaimer: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  disclaimerText: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
