@@ -5,6 +5,8 @@ import 'react-native-reanimated';
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { LocalizationProvider } from "@/context/LocalizationContext";
+import { AppVersionProvider } from "@/context/AppVersionContext";
+import { VersionGuard } from "@/components/version/VersionGuard";
 import { Stack } from "expo-router";
 import React from 'react';
 import * as eva from '@eva-design/eva';
@@ -41,11 +43,14 @@ function ThemedApp() {
 
     return (
         <ApplicationProvider {...eva} theme={theme}>
-            <AuthProvider>
-                <Stack screenOptions={{
-                    headerShown: false,
-                }} />
-            </AuthProvider>
+            <AppVersionProvider>
+                <AuthProvider>
+                    <Stack screenOptions={{
+                        headerShown: false,
+                    }} />
+                    <VersionGuard />
+                </AuthProvider>
+            </AppVersionProvider>
         </ApplicationProvider>
     );
 }

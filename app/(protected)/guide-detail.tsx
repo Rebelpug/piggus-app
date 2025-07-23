@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useLocalization } from '@/context/LocalizationContext';
+import { GuideFormatter } from '@/utils/guideFormatter';
 
 export default function GuideDetailScreen() {
   const router = useRouter();
@@ -26,64 +27,16 @@ export default function GuideDetailScreen() {
     />
   );
 
-  // Simple markdown-like rendering for the content
+  // Enhanced guide content formatter
+  const formatter = new GuideFormatter({
+    text: colors.text,
+    primary: colors.primary,
+    muted: colors.text + '80', // 50% opacity
+    background: colors.background,
+  });
+
   const renderContent = (text: string) => {
-    const lines = text.split('\n');
-    const elements: JSX.Element[] = [];
-    
-    lines.forEach((line, index) => {
-      if (line.startsWith('# ')) {
-        // Main heading
-        elements.push(
-          <Text key={index} style={[styles.heading1, { color: colors.text }]}>
-            {line.substring(2)}
-          </Text>
-        );
-      } else if (line.startsWith('## ')) {
-        // Secondary heading
-        elements.push(
-          <Text key={index} style={[styles.heading2, { color: colors.text }]}>
-            {line.substring(3)}
-          </Text>
-        );
-      } else if (line.startsWith('### ')) {
-        // Tertiary heading
-        elements.push(
-          <Text key={index} style={[styles.heading3, { color: colors.text }]}>
-            {line.substring(4)}
-          </Text>
-        );
-      } else if (line.startsWith('**') && line.endsWith('**')) {
-        // Bold text
-        elements.push(
-          <Text key={index} style={[styles.boldText, { color: colors.text }]}>
-            {line.substring(2, line.length - 2)}
-          </Text>
-        );
-      } else if (line.startsWith('- ')) {
-        // Bullet point
-        elements.push(
-          <View key={index} style={styles.bulletContainer}>
-            <Text style={[styles.bullet, { color: colors.primary }]}>•</Text>
-            <Text style={[styles.bulletText, { color: colors.text }]}>
-              {line.substring(2)}
-            </Text>
-          </View>
-        );
-      } else if (line.trim() === '') {
-        // Empty line for spacing
-        elements.push(<View key={index} style={styles.spacing} />);
-      } else if (line.trim() !== '') {
-        // Regular paragraph
-        elements.push(
-          <Text key={index} style={[styles.paragraph, { color: colors.text }]}>
-            {line}
-          </Text>
-        );
-      }
-    });
-    
-    return elements;
+    return formatter.renderContent(text);
   };
 
   return (
@@ -118,53 +71,5 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
-  },
-  heading1: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  heading2: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 12,
-    marginTop: 24,
-  },
-  heading3: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  paragraph: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 12,
-  },
-  boldText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  bulletContainer: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    paddingLeft: 16,
-  },
-  bullet: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 8,
-    width: 16,
-  },
-  bulletText: {
-    fontSize: 16,
-    lineHeight: 22,
-    flex: 1,
-  },
-  spacing: {
-    height: 8,
   },
 });

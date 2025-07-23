@@ -30,6 +30,29 @@ export default function GuidesScreen() {
     });
   };
 
+  const getDifficultyLabel = (level: number) => {
+    switch (level) {
+      case 0:
+        return t('guides.beginner');
+      case 1:
+        return t('guides.intermediate');
+      case 2:
+        return t('guides.advanced');
+      default:
+        return t('guides.missing');
+    }
+  };
+
+  const organizeGuidesByDifficulty = () => {
+    const organized = {
+      beginner: guides.filter(guide => guide.difficulty_level === 0),
+      intermediate: guides.filter(guide => guide.difficulty_level === 1),
+      advanced: guides.filter(guide => guide.difficulty_level === 2),
+      missing: guides.filter(guide => guide.difficulty_level === -1 || guide.difficulty_level === undefined || guide.difficulty_level === null)
+    };
+    return organized;
+  };
+
   const renderGuideItem = (guide: Guide) => (
     <TouchableOpacity
       key={guide.id}
@@ -55,6 +78,21 @@ export default function GuidesScreen() {
       </View>
     </TouchableOpacity>
   );
+
+  const renderDifficultySection = (title: string, guidesList: Guide[]) => {
+    if (guidesList.length === 0) return null;
+    
+    return (
+      <View style={styles.difficultySection}>
+        <Text style={[styles.difficultyTitle, { color: colors.text }]}>
+          {title}
+        </Text>
+        <View style={styles.guidesContainer}>
+          {guidesList.map(renderGuideItem)}
+        </View>
+      </View>
+    );
+  };
 
   const renderLeftActions = () => (
     <ProfileHeader />
@@ -96,8 +134,18 @@ export default function GuidesScreen() {
             </Text>
           </View>
         ) : (
-          <View style={styles.guidesContainer}>
-            {guides.map(renderGuideItem)}
+          <View>
+            {(() => {
+              const organizedGuides = organizeGuidesByDifficulty();
+              return (
+                <>
+                  {renderDifficultySection(t('guides.beginner'), organizedGuides.beginner)}
+                  {renderDifficultySection(t('guides.intermediate'), organizedGuides.intermediate)}
+                  {renderDifficultySection(t('guides.advanced'), organizedGuides.advanced)}
+                  {renderDifficultySection(t('guides.missing'), organizedGuides.missing)}
+                </>
+              );
+            })()}
           </View>
         )}
 
@@ -129,6 +177,15 @@ const styles = StyleSheet.create({
   },
   guidesContainer: {
     gap: 16,
+  },
+  difficultySection: {
+    marginBottom: 32,
+  },
+  difficultyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    paddingLeft: 4,
   },
   guideItem: {
     flexDirection: 'row',

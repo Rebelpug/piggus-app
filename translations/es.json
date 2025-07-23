@@ -315,5 +315,23 @@
     "selectPortfolio": "Seleccionar Cartera",
     "unnamedPortfolio": "Cartera Sin Nombre",
     "cancel": "Cancelar"
+  },
+  "version": {
+    "newVersionAvailable": "Nueva Versión Disponible",
+    "newVersionDescription": "Una nueva versión de Piggus está disponible. Actualiza de la versión {{current}} a {{latest}} para obtener las últimas funciones y mejoras.",
+    "whatsNew": "Novedades:",
+    "improvementsAndBugFixes": "Mejoras de rendimiento y corrección de errores",
+    "enhancedPerformance": "Rendimiento mejorado de la aplicación",
+    "newFeatures": "Nuevas funciones y mejoras",
+    "updateNow": "Actualizar Ahora",
+    "later": "Más Tarde",
+    "updateRequired": "Actualización Requerida",
+    "updateRequiredDescription": "Esta versión de Piggus ({{current}}) ya no es compatible. Actualiza a la versión {{mandatory}} o posterior para continuar usando la aplicación.",
+    "appWillNotWorkWarning": "La aplicación no funcionará correctamente hasta que actualices a la última versión.",
+    "thisUpdateIncludes": "Esta actualización incluye:",
+    "criticalSecurityFixes": "Correcciones críticas de seguridad",
+    "importantBugFixes": "Corrección de errores importantes",
+    "serverCompatibilityUpdates": "Actualizaciones de compatibilidad del servidor",
+    "updateRequiredTocontinue": "Debes actualizar para continuar usando Piggus"
   }
 }

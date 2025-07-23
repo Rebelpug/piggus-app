@@ -1,5 +1,6 @@
 import { getHttpClient } from './http';
 import {Profile} from "@/types/profile";
+import { VersionResponse, VersionCheckResponse, VersionCheckRequest } from "@/types/version";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || ''
 
@@ -86,6 +87,7 @@ export interface Guide {
     updated_at: string;
     is_active: boolean;
     sort_order: number;
+    difficulty_level: number;
 }
 
 export interface PiggusApi {
@@ -134,6 +136,10 @@ export interface PiggusApi {
     // Guide Methods
     getGuides: () => Promise<Guide[]>;
     getGuide: (guideId: string) => Promise<Guide>;
+
+    // Version Methods
+    getVersion: () => Promise<VersionResponse>;
+    checkVersion: (data: VersionCheckRequest) => Promise<VersionCheckResponse>;
 }
 
 export const piggusApi: PiggusApi = {
@@ -361,6 +367,19 @@ export const piggusApi: PiggusApi = {
     getGuide: async (guideId: string) => {
         const httpClient = getHttpClient();
         const response = await httpClient.get(`${BASE_URL}/api/v1/guides/${guideId}`);
+        return response.data;
+    },
+
+    // Version Methods
+    getVersion: async () => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.get(`${BASE_URL}/api/v1/version`);
+        return response.data;
+    },
+
+    checkVersion: async (data: VersionCheckRequest) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.post(`${BASE_URL}/api/v1/version/check`, data);
         return response.data;
     }
 };

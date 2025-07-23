@@ -12,6 +12,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {GuideProvider} from "@/context/GuideContext";
 import OnboardingGuard from "@/components/layout/OnboardingGuard";
+import {AppVersionProvider} from "@/context/AppVersionContext";
+import {VersionGuard} from "@/components/version/VersionGuard";
 
 export default function ProtectedLayout() {
     const colorScheme = useColorScheme();
@@ -39,17 +41,20 @@ export default function ProtectedLayout() {
 
     return (
         <ProfileProvider>
-            <GuideProvider>
-                <ExpenseProvider>
-                    <InvestmentProvider>
-                        <OnboardingGuard>
-                            <Stack screenOptions={{
-                                headerShown: false,
-                            }} />
-                        </OnboardingGuard>
-                    </InvestmentProvider>
-                </ExpenseProvider>
-            </GuideProvider>
+            <AppVersionProvider>
+                <GuideProvider>
+                    <ExpenseProvider>
+                        <InvestmentProvider>
+                            <OnboardingGuard>
+                                <Stack screenOptions={{
+                                    headerShown: false,
+                                }} />
+                                <VersionGuard />
+                            </OnboardingGuard>
+                        </InvestmentProvider>
+                    </ExpenseProvider>
+                </GuideProvider>
+            </AppVersionProvider>
         </ProfileProvider>
     );
 }

@@ -237,7 +237,11 @@
     "title": "Guides",
     "learnAndGrow": "Learn and Grow",
     "masterYourFinances": "Master your finances with expert tips and guides",
-    "loadingGuides": "Loading guides..."
+    "loadingGuides": "Loading guides...",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "missing": "Missing"
   },
   "home": {
     "title": "Dashboard",
@@ -901,5 +905,23 @@
   "guideDetail": {
     "title": "Guide",
     "guideNotFound": "Guide not found"
+  },
+  "version": {
+    "newVersionAvailable": "New Version Available",
+    "newVersionDescription": "A new version of Piggus is available. Update from version {{current}} to {{latest}} to get the latest features and improvements.",
+    "whatsNew": "What's New:",
+    "improvementsAndBugFixes": "Performance improvements and bug fixes",
+    "enhancedPerformance": "Enhanced app performance",
+    "newFeatures": "New features and enhancements",
+    "updateNow": "Update Now",
+    "later": "Later",
+    "updateRequired": "Update Required",
+    "updateRequiredDescription": "This version of Piggus ({{current}}) is no longer supported. Please update to version {{mandatory}} or later to continue using the app.",
+    "appWillNotWorkWarning": "The app will not function properly until you update to the latest version.",
+    "thisUpdateIncludes": "This update includes:",
+    "criticalSecurityFixes": "Critical security fixes",
+    "importantBugFixes": "Important bug fixes",
+    "serverCompatibilityUpdates": "Server compatibility updates",
+    "updateRequiredTocontinue": "You must update to continue using Piggus"
   }
 }
