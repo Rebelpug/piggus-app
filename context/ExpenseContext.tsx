@@ -371,8 +371,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       if (result.success) {
         // Refresh the groups list to get the updated members
         await fetchExpenses();
-      } else {
-        setError(result.error || 'Failed to invite user');
       }
 
       return result;
