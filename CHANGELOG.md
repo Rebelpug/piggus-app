@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/Rebelpug/piggus-app/compare/v1.1.3...v1.2.0) (2025-07-23)
+
+
+### Features
+
+* Added formatting for guides and version control ([d620f4f](https://github.com/Rebelpug/piggus-app/commit/d620f4fbd9d54ac9b2758f3b81d70cd14847e12c))
+* Added inline alert during registration to explain the importance of not losing the password ([f118955](https://github.com/Rebelpug/piggus-app/commit/f118955a11178ad5ced0e32f3360c07a92c09e75))
+* Added onboarding basic financial information ([78d6079](https://github.com/Rebelpug/piggus-app/commit/78d6079906b90c0e1f8be26a22f55dc4d75ccbd8))
+* Added password validation during registration to meet modern standards ([90e4755](https://github.com/Rebelpug/piggus-app/commit/90e47552c12003d00ea5ec3553ea3d9043f5d041))
+* Added recovery key form ([b6221d9](https://github.com/Rebelpug/piggus-app/commit/b6221d95ab95c842c3d7025b325644bcc1e10c86))
+
+
+### Bug Fixes
+
+* Added defensive programming to statistics to prevent crashing for invalid numbers ([5732830](https://github.com/Rebelpug/piggus-app/commit/5732830958cfa673752a7794db8125b536665c5a))
+* Avoid blocking creating expenses when rounding split errors between members ([1e0d419](https://github.com/Rebelpug/piggus-app/commit/1e0d419e7222d6c56835202bf552b6df842624f6))
+* Doesn't rewrite isin during input ([6d72ece](https://github.com/Rebelpug/piggus-app/commit/6d72ece2cc391d079c720490fc4cd4501205dfbf))
+* Flow to invite users to portfolio now properly works ([bca540d](https://github.com/Rebelpug/piggus-app/commit/bca540d625b0e6e2b4a4dd037d7e9f42e0b6e375))
+* In the shared folder show the currency that reflect the group ([bab573b](https://github.com/Rebelpug/piggus-app/commit/bab573b655783c8932ad005d78fc619b3916fabe))
+* Missed localisation for investment group label ([8f94603](https://github.com/Rebelpug/piggus-app/commit/8f9460327f3f9dc287d42dc4394e1bcec0b9e7ec))
+* Sort expenses by date and creation date ([ea59f4f](https://github.com/Rebelpug/piggus-app/commit/ea59f4fd91ae89933e776b67c07e5b17dcf5f121))
+* When partially logged in if fails security now it brings you back to the full login ([e45aaa8](https://github.com/Rebelpug/piggus-app/commit/e45aaa80ced635ca64a003765e1dfd349cc584f7))
+
 ### [1.1.3](https://github.com/Rebelpug/piggus-app/compare/v1.1.2...v1.1.3) (2025-07-18)
 
 
