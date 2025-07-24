@@ -1,3 +1,13 @@
+export type SubscriptionTier = 'free' | 'premium' | 'enterprise';
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  subscription_tier: SubscriptionTier;
+  created_at: string;
+  updated_at: string;
+};
+
 export type AdditionalCategoryOverride = {
   id: string;
   name: string;
@@ -37,4 +47,6 @@ export type Profile = {
   profile: ProfileData;
   created_at: string;
   updated_at: string;
+  subscription: Subscription | null;
+  has_active_bank_account: boolean;
 };

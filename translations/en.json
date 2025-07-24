@@ -906,6 +906,24 @@
     "title": "Guide",
     "guideNotFound": "Guide not found"
   },
+  "banking": {
+    "connectBankAccount": "Connect your bank account to automatically get all your expenses",
+    "bankAccountConnected": "Your bank account is connected",
+    "connect": "Connect",
+    "sync": "Sync",
+    "disconnect": "Disconnect",
+    "bankConnection": "Bank Connection",
+    "connectBankTitle": "Connect Your Bank Account",
+    "connectBankDescription": "Securely connect your bank account to automatically import and categorize your expenses.",
+    "securityInfo": "Your data is encrypted and secure. We use bank-level security to protect your information.",
+    "fraudProtectionInfo": "Our third-party provider monitors transactions for fraud protection and regulatory compliance.",
+    "thirdPartyInfo": "Connection is handled by our secure banking partner to ensure your credentials stay safe.",
+    "oneBankRestriction": "Please note: You can only connect one bank account at a time.",
+    "selectCountryTitle": "Select Your Bank's Country",
+    "selectCountryDescription": "Choose the country where your bank is located to ensure proper connection.",
+    "selectCountry": "Select Country",
+    "continue": "Continue"
+  },
   "version": {
     "newVersionAvailable": "New Version Available",
     "newVersionDescription": "A new version of Piggus is available. Update from version {{current}} to {{latest}} to get the latest features and improvements.",

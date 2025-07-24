@@ -25,8 +25,11 @@ import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import ExpenseItem from '@/components/expenses/ExpenseItem';
 import RecurringExpenseItem from '@/components/expenses/RecurringExpenseItem';
 import BudgetCard from '@/components/budget/BudgetCard';
+import BankConnectionWizard from '@/components/banking/BankConnectionWizard';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { piggusApi, BankTransaction } from '@/client/piggusApi';
+import { BulkExpenseOperation } from '@/types/expense';
 
 export default function ExpensesScreen() {
     const router = useRouter();
@@ -34,11 +37,12 @@ export default function ExpensesScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { user } = useAuth();
-    const { expensesGroups, recurringExpenses, isLoading, error } = useExpense();
+    const { expensesGroups, recurringExpenses, isLoading, error, addExpense, updateExpense } = useExpense();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [selectedMonth, setSelectedMonth] = useState<string>('current'); // 'current' for default 3-month view, or specific month like '2025-05'
+    const [showBankWizard, setShowBankWizard] = useState(false);
 
     // Generate last 12 months for selector
     const monthOptions = React.useMemo(() => {
@@ -284,6 +288,261 @@ export default function ExpensesScreen() {
         </View>
     );
 
+    const handleSyncBankTransactions = async () => {
+        try {
+            // Show loading indicator
+            setRefreshing(true);
+
+            // Fetch bank transactions
+            const accountsTransactions = await piggusApi.getBankTransactions();
+            console.log('Bank transactions fetched:', accountsTransactions);
+
+            // Check if we have any accounts
+            if (!accountsTransactions || accountsTransactions.length === 0) {
+                Alert.alert('Info', 'No bank accounts found.');
+                setRefreshing(false);
+                return;
+            }
+
+            // Initialize arrays for booked and pending transactions
+            let bookedTransactions: any[] = [];
+            let pendingTransactions: any[] = [];
+            let allSkipped = true;
+
+            // Process each account's transactions
+            for (const accountData of accountsTransactions) {
+                // Skip accounts that were skipped during fetching
+                if (accountData.skipped) {
+                    console.log(`Skipped account ${accountData.accountId}: ${accountData.reason || 'No reason provided'}`);
+                    continue;
+                }
+
+                allSkipped = false;
+
+                // Extract transactions if available
+                if (accountData.transactions && accountData.transactions.transactions) {
+                    const accountBooked = accountData.transactions.transactions.booked || [];
+                    const accountPending = accountData.transactions.transactions.pending || [];
+
+                    bookedTransactions = [...bookedTransactions, ...accountBooked];
+                    pendingTransactions = [...pendingTransactions, ...accountPending];
+                }
+            }
+
+            // Check if all accounts were skipped
+            if (allSkipped) {
+                const reasons = accountsTransactions
+                    .filter(account => account.skipped && account.reason)
+                    .map(account => `- ${account.reason}`)
+                    .join('\n');
+
+                Alert.alert('Info', `All accounts were skipped:\n${reasons || 'No specific reasons provided'}`);
+                setRefreshing(false);
+                return;
+            }
+
+            // Convert Transaction objects to a format compatible with our app
+            const allTransactions = [...bookedTransactions, ...pendingTransactions].map(transaction => ({
+                id: transaction.transactionId || transaction.internalTransactionId || '',
+                amount: parseFloat(transaction.transactionAmount.amount),
+                currency: transaction.transactionAmount.currency,
+                description: transaction.remittanceInformationUnstructured ||
+                             transaction.remittanceInformationStructured ||
+                             `${transaction.creditorName || transaction.debtorName || 'Unknown'} transaction`,
+                date: transaction.bookingDate,
+                status: pendingTransactions.some(t => t.transactionId === transaction.transactionId) ? 'pending' : 'booked',
+                category: transaction.merchantCategoryCode || 'other'
+            }));
+
+            if (!allTransactions || allTransactions.length === 0) {
+                Alert.alert('Info', 'No bank transactions found.');
+                setRefreshing(false);
+                return;
+            }
+
+            // Get the default expense group (use the first one for now)
+            if (!expensesGroups || expensesGroups.length === 0) {
+                Alert.alert('Error', 'No expense groups found. Please create a group first.');
+                setRefreshing(false);
+                return;
+            }
+
+            const defaultGroup = expensesGroups[0];
+
+            // Prepare bulk operations
+            const bulkOperations: BulkExpenseOperation[] = [];
+
+            for (const transaction of allTransactions) {
+                // Let's skip positive transactions for now, we only want expenses
+                if (transaction.amount > 0) continue;
+
+                // Use absolute value for negative amounts to ensure they're displayed correctly
+                const expenseAmount = Math.abs(transaction.amount);
+
+                // Check if this transaction already exists as an expense
+                const existingExpense = allExpenses.find(expense =>
+                    expense.data.external_transaction_id === transaction.id
+                );
+
+                if (existingExpense) {
+                    // Update existing expense
+                    // Create a copy of the participants array to update the share amount
+                    const updatedParticipants = existingExpense.data.participants.map(participant => {
+                        if (participant.user_id === user?.id) {
+                            return {
+                                ...participant,
+                                share_amount: expenseAmount
+                            };
+                        }
+                        return participant;
+                    });
+
+                    bulkOperations.push({
+                        id: existingExpense.id,
+                        group_id: existingExpense.group_id,
+                        isNew: false,
+                        data: {
+                            ...existingExpense.data,
+                            amount: expenseAmount,
+                            description: transaction.description,
+                            date: transaction.date,
+                            status: transaction.status,
+                            category: transaction.category || existingExpense.data.category,
+                            currency: transaction.currency || existingExpense.data.currency,
+                            participants: updatedParticipants
+                        }
+                    });
+                } else {
+                    // Create new expense from transaction
+                    bulkOperations.push({
+                        group_id: defaultGroup.id,
+                        isNew: true,
+                        data: {
+                            name: transaction.description,
+                            description: transaction.description,
+                            amount: expenseAmount,
+                            date: transaction.date,
+                            category: transaction.category || 'other', // Default category
+                            is_recurring: false,
+                            currency: transaction.currency,
+                            status: transaction.status,
+                            payer_user_id: user?.id || '',
+                            payer_username: userProfile?.username || '',
+                            participants: [
+                                {
+                                    user_id: user?.id || '',
+                                    username: userProfile?.username || '',
+                                    share_amount: expenseAmount
+                                }
+                            ],
+                            split_method: 'equal',
+                            external_account_id: 'bank', // Generic identifier for bank account
+                            external_transaction_id: transaction.id
+                        }
+                    });
+                }
+            }
+
+            // Process bulk operations
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            if (bulkOperations.length > 0) {
+                try {
+                    const results = await piggusApi.bulkAddUpdateExpenses(defaultGroup.id, bulkOperations);
+
+                    // Count added and updated expenses
+                    addedCount = bulkOperations.filter(op => op.isNew).length;
+                    updatedCount = bulkOperations.filter(op => !op.isNew).length;
+
+                    console.log(`Bulk operation completed: ${results.length} expenses processed`);
+                } catch (bulkError) {
+                    console.error('Error processing bulk expenses:', bulkError);
+                    Alert.alert(
+                        'Error',
+                        'Failed to process expenses in bulk. Please try again.'
+                    );
+                }
+            }
+
+            // Show results
+            Alert.alert(
+                'Sync Complete',
+                `Successfully processed ${allTransactions.length} transactions.\nAdded: ${addedCount}\nUpdated: ${updatedCount}`
+            );
+
+            // Refresh the UI
+            onRefresh();
+        } catch (error) {
+            console.error('Error syncing bank transactions:', error);
+            Alert.alert(
+                'Error',
+                'Failed to sync bank transactions. Please try again.'
+            );
+            setRefreshing(false);
+        }
+    };
+
+    const handleDisconnectBank = async () => {
+        try {
+            await piggusApi.disconnectBank();
+            Alert.alert(
+                'Success',
+                'Your bank account has been disconnected successfully.'
+            );
+            // Refresh the profile to update the bank connection status
+            onRefresh();
+        } catch (error) {
+            console.error('Error disconnecting bank:', error);
+            Alert.alert(
+                'Error',
+                'Failed to disconnect bank account. Please try again.'
+            );
+        }
+    };
+
+    const renderBankConnectionBanner = () => (
+        <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.bankBannerContent}>
+                <Ionicons name="card" size={24} color={colors.primary} style={styles.bankBannerIcon} />
+                <View style={styles.bankBannerText}>
+                    <Text category='s1' style={[styles.bannerTitle, { color: colors.text }]}>
+                        {userProfile?.has_active_bank_account
+                            ? t('banking.bankAccountConnected')
+                            : t('banking.connectBankAccount')}
+                    </Text>
+                </View>
+                {userProfile?.has_active_bank_account ? (
+                    <View style={styles.bankButtonsContainer}>
+                        <Button
+                            size='small'
+                            style={[styles.bankButton, { marginRight: 8 }]}
+                            onPress={handleSyncBankTransactions}
+                        >
+                            {t('banking.sync')}
+                        </Button>
+                        <Button
+                            size='small'
+                            status='danger'
+                            style={styles.bankButton}
+                            onPress={handleDisconnectBank}
+                        >
+                            {t('banking.disconnect')}
+                        </Button>
+                    </View>
+                ) : (
+                    <Button
+                        size='small'
+                        style={styles.connectButton}
+                        onPress={() => setShowBankWizard(true)}
+                    >
+                        {t('banking.connect')}
+                    </Button>
+                )}
+            </View>
+        </View>
+    );
+
     const renderExpensesHeader = () => {
         return <BudgetCard selectedMonth={selectedMonth} variant="list" />;
     };
@@ -432,6 +691,7 @@ export default function ExpensesScreen() {
             />
 
             {renderMonthSelector()}
+            {renderBankConnectionBanner()}
 
             <TabView
                 selectedIndex={selectedIndex}
@@ -458,6 +718,11 @@ export default function ExpensesScreen() {
             >
                 <Ionicons name="add" size={24} color="white" />
             </TouchableOpacity>
+
+            <BankConnectionWizard
+                visible={showBankWizard}
+                onClose={() => setShowBankWizard(false)}
+            />
         </SafeAreaView>
     );
 }
@@ -564,5 +829,37 @@ const styles = StyleSheet.create({
     },
     monthOptionText: {
         fontSize: 14,
+    },
+    bankBanner: {
+        marginHorizontal: 16,
+        marginVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 16,
+    },
+    bankBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    bankBannerIcon: {
+        marginRight: 12,
+    },
+    bankBannerText: {
+        flex: 1,
+    },
+    bannerTitle: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    connectButton: {
+        paddingHorizontal: 16,
+        borderRadius: 8,
+    },
+    bankButtonsContainer: {
+        flexDirection: 'row',
+    },
+    bankButton: {
+        paddingHorizontal: 12,
+        borderRadius: 8,
     },
 });

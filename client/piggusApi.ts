@@ -1,6 +1,7 @@
 import { getHttpClient } from './http';
 import {Profile} from "@/types/profile";
 import { VersionResponse, VersionCheckResponse, VersionCheckRequest } from "@/types/version";
+import { BulkExpenseOperation } from "@/types/expense";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || ''
 
@@ -36,6 +37,7 @@ export interface Expense {
     encrypted_data: any;
     created_at: string;
     updated_at: string;
+    isNew?: boolean
 }
 
 // Portfolio Types
@@ -90,6 +92,108 @@ export interface Guide {
     difficulty_level: number;
 }
 
+// Bank Institution Types
+export interface Institution {
+    id: string;
+    name: string;
+    bic: string;
+    transaction_total_days: string;
+    countries: string[];
+    logo: string;
+}
+
+export interface Transaction {
+  transactionId: string;
+  debtorName?: string;
+  debtorAccount?: {
+    iban?: string;
+  };
+  transactionAmount: {
+    amount: string;
+    currency: string;
+  };
+  bankTransactionCode?: string;
+  bookingDate: string;
+  valueDate?: string;
+  remittanceInformationUnstructured?: string;
+  remittanceInformationStructured?: string;
+  additionalInformation?: string;
+  balanceAfterTransaction?: {
+    balanceAmount: {
+      amount: string;
+      currency: string;
+    };
+  };
+  creditorName?: string;
+  creditorAccount?: {
+    iban?: string;
+  };
+  ultimateCreditor?: string;
+  ultimateDebtor?: string;
+  purposeCode?: string;
+  merchantCategoryCode?: string;
+  proprietaryBankTransactionCode?: string;
+  internalTransactionId?: string;
+}
+
+export interface TransactionsResponse {
+  transactions: {
+    booked: Transaction[];
+    pending: Transaction[];
+  };
+}
+
+export interface BankAccountTransactions {
+  accountId: string;
+  externalAccountId: string;
+  skipped: boolean;
+  transactionCount?: number;
+  transactions?: {
+    last_updated: string;
+    transactions: {
+      booked?: Transaction[];
+      pending?: Transaction[];
+    };
+  };
+  lastFetched?: string;
+  reason?: string;
+}
+
+export interface BankTransaction {
+    id: string;
+    amount: number;
+    currency: string;
+    description: string;
+    date: string;
+    status: string;
+    category?: string;
+}
+
+export interface BankAgreement {
+    id: string;
+    institutionId: string;
+    maxHistoricalDays: number;
+    accessValidForDays: number;
+    created: string;
+    accepted?: string;
+}
+
+export interface BankRequisition {
+    id: string;
+    created: string;
+    redirect: string;
+    status: string;
+    institutionId: string;
+    agreementId: string;
+    reference?: string;
+    accounts: string[];
+    userLanguage: string;
+    link: string;
+    ssn?: string;
+    accountSelection: boolean;
+    redirectImmediate: boolean;
+}
+
 export interface PiggusApi {
     healthCheck: () => Promise<HealthCheckResponse>;
 
@@ -140,6 +244,16 @@ export interface PiggusApi {
     // Version Methods
     getVersion: () => Promise<VersionResponse>;
     checkVersion: (data: VersionCheckRequest) => Promise<VersionCheckResponse>;
+
+    // Bank Institution Methods
+    getBankInstitutions: (countryCode: string) => Promise<Institution[]>;
+    createBankAgreement: (institutionId: string, maxHistoricalDays?: number, accessValidForDays?: number) => Promise<BankAgreement>;
+    createBankRequisition: (redirectUrl: string, institutionId: string, agreementId: string, reference?: string) => Promise<BankRequisition>;
+    getBankTransactions: () => Promise<BankAccountTransactions[]>;
+    disconnectBank: () => Promise<{ success: boolean }>;
+
+    // Bulk Operations
+    bulkAddUpdateExpenses: (groupId: string, expenses: Expense[]) => Promise<Expense[]>;
 }
 
 export const piggusApi: PiggusApi = {
@@ -381,5 +495,54 @@ export const piggusApi: PiggusApi = {
         const httpClient = getHttpClient();
         const response = await httpClient.post(`${BASE_URL}/api/v1/version/check`, data);
         return response.data;
+    },
+
+    // Bank Institution Methods
+    getBankInstitutions: async (countryCode: string) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.get(`${BASE_URL}/api/v1/bank-institutions/${countryCode.toUpperCase()}`);
+        return response.data.data;
+    },
+
+    createBankAgreement: async (institutionId: string, maxHistoricalDays: number = 30, accessValidForDays: number = 90) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.post(`${BASE_URL}/api/v1/bank-agreements`, {
+            institutionId,
+            maxHistoricalDays,
+            accessValidForDays
+        });
+        return response.data.data;
+    },
+
+    createBankRequisition: async (redirectUrl: string, institutionId: string, agreementId: string, reference?: string) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.post(`${BASE_URL}/api/v1/bank-requisitions`, {
+            redirectUrl,
+            institutionId,
+            agreementId,
+            reference
+        });
+        return response.data.data;
+    },
+
+    getBankTransactions: async () => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.get(`${BASE_URL}/api/v1/bank-transactions`);
+        return response.data.data;
+    },
+
+    disconnectBank: async () => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.delete(`${BASE_URL}/api/v1/bank-connection`);
+        return response.data;
+    },
+
+    // Bulk Operations
+    bulkAddUpdateExpenses: async (groupId: string, expenses: Expense[]) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.post(`${BASE_URL}/api/v1/expense-groups/${groupId}/bulk-expenses`, {
+            expenses
+        });
+        return response.data.data;
     }
 };

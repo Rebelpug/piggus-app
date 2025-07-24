@@ -134,7 +134,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       // Fetch regular expenses
       const result = await apiFetchExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
-
       if (result.success && result.data) {
         setExpensesGroups(result.data);
 

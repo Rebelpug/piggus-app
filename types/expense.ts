@@ -84,6 +84,8 @@ export type ExpenseData = {
   payer_username?: string; // Username of the payer (for display)
   participants: ExpenseParticipant[]; // Who shares this expense and their amounts
   split_method: 'equal' | 'custom' | 'percentage'; // How the expense is split
+  external_account_id?: string;
+  external_transaction_id?: string;
 };
 
 export type ExpenseWithDecryptedData = {
@@ -92,6 +94,13 @@ export type ExpenseWithDecryptedData = {
   created_at: string;
   updated_at: string;
   data: ExpenseData;
+};
+
+export type BulkExpenseOperation = {
+  id?: string;
+  group_id: string;
+  data: ExpenseData;
+  isNew: boolean;
 };
 
 export type ExpenseFormData = {
