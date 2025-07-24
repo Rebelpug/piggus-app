@@ -24,6 +24,7 @@ import {
   apiAddRefund,
   apiUpdateRefund,
   apiDeleteRefund,
+  apiBulkInsertAndUpdateExpenses,
 } from '@/services/expenseService';
 import {
   apiFetchRecurringExpenses,
@@ -52,6 +53,7 @@ import {
 //   apiProcessRecurringExpenses,
 // } from '@/client/recurringExpense';
 import {useEncryption} from "@/context/EncryptionContext";
+import { piggusApi } from '@/client/piggusApi';
 
 interface ExpenseContextType {
   expensesGroups: ExpenseGroupWithDecryptedData[];
@@ -107,6 +109,13 @@ interface ExpenseContextType {
       groupId: string,
       refundId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  bulkUpdateExpenses: (
+      groupId: string,
+      expenses: Array<{ id?: string; data: ExpenseData }>
+  ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }>;
+  syncBankTransactions: (
+      groupId?: string
+  ) => Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -778,6 +787,304 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const bulkUpdateExpenses = async (
+    groupId: string,
+    expenses: Array<{ id?: string; data: ExpenseData }>
+  ): Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }> => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        return {
+          success: false,
+          error: 'You must be logged in to bulk update expenses',
+        };
+      }
+
+      // Find the group
+      const group = expensesGroups.find(g => g.id === groupId);
+      if (!group) {
+        return {
+          success: false,
+          error: 'Expense group not found',
+        };
+      }
+
+      // Get the group key
+      const groupKey = group.encrypted_key;
+      if (!groupKey) {
+        return {
+          success: false,
+          error: 'Could not access encryption key',
+        };
+      }
+
+      const result = await apiBulkInsertAndUpdateExpenses(
+        user,
+        groupId,
+        groupKey,
+        expenses,
+        encryptWithExternalEncryptionKey
+      );
+
+      if (result.success && result.data) {
+        // Update local state
+        setExpensesGroups(prev =>
+          prev.map(group => {
+            if (group.id === groupId) {
+              const existingExpenses = [...group.expenses];
+              const newExpenses: ExpenseWithDecryptedData[] = [];
+
+              // Process the bulk update results
+              result.data!.forEach(updatedExpense => {
+                if (updatedExpense.id) {
+                  const existingIndex = existingExpenses.findIndex(exp => exp.id === updatedExpense.id);
+                  if (existingIndex >= 0) {
+                    // Update existing expense
+                    existingExpenses[existingIndex] = updatedExpense;
+                  } else {
+                    // Add new expense
+                    newExpenses.push(updatedExpense);
+                  }
+                }
+              });
+
+              return {
+                ...group,
+                expenses: [...newExpenses, ...existingExpenses],
+              };
+            }
+            return group;
+          })
+        );
+        return { success: true, data: result.data };
+      } else {
+        setError(result.error || 'Failed to bulk update expenses');
+        return {
+          success: false,
+          error: result.error || 'Failed to bulk update expenses',
+        };
+      }
+    } catch (error: any) {
+      console.error('Failed to bulk update expenses:', error);
+      const errorMessage = error.message || 'Failed to bulk update expenses';
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  };
+
+  const syncBankTransactions = async (
+    groupId?: string
+  ): Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }> => {
+    try {
+      if (!user || !isEncryptionInitialized || !userProfile) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: 'User authentication or encryption not available',
+        };
+      }
+
+      // Fetch bank transactions
+      const accountsTransactions = await piggusApi.getBankTransactions();
+      console.log('Bank transactions fetched:', accountsTransactions);
+
+      // Check if we have any accounts
+      if (!accountsTransactions || accountsTransactions.length === 0) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: 'No bank accounts found',
+        };
+      }
+
+      // Initialize arrays for booked transactions
+      let bookedTransactions: any[] = [];
+      let allSkipped = true;
+
+      // Process each account's transactions
+      for (const accountData of accountsTransactions) {
+        // Skip accounts that were skipped during fetching
+        if (accountData.skipped) {
+          console.log(`Skipped account ${accountData.accountId}: ${accountData.reason || 'No reason provided'}`);
+          continue;
+        }
+        allSkipped = false;
+
+        // Extract transactions if available
+        if (accountData.transactions && accountData.transactions.transactions) {
+          const accountBooked = accountData.transactions.transactions.booked || [];
+          for (const transaction of accountBooked) {
+            bookedTransactions.push({
+              ...transaction,
+              accountId: accountData.accountId,
+            });
+          }
+        }
+      }
+
+      // Check if all accounts were skipped
+      if (allSkipped) {
+        const reasons = accountsTransactions
+          .filter(account => account.skipped && account.reason)
+          .map(account => account.reason)
+          .join(', ');
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: `All accounts were skipped: ${reasons || 'No specific reasons provided'}`,
+        };
+      }
+
+      // Convert Transaction objects to a format compatible with our app
+      const allTransactions = [...bookedTransactions].map(transaction => ({
+        id: transaction.transactionId || transaction.internalTransactionId || '',
+        amount: parseFloat(transaction.transactionAmount.amount),
+        currency: transaction.transactionAmount.currency,
+        description: transaction.remittanceInformationUnstructured ||
+                     transaction.remittanceInformationStructured ||
+                     `${transaction.creditorName || transaction.debtorName || 'Unknown'} transaction`,
+        date: transaction.bookingDate,
+        category: transaction.merchantCategoryCode || 'other',
+        accountId: transaction.accountId,
+      }));
+
+      if (!allTransactions || allTransactions.length === 0) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: 'No bank transactions found',
+        };
+      }
+
+      // Get the target expense group
+      const targetGroup = groupId 
+        ? expensesGroups.find(g => g.id === groupId)
+        : expensesGroups[0]; // Use first group as default
+
+      if (!targetGroup) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: 'No expense groups found. Please create a group first.',
+        };
+      }
+
+      // Get all expenses from all groups for duplicate checking
+      const allExpenses = expensesGroups.flatMap(group => group.expenses);
+
+      // Prepare bulk operations
+      const bulkOperations: Array<{ id?: string; data: ExpenseData }> = [];
+
+      for (const transaction of allTransactions) {
+        // Skip positive transactions, we only want expenses
+        if (transaction.amount > 0) continue;
+
+        // Use absolute value for negative amounts
+        const expenseAmount = Math.abs(transaction.amount);
+
+        // Check if this transaction already exists as an expense
+        const existingExpense = allExpenses.find(expense =>
+          expense.data.external_transaction_id === transaction.id
+        );
+
+        if (existingExpense) {
+          // Update existing expense - create updated participants
+          const updatedParticipants = existingExpense.data.participants.map(participant => {
+            if (participant.user_id === user.id) {
+              return {
+                ...participant,
+                share_amount: expenseAmount
+              };
+            }
+            return participant;
+          });
+
+          bulkOperations.push({
+            id: existingExpense.id,
+            data: {
+              ...existingExpense.data,
+              amount: expenseAmount,
+              description: transaction.description,
+              date: transaction.date,
+              category: transaction.category || existingExpense.data.category,
+              currency: transaction.currency || existingExpense.data.currency,
+              participants: updatedParticipants
+            }
+          });
+        } else {
+          // Create new expense from transaction
+          bulkOperations.push({
+            data: {
+              name: transaction.description,
+              description: transaction.description,
+              amount: expenseAmount,
+              date: transaction.date,
+              category: transaction.category || 'other',
+              is_recurring: false,
+              currency: transaction.currency,
+              payer_user_id: user.id,
+              payer_username: userProfile.username,
+              participants: [
+                {
+                  user_id: user.id,
+                  username: userProfile.username,
+                  share_amount: expenseAmount
+                }
+              ],
+              split_method: 'equal' as const,
+              external_account_id: transaction.accountId,
+              external_transaction_id: transaction.id,
+            }
+          });
+        }
+      }
+
+      // Process bulk operations
+      let addedCount = 0;
+      let updatedCount = 0;
+
+      if (bulkOperations.length > 0) {
+        const result = await bulkUpdateExpenses(targetGroup.id, bulkOperations);
+        
+        if (result.success) {
+          // Count added and updated expenses
+          addedCount = bulkOperations.filter(op => !op.id).length;
+          updatedCount = bulkOperations.filter(op => op.id).length;
+          
+          console.log(`Bulk operation completed: ${result.data?.length || 0} expenses processed`);
+        } else {
+          return {
+            success: false,
+            addedCount: 0,
+            updatedCount: 0,
+            error: result.error || 'Failed to process expenses in bulk',
+          };
+        }
+      }
+
+      return {
+        success: true,
+        addedCount,
+        updatedCount,
+      };
+    } catch (error: any) {
+      console.error('Error syncing bank transactions:', error);
+      return {
+        success: false,
+        addedCount: 0,
+        updatedCount: 0,
+        error: error.message || 'Failed to sync bank transactions',
+      };
+    }
+  };
+
   useEffect(() => {
     if (isEncryptionInitialized) {
       fetchExpenses().catch(error => console.error('Failed to fetch expenses:', error));
@@ -806,6 +1113,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             addRefund,
             updateRefund,
             deleteRefund,
+            bulkUpdateExpenses,
+            syncBankTransactions,
           }}
       >
         {children}

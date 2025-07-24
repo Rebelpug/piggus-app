@@ -40,7 +40,7 @@ export default function ExpensesScreen() {
     const { t } = useLocalization();
     const { user } = useAuth();
     const {  encryptWithExternalEncryptionKey } = useEncryption();
-    const { expensesGroups, recurringExpenses, isLoading, error } = useExpense();
+    const { expensesGroups, recurringExpenses, bulkUpdateExpenses, syncBankTransactions, isLoading, error } = useExpense();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -296,183 +296,23 @@ export default function ExpensesScreen() {
             // Show loading indicator
             setRefreshing(true);
 
-            // Fetch bank transactions
-            const accountsTransactions = await piggusApi.getBankTransactions();
-            console.log('Bank transactions fetched:', accountsTransactions);
+            // Use the new context function
+            const result = await syncBankTransactions();
 
-            // Check if we have any accounts
-            if (!accountsTransactions || accountsTransactions.length === 0) {
-                Alert.alert('Info', 'No bank accounts found.');
-                setRefreshing(false);
-                return;
-            }
-
-            // Initialize arrays for booked and pending transactions
-            let bookedTransactions: any[] = [];
-            let allSkipped = true;
-
-            // Process each account's transactions
-            for (const accountData of accountsTransactions) {
-                // Skip accounts that were skipped during fetching
-                if (accountData.skipped) {
-                    console.log(`Skipped account ${accountData.accountId}: ${accountData.reason || 'No reason provided'}`);
-                    continue;
-                }
-                allSkipped = false;
-
-                // Extract transactions if available
-                if (accountData.transactions && accountData.transactions.transactions) {
-                    const accountBooked = accountData.transactions.transactions.booked || [];
-                    for (const transaction of accountBooked) {
-                        bookedTransactions.push({
-                            ...transaction,
-                            accountId: accountData.accountId,
-                        });
-                    }
-                }
-            }
-
-            // Check if all accounts were skipped
-            if (allSkipped) {
-                const reasons = accountsTransactions
-                    .filter(account => account.skipped && account.reason)
-                    .map(account => `- ${account.reason}`)
-                    .join('\n');
-
-                Alert.alert('Info', `All accounts were skipped:\n${reasons || 'No specific reasons provided'}`);
-                setRefreshing(false);
-                return;
-            }
-
-            // Convert Transaction objects to a format compatible with our app
-            const allTransactions = [...bookedTransactions].map(transaction => ({
-                id: transaction.transactionId || transaction.internalTransactionId || '',
-                amount: parseFloat(transaction.transactionAmount.amount),
-                currency: transaction.transactionAmount.currency,
-                description: transaction.remittanceInformationUnstructured ||
-                             transaction.remittanceInformationStructured ||
-                             `${transaction.creditorName || transaction.debtorName || 'Unknown'} transaction`,
-                date: transaction.bookingDate,
-                category: transaction.merchantCategoryCode || 'other',
-                accountId: transaction.accountId,
-            }));
-
-            if (!allTransactions || allTransactions.length === 0) {
-                Alert.alert('Info', 'No bank transactions found.');
-                setRefreshing(false);
-                return;
-            }
-
-            // Get the default expense group (use the first one for now)
-            if (!expensesGroups || expensesGroups.length === 0) {
-                Alert.alert('Error', 'No expense groups found. Please create a group first.');
-                setRefreshing(false);
-                return;
-            }
-
-            const defaultGroup = expensesGroups[0];
-
-            // Prepare bulk operations
-            const bulkOperations: ExpenseData[] = [];
-
-            for (const transaction of allTransactions) {
-                // Let's skip positive transactions for now, we only want expenses
-                if (transaction.amount > 0) continue;
-
-                // Use absolute value for negative amounts to ensure they're displayed correctly
-                const expenseAmount = Math.abs(transaction.amount);
-
-                // Check if this transaction already exists as an expense
-                const existingExpense = allExpenses.find(expense =>
-                    expense.data.external_transaction_id === transaction.id
+            if (result.success) {
+                Alert.alert(
+                    'Sync Complete',
+                    `Added: ${result.addedCount}\nUpdated: ${result.updatedCount}`
                 );
-
-                if (existingExpense) {
-                    // Update existing expense
-                    // Create a copy of the participants array to update the share amount
-                    const updatedParticipants = existingExpense.data.participants.map(participant => {
-                        if (participant.user_id === user?.id) {
-                            return {
-                                ...participant,
-                                share_amount: expenseAmount
-                            };
-                        }
-                        return participant;
-                    });
-
-                    bulkOperations.push({
-                        isNew: false,
-                        ...existingExpense.data,
-                        amount: expenseAmount,
-                        description: transaction.description,
-                        date: transaction.date,
-                        category: transaction.category || existingExpense.data.category,
-                        currency: transaction.currency || existingExpense.data.currency,
-                        participants: updatedParticipants
-                    });
-                } else {
-                    // Create new expense from transaction
-                    bulkOperations.push({
-                        name: transaction.description,
-                        description: transaction.description,
-                        amount: expenseAmount,
-                        date: transaction.date,
-                        category: transaction.category || 'other', // Default category
-                        is_recurring: false,
-                        currency: transaction.currency,
-                        payer_user_id: user?.id || '',
-                        payer_username: userProfile?.username || '',
-                        participants: [
-                            {
-                                user_id: user?.id || '',
-                                username: userProfile?.username || '',
-                                share_amount: expenseAmount
-                            }
-                        ],
-                        split_method: 'equal',
-                        external_account_id: transaction.accountId,
-                        external_transaction_id: transaction.id,
-                        isNew: true,
-                    });
-                }
+                // Refresh the UI
+                onRefresh();
+            } else {
+                Alert.alert('Error', result.error || 'Failed to sync bank transactions');
             }
-
-            // Process bulk operations
-            let addedCount = 0;
-            let updatedCount = 0;
-
-            if (bulkOperations.length > 0) {
-                try {
-                    const results = await apiBulkInsertAndUpdateExpenses(user, defaultGroup.id, defaultGroup.encrypted_key, bulkOperations, encryptWithExternalEncryptionKey);
-
-                    // Count added and updated expenses
-                    addedCount = bulkOperations.filter(op => op.isNew).length;
-                    updatedCount = bulkOperations.filter(op => !op.isNew).length;
-
-                    console.log(`Bulk operation completed: ${results.length} expenses processed`);
-                } catch (bulkError) {
-                    console.error('Error processing bulk expenses:', bulkError);
-                    Alert.alert(
-                        'Error',
-                        'Failed to process expenses in bulk. Please try again.'
-                    );
-                }
-            }
-
-            // Show results
-            Alert.alert(
-                'Sync Complete',
-                `Successfully processed ${allTransactions.length} transactions.\nAdded: ${addedCount}\nUpdated: ${updatedCount}`
-            );
-
-            // Refresh the UI
-            onRefresh();
         } catch (error) {
             console.error('Error syncing bank transactions:', error);
-            Alert.alert(
-                'Error',
-                'Failed to sync bank transactions. Please try again.'
-            );
+            Alert.alert('Error', 'Failed to sync bank transactions. Please try again.');
+        } finally {
             setRefreshing(false);
         }
     };

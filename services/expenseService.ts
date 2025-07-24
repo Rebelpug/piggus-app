@@ -633,7 +633,7 @@ export const apiBulkInsertAndUpdateExpenses = async (
     }));
 
     const results = await piggusApi.bulkAddUpdateExpenses(groupId, encryptedExpenses.map(({expenseId, encryptedData, isNew}) => ({
-      expenseId,
+      id: expenseId,
       encrypted_data: encryptedData,
       group_id: groupId,
       isNew
@@ -646,7 +646,7 @@ export const apiBulkInsertAndUpdateExpenses = async (
 
     return {
       success: true,
-      data: results,
+      data: processedExpenses,
     };
   } catch (error: any) {
     console.error('Error in bulk expense operation:', error);
