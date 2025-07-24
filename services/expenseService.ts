@@ -606,3 +606,54 @@ export const apiDeleteRefund = async (
   }
 };
 
+export const apiBulkInsertAndUpdateExpenses = async (
+    user: User,
+    groupId: string,
+    groupKey: string,
+    expenses: Array<{ id?: string; data: ExpenseData }>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
+): Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }> => {
+  try {
+    if (!user || !groupId || !groupKey || !expenses || !Array.isArray(expenses)) {
+      return {
+        success: false,
+        error: 'Invalid parameters',
+      };
+    }
+
+    const encryptedExpenses = await Promise.all(expenses.map(async expense => {
+      const expenseId = expense.id || uuidv4();
+      const encryptedData = await encryptWithExternalEncryptionKey(groupKey, expense.data);
+      return {
+        expenseId,
+        encryptedData,
+        originalData: expense.data,
+        isNew: !expense.id,
+      };
+    }));
+
+    const results = await piggusApi.bulkAddUpdateExpenses(groupId, encryptedExpenses.map(({expenseId, encryptedData, isNew}) => ({
+      expenseId,
+      encrypted_data: encryptedData,
+      group_id: groupId,
+      isNew
+    })));
+
+    const processedExpenses = results.map((result, index) => ({
+      ...result,
+      data: encryptedExpenses[index].originalData,
+    } as ExpenseWithDecryptedData));
+
+    return {
+      success: true,
+      data: results,
+    };
+  } catch (error: any) {
+    console.error('Error in bulk expense operation:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to process expenses',
+    };
+  }
+};
+

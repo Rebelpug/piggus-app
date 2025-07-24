@@ -100,7 +100,6 @@ export type BulkExpenseOperation = {
   id?: string;
   group_id: string;
   data: ExpenseData;
-  isNew: boolean;
 };
 
 export type ExpenseFormData = {

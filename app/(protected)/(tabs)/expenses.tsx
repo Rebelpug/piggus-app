@@ -30,6 +30,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { piggusApi, BankTransaction } from '@/client/piggusApi';
 import { BulkExpenseOperation } from '@/types/expense';
+import {apiBulkInsertAndUpdateExpenses} from "@/services/expenseService";
+import {useEncryption} from "@/context/EncryptionContext";
 
 export default function ExpensesScreen() {
     const router = useRouter();
@@ -37,6 +39,7 @@ export default function ExpensesScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { user } = useAuth();
+    const { isEncryptionInitialized, createEncryptionKey ,decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
     const { expensesGroups, recurringExpenses, isLoading, error, addExpense, updateExpense } = useExpense();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
@@ -398,47 +401,40 @@ export default function ExpensesScreen() {
                     });
 
                     bulkOperations.push({
-                        id: existingExpense.id,
-                        group_id: existingExpense.group_id,
                         isNew: false,
-                        data: {
-                            ...existingExpense.data,
-                            amount: expenseAmount,
-                            description: transaction.description,
-                            date: transaction.date,
-                            status: transaction.status,
-                            category: transaction.category || existingExpense.data.category,
-                            currency: transaction.currency || existingExpense.data.currency,
-                            participants: updatedParticipants
-                        }
+                        ...existingExpense.data,
+                        amount: expenseAmount,
+                        description: transaction.description,
+                        date: transaction.date,
+                        status: transaction.status,
+                        category: transaction.category || existingExpense.data.category,
+                        currency: transaction.currency || existingExpense.data.currency,
+                        participants: updatedParticipants
                     });
                 } else {
                     // Create new expense from transaction
                     bulkOperations.push({
-                        group_id: defaultGroup.id,
+                        name: transaction.description,
+                        description: transaction.description,
+                        amount: expenseAmount,
+                        date: transaction.date,
+                        category: transaction.category || 'other', // Default category
+                        is_recurring: false,
+                        currency: transaction.currency,
+                        status: transaction.status,
+                        payer_user_id: user?.id || '',
+                        payer_username: userProfile?.username || '',
+                        participants: [
+                            {
+                                user_id: user?.id || '',
+                                username: userProfile?.username || '',
+                                share_amount: expenseAmount
+                            }
+                        ],
+                        split_method: 'equal',
+                        external_account_id: 'bank', // Generic identifier for bank account
+                        external_transaction_id: transaction.id,
                         isNew: true,
-                        data: {
-                            name: transaction.description,
-                            description: transaction.description,
-                            amount: expenseAmount,
-                            date: transaction.date,
-                            category: transaction.category || 'other', // Default category
-                            is_recurring: false,
-                            currency: transaction.currency,
-                            status: transaction.status,
-                            payer_user_id: user?.id || '',
-                            payer_username: userProfile?.username || '',
-                            participants: [
-                                {
-                                    user_id: user?.id || '',
-                                    username: userProfile?.username || '',
-                                    share_amount: expenseAmount
-                                }
-                            ],
-                            split_method: 'equal',
-                            external_account_id: 'bank', // Generic identifier for bank account
-                            external_transaction_id: transaction.id
-                        }
                     });
                 }
             }
@@ -449,7 +445,7 @@ export default function ExpensesScreen() {
 
             if (bulkOperations.length > 0) {
                 try {
-                    const results = await piggusApi.bulkAddUpdateExpenses(defaultGroup.id, bulkOperations);
+                    const results = await apiBulkInsertAndUpdateExpenses(user, defaultGroup.id, defaultGroup.encrypted_key, bulkOperations, encryptWithExternalEncryptionKey);
 
                     // Count added and updated expenses
                     addedCount = bulkOperations.filter(op => op.isNew).length;
