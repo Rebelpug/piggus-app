@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {StyleSheet, Modal, ScrollView, TouchableOpacity, Alert, Image} from 'react-native';
+import Constants from 'expo-constants';
 import {
     Layout,
     Text,
@@ -114,8 +115,9 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
         setLoading(true);
         try {
             // Step 1: Create agreement
-            //const selectedInstitute = selectedInstitution.id;
-            const selectedInstitute = "SANDBOXFINANCE_SFIN0000"
+            const selectedInstitute =  process.env.NODE_ENV === 'production'
+                ? "SANDBOXFINANCE_SFIN0000"
+                : selectedInstitution.id;
             const agreementData = await piggusApi.createBankAgreement(selectedInstitute);
             setAgreement(agreementData);
 
