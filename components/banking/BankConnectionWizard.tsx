@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Modal, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {StyleSheet, Modal, ScrollView, TouchableOpacity, Alert, Image} from 'react-native';
 import {
     Layout,
     Text,
@@ -22,6 +22,7 @@ import { Colors } from '@/constants/Colors';
 import { useLocalization } from '@/context/LocalizationContext';
 import { piggusApi, Institution, BankAgreement, BankRequisition } from '@/client/piggusApi';
 import { WebView } from 'react-native-webview';
+import {useProfile} from "@/context/ProfileContext";
 
 interface BankConnectionWizardProps {
     visible: boolean;
@@ -65,6 +66,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
+    const { refreshProfile } = useProfile();
     const [currentStep, setCurrentStep] = useState(0);
     const [selectedCountryIndex, setSelectedCountryIndex] = useState<IndexPath | undefined>();
     const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -91,7 +93,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
         } catch (error: any) {
             console.error('Error fetching bank institutions:', error);
             let errorMessage = 'Failed to load bank institutions. Please try again.';
-            
+
             if (error.response?.status === 403) {
                 errorMessage = 'Premium subscription required to access bank data.';
             } else if (error.response?.status === 409) {
@@ -99,7 +101,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
             } else if (error.response?.status === 500) {
                 errorMessage = 'Bank data service is currently unavailable.';
             }
-            
+
             Alert.alert('Error', errorMessage);
         } finally {
             setLoading(false);
@@ -108,29 +110,31 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
 
     const createBankConnection = async () => {
         if (!selectedInstitution) return;
-        
+
         setLoading(true);
         try {
             // Step 1: Create agreement
-            const agreementData = await piggusApi.createBankAgreement(selectedInstitution.id);
+            //const selectedInstitute = selectedInstitution.id;
+            const selectedInstitute = "SANDBOXFINANCE_SFIN0000"
+            const agreementData = await piggusApi.createBankAgreement(selectedInstitute);
             setAgreement(agreementData);
-            
+
             // Step 2: Create requisition
             const redirectUrl = 'piggus://bank-auth-complete'; // Deep link for your app
             const requisitionData = await piggusApi.createBankRequisition(
                 redirectUrl,
-                selectedInstitution.id,
+                selectedInstitute,
                 agreementData.id,
                 `bank-connection-${Date.now()}`
             );
             setRequisition(requisitionData);
             setAuthUrl(requisitionData.link);
             setCurrentStep(3); // Move to WebView step
-            
+
         } catch (error: any) {
             console.error('Error creating bank connection:', error);
             let errorMessage = 'Failed to create bank connection. Please try again.';
-            
+
             if (error.response?.status === 403) {
                 errorMessage = 'Premium subscription required to access bank data.';
             } else if (error.response?.status === 409) {
@@ -138,7 +142,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
             } else if (error.response?.status === 500) {
                 errorMessage = 'Bank data service is currently unavailable.';
             }
-            
+
             Alert.alert('Error', errorMessage);
         } finally {
             setLoading(false);
@@ -146,33 +150,30 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
     };
 
     const renderBackAction = () => (
-        <TopNavigationAction
-            icon={(props) => (
-                <Ionicons 
-                    name={currentStep === 0 || currentStep === 3 ? "close" : "arrow-back"} 
-                    size={24} 
-                    color={props?.tintColor} 
-                />
-            )}
-            onPress={currentStep === 0 || currentStep === 3 ? onClose : () => setCurrentStep(currentStep - 1)}
-        />
+        <TouchableOpacity onPress={currentStep === 0 || currentStep === 3 ? onClose : () => setCurrentStep(currentStep - 1)} style={styles.backButton}>
+            <Ionicons
+                name={currentStep === 0 || currentStep === 3 ? "close" : "arrow-back"}
+                size={24}
+                color={colors.icon}
+            />
+        </TouchableOpacity>
     );
 
     const renderFirstStep = () => (
         <Layout style={styles.stepContainer}>
             <Layout style={styles.iconContainer}>
-                <Ionicons 
-                    name="shield-checkmark" 
-                    size={64} 
-                    color={colors.primary} 
-                    style={styles.stepIcon} 
+                <Ionicons
+                    name="shield-checkmark"
+                    size={64}
+                    color={colors.primary}
+                    style={styles.stepIcon}
                 />
             </Layout>
-            
+
             <Text category='h4' style={styles.stepTitle}>
                 {t('banking.connectBankTitle')}
             </Text>
-            
+
             <Text category='s1' appearance='hint' style={styles.stepDescription}>
                 {t('banking.connectBankDescription')}
             </Text>
@@ -193,14 +194,14 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                         {t('banking.securityInfo')}
                     </Text>
                 </Layout>
-                
+
                 <Layout style={styles.infoItem}>
                     <Ionicons name="eye" size={20} color={colors.primary} />
                     <Text category='s2' style={styles.infoText}>
                         {t('banking.fraudProtectionInfo')}
                     </Text>
                 </Layout>
-                
+
                 <Layout style={styles.infoItem}>
                     <Ionicons name="business" size={20} color={colors.primary} />
                     <Text category='s2' style={styles.infoText}>
@@ -224,18 +225,18 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
     const renderSecondStep = () => (
         <Layout style={styles.stepContainer}>
             <Layout style={styles.iconContainer}>
-                <Ionicons 
-                    name="flag" 
-                    size={64} 
-                    color={colors.primary} 
-                    style={styles.stepIcon} 
+                <Ionicons
+                    name="flag"
+                    size={64}
+                    color={colors.primary}
+                    style={styles.stepIcon}
                 />
             </Layout>
-            
+
             <Text category='h4' style={styles.stepTitle}>
                 {t('banking.selectCountryTitle')}
             </Text>
-            
+
             <Text category='s1' appearance='hint' style={styles.stepDescription}>
                 {t('banking.selectCountryDescription')}
             </Text>
@@ -274,18 +275,18 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
     const renderThirdStep = () => (
         <Layout style={styles.stepContainer}>
             <Layout style={styles.iconContainer}>
-                <Ionicons 
-                    name="business" 
-                    size={64} 
-                    color={colors.primary} 
-                    style={styles.stepIcon} 
+                <Ionicons
+                    name="business"
+                    size={64}
+                    color={colors.primary}
+                    style={styles.stepIcon}
                 />
             </Layout>
-            
+
             <Text category='h4' style={styles.stepTitle}>
                 Select Your Bank
             </Text>
-            
+
             <Text category='s1' appearance='hint' style={styles.stepDescription}>
                 Choose your bank from the list below to connect your account.
             </Text>
@@ -310,7 +311,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                         key={institution.id}
                         style={[
                             styles.institutionItem,
-                            { 
+                            {
                                 backgroundColor: selectedInstitution?.id === institution.id ? colors.primary + '20' : colors.card,
                                 borderColor: selectedInstitution?.id === institution.id ? colors.primary : colors.border
                             }
@@ -320,9 +321,11 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                         <Layout style={[styles.institutionContent, { backgroundColor: 'transparent' }]}>
                             {institution.logo ? (
                                 <Layout style={styles.logoContainer}>
-                                    <Text style={styles.logoFallback}>
-                                        {institution.name.charAt(0).toUpperCase()}
-                                    </Text>
+                                    <Image
+                                        src={institution.logo}
+                                        style={styles.logo}
+                                        resizeMode="contain"
+                                    />
                                 </Layout>
                             ) : (
                                 <Layout style={styles.logoContainer}>
@@ -387,7 +390,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                     Please log in to your bank account to complete the connection.
                 </Text>
             </Layout>
-            
+
             {authUrl && (
                 <WebView
                     source={{ uri: authUrl }}
@@ -397,7 +400,8 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                         if (navState.url.startsWith('piggus://bank-auth-complete')) {
                             // Parse the URL to get any parameters
                             console.log('Bank authentication completed:', navState.url);
-                            
+                            refreshProfile();
+
                             // Show success and close
                             Alert.alert(
                                 'Success',
@@ -460,7 +464,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                     accessoryLeft={renderBackAction}
                     style={{ backgroundColor: colors.background }}
                 />
-                
+
                 {renderStepContent()}
             </SafeAreaView>
         </Modal>
@@ -476,9 +480,19 @@ const styles = StyleSheet.create({
         padding: 24,
         justifyContent: 'center',
     },
+    logo: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f0f0f0',
+        justifyContent: 'center',
+    },
     iconContainer: {
         alignItems: 'center',
         marginBottom: 24,
+    },
+    backButton: {
+        padding: 8,
     },
     stepIcon: {
         marginBottom: 8,

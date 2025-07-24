@@ -8,6 +8,14 @@ export type Subscription = {
   updated_at: string;
 };
 
+export type BankAccount = {
+  id: string;
+  user_id: string;
+  active_until: Date | null;
+  last_fetched: Date | null;
+  active: boolean;
+}
+
 export type AdditionalCategoryOverride = {
   id: string;
   name: string;
@@ -48,5 +56,5 @@ export type Profile = {
   created_at: string;
   updated_at: string;
   subscription: Subscription | null;
-  has_active_bank_account: boolean;
+  bank_accounts: BankAccount[];
 };

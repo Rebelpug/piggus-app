@@ -3,12 +3,8 @@ import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, Sc
 import {
     Layout,
     Text,
-    Card,
     Button,
     TopNavigation,
-    List,
-    ListItem,
-    Divider,
     Tab,
     TabView
 } from '@ui-kitten/components';
@@ -18,7 +14,12 @@ import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useLocalization } from '@/context/LocalizationContext';
-import { ExpenseWithDecryptedData, RecurringExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo } from '@/types/expense';
+import {
+    ExpenseWithDecryptedData,
+    RecurringExpenseWithDecryptedData,
+    calculateUserShare,
+    ExpenseData
+} from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
@@ -28,8 +29,7 @@ import BudgetCard from '@/components/budget/BudgetCard';
 import BankConnectionWizard from '@/components/banking/BankConnectionWizard';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
-import { piggusApi, BankTransaction } from '@/client/piggusApi';
-import { BulkExpenseOperation } from '@/types/expense';
+import { piggusApi } from '@/client/piggusApi';
 import {apiBulkInsertAndUpdateExpenses} from "@/services/expenseService";
 import {useEncryption} from "@/context/EncryptionContext";
 
@@ -39,8 +39,8 @@ export default function ExpensesScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { user } = useAuth();
-    const { isEncryptionInitialized, createEncryptionKey ,decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
-    const { expensesGroups, recurringExpenses, isLoading, error, addExpense, updateExpense } = useExpense();
+    const {  encryptWithExternalEncryptionKey } = useEncryption();
+    const { expensesGroups, recurringExpenses, isLoading, error } = useExpense();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -309,7 +309,6 @@ export default function ExpensesScreen() {
 
             // Initialize arrays for booked and pending transactions
             let bookedTransactions: any[] = [];
-            let pendingTransactions: any[] = [];
             let allSkipped = true;
 
             // Process each account's transactions
@@ -319,16 +318,17 @@ export default function ExpensesScreen() {
                     console.log(`Skipped account ${accountData.accountId}: ${accountData.reason || 'No reason provided'}`);
                     continue;
                 }
-
                 allSkipped = false;
 
                 // Extract transactions if available
                 if (accountData.transactions && accountData.transactions.transactions) {
                     const accountBooked = accountData.transactions.transactions.booked || [];
-                    const accountPending = accountData.transactions.transactions.pending || [];
-
-                    bookedTransactions = [...bookedTransactions, ...accountBooked];
-                    pendingTransactions = [...pendingTransactions, ...accountPending];
+                    for (const transaction of accountBooked) {
+                        bookedTransactions.push({
+                            ...transaction,
+                            accountId: accountData.accountId,
+                        });
+                    }
                 }
             }
 
@@ -345,7 +345,7 @@ export default function ExpensesScreen() {
             }
 
             // Convert Transaction objects to a format compatible with our app
-            const allTransactions = [...bookedTransactions, ...pendingTransactions].map(transaction => ({
+            const allTransactions = [...bookedTransactions].map(transaction => ({
                 id: transaction.transactionId || transaction.internalTransactionId || '',
                 amount: parseFloat(transaction.transactionAmount.amount),
                 currency: transaction.transactionAmount.currency,
@@ -353,8 +353,8 @@ export default function ExpensesScreen() {
                              transaction.remittanceInformationStructured ||
                              `${transaction.creditorName || transaction.debtorName || 'Unknown'} transaction`,
                 date: transaction.bookingDate,
-                status: pendingTransactions.some(t => t.transactionId === transaction.transactionId) ? 'pending' : 'booked',
-                category: transaction.merchantCategoryCode || 'other'
+                category: transaction.merchantCategoryCode || 'other',
+                accountId: transaction.accountId,
             }));
 
             if (!allTransactions || allTransactions.length === 0) {
@@ -373,7 +373,7 @@ export default function ExpensesScreen() {
             const defaultGroup = expensesGroups[0];
 
             // Prepare bulk operations
-            const bulkOperations: BulkExpenseOperation[] = [];
+            const bulkOperations: ExpenseData[] = [];
 
             for (const transaction of allTransactions) {
                 // Let's skip positive transactions for now, we only want expenses
@@ -406,7 +406,6 @@ export default function ExpensesScreen() {
                         amount: expenseAmount,
                         description: transaction.description,
                         date: transaction.date,
-                        status: transaction.status,
                         category: transaction.category || existingExpense.data.category,
                         currency: transaction.currency || existingExpense.data.currency,
                         participants: updatedParticipants
@@ -421,7 +420,6 @@ export default function ExpensesScreen() {
                         category: transaction.category || 'other', // Default category
                         is_recurring: false,
                         currency: transaction.currency,
-                        status: transaction.status,
                         payer_user_id: user?.id || '',
                         payer_username: userProfile?.username || '',
                         participants: [
@@ -432,7 +430,7 @@ export default function ExpensesScreen() {
                             }
                         ],
                         split_method: 'equal',
-                        external_account_id: 'bank', // Generic identifier for bank account
+                        external_account_id: transaction.accountId,
                         external_transaction_id: transaction.id,
                         isNew: true,
                     });
@@ -497,23 +495,33 @@ export default function ExpensesScreen() {
         }
     };
 
+    const isPremium = userProfile?.subscription?.subscription_tier === 'premium';
+    const hasBankConnection = userProfile?.bank_accounts?.some(bankAccount => bankAccount.active);
+
     const renderBankConnectionBanner = () => (
         <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.bankBannerContent}>
                 <Ionicons name="card" size={24} color={colors.primary} style={styles.bankBannerIcon} />
                 <View style={styles.bankBannerText}>
                     <Text category='s1' style={[styles.bannerTitle, { color: colors.text }]}>
-                        {userProfile?.has_active_bank_account
+                        {hasBankConnection
                             ? t('banking.bankAccountConnected')
                             : t('banking.connectBankAccount')}
                     </Text>
+                    {hasBankConnection && userProfile?.bank_accounts?.[0]?.last_fetched && (
+                        <Text category='c1' appearance='hint'>
+                            Last Sync: {new Date(userProfile.bank_accounts[0].last_fetched).toLocaleDateString()}
+                        </Text>
+                    )}
+
                 </View>
-                {userProfile?.has_active_bank_account ? (
+                {hasBankConnection ? (
                     <View style={styles.bankButtonsContainer}>
                         <Button
                             size='small'
                             style={[styles.bankButton, { marginRight: 8 }]}
                             onPress={handleSyncBankTransactions}
+                            disabled={!isPremium}
                         >
                             {t('banking.sync')}
                         </Button>
@@ -687,7 +695,7 @@ export default function ExpensesScreen() {
             />
 
             {renderMonthSelector()}
-            {renderBankConnectionBanner()}
+            {(isPremium || hasBankConnection) && renderBankConnectionBanner()}
 
             <TabView
                 selectedIndex={selectedIndex}
@@ -842,6 +850,7 @@ const styles = StyleSheet.create({
     },
     bankBannerText: {
         flex: 1,
+        gap: 4,
     },
     bannerTitle: {
         fontSize: 14,

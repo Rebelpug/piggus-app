@@ -96,12 +96,6 @@ export type ExpenseWithDecryptedData = {
   data: ExpenseData;
 };
 
-export type BulkExpenseOperation = {
-  id?: string;
-  group_id: string;
-  data: ExpenseData;
-};
-
 export type ExpenseFormData = {
   name: string;
   description: string;

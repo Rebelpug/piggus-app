@@ -6,7 +6,7 @@
     "version": "1.2.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "piggusapp",
+    "scheme": "piggus",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
