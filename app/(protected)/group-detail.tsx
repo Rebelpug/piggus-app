@@ -56,7 +56,9 @@ export default function GroupDetailScreen() {
     // Calculate group balances
     const groupBalances = useMemo(() => {
         if (!group) return {};
-        return calculateGroupBalances(group.expenses, group.members, group.data?.refunds);
+        // Filter out deleted expenses from balance calculations
+        const nonDeletedExpenses = group.expenses.filter(expense => expense.data.status !== 'deleted');
+        return calculateGroupBalances(nonDeletedExpenses, group.members, group.data?.refunds);
     }, [group]);
 
     const navigateBack = () => {
@@ -458,7 +460,7 @@ export default function GroupDetailScreen() {
         );
     }
 
-    const userTotalShare = group.expenses?.reduce((sum, expense) => {
+    const userTotalShare = group.expenses?.filter(expense => expense.data.status !== 'deleted').reduce((sum, expense) => {
         try {
             return sum + calculateUserShare(expense, user?.id || '');
         } catch {
@@ -531,7 +533,7 @@ export default function GroupDetailScreen() {
                                 </View>
                                 <View style={styles.summaryItem}>
                                     <Text style={[styles.summaryNumber, { color: colors.primary }]}>
-                                        {group.expenses?.length || 0}
+                                        {group.expenses?.filter(expense => expense.data.status !== 'deleted').length || 0}
                                     </Text>
                                     <Text style={[styles.summaryLabel, { color: colors.icon }]}>{t('groupDetail.expenses')}</Text>
                                 </View>
@@ -552,10 +554,10 @@ export default function GroupDetailScreen() {
                     >
                         <Tab title='Expenses'>
                             <View style={styles.tabContent}>
-                                {group.expenses && group.expenses.length > 0 ? (
+                                {group.expenses && group.expenses.filter(expense => expense.data.status !== 'deleted').length > 0 ? (
                                     <ScrollView style={styles.expensesList} showsVerticalScrollIndicator={false}>
                                         <View style={styles.expensesContainer}>
-                                            {group.expenses.map((item) => (
+                                            {group.expenses.filter(expense => expense.data.status !== 'deleted').map((item) => (
                                                 <View key={item.id}>
                                                     {renderExpenseItem({ item })}
                                                 </View>

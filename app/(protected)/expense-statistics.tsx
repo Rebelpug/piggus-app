@@ -213,6 +213,9 @@ export default function ExpenseStatisticsScreen() {
     expensesGroups.forEach(group => {
       if (group.membership_status === 'confirmed') {
         group.expenses.forEach(expense => {
+          // Exclude deleted expenses from available years
+          if (expense.data.status === 'deleted') return;
+          
           const year = new Date(expense.data.date).getFullYear();
           years.add(year);
         });
@@ -337,6 +340,9 @@ export default function ExpenseStatisticsScreen() {
     expensesGroups.forEach(group => {
       if (group.membership_status === 'confirmed') {
         group.expenses.forEach(expense => {
+          // Exclude deleted expenses
+          if (expense.data.status === 'deleted') return;
+          
           const expenseDate = new Date(expense.data.date);
 
           // Only include expenses that match the filter

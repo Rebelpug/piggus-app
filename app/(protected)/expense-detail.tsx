@@ -28,7 +28,7 @@ export default function ExpenseDetailScreen() {
     const { user } = useAuth();
     const { t } = useLocalization();
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
-    const { expensesGroups, deleteExpense } = useExpense();
+    const { expensesGroups, deleteExpense, updateExpense } = useExpense();
     const { userProfile } = useProfile();
     const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
     const [groupName, setGroupName] = useState<string>('');
@@ -64,19 +64,42 @@ export default function ExpenseDetailScreen() {
     };
 
     const handleDelete = () => {
+        if (!expense) return;
+
+        const hasExternalTransaction = Boolean(expense.data.external_transaction_id);
+        
+        const alertTitle = t('expenseDetail.delete');
+        const alertMessage = hasExternalTransaction 
+            ? t('expenseDetail.markDeletedConfirm')
+            : t('expenseDetail.deleteExpenseConfirm');
+
         Alert.alert(
-            t('expenseDetail.delete'),
-            t('expenseDetail.deleteExpenseConfirm'),
+            alertTitle,
+            alertMessage,
             [
                 { text: t('expenseDetail.cancel'), style: 'cancel' },
                 {
-                    text: t('expenseDetail.delete'),
+                    text: hasExternalTransaction ? t('expenseDetail.markDeleted') : t('expenseDetail.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            if (!groupId || !expenseId) return;
+                            if (!groupId || !expenseId || !expense) return;
 
-                            await deleteExpense(groupId, expenseId);
+                            if (hasExternalTransaction) {
+                                // Soft delete: mark as deleted
+                                const updatedExpense = {
+                                    ...expense,
+                                    data: {
+                                        ...expense.data,
+                                        status: 'deleted'
+                                    }
+                                };
+                                await updateExpense(groupId, updatedExpense);
+                            } else {
+                                // Hard delete: remove completely
+                                await deleteExpense(groupId, expenseId);
+                            }
+                            
                             router.back();
                         } catch (error) {
                             console.error('Failed to delete expense:', error);

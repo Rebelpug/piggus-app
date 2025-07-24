@@ -41,6 +41,9 @@ export default function BudgetCard({ selectedMonth = 'current', variant = 'defau
         expensesGroups.forEach(group => {
             if (group.membership_status === 'confirmed') {
                 group.expenses.forEach(expense => {
+                    // Exclude deleted expenses from budget calculations
+                    if (expense.data.status === 'deleted') return;
+                    
                     const expenseDate = new Date(expense.data.date);
                     let includeExpense = false;
 

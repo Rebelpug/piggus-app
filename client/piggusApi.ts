@@ -1,7 +1,6 @@
 import { getHttpClient } from './http';
 import {Profile} from "@/types/profile";
 import { VersionResponse, VersionCheckResponse, VersionCheckRequest } from "@/types/version";
-import { BulkExpenseOperation } from "@/types/expense";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || ''
 
@@ -253,7 +252,7 @@ export interface PiggusApi {
     disconnectBank: () => Promise<{ success: boolean }>;
 
     // Bulk Operations
-    bulkAddUpdateExpenses: (groupId: string, expenses: Expense[]) => Promise<Expense[]>;
+    bulkAddUpdateExpenses: (expenses: Expense[]) => Promise<Expense[]>;
 }
 
 export const piggusApi: PiggusApi = {
@@ -538,9 +537,9 @@ export const piggusApi: PiggusApi = {
     },
 
     // Bulk Operations
-    bulkAddUpdateExpenses: async (groupId: string, expenses: Expense[]) => {
+    bulkAddUpdateExpenses: async (expenses: Expense[]) => {
         const httpClient = getHttpClient();
-        const response = await httpClient.post(`${BASE_URL}/api/v1/expense-groups/${groupId}/bulk-expenses`, {
+        const response = await httpClient.post(`${BASE_URL}/api/v1/expense-groups/bulk-expenses`, {
             expenses
         });
         return response.data.data;

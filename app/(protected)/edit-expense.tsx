@@ -57,14 +57,14 @@ export default function EditExpenseScreen() {
     const availableCategories = React.useMemo(() => {
         const result: Array<ExpenseCategory & { displayName: string }> = [];
         const mainCategories = getMainCategories(allCategories);
-        
+
         mainCategories.forEach(category => {
             // Add main category
             result.push({
                 ...category,
                 displayName: `${category.icon} ${category.name}`
             });
-            
+
             // Add subcategories
             const subcategories = getSubcategories(allCategories, category.id);
             subcategories.forEach(subcategory => {
@@ -74,7 +74,7 @@ export default function EditExpenseScreen() {
                 });
             });
         });
-        
+
         return result;
     }, [allCategories]);
     const [loading, setLoading] = useState(false);
@@ -242,6 +242,8 @@ export default function EditExpenseScreen() {
                 payer_username: selectedPayer.username,
                 participants: finalParticipants,
                 split_method: selectedSplitMethod.value as 'equal' | 'custom' | 'percentage',
+                external_account_id: expense.data.external_account_id,
+                external_transaction_id: expense.data.external_transaction_id,
             };
 
             const updatedExpense: ExpenseWithDecryptedData = {

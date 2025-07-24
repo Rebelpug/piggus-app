@@ -177,9 +177,9 @@ export default function ProfileScreen() {
                     style={styles.avatar}
                 />
             </View>
-            <TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
+            {/*<TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
                 <Ionicons name="camera-outline" size={20} color="white" />
-            </TouchableOpacity>
+            </TouchableOpacity>*/}
         </View>
     );
 

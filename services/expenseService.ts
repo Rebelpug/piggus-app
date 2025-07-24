@@ -608,13 +608,11 @@ export const apiDeleteRefund = async (
 
 export const apiBulkInsertAndUpdateExpenses = async (
     user: User,
-    groupId: string,
-    groupKey: string,
-    expenses: Array<{ id?: string; data: ExpenseData }>,
+    expenses: { id?: string; data: ExpenseData, group_id: string, group_key: string }[],
     encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
 ): Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }> => {
   try {
-    if (!user || !groupId || !groupKey || !expenses || !Array.isArray(expenses)) {
+    if (!user || !expenses || !Array.isArray(expenses)) {
       return {
         success: false,
         error: 'Invalid parameters',
@@ -623,19 +621,20 @@ export const apiBulkInsertAndUpdateExpenses = async (
 
     const encryptedExpenses = await Promise.all(expenses.map(async expense => {
       const expenseId = expense.id || uuidv4();
-      const encryptedData = await encryptWithExternalEncryptionKey(groupKey, expense.data);
+      const encryptedData = await encryptWithExternalEncryptionKey(expense.group_key, expense.data);
       return {
         expenseId,
         encryptedData,
         originalData: expense.data,
         isNew: !expense.id,
+        group_id: expense.group_id,
       };
     }));
 
-    const results = await piggusApi.bulkAddUpdateExpenses(groupId, encryptedExpenses.map(({expenseId, encryptedData, isNew}) => ({
+    const results = await piggusApi.bulkAddUpdateExpenses(encryptedExpenses.map(({expenseId, encryptedData, group_id, isNew}) => ({
       id: expenseId,
       encrypted_data: encryptedData,
-      group_id: groupId,
+      group_id,
       isNew
     })));
 

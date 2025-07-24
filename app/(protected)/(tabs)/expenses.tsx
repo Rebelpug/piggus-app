@@ -92,6 +92,10 @@ export default function ExpensesScreen() {
 
                 return group.expenses
                     .filter(expense => {
+                        // Exclude deleted expenses
+                        if (expense.data.status === 'deleted') {
+                            return false;
+                        }
                         // Only include expenses where the user is a participant
                         const userShare = calculateUserShare(expense, user?.id || '');
                         return userShare > 0;
@@ -338,54 +342,83 @@ export default function ExpensesScreen() {
     const isPremium = userProfile?.subscription?.subscription_tier === 'premium';
     const hasBankConnection = userProfile?.bank_accounts?.some(bankAccount => bankAccount.active);
 
-    const renderBankConnectionBanner = () => (
-        <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.bankBannerContent}>
-                <Ionicons name="card" size={24} color={colors.primary} style={styles.bankBannerIcon} />
-                <View style={styles.bankBannerText}>
-                    <Text category='s1' style={[styles.bannerTitle, { color: colors.text }]}>
-                        {hasBankConnection
-                            ? t('banking.bankAccountConnected')
-                            : t('banking.connectBankAccount')}
-                    </Text>
-                    {hasBankConnection && userProfile?.bank_accounts?.[0]?.last_fetched && (
-                        <Text category='c1' appearance='hint'>
-                            Last Sync: {new Date(userProfile.bank_accounts[0].last_fetched).toLocaleDateString()}
-                        </Text>
-                    )}
-
-                </View>
-                {hasBankConnection ? (
-                    <View style={styles.bankButtonsContainer}>
+    const renderBankConnectionBanner = () => {
+        // Show upgrade banner for non-premium users without bank connection
+        if (!isPremium && !hasBankConnection) {
+            return (
+                <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <View style={styles.bankBannerContent}>
+                        <Ionicons name="card" size={24} color={colors.primary} style={styles.bankBannerIcon} />
+                        <View style={styles.bankBannerText}>
+                            <Text category='s1' style={[styles.bannerTitle, { color: colors.text }]}>
+                                {t('banking.upgradeForBankConnection')}
+                            </Text>
+                        </View>
                         <Button
                             size='small'
-                            style={[styles.bankButton, { marginRight: 8 }]}
-                            onPress={handleSyncBankTransactions}
-                            disabled={!isPremium}
-                        >
-                            {t('banking.sync')}
-                        </Button>
-                        <Button
-                            size='small'
-                            status='danger'
+                            status='primary'
                             style={styles.bankButton}
-                            onPress={handleDisconnectBank}
+                            onPress={() => {
+                                // TODO: Navigate to upgrade screen when implemented
+                                console.log('Navigate to upgrade screen');
+                            }}
                         >
-                            {t('banking.disconnect')}
+                            {t('banking.upgrade')}
                         </Button>
                     </View>
-                ) : (
-                    <Button
-                        size='small'
-                        style={styles.connectButton}
-                        onPress={() => setShowBankWizard(true)}
-                    >
-                        {t('banking.connect')}
-                    </Button>
-                )}
+                </View>
+            );
+        }
+
+        // Original banner for premium users or users with existing bank connections
+        return (
+            <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.bankBannerContent}>
+                    <Ionicons name="card" size={24} color={colors.primary} style={styles.bankBannerIcon} />
+                    <View style={styles.bankBannerText}>
+                        <Text category='s1' style={[styles.bannerTitle, { color: colors.text }]}>
+                            {hasBankConnection
+                                ? t('banking.bankAccountConnected')
+                                : t('banking.connectBankAccount')}
+                        </Text>
+                        {hasBankConnection && userProfile?.bank_accounts?.[0]?.last_fetched && (
+                            <Text category='c1' appearance='hint'>
+                                Last Sync: {new Date(userProfile.bank_accounts[0].last_fetched).toLocaleDateString()}
+                            </Text>
+                        )}
+                    </View>
+                    {hasBankConnection ? (
+                        <View style={styles.bankButtonsContainer}>
+                            <Button
+                                size='small'
+                                style={[styles.bankButton, { marginRight: 8 }]}
+                                onPress={handleSyncBankTransactions}
+                                disabled={!isPremium}
+                            >
+                                {t('banking.sync')}
+                            </Button>
+                            <Button
+                                size='small'
+                                status='danger'
+                                style={styles.bankButton}
+                                onPress={handleDisconnectBank}
+                            >
+                                {t('banking.disconnect')}
+                            </Button>
+                        </View>
+                    ) : (
+                        <Button
+                            size='small'
+                            style={styles.connectButton}
+                            onPress={() => setShowBankWizard(true)}
+                        >
+                            {t('banking.connect')}
+                        </Button>
+                    )}
+                </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     const renderExpensesHeader = () => {
         return <BudgetCard selectedMonth={selectedMonth} variant="list" />;
@@ -535,7 +568,7 @@ export default function ExpensesScreen() {
             />
 
             {renderMonthSelector()}
-            {(isPremium || hasBankConnection) && renderBankConnectionBanner()}
+            {renderBankConnectionBanner()}
 
             <TabView
                 selectedIndex={selectedIndex}

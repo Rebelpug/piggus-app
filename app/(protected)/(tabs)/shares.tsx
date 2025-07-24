@@ -100,9 +100,10 @@ export default function SharesScreen() {
             return null;
         }
 
-        const expenseCount = item.expenses?.length || 0;
+        const nonDeletedExpenses = item.expenses?.filter(expense => expense.data.status !== 'deleted') || [];
+        const expenseCount = nonDeletedExpenses.length;
         const memberCount = item.members?.length || 0;
-        const totalAmount = item.expenses?.reduce((sum, expense) => {
+        const totalAmount = nonDeletedExpenses.reduce((sum, expense) => {
             try {
                 return sum + (expense.data?.amount || 0);
             } catch {

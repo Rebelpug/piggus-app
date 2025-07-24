@@ -624,6 +624,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "deleteExpenseConfirm": "Are you sure you want to delete this expense?",
+    "markDeletedConfirm": "This expense was imported from your bank. It will be marked as deleted and hidden from lists and statistics, but will remain in the system to prevent re-importing. Are you sure?",
+    "markDeleted": "Mark as Deleted",
     "cancel": "Cancel",
     "error": "Error",
     "deleteExpenseFailed": "Failed to delete expense. Please try again."
@@ -915,14 +917,16 @@
     "bankConnection": "Bank Connection",
     "connectBankTitle": "Connect Your Bank Account",
     "connectBankDescription": "Securely connect your bank account to automatically import and categorize your expenses.",
-    "securityInfo": "Your data is encrypted and secure. We use bank-level security to protect your information.",
+    "privacyInfo": "Getting automatically your transactions means we can't provide the same level of privacy for those.",
     "fraudProtectionInfo": "Our third-party provider monitors transactions for fraud protection and regulatory compliance.",
-    "thirdPartyInfo": "Connection is handled by our secure banking partner to ensure your credentials stay safe.",
-    "oneBankRestriction": "Please note: You can only connect one bank account at a time.",
+    "thirdPartyInfo": "Connection is handled by our secure partner to ensure your credentials stay safe.",
+    "oneBankRestriction": "Please note: You can only have one connected bank account for your subscription.",
     "selectCountryTitle": "Select Your Bank's Country",
     "selectCountryDescription": "Choose the country where your bank is located to ensure proper connection.",
     "selectCountry": "Select Country",
-    "continue": "Continue"
+    "continue": "Continue",
+    "upgradeForBankConnection": "To automatically get your bank transactions, you need to upgrade your subscription",
+    "upgrade": "Upgrade"
   },
   "version": {
     "newVersionAvailable": "New Version Available",

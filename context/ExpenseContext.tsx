@@ -33,25 +33,6 @@ import {
   apiDeleteRecurringExpense,
   apiProcessRecurringExpenses,
 } from '@/services/recurringExpenseService';
-// Keep old client imports as backup
-// import {
-//   apiCreateExpensesGroup,
-//   apiFetchExpenses,
-//   apiAddExpense,
-//   apiUpdateExpense,
-//   apiDeleteExpense,
-//   apiInviteUserToGroup,
-//   apiHandleGroupInvitation,
-//   apiUpdateExpenseGroup,
-//   apiRemoveUserFromGroup,
-// } from '@/client/expense';
-// import {
-//   apiFetchRecurringExpenses,
-//   apiCreateRecurringExpense,
-//   apiUpdateRecurringExpense,
-//   apiDeleteRecurringExpense,
-//   apiProcessRecurringExpenses,
-// } from '@/client/recurringExpense';
 import {useEncryption} from "@/context/EncryptionContext";
 import { piggusApi } from '@/client/piggusApi';
 
@@ -110,8 +91,7 @@ interface ExpenseContextType {
       refundId: string
   ) => Promise<{ success: boolean; error?: string }>;
   bulkUpdateExpenses: (
-      groupId: string,
-      expenses: Array<{ id?: string; data: ExpenseData }>
+      expenses: { id?: string; data: ExpenseData, group_id: string, group_key: string }[]
   ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }>;
   syncBankTransactions: (
       groupId?: string
@@ -788,8 +768,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   };
 
   const bulkUpdateExpenses = async (
-    groupId: string,
-    expenses: Array<{ id?: string; data: ExpenseData }>
+      expenses: { id?: string; data: ExpenseData; group_id: string; group_key: string }[]
   ): Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }> => {
     try {
       if (!user || !isEncryptionInitialized) {
@@ -799,60 +778,44 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      // Find the group
-      const group = expensesGroups.find(g => g.id === groupId);
-      if (!group) {
-        return {
-          success: false,
-          error: 'Expense group not found',
-        };
-      }
-
-      // Get the group key
-      const groupKey = group.encrypted_key;
-      if (!groupKey) {
-        return {
-          success: false,
-          error: 'Could not access encryption key',
-        };
-      }
-
       const result = await apiBulkInsertAndUpdateExpenses(
         user,
-        groupId,
-        groupKey,
         expenses,
         encryptWithExternalEncryptionKey
       );
+
 
       if (result.success && result.data) {
         // Update local state
         setExpensesGroups(prev =>
           prev.map(group => {
-            if (group.id === groupId) {
-              const existingExpenses = [...group.expenses];
-              const newExpenses: ExpenseWithDecryptedData[] = [];
+            const groupExpenses = result.data?.filter(exp => exp.group_id === group.id) || [];
+            if (groupExpenses.length === 0) return group;
 
-              // Process the bulk update results
-              result.data!.forEach(updatedExpense => {
-                if (updatedExpense.id) {
-                  const existingIndex = existingExpenses.findIndex(exp => exp.id === updatedExpense.id);
-                  if (existingIndex >= 0) {
-                    // Update existing expense
-                    existingExpenses[existingIndex] = updatedExpense;
-                  } else {
-                    // Add new expense
-                    newExpenses.push(updatedExpense);
-                  }
+            const existingExpenses = [...group.expenses];
+            const newExpenses: ExpenseWithDecryptedData[] = [];
+
+            // Process the bulk update results
+            groupExpenses.forEach(updatedExpense => {
+              if (updatedExpense.id) {
+                const existingIndex = existingExpenses.findIndex(exp => exp.id === updatedExpense.id);
+                if (existingIndex >= 0) {
+                  // Update existing expense
+                  existingExpenses[existingIndex] = updatedExpense;
+                } else {
+                  // Add new expense
+                  newExpenses.push(updatedExpense);
                 }
-              });
+              } else {
+                // Add new expense without ID
+                newExpenses.push(updatedExpense);
+              }
+            });
 
-              return {
-                ...group,
-                expenses: [...newExpenses, ...existingExpenses],
-              };
-            }
-            return group;
+            return {
+              ...group,
+              expenses: [...newExpenses, ...existingExpenses],
+            };
           })
         );
         return { success: true, data: result.data };
@@ -963,7 +926,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       }
 
       // Get the target expense group
-      const targetGroup = groupId 
+      const targetGroup = groupId
         ? expensesGroups.find(g => g.id === groupId)
         : expensesGroups[0]; // Use first group as default
 
@@ -980,7 +943,12 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       const allExpenses = expensesGroups.flatMap(group => group.expenses);
 
       // Prepare bulk operations
-      const bulkOperations: Array<{ id?: string; data: ExpenseData }> = [];
+      const groupKeyMap = expensesGroups.reduce((acc, group) => {
+        acc[group.id] = group.encrypted_key;
+        return acc;
+      }, {} as Record<string, string>);
+
+      const bulkOperations: { id?: string; data: ExpenseData, group_id: string, group_key: string }[] = [];
 
       for (const transaction of allTransactions) {
         // Skip positive transactions, we only want expenses
@@ -995,6 +963,11 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         );
 
         if (existingExpense) {
+          // Skip updating expenses that are marked as deleted
+          if (existingExpense.data.status === 'deleted') {
+            continue;
+          }
+
           // Update existing expense - create updated participants
           const updatedParticipants = existingExpense.data.participants.map(participant => {
             if (participant.user_id === user.id) {
@@ -1015,8 +988,12 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               date: transaction.date,
               category: transaction.category || existingExpense.data.category,
               currency: transaction.currency || existingExpense.data.currency,
-              participants: updatedParticipants
-            }
+              participants: updatedParticipants,
+              // Preserve the status field to maintain any existing status like 'deleted'
+              status: existingExpense.data.status
+            },
+            group_id: existingExpense.group_id,
+            group_key: groupKeyMap[existingExpense.group_id],
           });
         } else {
           // Create new expense from transaction
@@ -1041,7 +1018,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               split_method: 'equal' as const,
               external_account_id: transaction.accountId,
               external_transaction_id: transaction.id,
-            }
+            },
+            group_id: targetGroup.id,
+            group_key: groupKeyMap[targetGroup.id],
           });
         }
       }
@@ -1051,13 +1030,13 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       let updatedCount = 0;
 
       if (bulkOperations.length > 0) {
-        const result = await bulkUpdateExpenses(targetGroup.id, bulkOperations);
-        
+        const result = await bulkUpdateExpenses(bulkOperations);
+
         if (result.success) {
           // Count added and updated expenses
           addedCount = bulkOperations.filter(op => !op.id).length;
           updatedCount = bulkOperations.filter(op => op.id).length;
-          
+
           console.log(`Bulk operation completed: ${result.data?.length || 0} expenses processed`);
         } else {
           return {

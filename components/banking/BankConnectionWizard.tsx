@@ -191,7 +191,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                 <Layout style={styles.infoItem}>
                     <Ionicons name="lock-closed" size={20} color={colors.primary} />
                     <Text category='s2' style={styles.infoText}>
-                        {t('banking.securityInfo')}
+                        {t('banking.privacyInfo')}
                     </Text>
                 </Layout>
 
