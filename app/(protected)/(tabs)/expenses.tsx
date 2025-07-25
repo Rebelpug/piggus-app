@@ -344,7 +344,7 @@ export default function ExpensesScreen() {
 
     const renderBankConnectionBanner = () => {
         // Show upgrade banner for non-premium users without bank connection
-        if (!isPremium && !hasBankConnection) {
+        /*if (!isPremium && !hasBankConnection) {
             return (
                 <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.bankBannerContent}>
@@ -368,9 +368,10 @@ export default function ExpensesScreen() {
                     </View>
                 </View>
             );
-        }
+        }*/
 
-        // Original banner for premium users or users with existing bank connections
+        if (!isPremium && !hasBankConnection) { return null; }
+
         return (
             <View style={[styles.bankBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.bankBannerContent}>

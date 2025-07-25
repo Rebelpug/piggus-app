@@ -115,7 +115,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
         setLoading(true);
         try {
             // Step 1: Create agreement
-            const selectedInstitute =  process.env.NODE_ENV === 'production'
+            const selectedInstitute =  process.env.NODE_ENV !== 'production'
                 ? "SANDBOXFINANCE_SFIN0000"
                 : selectedInstitution.id;
             const agreementData = await piggusApi.createBankAgreement(selectedInstitute);
