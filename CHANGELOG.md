@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/Rebelpug/piggus-app/compare/v1.2.2...v1.3.0) (2025-07-25)
+
+
+### Features
+
+* Adding bank connector WIP ([5fa1894](https://github.com/Rebelpug/piggus-app/commit/5fa189450bc6e227ce36c9caf88e291084fe864f))
+
+
+### Bug Fixes
+
+* Bulk creating and updating expenses works ([929b7aa](https://github.com/Rebelpug/piggus-app/commit/929b7aa2dfc0565e46606011c1e24f3d3abea372))
+* Fixed bulk adding expenses ([8b340de](https://github.com/Rebelpug/piggus-app/commit/8b340de609a54ad0eba878a56e176f507a311601))
+* Fixed importing and deleting external transactions and fixed deleting bank ([c98b57c](https://github.com/Rebelpug/piggus-app/commit/c98b57ca57de8e170402f1f549b44a018543302e))
+* Fixed UI flow for bank connection ([76b469a](https://github.com/Rebelpug/piggus-app/commit/76b469a83800b1db292b2c4ba7d731f2ddaaceed))
+
 ### [1.2.2](https://github.com/Rebelpug/piggus-app/compare/v1.2.1...v1.2.2) (2025-07-23)
 
 
