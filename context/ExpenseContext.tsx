@@ -93,9 +93,7 @@ interface ExpenseContextType {
   bulkUpdateExpenses: (
       expenses: { id?: string; data: ExpenseData, group_id: string, group_key: string }[]
   ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }>;
-  syncBankTransactions: (
-      groupId?: string
-  ) => Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }>;
+  syncBankTransactions: () => Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -837,9 +835,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const syncBankTransactions = async (
-    groupId?: string
-  ): Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }> => {
+  const syncBankTransactions = async (): Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }> => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
         return {
@@ -908,9 +904,11 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         id: transaction.transactionId || transaction.internalTransactionId || '',
         amount: parseFloat(transaction.transactionAmount.amount),
         currency: transaction.transactionAmount.currency,
-        description: transaction.remittanceInformationUnstructured ||
-                     transaction.remittanceInformationStructured ||
-                     `${transaction.creditorName || transaction.debtorName || 'Unknown'} transaction`,
+        description: transaction.additionalInformation ||
+            transaction.remittanceInformationUnstructured ||
+            transaction.remittanceInformationStructured ||
+            transaction.creditorName || transaction.debtorName || 'Unknown',
+        name: transaction.creditorName || transaction.debtorName || 'Unknown',
         date: transaction.bookingDate,
         category: transaction.merchantCategoryCode || 'other',
         accountId: transaction.accountId,
@@ -925,17 +923,14 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      // Get the target expense group
-      const targetGroup = groupId
-        ? expensesGroups.find(g => g.id === groupId)
-        : expensesGroups[0]; // Use first group as default
-
-      if (!targetGroup) {
+      // Get the personal group
+      const personalGroup = expensesGroups.find(g => g.data.private);
+      if (!personalGroup) {
         return {
           success: false,
           addedCount: 0,
           updatedCount: 0,
-          error: 'No expense groups found. Please create a group first.',
+          error: 'No personal group found',
         };
       }
 
@@ -984,6 +979,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             data: {
               ...existingExpense.data,
               amount: expenseAmount,
+              name: transaction.name,
               description: transaction.description,
               date: transaction.date,
               category: transaction.category || existingExpense.data.category,
@@ -999,7 +995,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           // Create new expense from transaction
           bulkOperations.push({
             data: {
-              name: transaction.description,
+              name: transaction.name,
               description: transaction.description,
               amount: expenseAmount,
               date: transaction.date,
@@ -1019,8 +1015,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               external_account_id: transaction.accountId,
               external_transaction_id: transaction.id,
             },
-            group_id: targetGroup.id,
-            group_key: groupKeyMap[targetGroup.id],
+            group_id: personalGroup.id,
+            group_key: groupKeyMap[personalGroup.id],
           });
         }
       }

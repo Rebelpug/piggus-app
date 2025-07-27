@@ -18,7 +18,6 @@ import {
     ExpenseWithDecryptedData,
     RecurringExpenseWithDecryptedData,
     calculateUserShare,
-    ExpenseData
 } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileHeader from '@/components/ProfileHeader';
@@ -30,8 +29,6 @@ import BankConnectionWizard from '@/components/banking/BankConnectionWizard';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { piggusApi } from '@/client/piggusApi';
-import {apiBulkInsertAndUpdateExpenses} from "@/services/expenseService";
-import {useEncryption} from "@/context/EncryptionContext";
 
 export default function ExpensesScreen() {
     const router = useRouter();
@@ -39,8 +36,7 @@ export default function ExpensesScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { user } = useAuth();
-    const {  encryptWithExternalEncryptionKey } = useEncryption();
-    const { expensesGroups, recurringExpenses, bulkUpdateExpenses, syncBankTransactions, isLoading, error } = useExpense();
+    const { expensesGroups, recurringExpenses, syncBankTransactions, isLoading, error } = useExpense();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
