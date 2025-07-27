@@ -315,5 +315,42 @@
     "selectPortfolio": "Portefeuille Selecteren",
     "unnamedPortfolio": "Naamloze Portefeuille",
     "cancel": "Annuleren"
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "chooseYourPlan": "Kies Uw Plan",
+    "planDescription": "Selecteer het plan dat het beste bij uw behoeften past en ontgrendel krachtige functies om uw financiën beter te beheren.",
+    "managePlan": "Plan Beheren",
+    "upgrade": "Upgrade naar Premium",
+    "currentPlan": "Huidig Plan",
+    "processing": "Verwerken...",
+    "loading": "Abonnementen laden...",
+    "free": {
+      "title": "Gratis",
+      "price": "€0",
+      "description": "Perfect om te beginnen met uitgaven bijhouden"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/maand",
+      "description": "Ontgrendel alle functies en ondersteun onze ontwikkeling"
+    },
+    "features": {
+      "manualTracking": "Handmatig uitgaven en investeringen bijhouden",
+      "shareExpenses": "Uitgaven delen met vrienden",
+      "tutorials": "Toegang tot tutorials en gidsen",
+      "bankImport": "Automatische banktransactie import",
+      "supportUs": "Ondersteun onze ontwikkeling"
+    },
+    "bankNote": "Bankimport is alleen beschikbaar in EU-landen en beperkt tot één bankrekening.",
+    "restorePurchases": "Aankopen Herstellen",
+    "success": "Succes",
+    "purchaseSuccess": "Uw abonnement is succesvol geactiveerd!",
+    "restored": "Aankopen Hersteld",
+    "restoreSuccess": "Uw aankopen zijn succesvol hersteld.",
+    "error": "Fout",
+    "initializationError": "Laden van abonnementsinformatie mislukt. Probeer opnieuw.",
+    "purchaseError": "Aankoop voltooien mislukt. Probeer opnieuw.",
+    "restoreError": "Aankopen herstellen mislukt. Probeer opnieuw."
   }
 }

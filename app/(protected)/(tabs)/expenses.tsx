@@ -359,8 +359,7 @@ export default function ExpensesScreen() {
                             status='primary'
                             style={styles.bankButton}
                             onPress={() => {
-                                // TODO: Navigate to upgrade screen when implemented
-                                console.log('Navigate to upgrade screen');
+                                router.push('/(protected)/subscription');
                             }}
                         >
                             {t('banking.upgrade')}

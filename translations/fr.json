@@ -315,5 +315,42 @@
     "selectPortfolio": "Sélectionner Portefeuille",
     "unnamedPortfolio": "Portefeuille Sans Nom",
     "cancel": "Annuler"
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "chooseYourPlan": "Choisissez Votre Plan",
+    "planDescription": "Sélectionnez le plan qui convient le mieux à vos besoins et débloquez des fonctionnalités puissantes pour mieux gérer vos finances.",
+    "managePlan": "Gérer le Plan",
+    "upgrade": "Passer à Premium",
+    "currentPlan": "Plan Actuel",
+    "processing": "Traitement...",
+    "loading": "Chargement des abonnements...",
+    "free": {
+      "title": "Gratuit",
+      "price": "0€",
+      "description": "Parfait pour commencer avec le suivi des dépenses"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "1,99€/mois",
+      "description": "Débloquez toutes les fonctionnalités et soutenez notre développement"
+    },
+    "features": {
+      "manualTracking": "Suivre manuellement les dépenses et investissements",
+      "shareExpenses": "Partager les dépenses avec des amis",
+      "tutorials": "Accès aux tutoriels et guides",
+      "bankImport": "Importation automatique des transactions bancaires",
+      "supportUs": "Soutenir notre développement"
+    },
+    "bankNote": "L'importation bancaire n'est disponible que dans les pays de l'UE et limitée à un compte bancaire.",
+    "restorePurchases": "Restaurer les Achats",
+    "success": "Succès",
+    "purchaseSuccess": "Votre abonnement a été activé avec succès !",
+    "restored": "Achats Restaurés",
+    "restoreSuccess": "Vos achats ont été restaurés avec succès.",
+    "error": "Erreur",
+    "initializationError": "Échec du chargement des informations d'abonnement. Veuillez réessayer.",
+    "purchaseError": "Échec de l'achat. Veuillez réessayer.",
+    "restoreError": "Échec de la restauration des achats. Veuillez réessayer."
   }
 }

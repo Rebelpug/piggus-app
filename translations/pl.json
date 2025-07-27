@@ -292,5 +292,42 @@
     "errorLoadingData": "Błąd podczas ładowania danych",
     "expenseGroupsCount": "Grupy Wydatków ({{count}})",
     "portfolioGroups": "Grupy Portfolio"
+  },
+  "subscription": {
+    "title": "Subskrypcja",
+    "chooseYourPlan": "Wybierz Swój Plan",
+    "planDescription": "Wybierz plan, który najlepiej odpowiada Twoim potrzebom i odblokuj potężne funkcje, aby lepiej zarządzać swoimi finansami.",
+    "managePlan": "Zarządzaj Planem",
+    "upgrade": "Przejdź na Premium",
+    "currentPlan": "Obecny Plan",
+    "processing": "Przetwarzanie...",
+    "loading": "Ładowanie subskrypcji...",
+    "free": {
+      "title": "Darmowy",
+      "price": "€0",
+      "description": "Idealny do rozpoczęcia śledzenia wydatków"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/miesiąc",
+      "description": "Odblokuj wszystkie funkcje i wspieraj nasz rozwój"
+    },
+    "features": {
+      "manualTracking": "Ręczne śledzenie wydatków i inwestycji",
+      "shareExpenses": "Dzielenie wydatków z przyjaciółmi",
+      "tutorials": "Dostęp do samouczków i przewodników",
+      "bankImport": "Automatyczny import transakcji bankowych",
+      "supportUs": "Wspieraj nasz rozwój"
+    },
+    "bankNote": "Import bankowy jest dostępny tylko w krajach UE i ograniczony do jednego konta bankowego.",
+    "restorePurchases": "Przywróć Zakupy",
+    "success": "Sukces",
+    "purchaseSuccess": "Twoja subskrypcja została pomyślnie aktywowana!",
+    "restored": "Zakupy Przywrócone",
+    "restoreSuccess": "Twoje zakupy zostały pomyślnie przywrócone.",
+    "error": "Błąd",
+    "initializationError": "Ładowanie informacji o subskrypcji nie powiodło się. Spróbuj ponownie.",
+    "purchaseError": "Dokończenie zakupu nie powiodło się. Spróbuj ponownie.",
+    "restoreError": "Przywracanie zakupów nie powiodło się. Spróbuj ponownie."
   }
 }

@@ -333,5 +333,42 @@
     "importantBugFixes": "Corrección de errores importantes",
     "serverCompatibilityUpdates": "Actualizaciones de compatibilidad del servidor",
     "updateRequiredTocontinue": "Debes actualizar para continuar usando Piggus"
+  },
+  "subscription": {
+    "title": "Suscripción",
+    "chooseYourPlan": "Elige Tu Plan",
+    "planDescription": "Selecciona el plan que mejor se adapte a tus necesidades y desbloquea características poderosas para gestionar mejor tus finanzas.",
+    "managePlan": "Gestionar Plan",
+    "upgrade": "Actualizar a Premium",
+    "currentPlan": "Plan Actual",
+    "processing": "Procesando...",
+    "loading": "Cargando suscripciones...",
+    "free": {
+      "title": "Gratis",
+      "price": "€0",
+      "description": "Perfecto para comenzar con el seguimiento de gastos"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/mes",
+      "description": "Desbloquea todas las funciones y apoya nuestro desarrollo"
+    },
+    "features": {
+      "manualTracking": "Realizar seguimiento manual de gastos e inversiones",
+      "shareExpenses": "Compartir gastos con amigos",
+      "tutorials": "Acceso a tutoriales y guías",
+      "bankImport": "Importación automática de transacciones bancarias",
+      "supportUs": "Apoyar nuestro desarrollo"
+    },
+    "bankNote": "La importación bancaria solo está disponible en países de la UE y limitada a una cuenta bancaria.",
+    "restorePurchases": "Restaurar Compras",
+    "success": "Éxito",
+    "purchaseSuccess": "¡Tu suscripción ha sido activada exitosamente!",
+    "restored": "Compras Restauradas",
+    "restoreSuccess": "Tus compras han sido restauradas exitosamente.",
+    "error": "Error",
+    "initializationError": "Error al cargar información de suscripción. Por favor, inténtalo de nuevo.",
+    "purchaseError": "Error al completar la compra. Por favor, inténtalo de nuevo.",
+    "restoreError": "Error al restaurar compras. Por favor, inténtalo de nuevo."
   }
 }

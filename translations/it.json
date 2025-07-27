@@ -315,5 +315,42 @@
     "selectPortfolio": "Seleziona Portfolio",
     "unnamedPortfolio": "Portfolio Senza Nome",
     "cancel": "Annulla"
+  },
+  "subscription": {
+    "title": "Abbonamento",
+    "chooseYourPlan": "Scegli il Tuo Piano",
+    "planDescription": "Seleziona il piano che meglio si adatta alle tue esigenze e sblocca funzionalità potenti per gestire meglio le tue finanze.",
+    "managePlan": "Gestisci Piano",
+    "upgrade": "Passa a Premium",
+    "currentPlan": "Piano Attuale",
+    "processing": "Elaborazione...",
+    "loading": "Caricamento abbonamenti...",
+    "free": {
+      "title": "Gratuito",
+      "price": "€0",
+      "description": "Perfetto per iniziare con il tracciamento delle spese"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/mese",
+      "description": "Sblocca tutte le funzionalità e supporta il nostro sviluppo"
+    },
+    "features": {
+      "manualTracking": "Traccia manualmente spese e investimenti",
+      "shareExpenses": "Condividi spese con gli amici",
+      "tutorials": "Accesso a tutorial e guide",
+      "bankImport": "Importazione automatica transazioni bancarie",
+      "supportUs": "Supporta il nostro sviluppo"
+    },
+    "bankNote": "L'importazione bancaria è disponibile solo nei paesi UE e limitata a un conto bancario.",
+    "restorePurchases": "Ripristina Acquisti",
+    "success": "Successo",
+    "purchaseSuccess": "Il tuo abbonamento è stato attivato con successo!",
+    "restored": "Acquisti Ripristinati",
+    "restoreSuccess": "I tuoi acquisti sono stati ripristinati con successo.",
+    "error": "Errore",
+    "initializationError": "Caricamento informazioni abbonamento fallito. Riprova.",
+    "purchaseError": "Completamento acquisto fallito. Riprova.",
+    "restoreError": "Ripristino acquisti fallito. Riprova."
   }
 }

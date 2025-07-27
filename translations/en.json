@@ -945,5 +945,42 @@
     "importantBugFixes": "Important bug fixes",
     "serverCompatibilityUpdates": "Server compatibility updates",
     "updateRequiredTocontinue": "You must update to continue using Piggus"
+  },
+  "subscription": {
+    "title": "Subscription",
+    "chooseYourPlan": "Choose Your Plan",
+    "planDescription": "Select the plan that best fits your needs and unlock powerful features to manage your finances better.",
+    "managePlan": "Manage Plan",
+    "upgrade": "Upgrade to Premium",
+    "currentPlan": "Current Plan",
+    "processing": "Processing...",
+    "loading": "Loading subscriptions...",
+    "free": {
+      "title": "Free",
+      "price": "€0",
+      "description": "Perfect to get started with expense tracking"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1.99/month",
+      "description": "Unlock all features and support our development"
+    },
+    "features": {
+      "manualTracking": "Manually track expenses and investments",
+      "shareExpenses": "Share expenses with friends",
+      "tutorials": "Access to tutorials and guides",
+      "bankImport": "Automatic bank transaction import (EU Only)",
+      "supportUs": "Support our development"
+    },
+    "bankNote": "Bank import is only available in EU countries and limited to one bank account.",
+    "restorePurchases": "Restore Purchases",
+    "success": "Success",
+    "purchaseSuccess": "Your subscription has been activated successfully!",
+    "restored": "Purchases Restored",
+    "restoreSuccess": "Your purchases have been restored successfully.",
+    "error": "Error",
+    "initializationError": "Failed to load subscription information. Please try again.",
+    "purchaseError": "Failed to complete purchase. Please try again.",
+    "restoreError": "Failed to restore purchases. Please try again."
   }
 }

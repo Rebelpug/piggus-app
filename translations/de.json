@@ -315,5 +315,42 @@
     "selectPortfolio": "Portfolio Auswählen",
     "unnamedPortfolio": "Unbenanntes Portfolio",
     "cancel": "Abbrechen"
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "chooseYourPlan": "Wählen Sie Ihren Plan",
+    "planDescription": "Wählen Sie den Plan, der am besten zu Ihren Bedürfnissen passt und nutzen Sie leistungsstarke Funktionen für eine bessere Finanzverwaltung.",
+    "managePlan": "Plan verwalten",
+    "upgrade": "Auf Premium upgraden",
+    "currentPlan": "Aktueller Plan",
+    "processing": "Verarbeitung...",
+    "loading": "Abonnements werden geladen...",
+    "free": {
+      "title": "Kostenlos",
+      "price": "€0",
+      "description": "Perfekt für den Einstieg in die Ausgabenverfolgung"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/Monat",
+      "description": "Alle Funktionen freischalten und unsere Entwicklung unterstützen"
+    },
+    "features": {
+      "manualTracking": "Ausgaben und Investitionen manuell verfolgen",
+      "shareExpenses": "Ausgaben mit Freunden teilen",
+      "tutorials": "Zugang zu Tutorials und Anleitungen",
+      "bankImport": "Automatischer Import von Banktransaktionen",
+      "supportUs": "Unsere Entwicklung unterstützen"
+    },
+    "bankNote": "Bankimport ist nur in EU-Ländern verfügbar und auf ein Bankkonto beschränkt.",
+    "restorePurchases": "Käufe wiederherstellen",
+    "success": "Erfolg",
+    "purchaseSuccess": "Ihr Abonnement wurde erfolgreich aktiviert!",
+    "restored": "Käufe wiederhergestellt",
+    "restoreSuccess": "Ihre Käufe wurden erfolgreich wiederhergestellt.",
+    "error": "Fehler",
+    "initializationError": "Abonnementinformationen konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "purchaseError": "Kauf konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.",
+    "restoreError": "Käufe konnten nicht wiederhergestellt werden. Bitte versuchen Sie es erneut."
   }
 }

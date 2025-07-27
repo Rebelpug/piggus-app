@@ -22,9 +22,9 @@ import { Colors } from '@/constants/Colors';
 import { useLocalization } from '@/context/LocalizationContext';
 import {
   generateRecoveryKeyPackage,
-  formatRecoveryPhraseForDisplay,
   formatRecoveryPhraseForExport
 } from '@/lib/recoveryKey';
+import Clipboard from "@react-native-clipboard/clipboard";
 
 interface RecoveryKeyFormProps {
   privateKey: string;
@@ -109,13 +109,7 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
   const handleCopyToClipboard = async () => {
     try {
       const content = recoveryPhrase.join(' ');
-      // In a real app, you'd use @react-native-clipboard/clipboard
-      // For now, we'll show an alert with the recovery phrase
-      Alert.alert(
-        t('auth.recoveryPhrase') || 'Recovery Phrase',
-        content,
-        [{ text: t('common.ok') || 'OK' }]
-      );
+      Clipboard.setString(content);
     } catch (error) {
       console.error('Error copying to clipboard:', error);
     }

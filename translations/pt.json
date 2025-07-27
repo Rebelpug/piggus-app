@@ -292,5 +292,42 @@
     "errorLoadingData": "Erro ao carregar dados",
     "expenseGroupsCount": "Grupos de Despesas ({{count}})",
     "portfolioGroups": "Grupos de Portfólio"
+  },
+  "subscription": {
+    "title": "Assinatura",
+    "chooseYourPlan": "Escolha Seu Plano",
+    "planDescription": "Selecione o plano que melhor se adapta às suas necessidades e desbloqueie recursos poderosos para gerenciar melhor suas finanças.",
+    "managePlan": "Gerenciar Plano",
+    "upgrade": "Atualizar para Premium",
+    "currentPlan": "Plano Atual",
+    "processing": "Processando...",
+    "loading": "Carregando assinaturas...",
+    "free": {
+      "title": "Gratuito",
+      "price": "€0",
+      "description": "Perfeito para começar com o rastreamento de despesas"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/mês",
+      "description": "Desbloqueie todos os recursos e apoie nosso desenvolvimento"
+    },
+    "features": {
+      "manualTracking": "Rastrear manualmente despesas e investimentos",
+      "shareExpenses": "Compartilhar despesas com amigos",
+      "tutorials": "Acesso a tutoriais e guias",
+      "bankImport": "Importação automática de transações bancárias",
+      "supportUs": "Apoiar nosso desenvolvimento"
+    },
+    "bankNote": "A importação bancária está disponível apenas em países da UE e limitada a uma conta bancária.",
+    "restorePurchases": "Restaurar Compras",
+    "success": "Sucesso",
+    "purchaseSuccess": "Sua assinatura foi ativada com sucesso!",
+    "restored": "Compras Restauradas",
+    "restoreSuccess": "Suas compras foram restauradas com sucesso.",
+    "error": "Erro",
+    "initializationError": "Falha ao carregar informações de assinatura. Por favor, tente novamente.",
+    "purchaseError": "Falha ao completar a compra. Por favor, tente novamente.",
+    "restoreError": "Falha ao restaurar compras. Por favor, tente novamente."
   }
 }

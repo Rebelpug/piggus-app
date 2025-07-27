@@ -228,5 +228,42 @@
     "errorLoadingData": "Fel vid laddning av data",
     "expenseGroupsCount": "Utgiftsgrupper ({{count}})",
     "portfolioGroups": "Portföljgrupper"
+  },
+  "subscription": {
+    "title": "Prenumeration",
+    "chooseYourPlan": "Välj Ditt Abonnemang",
+    "planDescription": "Välj det abonnemang som bäst passar dina behov och lås upp kraftfulla funktioner för att hantera dina finanser bättre.",
+    "managePlan": "Hantera Abonnemang",
+    "upgrade": "Uppgradera till Premium",
+    "currentPlan": "Nuvarande Abonnemang",
+    "processing": "Bearbetar...",
+    "loading": "Laddar prenumerationer...",
+    "free": {
+      "title": "Gratis",
+      "price": "€0",
+      "description": "Perfekt för att komma igång med utgiftsspårning"
+    },
+    "premium": {
+      "title": "Premium",
+      "price": "€1,99/månad",
+      "description": "Lås upp alla funktioner och stöd vår utveckling"
+    },
+    "features": {
+      "manualTracking": "Spåra utgifter och investeringar manuellt",
+      "shareExpenses": "Dela utgifter med vänner",
+      "tutorials": "Tillgång till handledningar och guider",
+      "bankImport": "Automatisk import av banktransaktioner",
+      "supportUs": "Stöd vår utveckling"
+    },
+    "bankNote": "Bankimport är endast tillgänglig i EU-länder och begränsad till ett bankkonto.",
+    "restorePurchases": "Återställ Köp",
+    "success": "Framgång",
+    "purchaseSuccess": "Din prenumeration har aktiverats framgångsrikt!",
+    "restored": "Köp Återställda",
+    "restoreSuccess": "Dina köp har återställts framgångsrikt.",
+    "error": "Fel",
+    "initializationError": "Kunde inte ladda prenumerationsinformation. Försök igen.",
+    "purchaseError": "Kunde inte slutföra köpet. Försök igen.",
+    "restoreError": "Kunde inte återställa köp. Försök igen."
   }
 }

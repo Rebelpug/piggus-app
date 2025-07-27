@@ -162,7 +162,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
     );
 
     const renderFirstStep = () => (
-        <Layout style={styles.stepContainer}>
+        <ScrollView style={styles.scrollableStep} contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
             <Layout style={styles.iconContainer}>
                 <Ionicons
                     name="shield-checkmark"
@@ -221,11 +221,11 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                     {t('banking.continue')}
                 </Button>
             </Layout>
-        </Layout>
+        </ScrollView>
     );
 
     const renderSecondStep = () => (
-        <Layout style={styles.stepContainer}>
+        <ScrollView style={styles.scrollableStep} contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
             <Layout style={styles.iconContainer}>
                 <Ionicons
                     name="flag"
@@ -271,40 +271,42 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
                     {loading ? 'Loading...' : t('banking.continue')}
                 </Button>
             </Layout>
-        </Layout>
+        </ScrollView>
     );
 
     const renderThirdStep = () => (
-        <Layout style={styles.stepContainer}>
-            <Layout style={styles.iconContainer}>
-                <Ionicons
-                    name="business"
-                    size={64}
-                    color={colors.primary}
-                    style={styles.stepIcon}
+        <Layout style={styles.scrollableStep}>
+            <Layout style={styles.stepHeader}>
+                <Layout style={styles.iconContainer}>
+                    <Ionicons
+                        name="business"
+                        size={64}
+                        color={colors.primary}
+                        style={styles.stepIcon}
+                    />
+                </Layout>
+
+                <Text category='h4' style={styles.stepTitle}>
+                    Select Your Bank
+                </Text>
+
+                <Text category='s1' appearance='hint' style={styles.stepDescription}>
+                    Choose your bank from the list below to connect your account.
+                </Text>
+
+                <Input
+                    style={styles.searchInput}
+                    placeholder="Search banks..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    accessoryLeft={(props) => <Ionicons name="search" size={20} color={props?.tintColor} />}
+                    accessoryRight={searchQuery ? (props) => (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={20} color={props?.tintColor} />
+                        </TouchableOpacity>
+                    ) : undefined}
                 />
             </Layout>
-
-            <Text category='h4' style={styles.stepTitle}>
-                Select Your Bank
-            </Text>
-
-            <Text category='s1' appearance='hint' style={styles.stepDescription}>
-                Choose your bank from the list below to connect your account.
-            </Text>
-
-            <Input
-                style={styles.searchInput}
-                placeholder="Search banks..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                accessoryLeft={(props) => <Ionicons name="search" size={20} color={props?.tintColor} />}
-                accessoryRight={searchQuery ? (props) => (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <Ionicons name="close-circle" size={20} color={props?.tintColor} />
-                    </TouchableOpacity>
-                ) : undefined}
-            />
 
             <ScrollView style={styles.institutionsList} showsVerticalScrollIndicator={false}>
                 {filteredInstitutions.length > 0 ? (
@@ -477,10 +479,20 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    stepContainer: {
+    scrollableStep: {
         flex: 1,
+    },
+    stepContainer: {
+        flexGrow: 1,
         padding: 24,
         justifyContent: 'center',
+        minHeight: '100%',
+    },
+    stepHeader: {
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        paddingBottom: 16,
+        backgroundColor: 'transparent',
     },
     logo: {
         width: 40,
@@ -527,6 +539,9 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         backgroundColor: 'transparent',
+        paddingHorizontal: 24,
+        paddingBottom: 24,
+        paddingTop: 16,
     },
     continueButton: {
         borderRadius: 12,
@@ -555,7 +570,7 @@ const styles = StyleSheet.create({
     },
     institutionsList: {
         flex: 1,
-        marginBottom: 16,
+        paddingHorizontal: 24,
     },
     institutionItem: {
         marginBottom: 12,
