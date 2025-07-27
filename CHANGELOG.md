@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/Rebelpug/piggus-app/compare/v1.3.0...v1.3.1) (2025-07-27)
+
+
+### Bug Fixes
+
+* Bank connector can now be scrolled ([c8580d8](https://github.com/Rebelpug/piggus-app/commit/c8580d8e05a7d9fa5800e17dab5ad63b3cd424d8))
+
 ## [1.3.0](https://github.com/Rebelpug/piggus-app/compare/v1.2.2...v1.3.0) (2025-07-25)
 
 
