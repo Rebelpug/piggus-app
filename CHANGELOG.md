@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.2](https://github.com/Rebelpug/piggus-app/compare/v1.3.1...v1.3.2) (2025-07-28)
+
+
+### Bug Fixes
+
+* Expenses can now be moved ([6822903](https://github.com/Rebelpug/piggus-app/commit/682290311c75964ee48018389d27677b9effed06))
+* Transactions should be created with the default group ([2ed2031](https://github.com/Rebelpug/piggus-app/commit/2ed2031b16bb5d5d2b45469429bd50a2470ceaad))
+
 ### [1.3.1](https://github.com/Rebelpug/piggus-app/compare/v1.3.0...v1.3.1) (2025-07-27)
 
 
