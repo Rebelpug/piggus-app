@@ -16,12 +16,13 @@ workflows:
         AWS_ACCESS_KEY_ID: key
         AWS_SECRET_ACCESS_KEY: key
         EAS_PROFILE: production
-        EAS_NO_VCS: "1" # optional: skip git check
+        EAS_NO_VCS: "1"
       node: 18
       xcode: latest
-      cocoapods: default
-      expo_cli: latest
-      yarn: true
+      tools:
+        expo_cli: latest
+        yarn: true
+        cocoapods: default
       cache:
         cache_paths:
           - node_modules
@@ -31,19 +32,25 @@ workflows:
     scripts:
       - name: Install dependencies
         script: yarn install
+
       - name: Install EAS CLI
         script: yarn global add eas-cli
+
       - name: Prebuild Expo project
         script: eas prebuild --platform all
-      - name: Build Android & iOS locally
-        script: |
-          eas build --local --platform android --profile $EAS_PROFILE
-          eas build --local --platform ios --profile $EAS_PROFILE
+
+      - name: Build Android locally
+        script: eas build --local --platform android --profile $EAS_PROFILE
+
+      - name: Build iOS locally
+        script: eas build --local --platform ios --profile $EAS_PROFILE
+
       - name: Upload Sentry sourcemaps
         script: |
           npx sentry-cli releases new "$CM_BUILD_ID"
           npx sentry-cli releases files "$CM_BUILD_ID" upload-sourcemaps ./ --rewrite --url-prefix "~/"
           npx sentry-cli releases finalize "$CM_BUILD_ID"
+
     artifacts:
       - build/**/*.apk
       - build/**/*.aab
