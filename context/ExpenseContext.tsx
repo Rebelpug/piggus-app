@@ -25,6 +25,7 @@ import {
   apiUpdateRefund,
   apiDeleteRefund,
   apiBulkInsertAndUpdateExpenses,
+  apiMoveExpense,
 } from '@/services/expenseService';
 import {
   apiFetchRecurringExpenses,
@@ -93,6 +94,12 @@ interface ExpenseContextType {
   bulkUpdateExpenses: (
       expenses: { id?: string; data: ExpenseData, group_id: string, group_key: string }[]
   ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }>;
+  moveExpense: (
+      expenseId: string,
+      fromGroupId: string,
+      toGroupId: string,
+      updatedExpenseData: ExpenseData
+  ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData; error?: string }>;
   syncBankTransactions: () => Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }>;
 }
 
@@ -835,6 +842,86 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const moveExpense = async (expenseId: string, fromGroupId: string, toGroupId: string, updatedExpenseData: ExpenseData) => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        console.error('You must be logged in to move an expense');
+        setError('You must be logged in to move an expense');
+        return { success: false, error: 'Authentication required' };
+      }
+
+      // Find both groups
+      const fromGroup = expensesGroups.find(g => g.id === fromGroupId);
+      const toGroup = expensesGroups.find(g => g.id === toGroupId);
+      
+      if (!fromGroup || !toGroup) {
+        console.error('Source or destination group not found');
+        setError('Source or destination group not found');
+        return { success: false, error: 'Group not found' };
+      }
+
+      // Get the expense to move
+      const expenseToMove = fromGroup.expenses.find(e => e.id === expenseId);
+      if (!expenseToMove) {
+        console.error('Expense not found in source group');
+        setError('Expense not found');
+        return { success: false, error: 'Expense not found' };
+      }
+
+      // Get group keys
+      const fromGroupKey = fromGroup.encrypted_key;
+      const toGroupKey = toGroup.encrypted_key;
+      if (!fromGroupKey || !toGroupKey) {
+        console.error('Could not access group encryption keys');
+        setError('Could not access encryption keys');
+        return { success: false, error: 'Encryption keys not available' };
+      }
+
+      const result = await apiMoveExpense(
+        user,
+        expenseId,
+        fromGroupId,
+        toGroupId,
+        fromGroupKey,
+        toGroupKey,
+        updatedExpenseData,
+        decryptWithExternalEncryptionKey,
+        encryptWithExternalEncryptionKey
+      );
+
+      if (result.success && result.data) {
+        // Update local state: remove from source group and add to destination group
+        setExpensesGroups(prev =>
+          prev.map(group => {
+            if (group.id === fromGroupId) {
+              // Remove expense from source group
+              return {
+                ...group,
+                expenses: group.expenses.filter(e => e.id !== expenseId),
+              };
+            } else if (group.id === toGroupId) {
+              // Add expense to destination group
+              return {
+                ...group,
+                expenses: [result.data!, ...group.expenses],
+              };
+            }
+            return group;
+          })
+        );
+        return { success: true, data: result.data };
+      } else {
+        setError(result.error || 'Failed to move expense');
+        return { success: false, error: result.error || 'Failed to move expense' };
+      }
+    } catch (error: any) {
+      console.error('Failed to move expense:', error);
+      const errorMessage = error.message || 'Failed to move expense';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
   const syncBankTransactions = async (): Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }> => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
@@ -1089,6 +1176,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             updateRefund,
             deleteRefund,
             bulkUpdateExpenses,
+            moveExpense,
             syncBankTransactions,
           }}
       >

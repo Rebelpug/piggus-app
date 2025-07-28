@@ -1,0 +1,50 @@
+workflows:
+  expo-production-build:
+    name: Expo Production Build
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      vars:
+        EXPO_PUBLIC_PIGGUS_API_URL: key
+        EXPO_PUBLIC_SENTRY_DSN: key
+        EXPO_PUBLIC_SUPABASE_KEY: key
+        EXPO_PUBLIC_SUPABASE_URL: key
+        SENTRY_AUTH_TOKEN: key
+        SENTRY_ORG: rebelpug
+        SENTRY_PROJECT: piggus
+        AWS_REGION: eu-central-1
+        AWS_ACCESS_KEY_ID: key
+        AWS_SECRET_ACCESS_KEY: key
+        EAS_PROFILE: production
+        EAS_NO_VCS: "1" # optional: skip git check
+      node: 18
+      xcode: latest
+      cocoapods: default
+      expo_cli: latest
+      yarn: true
+      cache:
+        cache_paths:
+          - node_modules
+          - ~/.npm
+          - ~/.yarn-cache
+          - ~/.expo
+    scripts:
+      - name: Install dependencies
+        script: yarn install
+      - name: Install EAS CLI
+        script: yarn global add eas-cli
+      - name: Prebuild Expo project
+        script: eas prebuild --platform all
+      - name: Build Android & iOS locally
+        script: |
+          eas build --local --platform android --profile $EAS_PROFILE
+          eas build --local --platform ios --profile $EAS_PROFILE
+      - name: Upload Sentry sourcemaps
+        script: |
+          npx sentry-cli releases new "$CM_BUILD_ID"
+          npx sentry-cli releases files "$CM_BUILD_ID" upload-sourcemaps ./ --rewrite --url-prefix "~/"
+          npx sentry-cli releases finalize "$CM_BUILD_ID"
+    artifacts:
+      - build/**/*.apk
+      - build/**/*.aab
+      - ios/build/**/*.ipa

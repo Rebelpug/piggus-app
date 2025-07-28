@@ -8,6 +8,8 @@ import {
   ExpenseGroupWithDecryptedData,
   ExpenseWithDecryptedData,
   GroupRefund,
+  ExpenseParticipant,
+  calculateEqualSplit,
 } from '@/types/expense';
 import { User } from '@supabase/supabase-js';
 
@@ -602,6 +604,59 @@ export const apiDeleteRefund = async (
     return {
       success: false,
       error: error.message || 'Failed to delete refund',
+    };
+  }
+};
+
+export const apiMoveExpense = async (
+    user: User,
+    expenseId: string,
+    fromGroupId: string,
+    toGroupId: string,
+    fromGroupKey: string,
+    toGroupKey: string,
+    updatedExpenseData: ExpenseData,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>,
+    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
+): Promise<{ success: boolean; data?: ExpenseWithDecryptedData; error?: string }> => {
+  try {
+    if (!user || !expenseId || !fromGroupId || !toGroupId || !fromGroupKey || !toGroupKey || !updatedExpenseData) {
+      return {
+        success: false,
+        error: 'Invalid parameters',
+      };
+    }
+
+    // First, delete the expense from the original group
+    const deleteResult = await piggusApi.deleteExpense(fromGroupId, expenseId);
+    if (!deleteResult.success) {
+      return {
+        success: false,
+        error: 'Failed to remove expense from original group',
+      };
+    }
+
+    // Then, add the expense to the new group with updated data
+    const newExpenseId = uuidv4();
+    const encryptedData = await encryptWithExternalEncryptionKey(toGroupKey, updatedExpenseData);
+
+    const newExpense = await piggusApi.addExpense(toGroupId, {
+      expenseId: newExpenseId,
+      encryptedData,
+    });
+
+    return {
+      success: true,
+      data: {
+        ...newExpense,
+        data: updatedExpenseData,
+      } as ExpenseWithDecryptedData,
+    };
+  } catch (error: any) {
+    console.error('Error moving expense:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to move expense',
     };
   }
 };

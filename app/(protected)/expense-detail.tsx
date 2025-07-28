@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Alert, View } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, Alert, View, Modal } from 'react-native';
 import {
     Layout,
     Text,
@@ -7,7 +7,10 @@ import {
     TopNavigationAction,
     Divider,
     Card,
-    Button
+    Button,
+    Select,
+    SelectItem,
+    IndexPath
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { ExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo } from '@/types/expense';
+import { ExpenseWithDecryptedData, calculateUserShare, getCategoryDisplayInfo, ExpenseParticipant, calculateEqualSplit } from '@/types/expense';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -28,11 +31,14 @@ export default function ExpenseDetailScreen() {
     const { user } = useAuth();
     const { t } = useLocalization();
     const { expenseId, groupId } = useLocalSearchParams<{ expenseId: string, groupId: string }>();
-    const { expensesGroups, deleteExpense, updateExpense } = useExpense();
+    const { expensesGroups, deleteExpense, updateExpense, moveExpense } = useExpense();
     const { userProfile } = useProfile();
     const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
     const [groupName, setGroupName] = useState<string>('');
     const [groupMembers, setGroupMembers] = useState<any[]>([]);
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [selectedTargetGroupIndex, setSelectedTargetGroupIndex] = useState<IndexPath | undefined>();
+    const [isMoving, setIsMoving] = useState(false);
 
     useEffect(() => {
         if (!expenseId || !groupId || !expensesGroups) return;
@@ -61,6 +67,56 @@ export default function ExpenseDetailScreen() {
                 groupId: groupId
             }
         });
+    };
+
+    const handleMove = () => {
+        setShowMoveModal(true);
+    };
+
+    const handleMoveConfirm = async () => {
+        if (!expense || !selectedTargetGroupIndex || !expenseId || !groupId || !user || !userProfile) return;
+
+        const availableGroups = expensesGroups.filter(g => g.id !== groupId);
+        const targetGroup = availableGroups[selectedTargetGroupIndex.row];
+        
+        if (!targetGroup) return;
+
+        setIsMoving(true);
+        try {
+            // Create participants from target group members with automatic equal split
+            const targetGroupMembers = targetGroup.members || [];
+            const shareAmount = calculateEqualSplit(expense.data.amount, targetGroupMembers.length);
+            
+            const updatedExpenseData = {
+                ...expense.data,
+                participants: targetGroupMembers.map(member => ({
+                    user_id: member.user_id,
+                    username: member.username,
+                    share_amount: shareAmount
+                })) as ExpenseParticipant[],
+                split_method: 'equal' as const,
+                payer_user_id: user.id,
+                payer_username: userProfile.username
+            };
+
+            const result = await moveExpense(expenseId, groupId, targetGroup.id, updatedExpenseData);
+            
+            if (result.success) {
+                setShowMoveModal(false);
+                Alert.alert(
+                    t('expenseDetail.moveSuccess'),
+                    t('expenseDetail.expenseMovedSuccessfully', { groupName: targetGroup.data.name }),
+                    [{ text: 'OK', onPress: () => router.back() }]
+                );
+            } else {
+                Alert.alert(t('expenseDetail.error'), result.error || t('expenseDetail.moveExpenseFailed'));
+            }
+        } catch (error: any) {
+            console.error('Failed to move expense:', error);
+            Alert.alert(t('expenseDetail.error'), error.message || t('expenseDetail.moveExpenseFailed'));
+        } finally {
+            setIsMoving(false);
+        }
     };
 
     const handleDelete = () => {
@@ -160,6 +216,8 @@ export default function ExpenseDetailScreen() {
             onPress={handleEdit}
         />
     );
+
+    const availableGroups = expensesGroups.filter(g => g.id !== groupId);
 
     if (!expense) {
         return (
@@ -318,6 +376,15 @@ export default function ExpenseDetailScreen() {
                     {/* Action Buttons */}
                     <View style={styles.actionButtons}>
                         <Button
+                            style={[styles.actionButton, styles.moveButton]}
+                            appearance='outline'
+                            status='warning'
+                            accessoryLeft={() => <Ionicons name="move-outline" size={20} color={colors.warning} />}
+                            onPress={handleMove}
+                        >
+                            {t('expenseDetail.move')}
+                        </Button>
+                        <Button
                             style={[styles.actionButton, styles.editButton]}
                             appearance='outline'
                             status='primary'
@@ -338,6 +405,66 @@ export default function ExpenseDetailScreen() {
                     </View>
                 </ThemedView>
             </ScrollView>
+
+            {/* Move Expense Modal */}
+            <Modal
+                visible={showMoveModal}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowMoveModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>
+                            {t('expenseDetail.moveExpense')}
+                        </Text>
+                        
+                        <Text style={[styles.modalDescription, { color: colors.text }]}>
+                            {t('expenseDetail.moveExpenseDescription')}
+                        </Text>
+
+                        {availableGroups.length > 0 ? (
+                            <Select
+                                label={t('expenseDetail.selectTargetGroup')}
+                                placeholder={t('expenseDetail.selectGroup')}
+                                selectedIndex={selectedTargetGroupIndex}
+                                onSelect={(index) => setSelectedTargetGroupIndex(index as IndexPath)}
+                                value={selectedTargetGroupIndex ? availableGroups[selectedTargetGroupIndex.row]?.data.name : ''}
+                                style={styles.groupSelect}
+                            >
+                                {availableGroups.map((group, index) => (
+                                    <SelectItem key={index} title={group.data.name} />
+                                ))}
+                            </Select>
+                        ) : (
+                            <Text style={[styles.noGroupsText, { color: colors.text }]}>
+                                {t('expenseDetail.noOtherGroups')}
+                            </Text>
+                        )}
+
+                        <View style={styles.modalActions}>
+                            <Button
+                                style={styles.modalButton}
+                                appearance='ghost'
+                                onPress={() => {
+                                    setShowMoveModal(false);
+                                    setSelectedTargetGroupIndex(undefined);
+                                }}
+                                disabled={isMoving}
+                            >
+                                {t('expenseDetail.cancel')}
+                            </Button>
+                            <Button
+                                style={styles.modalButton}
+                                onPress={handleMoveConfirm}
+                                disabled={!selectedTargetGroupIndex || availableGroups.length === 0 || isMoving}
+                            >
+                                {isMoving ? t('expenseDetail.moving') : t('expenseDetail.move')}
+                            </Button>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -475,6 +602,53 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 12,
     },
+    moveButton: {},
     editButton: {},
     deleteButton: {},
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 400,
+        borderRadius: 16,
+        padding: 24,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    modalDescription: {
+        fontSize: 14,
+        marginBottom: 20,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    groupSelect: {
+        marginBottom: 20,
+    },
+    noGroupsText: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 20,
+        fontStyle: 'italic',
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    modalButton: {
+        flex: 1,
+        borderRadius: 12,
+    },
 });
