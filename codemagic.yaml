@@ -4,6 +4,8 @@ workflows:
     instance_type: linux_x2  # Cheaper than Mac for Android
     max_build_duration: 60
     environment:
+      groups:
+        - Production
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
@@ -42,15 +44,20 @@ workflows:
 
     publishing:
       google_play:
-        credentials: google_play_credentials  # Reference to your uploaded service account key
+        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
         track: internal  # Options: internal, alpha, beta, production
-        submit_as_draft: true  # Creates draft for manual review before publishing
+        submit_as_draft: false  # Creates draft for manual review before publishing
+        release_promotion:
+          track: production
+          promote_as_draft: true
 
   ios-production:
     name: iOS Production Build
     instance_type: mac_mini_m1  # Required for iOS builds
     max_build_duration: 60
     environment:
+      groups:
+        - Production
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
