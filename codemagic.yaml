@@ -1,7 +1,54 @@
 workflows:
-  expo-production-build:
-    name: Expo Production Build
-    instance_type: mac_mini_m1
+  android-production:
+    name: Android Production Build
+    instance_type: linux_x2  # Cheaper than Mac for Android
+    max_build_duration: 60
+    environment:
+      vars:
+        EAS_PROFILE: production
+        EAS_NO_VCS: "1"
+      node: 18
+      # Android signing configuration
+      android_signing:
+        - keystore_reference  # Reference to your uploaded keystore in Codemagic UI
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install dependencies
+        script: yarn install
+
+      - name: Install EAS CLI
+        script: yarn global add eas-cli
+
+      - name: Prebuild Expo project
+        script: yarn expo prebuild --platform android
+
+      - name: Build Android locally
+        script: eas build --local --platform android --profile $EAS_PROFILE
+
+      - name: Upload Sentry sourcemaps (Android)
+        script: |
+          npx sentry-cli releases new "$CM_BUILD_ID-android"
+          npx sentry-cli releases files "$CM_BUILD_ID-android" upload-sourcemaps ./ --rewrite --url-prefix "~/"
+          npx sentry-cli releases finalize "$CM_BUILD_ID-android"
+
+    artifacts:
+      - build/**/*.apk
+      - build/**/*.aab
+
+    publishing:
+      google_play:
+        credentials: google_play_credentials  # Reference to your uploaded service account key
+        track: internal  # Options: internal, alpha, beta, production
+        submit_as_draft: true  # Creates draft for manual review before publishing
+
+  ios-production:
+    name: iOS Production Build
+    instance_type: mac_mini_m1  # Required for iOS builds
     max_build_duration: 60
     environment:
       vars:
@@ -9,22 +56,71 @@ workflows:
         EAS_NO_VCS: "1"
       node: 18
       xcode: latest
+      # iOS signing configuration
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.yourcompany.piggus  # Replace with your actual bundle ID
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
     scripts:
       - name: Install dependencies
         script: yarn install
+
       - name: Install EAS CLI
         script: yarn global add eas-cli
+
       - name: Prebuild Expo project
-        script: yarn expo prebuild --platform all
-      - name: Build Android locally
-        script: eas build --local --platform android --profile $EAS_PROFILE
+        script: yarn expo prebuild --platform ios
+
       - name: Build iOS locally
         script: eas build --local --platform ios --profile $EAS_PROFILE
-      - name: Upload Sentry sourcemaps
+
+      - name: Upload Sentry sourcemaps (iOS)
         script: |
-          npx sentry-cli releases new "$CM_BUILD_ID"
-          npx sentry-cli releases files "$CM_BUILD_ID" upload-sourcemaps ./ --rewrite --url-prefix "~/"
-          npx sentry-cli releases finalize "$CM_BUILD_ID"
+          npx sentry-cli releases new "$CM_BUILD_ID-ios"
+          npx sentry-cli releases files "$CM_BUILD_ID-ios" upload-sourcemaps ./ --rewrite --url-prefix "~/"
+          npx sentry-cli releases finalize "$CM_BUILD_ID-ios"
+
+    artifacts:
+      - ios/build/**/*.ipa
+
+    publishing:
+      app_store_connect:
+        auth: integration  # You need to set up App Store Connect integration in Codemagic UI
+        submit_to_testflight: true  # Automatic beta testing
+        submit_to_app_store: false  # Manual App Store submission for production
+
+  expo-development:
+    name: Expo Development Build (Both Platforms)
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    when:
+      condition: $CM_BRANCH == 'develop'  # Only run on develop branch
+    environment:
+      vars:
+        EAS_PROFILE: preview
+        EAS_NO_VCS: "1"
+      node: 18
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        script: yarn install
+
+      - name: Install EAS CLI
+        script: yarn global add eas-cli
+
+      - name: Prebuild Expo project
+        script: yarn expo prebuild --platform all
+
+      - name: Build for development
+        script: |
+          eas build --local --platform android --profile $EAS_PROFILE
+          eas build --local --platform ios --profile $EAS_PROFILE
+
     artifacts:
       - build/**/*.apk
       - build/**/*.aab
