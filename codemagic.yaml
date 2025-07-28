@@ -55,6 +55,8 @@ workflows:
     name: iOS Production Build
     instance_type: mac_mini_m1  # Required for iOS builds
     max_build_duration: 60
+    integrations:
+      app_store_connect: Codemagic Piggus
     environment:
       groups:
         - Production
