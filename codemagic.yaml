@@ -102,35 +102,3 @@ workflows:
         auth: integration  # You need to set up App Store Connect integration in Codemagic UI
         submit_to_testflight: true  # Automatic beta testing
         submit_to_app_store: false  # Manual App Store submission for production
-
-  expo-development:
-    name: Expo Development Build (Both Platforms)
-    instance_type: mac_mini_m1
-    max_build_duration: 60
-    when:
-      condition: $CM_BRANCH == 'develop'  # Only run on develop branch
-    environment:
-      vars:
-        EAS_PROFILE: preview
-        EAS_NO_VCS: "1"
-      node: 18
-      xcode: latest
-    scripts:
-      - name: Install dependencies
-        script: yarn install
-
-      - name: Install EAS CLI
-        script: yarn global add eas-cli
-
-      - name: Prebuild Expo project
-        script: yarn expo prebuild --platform all
-
-      - name: Build for development
-        script: |
-          eas build --local --platform android --profile $EAS_PROFILE
-          eas build --local --platform ios --profile $EAS_PROFILE
-
-    artifacts:
-      - build/**/*.apk
-      - build/**/*.aab
-      - ios/build/**/*.ipa
