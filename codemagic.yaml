@@ -10,7 +10,7 @@ workflows:
       node: 18
       # Android signing configuration
       android_signing:
-        - keystore_reference  # Reference to your uploaded keystore in Codemagic UI
+        - PiggusProd
     triggering:
       events:
         - push
@@ -59,7 +59,7 @@ workflows:
       # iOS signing configuration
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.yourcompany.piggus  # Replace with your actual bundle ID
+        bundle_identifier: com.rebelpug.piggus
     triggering:
       events:
         - push
