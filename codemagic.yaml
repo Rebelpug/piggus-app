@@ -9,6 +9,7 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
+        EXPO_TOKEN: $EXPO_ACCESS_TOKEN  # Add this for EAS authentication
       node: 18
       # Android signing configuration
       android_signing:
@@ -26,17 +27,31 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
+      - name: Login to EAS
+        script: |
+          if [ -n "$EXPO_TOKEN" ]; then
+            echo "Logging in to EAS..."
+            npx expo login --non-interactive
+          else
+            echo "Warning: EXPO_TOKEN not set, build may fail"
+            exit 1
+          fi
+
       - name: Prebuild Expo project
-        script: npx expo prebuild --platform android
+        script: npx expo prebuild --platform android --clear
 
       - name: Build Android locally
         script: eas build --local --platform android --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (Android)
         script: |
-          npx sentry-cli releases new "$CM_BUILD_ID-android"
-          npx sentry-cli releases files "$CM_BUILD_ID-android" upload-sourcemaps ./ --rewrite --url-prefix "~/"
-          npx sentry-cli releases finalize "$CM_BUILD_ID-android"
+          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+            npx sentry-cli releases new "$CM_BUILD_ID-android"
+            npx sentry-cli releases files "$CM_BUILD_ID-android" upload-sourcemaps ./ --rewrite --url-prefix "~/"
+            npx sentry-cli releases finalize "$CM_BUILD_ID-android"
+          else
+            echo "SENTRY_AUTH_TOKEN not set, skipping sourcemap upload"
+          fi
 
     artifacts:
       - build/**/*.apk
@@ -63,6 +78,7 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
+        EXPO_TOKEN: $EXPO_ACCESS_TOKEN  # Add this for EAS authentication
       node: 18
       xcode: latest
       # iOS signing configuration
@@ -82,17 +98,31 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
+      - name: Login to EAS
+        script: |
+          if [ -n "$EXPO_TOKEN" ]; then
+            echo "Logging in to EAS..."
+            npx expo login --non-interactive
+          else
+            echo "Warning: EXPO_TOKEN not set, build may fail"
+            exit 1
+          fi
+
       - name: Prebuild Expo project
-        script: npx expo prebuild --platform ios
+        script: npx expo prebuild --platform ios --clear
 
       - name: Build iOS locally
         script: eas build --local --platform ios --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (iOS)
         script: |
-          npx sentry-cli releases new "$CM_BUILD_ID-ios"
-          npx sentry-cli releases files "$CM_BUILD_ID-ios" upload-sourcemaps ./ --rewrite --url-prefix "~/"
-          npx sentry-cli releases finalize "$CM_BUILD_ID-ios"
+          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+            npx sentry-cli releases new "$CM_BUILD_ID-ios"
+            npx sentry-cli releases files "$CM_BUILD_ID-ios" upload-sourcemaps ./ --rewrite --url-prefix "~/"
+            npx sentry-cli releases finalize "$CM_BUILD_ID-ios"
+          else
+            echo "SENTRY_AUTH_TOKEN not set, skipping sourcemap upload"
+          fi
 
     artifacts:
       - ios/build/**/*.ipa
