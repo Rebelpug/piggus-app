@@ -14,11 +14,11 @@ workflows:
       # Android signing configuration
       android_signing:
         - PiggusProd
-      cache:
-        cache_paths:
-          - node_modules
-          - .expo
-          - .eas
+    cache:
+      cache_paths:
+        - node_modules
+        - .expo
+        - .eas
     triggering:
       events:
         - push
@@ -90,11 +90,11 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.rebelpug.piggus
-      cache:
-        cache_paths:
-          - node_modules
-          - .expo
-          - .eas
+    cache:
+      cache_paths:
+        - node_modules
+        - .expo
+        - .eas
     triggering:
       events:
         - push
