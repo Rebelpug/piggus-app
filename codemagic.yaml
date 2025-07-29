@@ -27,13 +27,13 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
-      - name: Login to EAS
+      - name: Verify EAS Authentication
         script: |
           if [ -n "$EXPO_TOKEN" ]; then
-            echo "Logging in to EAS..."
-            npx expo login --non-interactive
+            echo "EXPO_TOKEN is set, authentication should work automatically"
+            npx expo whoami
           else
-            echo "Warning: EXPO_TOKEN not set, build may fail"
+            echo "Error: EXPO_TOKEN not set, build will fail"
             exit 1
           fi
 
@@ -98,13 +98,13 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
-      - name: Login to EAS
+      - name: Verify EAS Authentication
         script: |
           if [ -n "$EXPO_TOKEN" ]; then
-            echo "Logging in to EAS..."
-            npx expo login --non-interactive
+            echo "EXPO_TOKEN is set, authentication should work automatically"
+            npx expo whoami
           else
-            echo "Warning: EXPO_TOKEN not set, build may fail"
+            echo "Error: EXPO_TOKEN not set, build will fail"
             exit 1
           fi
 
