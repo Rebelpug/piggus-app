@@ -1,0 +1,661 @@
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import {
+    Layout,
+    Text,
+    Button,
+    Card,
+    TopNavigation,
+    TopNavigationAction,
+    Spinner,
+} from '@ui-kitten/components';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/constants/Colors';
+import { useLocalization } from '@/context/LocalizationContext';
+import { useProfile } from '@/context/ProfileContext';
+import { router } from 'expo-router';
+import Purchases, { PurchasesPackage, CustomerInfo, PurchasesOffering } from 'react-native-purchases';
+import { piggusApi } from '@/client/piggusApi';
+
+interface PricingTier {
+    package: PurchasesPackage;
+    localizedPrice: string;
+    currencyCode: string;
+    originalPrice: number;
+    formattedPrice: string;
+}
+
+export default function SubscriptionScreen() {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
+    const { t } = useLocalization();
+    const { userProfile, refreshProfile } = useProfile();
+    const [loading, setLoading] = useState(true);
+    const [purchasing, setPurchasing] = useState(false);
+    const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
+    const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+    const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+
+    const isPremium = userProfile?.subscription?.subscription_tier === 'premium';
+    const hasActiveSubscription = customerInfo?.entitlements.active.premium;
+
+    useEffect(() => {
+        initializePurchases();
+    }, []);
+
+    // Sync subscription status between RevenueCat and backend
+    const syncSubscriptionStatus = async () => {
+        try {
+            if (!customerInfo) return;
+
+            const hasRevenueCatPremium = typeof customerInfo.entitlements.active['premium'] !== "undefined";
+            const backendSubscription = userProfile?.subscription;
+            const hasBackendPremium = backendSubscription?.subscription_tier === 'premium';
+
+            // Only sync if there's a mismatch
+            if ((hasRevenueCatPremium === hasBackendPremium)) {
+                console.log('Subscription status already in sync');
+                return;
+            }
+
+            const targetTier = hasRevenueCatPremium ? 'premium' : 'free';
+            console.log(`Syncing: RevenueCat has ${hasRevenueCatPremium ? 'premium' : 'free'}, updating backend to ${targetTier}`);
+
+            try {
+                await piggusApi.updateSubscription(targetTier, customerInfo.originalAppUserId);
+                await refreshProfile();
+                console.log('Subscription sync completed successfully');
+            } catch (backendError: any) {
+                console.error('Backend subscription sync failed:', backendError);
+
+                // Check if it's the specific RevenueCat validation error
+                if (backendError?.response?.data?.message?.includes('No active subscription found in RevenueCat')) {
+                    console.log('Backend validation failed due to RevenueCat API issues - subscription may still be valid locally');
+                } else {
+                    // For other errors, still log but don't throw
+                    console.error('Unexpected backend sync error:', backendError);
+                }
+            }
+        } catch (error) {
+            console.error('Error in subscription sync process:', error);
+        }
+    };
+
+    // Sync subscription status whenever customerInfo changes
+    useEffect(() => {
+        if (customerInfo && userProfile) {
+            syncSubscriptionStatus();
+        }
+    }, [customerInfo, userProfile]);
+
+    const initializePurchases = async () => {
+        try {
+            setLoading(true);
+
+            // Initialize RevenueCat
+            const apiKey = 'goog_tdPIKeWXCJWfLxhbLDlxzEvqnSI';
+            await Purchases.configure({ apiKey });
+
+            // Set user ID if you have one
+            // await Purchases.logIn(userProfile?.id || 'anonymous');
+
+            // Get offerings and customer info
+            const [offerings, customerInfo] = await Promise.all([
+                Purchases.getOfferings(),
+                Purchases.getCustomerInfo()
+            ]);
+
+            setOfferings(offerings.current);
+            setCustomerInfo(customerInfo);
+
+            // Process pricing information
+            if (offerings.current?.availablePackages) {
+                const processedTiers = offerings.current.availablePackages.map(pkg => ({
+                    package: pkg,
+                    localizedPrice: pkg.product.priceString, // Already localized by the store
+                    currencyCode: pkg.product.currencyCode || 'USD',
+                    originalPrice: pkg.product.price,
+                    formattedPrice: formatPrice(pkg.product.price, pkg.product.currencyCode || 'USD'),
+                }));
+
+                setPricingTiers(processedTiers);
+            }
+
+        } catch (error: any) {
+            console.error('Error initializing purchases:', error);
+            Alert.alert(t('subscription.error'), t('subscription.initializationError'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Helper function to format price (fallback if store doesn't provide formatted string)
+    const formatPrice = (price: number, currencyCode: string): string => {
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currencyCode,
+                minimumFractionDigits: 2
+            }).format(price);
+        } catch (error) {
+            // Fallback for unsupported currencies
+            return `${currencyCode} ${price.toFixed(2)}`;
+        }
+    };
+
+    // Find the best package for the user's region (you could implement regional logic here)
+    const getRecommendedPackage = (): PricingTier | null => {
+        if (pricingTiers.length === 0) return null;
+
+        // Example: Different recommendations based on region
+        const monthlyPackages = pricingTiers.filter(tier =>
+            tier.package.packageType === 'MONTHLY' ||
+            tier.package.identifier.includes('monthly')
+        );
+
+        return monthlyPackages[0] || pricingTiers[0];
+    };
+
+    const handlePurchase = async (pricingTier: PricingTier) => {
+        try {
+            setPurchasing(true);
+
+            console.log('Purchasing:', {
+                identifier: pricingTier.package.identifier,
+                localizedPrice: pricingTier.localizedPrice,
+                currency: pricingTier.currencyCode,
+            });
+
+            const { customerInfo } = await Purchases.purchasePackage(pricingTier.package);
+            setCustomerInfo(customerInfo);
+
+            // Update backend subscription to premium after successful purchase
+            try {
+                console.log('Updating backend subscription to premium after purchase');
+                await piggusApi.updateSubscription('premium', customerInfo.originalAppUserId);
+                await refreshProfile();
+            } catch (backendError: any) {
+                console.error('Error updating backend subscription after purchase:', backendError);
+
+                // Check if it's a RevenueCat validation error
+                if (backendError?.response?.data?.message?.includes('No active subscription found in RevenueCat')) {
+                    console.log('Backend validation failed due to RevenueCat API issues - purchase was successful locally');
+                } else {
+                    console.error('Unexpected backend error after purchase:', backendError);
+                }
+                // Still continue and show success - the RevenueCat purchase was successful
+            }
+
+            Alert.alert(
+                t('subscription.success'),
+                t('subscription.purchaseSuccess'),
+                [{ text: 'OK', onPress: () => router.back() }]
+            );
+        } catch (error: any) {
+            console.error('Purchase error:', error);
+            if (!error.userCancelled) {
+                Alert.alert(t('subscription.error'), t('subscription.purchaseError'));
+            }
+        } finally {
+            setPurchasing(false);
+        }
+    };
+
+    const handleRestorePurchases = async () => {
+        try {
+            setPurchasing(true);
+            const customerInfo = await Purchases.restorePurchases();
+            setCustomerInfo(customerInfo);
+
+            // Update backend subscription based on restored purchase
+            try {
+                const subscriptionTier = customerInfo.entitlements.active.premium ? 'premium' : 'free';
+                console.log(`Updating backend subscription to ${subscriptionTier} after restore`);
+                await piggusApi.updateSubscription(subscriptionTier, customerInfo.originalAppUserId);
+                await refreshProfile();
+            } catch (backendError: any) {
+                console.error('Error updating backend subscription after restore:', backendError);
+
+                // Check if it's a RevenueCat validation error
+                if (backendError?.response?.data?.message?.includes('No active subscription found in RevenueCat')) {
+                    console.log('Backend validation failed due to RevenueCat API issues - restore was successful locally');
+                } else {
+                    console.error('Unexpected backend error after restore:', backendError);
+                }
+                // Still continue and show success - the RevenueCat restore was successful
+            }
+
+            Alert.alert(t('subscription.restored'), t('subscription.restoreSuccess'));
+        } catch (error) {
+            console.error('Restore error:', error);
+            Alert.alert(t('subscription.error'), t('subscription.restoreError'));
+        } finally {
+            setPurchasing(false);
+        }
+    };
+
+    const renderBackAction = () => (
+        <TopNavigationAction
+            icon={(props) => <Ionicons name="arrow-back" size={24} color={colors.icon} />}
+            onPress={() => router.back()}
+        />
+    );
+
+    const renderFeatureItem = (icon: string, text: string, isPremiumFeature = false) => (
+        <Layout style={styles.featureItem}>
+            <Layout style={[styles.featureIcon, isPremiumFeature && { backgroundColor: colors.primary + '20' }]}>
+                <Ionicons
+                    name={icon as any}
+                    size={20}
+                    color={isPremiumFeature ? colors.primary : colors.text}
+                />
+            </Layout>
+            <Text category='s1' style={[styles.featureText, isPremiumFeature && { color: colors.primary }]}>
+                {text}
+            </Text>
+        </Layout>
+    );
+
+
+    const renderPricingTierCard = (
+        pricingTier: PricingTier,
+        isRecommended: boolean = false,
+        isCurrentTier: boolean = false
+    ) => {
+        const packageType = pricingTier.package.packageType;
+        const isAnnual = packageType === 'ANNUAL' || pricingTier.package.identifier.includes('annual');
+
+        // Calculate savings for annual plans (example logic)
+        const monthlySavings = isAnnual ? '2 months free!' : null;
+
+        // Get renewal date if this is the current active subscription
+        const subscription = customerInfo?.entitlements.active.premium;
+        const renewalDate = isCurrentTier && subscription?.expirationDate ?
+            new Date(subscription.expirationDate) : null;
+
+        return (
+            <Card
+                key={pricingTier.package.identifier}
+                style={[
+                    styles.tierCard,
+                    { backgroundColor: colors.card },
+                    isCurrentTier && { borderColor: colors.primary, borderWidth: 2 },
+                    isRecommended && { borderColor: colors.success, borderWidth: 2 }
+                ]}
+            >
+                {isRecommended && (
+                    <Layout style={[styles.recommendedBadge, { backgroundColor: colors.success }]}>
+                        <Text category='c2' style={styles.recommendedText}>
+                            {t('subscription.recommended')}
+                        </Text>
+                    </Layout>
+                )}
+
+                <Layout style={styles.tierHeader}>
+                    <Text category='h5' style={styles.tierTitle}>
+                        {isAnnual ? t('subscription.annual.title') : t('subscription.monthly.title')}
+                    </Text>
+
+                    <Layout style={styles.priceContainer}>
+                        <Text category='h4' style={[styles.tierPrice, { color: colors.primary }]}>
+                            {pricingTier.localizedPrice}
+                        </Text>
+                        <Text category='c1' appearance='hint' style={styles.pricePeriod}>
+                            {isAnnual ? t('subscription.perYear') : t('subscription.perMonth')}
+                        </Text>
+                    </Layout>
+
+                    {monthlySavings && (
+                        <Layout style={[styles.savingsBadge, { backgroundColor: colors.warning + '20' }]}>
+                            <Text category='c2' style={[styles.savingsText, { color: colors.warning }]}>
+                                {monthlySavings}
+                            </Text>
+                        </Layout>
+                    )}
+
+                    {renewalDate && (
+                        <Layout style={styles.renewalInfo}>
+                            <Ionicons name="calendar" size={16} color={colors.primary} />
+                            <Text category='c1' style={[styles.renewalText, { color: colors.primary }]}>
+                                {t('subscription.renewsOn')}: {renewalDate.toLocaleDateString()}
+                            </Text>
+                        </Layout>
+                    )}
+
+                    <Text category='s2' appearance='hint' style={styles.tierDescription}>
+                        {isAnnual ? t('subscription.annual.description') : t('subscription.monthly.description')}
+                    </Text>
+                </Layout>
+
+                <Layout style={styles.featuresContainer}>
+                    {[
+                        { icon: 'people', text: t('subscription.features.allFreeFeatures'), isPremium: false },
+                        { icon: 'card', text: t('subscription.features.bankImport'), isPremium: true },
+                        { icon: 'heart', text: t('subscription.features.supportUs'), isPremium: true },
+                    ].map((feature, index) => (
+                        <Layout key={index}>
+                            {renderFeatureItem(feature.icon, feature.text, feature.isPremium)}
+                        </Layout>
+                    ))}
+                </Layout>
+
+                <Layout style={styles.tierButtonContainer}>
+                    {isCurrentTier ? (
+                        <Button
+                            style={[styles.tierButton, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
+                            appearance='outline'
+                            status='warning'
+                            onPress={() => {
+                                Alert.alert(
+                                    t('subscription.cancelSubscription'),
+                                    t('subscription.cancelInstructions'),
+                                    [
+                                        { text: t('common.cancel'), style: 'cancel' },
+                                        {
+                                            text: t('subscription.openStore'),
+                                            onPress: () => {
+                                                console.log('Opening store for subscription cancellation');
+                                            }
+                                        }
+                                    ]
+                                );
+                            }}
+                        >
+                            {t('subscription.cancelSubscription')}
+                        </Button>
+                    ) : (
+                        <Button
+                            style={[
+                                styles.tierButton,
+                                isRecommended && { backgroundColor: colors.success }
+                            ]}
+                            size='large'
+                            status={isRecommended ? 'success' : 'primary'}
+                            onPress={() => handlePurchase(pricingTier)}
+                            disabled={purchasing}
+                            accessoryLeft={purchasing ? () => <Spinner size='small' status='control' /> : undefined}
+                        >
+                            {purchasing ? t('subscription.processing') : t('subscription.subscribe')}
+                        </Button>
+                    )}
+                </Layout>
+            </Card>
+        );
+    };
+
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <TopNavigation
+                    title={t('subscription.title')}
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                    style={{ backgroundColor: colors.background }}
+                />
+                <Layout style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text category='s1' style={styles.loadingText}>
+                        {t('subscription.loading')}
+                    </Text>
+                </Layout>
+            </SafeAreaView>
+        );
+    }
+
+    const recommendedPackage = getRecommendedPackage();
+    const freeFeatures = [
+        { icon: 'pencil', text: t('subscription.features.manualTracking') },
+        { icon: 'people', text: t('subscription.features.shareExpenses') },
+        { icon: 'book', text: t('subscription.features.tutorials') },
+    ];
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <TopNavigation
+                title={t('subscription.title')}
+                alignment='center'
+                accessoryLeft={renderBackAction}
+                style={{ backgroundColor: colors.background }}
+            />
+
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <Layout style={styles.content}>
+                    <Layout style={styles.headerContainer}>
+                        <Layout style={styles.iconContainer}>
+                            <Ionicons name="star" size={64} color={colors.primary} />
+                        </Layout>
+                        <Text category='h3' style={styles.headerTitle}>
+                            {hasActiveSubscription ? t('subscription.managePlan') : t('subscription.chooseYourPlan')}
+                        </Text>
+                    </Layout>
+
+                    <Layout style={styles.tiersContainer}>
+                        {/* Free tier */}
+                        <Card style={[
+                            styles.tierCard,
+                            { backgroundColor: colors.card },
+                            !isPremium && !customerInfo?.entitlements.active.premium && { borderColor: colors.primary, borderWidth: 2 }
+                        ]}>
+                            <Layout style={styles.tierHeader}>
+                                <Text category='h5' style={styles.tierTitle}>
+                                    {t('subscription.free.title')}
+                                </Text>
+                                <Text category='h4' style={[styles.tierPrice, { color: colors.primary }]}>
+                                    {t('subscription.free.price')}
+                                </Text>
+                                <Text category='s2' appearance='hint' style={styles.tierDescription}>
+                                    {t('subscription.free.description')}
+                                </Text>
+                            </Layout>
+
+                            <Layout style={styles.featuresContainer}>
+                                {freeFeatures.map((feature, index) => (
+                                    <Layout key={index}>
+                                        {renderFeatureItem(feature.icon, feature.text)}
+                                    </Layout>
+                                ))}
+                            </Layout>
+
+                            <Layout style={styles.tierButtonContainer}>
+                                {!isPremium && !customerInfo?.entitlements.active.premium ? (
+                                    <Button
+                                        style={[styles.tierButton, { backgroundColor: colors.primary + '20' }]}
+                                        appearance='ghost'
+                                        status='primary'
+                                        disabled
+                                    >
+                                        {t('subscription.currentPlan')}
+                                    </Button>
+                                ) : null}
+                            </Layout>
+                        </Card>
+
+                        {/* Premium tiers with dynamic pricing */}
+                        {pricingTiers.map(pricingTier =>
+                            renderPricingTierCard(
+                                pricingTier,
+                                pricingTier === recommendedPackage,
+                                isPremium || !!customerInfo?.entitlements.active.premium
+                            )
+                        )}
+                    </Layout>
+
+                    <Layout style={styles.footerContainer}>
+                        <Text category='c1' appearance='hint' style={styles.footerNote}>
+                            {t('subscription.termsNote')}
+                        </Text>
+
+                        <Button
+                            appearance='ghost'
+                            size='small'
+                            onPress={handleRestorePurchases}
+                            disabled={purchasing}
+                            style={styles.restoreButton}
+                        >
+                            {t('subscription.restorePurchases')}
+                        </Button>
+                    </Layout>
+                </Layout>
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    content: {
+        padding: 24,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+    },
+    loadingText: {
+        marginTop: 16,
+        textAlign: 'center',
+    },
+    headerContainer: {
+        alignItems: 'center',
+        marginBottom: 32,
+        backgroundColor: 'transparent',
+    },
+    iconContainer: {
+        marginBottom: 16,
+        backgroundColor: 'transparent',
+    },
+    headerTitle: {
+        textAlign: 'center',
+        marginBottom: 8,
+        fontWeight: '600',
+    },
+    headerDescription: {
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    tiersContainer: {
+        marginBottom: 32,
+        backgroundColor: 'transparent',
+    },
+    tierCard: {
+        marginBottom: 16,
+        padding: 24,
+        borderRadius: 16,
+        position: 'relative',
+    },
+    recommendedBadge: {
+        position: 'absolute',
+        top: -8,
+        right: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 1,
+    },
+    recommendedText: {
+        color: 'white',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
+    tierHeader: {
+        alignItems: 'center',
+        marginBottom: 24,
+        backgroundColor: 'transparent',
+    },
+    tierTitle: {
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    priceContainer: {
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+    },
+    tierPrice: {
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    pricePeriod: {
+        marginBottom: 8,
+    },
+    renewalInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        marginBottom: 8,
+    },
+    renewalText: {
+        marginLeft: 6,
+        fontWeight: '500',
+        fontSize: 12,
+    },
+    savingsBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    savingsText: {
+        fontWeight: '600',
+        fontSize: 12,
+    },
+    tierDescription: {
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    featuresContainer: {
+        marginBottom: 24,
+        backgroundColor: 'transparent',
+    },
+    featureItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        backgroundColor: 'transparent',
+    },
+    featureIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        backgroundColor: 'transparent',
+    },
+    featureText: {
+        flex: 1,
+        lineHeight: 20,
+    },
+    tierButtonContainer: {
+        backgroundColor: 'transparent',
+    },
+    tierButton: {
+        borderRadius: 12,
+        paddingVertical: 16,
+    },
+    footerContainer: {
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+    },
+    locationNote: {
+        textAlign: 'center',
+        marginBottom: 8,
+        lineHeight: 18,
+    },
+    footerNote: {
+        textAlign: 'center',
+        marginBottom: 16,
+        lineHeight: 18,
+    },
+    restoreButton: {
+        borderRadius: 8,
+    },
+});

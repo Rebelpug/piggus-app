@@ -156,6 +156,7 @@
     "unknown": "Unknown",
     "unknownUser": "Unknown User",
     "ok": "OK",
+    "cancel": "Cancel",
     "tryAgain": "Try Again",
     "goBack": "Go Back",
     "you": "You"
@@ -935,7 +936,7 @@
     "selectCountryDescription": "Choose the country where your bank is located to ensure proper connection.",
     "selectCountry": "Select Country",
     "continue": "Continue",
-    "upgradeForBankConnection": "To automatically get your bank transactions, you need to upgrade your subscription",
+    "upgradeForBankConnection": "Unlock automatic expenses import",
     "upgrade": "Upgrade"
   },
   "version": {
@@ -963,8 +964,10 @@
     "managePlan": "Manage Plan",
     "upgrade": "Upgrade to Premium",
     "currentPlan": "Current Plan",
+    "subscribe": "Subscribe",
     "processing": "Processing...",
     "loading": "Loading subscriptions...",
+    "recommended": "Recommended",
     "free": {
       "title": "Free",
       "price": "€0",
@@ -972,19 +975,41 @@
     },
     "premium": {
       "title": "Premium",
-      "price": "€1.99/month",
       "description": "Unlock all features and support our development"
     },
+    "monthly": {
+      "title": "Premium Monthly",
+      "perMonth": "Per Month",
+      "description": "Full access to all features with monthly billing"
+    },
+    "annual": {
+      "title": "Premium Annual",
+      "description": "Best value - save money with annual billing"
+    },
+    "perMonth": "per month",
+    "perYear": "per year",
     "features": {
       "manualTracking": "Manually track expenses and investments",
       "shareExpenses": "Share expenses with friends",
       "tutorials": "Access to tutorials and guides",
+      "allFreeFeatures": "All the free tier features",
       "bankImport": "Automatic bank transaction import (EU Only)",
       "supportUs": "Support our development"
     },
+    "currentPrice": "Current Price",
+    "renewsOn": "Renews On",
+    "managementTitle": "Subscription Management",
+    "managementDescription": "Manage your subscription through your device's app store to cancel, change plans, or view billing history.",
+    "manageSubscription": "Manage Subscription",
+    "manageInstructions": "To cancel or modify your subscription, you'll need to do so through your device's app store. This will open the subscription management page.",
+    "cancelSubscription": "Cancel Subscription",
+    "cancelInstructions": "To cancel your subscription, you'll need to go to your device's app store subscription settings. Your subscription will remain active until the current billing period ends.",
+    "openStore": "Open App Store",
+    "premiumBenefits": "Your Premium Benefits",
     "bankNote": "Bank import is only available in EU countries and limited to one bank account.",
     "restorePurchases": "Restore Purchases",
     "success": "Success",
+    "termsNote": "Subscription can be managed directly in the store.",
     "purchaseSuccess": "Your subscription has been activated successfully!",
     "restored": "Purchases Restored",
     "restoreSuccess": "Your purchases have been restored successfully.",

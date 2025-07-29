@@ -380,6 +380,37 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
+                {/* Subscription */}
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('subscription.title')}</Text>
+
+                    <TouchableOpacity
+                        style={styles.preferenceRow}
+                        onPress={() => router.push('/(protected)/subscription')}
+                    >
+                        <View style={styles.infoLabel}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                                <Ionicons name="star-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Text style={[styles.labelText, { color: colors.text }]}>
+                                {userProfile?.subscription?.subscription_tier === 'premium' 
+                                    ? t('subscription.managePlan') 
+                                    : t('subscription.upgrade')
+                                }
+                            </Text>
+                        </View>
+                        <View style={styles.preferenceValue}>
+                            <Text style={[styles.currentValue, { color: colors.icon }]}>
+                                {userProfile?.subscription?.subscription_tier === 'premium' 
+                                    ? t('subscription.premium.title')
+                                    : t('subscription.free.title')
+                                }
+                            </Text>
+                            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+
                 {/* About */}
                 <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>

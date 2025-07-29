@@ -1,5 +1,5 @@
 import { getHttpClient } from './http';
-import {Profile} from "@/types/profile";
+import {Profile, Subscription} from "@/types/profile";
 import { VersionResponse, VersionCheckResponse, VersionCheckRequest } from "@/types/version";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || ''
@@ -253,6 +253,10 @@ export interface PiggusApi {
 
     // Bulk Operations
     bulkAddUpdateExpenses: (expenses: Expense[]) => Promise<Expense[]>;
+
+    // Subscription Methods
+    getSubscription: () => Promise<Subscription>;
+    updateSubscription: (subscriptionTier: string, revenueCatCustomerId?: string) => Promise<Subscription>;
 }
 
 export const piggusApi: PiggusApi = {
@@ -543,5 +547,21 @@ export const piggusApi: PiggusApi = {
             expenses
         });
         return response.data.data;
+    },
+
+    // Subscription Methods
+    getSubscription: async () => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.get(`${BASE_URL}/api/v1/subscription`);
+        return response.data;
+    },
+
+    updateSubscription: async (subscriptionTier: string, revenueCatCustomerId?: string) => {
+        const httpClient = getHttpClient();
+        const response = await httpClient.put(`${BASE_URL}/api/v1/subscription`, {
+            subscriptionTier,
+            external_customer_id: revenueCatCustomerId
+        });
+        return response.data;
     }
 };
