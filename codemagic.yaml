@@ -1,7 +1,7 @@
 workflows:
   android-production:
     name: Android Production Build
-    instance_type: linux_x2  # Cheaper than Mac for Android
+    instance_type: mac_mini_m2  # Technically, linux_x2 is cheaper but is not included in the free tier
     max_build_duration: 60
     environment:
       groups:
@@ -53,7 +53,7 @@ workflows:
 
   ios-production:
     name: iOS Production Build
-    instance_type: mac_mini_m1  # Required for iOS builds
+    instance_type: mac_mini_m2  # Required for iOS builds
     max_build_duration: 60
     integrations:
       app_store_connect: Codemagic Piggus
