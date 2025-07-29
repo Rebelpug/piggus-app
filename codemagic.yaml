@@ -21,13 +21,13 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: yarn install
+        script: npm install
 
       - name: Install EAS CLI
-        script: yarn global add eas-cli
+        script: npm install -g eas-cli
 
       - name: Prebuild Expo project
-        script: yarn expo prebuild --platform android
+        script: npx expo prebuild --platform android
 
       - name: Build Android locally
         script: eas build --local --platform android --profile $EAS_PROFILE
@@ -77,13 +77,13 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: yarn install
+        script: npm install
 
       - name: Install EAS CLI
-        script: yarn global add eas-cli
+        script: npm install -g eas-cli
 
       - name: Prebuild Expo project
-        script: yarn expo prebuild --platform ios
+        script: npx expo prebuild --platform ios
 
       - name: Build iOS locally
         script: eas build --local --platform ios --profile $EAS_PROFILE
