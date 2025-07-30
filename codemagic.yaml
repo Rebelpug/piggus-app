@@ -95,6 +95,10 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
+      - name: Write dummy credentials.json to bypass EAS check
+        script: |
+          echo '{ "ios": { } }' > credentials.json
+
       - name: Build iOS locally
         script: |
           SENTRY_DISABLE_AUTO_UPLOAD=true \
