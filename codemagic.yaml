@@ -32,6 +32,15 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
+      - name: Verify Expo authentication
+        script: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN is not set"
+            exit 1
+          fi
+          echo "EXPO_TOKEN is set"
+          eas whoami
+
       - name: Build Android locally
         script: eas build --local --platform android --profile $EAS_PROFILE
 
