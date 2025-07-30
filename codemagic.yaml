@@ -96,7 +96,7 @@ workflows:
         script: npm install -g eas-cli
 
       - name: Build iOS locally
-        script: SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform ios --profile $EAS_PROFILE
+        script: SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform ios --profile $EAS_PROFILE --non-interactive --skip-credentials-check
 
       - name: Upload Sentry sourcemaps (iOS)
         script: |
