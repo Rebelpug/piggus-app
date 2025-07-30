@@ -3,7 +3,7 @@
     "name": "Piggus",
     "slug": "piggus",
     "description": "Track expenses, manage your financial portfolio, and learn about personal finance with Piggus. All of this keeping your privacy.",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "piggus",
