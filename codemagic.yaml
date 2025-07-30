@@ -9,6 +9,8 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
+        SENTRY_SKIP_SOURCE_MAP_UPLOAD: 1
+        SENTRY_DISABLE_AUTO_UPLOAD: true
       node: 18
       # Android signing configuration
       android_signing:
@@ -69,6 +71,8 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
+        SENTRY_SKIP_SOURCE_MAP_UPLOAD: 1
+        SENTRY_DISABLE_AUTO_UPLOAD: true
       node: 18
       xcode: latest
       # iOS signing configuration
