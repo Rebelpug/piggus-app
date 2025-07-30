@@ -32,19 +32,6 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
-      - name: Verify EAS Authentication
-        script: |
-          if [ -n "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN is set, authentication should work automatically"
-            npx expo whoami
-          else
-            echo "Error: EXPO_TOKEN not set, build will fail"
-            exit 1
-          fi
-
-      - name: Prebuild Expo project
-        script: npx expo prebuild --platform android --clear
-
       - name: Build Android locally
         script: eas build --local --platform android --profile $EAS_PROFILE
 
@@ -107,19 +94,6 @@ workflows:
 
       - name: Install EAS CLI
         script: npm install -g eas-cli
-
-      - name: Verify EAS Authentication
-        script: |
-          if [ -n "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN is set, authentication should work automatically"
-            npx expo whoami
-          else
-            echo "Error: EXPO_TOKEN not set, build will fail"
-            exit 1
-          fi
-
-      - name: Prebuild Expo project
-        script: npx expo prebuild --platform ios --clear
 
       - name: Build iOS locally
         script: eas build --local --platform ios --profile $EAS_PROFILE
