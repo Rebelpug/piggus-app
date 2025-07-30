@@ -9,7 +9,6 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
-        EXPO_TOKEN: $EXPO_TOKEN  # Add this for EAS authentication
       node: 18
       # Android signing configuration
       android_signing:
@@ -94,7 +93,6 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
-        EXPO_TOKEN: $EXPO_TOKEN  # Add this for EAS authentication
       node: 18
       xcode: latest
       # iOS signing configuration
