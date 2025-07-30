@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {StyleSheet, ScrollView, Alert, ActivityIndicator, Platform} from 'react-native';
+import {StyleSheet, ScrollView, Alert, ActivityIndicator, Platform, Linking} from 'react-native';
 import {
     Layout,
     Text,
@@ -44,7 +44,6 @@ export default function SubscriptionScreen() {
     useEffect(() => {
         initializePurchases();
     }, []);
-
 
     const initializePurchases = async () => {
         try {
@@ -193,6 +192,39 @@ export default function SubscriptionScreen() {
         }
     };
 
+    const openSubscriptionSettings = () => {
+        let url;
+
+        if (Platform.OS === 'ios') {
+            // Direct link to app-specific subscription management on iOS
+            url = `https://apps.apple.com/account/subscriptions?appId=6747078622`;
+        } else if (Platform.OS === 'android') {
+            // Direct link to app-specific subscription management on Android
+            url = 'https://play.google.com/store/account/subscriptions?package=com.rebelpug.piggus';
+        }
+
+        if (url) {
+            Linking.canOpenURL(url)
+                .then((supported) => {
+                    if (supported) {
+                        Linking.openURL(url);
+                    } else {
+                        Alert.alert(
+                            t('subscription.error'),
+                            'Please go to your device settings to manage subscriptions'
+                        );
+                    }
+                })
+                .catch((err) => {
+                    console.error('Error opening subscription settings:', err);
+                    Alert.alert(
+                        t('subscription.error'),
+                        'Please go to your device settings to manage subscriptions'
+                    );
+                });
+        }
+    };
+
     const renderBackAction = () => (
         <TopNavigationAction
             icon={(props) => <Ionicons name="arrow-back" size={24} color={colors.icon} />}
@@ -233,15 +265,7 @@ export default function SubscriptionScreen() {
             new Date(subscription.expirationDate) : null;
 
         return (
-            <Card
-                key={pricingTier.package.identifier}
-                style={[
-                    styles.tierCard,
-                    { backgroundColor: colors.card },
-                    isCurrentTier && { borderColor: colors.primary, borderWidth: 2 },
-                    isRecommended && { borderColor: colors.success, borderWidth: 2 }
-                ]}
-            >
+            <Layout key={pricingTier.package.identifier} style={styles.tierCardContainer}>
                 {isRecommended && (
                     <Layout style={[styles.recommendedBadge, { backgroundColor: colors.success }]}>
                         <Text category='c2' style={styles.recommendedText}>
@@ -250,7 +274,15 @@ export default function SubscriptionScreen() {
                     </Layout>
                 )}
 
-                <Layout style={styles.tierHeader}>
+                <Card
+                    style={[
+                        styles.tierCard,
+                        { backgroundColor: colors.card },
+                        isCurrentTier && { borderColor: colors.primary, borderWidth: 2 },
+                        isRecommended && { borderColor: colors.success, borderWidth: 2 }
+                    ]}
+                >
+                    <Layout style={styles.tierHeader}>
                     <Text category='h5' style={styles.tierTitle}>
                         {isAnnual ? t('subscription.annual.title') : t('subscription.monthly.title')}
                     </Text>
@@ -298,47 +330,34 @@ export default function SubscriptionScreen() {
                     ))}
                 </Layout>
 
-                <Layout style={styles.tierButtonContainer}>
-                    {isCurrentTier ? (
-                        <Button
-                            style={[styles.tierButton, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
-                            appearance='outline'
-                            status='warning'
-                            onPress={() => {
-                                Alert.alert(
-                                    t('subscription.cancelSubscription'),
-                                    t('subscription.cancelInstructions'),
-                                    [
-                                        { text: t('common.cancel'), style: 'cancel' },
-                                        {
-                                            text: t('subscription.openStore'),
-                                            onPress: () => {
-                                                console.log('Opening store for subscription cancellation');
-                                            }
-                                        }
-                                    ]
-                                );
-                            }}
-                        >
-                            {t('subscription.cancelSubscription')}
-                        </Button>
-                    ) : (
-                        <Button
-                            style={[
-                                styles.tierButton,
-                                isRecommended && { backgroundColor: colors.success }
-                            ]}
-                            size='large'
-                            status={isRecommended ? 'success' : 'primary'}
-                            onPress={() => handlePurchase(pricingTier)}
-                            disabled={purchasing}
-                            accessoryLeft={purchasing ? () => <Spinner size='small' status='control' /> : undefined}
-                        >
-                            {purchasing ? t('subscription.processing') : t('subscription.subscribe')}
-                        </Button>
-                    )}
-                </Layout>
-            </Card>
+                    <Layout style={styles.tierButtonContainer}>
+                        {isCurrentTier ? (
+                            <Button
+                                style={[styles.tierButton, { backgroundColor: colors.warning + '20', borderColor: colors.warning }]}
+                                appearance='outline'
+                                status='warning'
+                                onPress={openSubscriptionSettings}
+                            >
+                                {t('subscription.cancelSubscription')}
+                            </Button>
+                        ) : (
+                            <Button
+                                style={[
+                                    styles.tierButton,
+                                    isRecommended && { backgroundColor: colors.success }
+                                ]}
+                                size='large'
+                                status={isRecommended ? 'success' : 'primary'}
+                                onPress={() => handlePurchase(pricingTier)}
+                                disabled={purchasing}
+                                accessoryLeft={purchasing ? () => <Spinner size='small' status='control' /> : undefined}
+                            >
+                                {purchasing ? t('subscription.processing') : t('subscription.subscribe')}
+                            </Button>
+                        )}
+                    </Layout>
+                </Card>
+            </Layout>
         );
     };
 
@@ -502,20 +521,20 @@ const styles = StyleSheet.create({
         marginBottom: 32,
         backgroundColor: 'transparent',
     },
-    tierCard: {
+    tierCardContainer: {
         marginBottom: 16,
+        backgroundColor: 'transparent',
+    },
+    tierCard: {
         padding: 24,
         borderRadius: 16,
-        position: 'relative',
     },
     recommendedBadge: {
-        position: 'absolute',
-        top: -8,
-        right: 16,
+        alignSelf: 'center',
+        marginBottom: 8,
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
-        zIndex: 1,
     },
     recommendedText: {
         color: 'white',
