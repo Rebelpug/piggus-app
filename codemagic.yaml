@@ -100,7 +100,7 @@ workflows:
           SENTRY_DISABLE_AUTO_UPLOAD=true \
           EXPO_TOKEN=$EXPO_TOKEN \
           EXPO_NO_CAPABILITY_SYNC=1 \
-          eas build --local --platform ios --profile $EAS_PROFILE --non-interactive --skip-credentials-check
+          eas build --local --platform ios --profile $EAS_PROFILE --non-interactive
 
       - name: Upload Sentry sourcemaps (iOS)
         script: |

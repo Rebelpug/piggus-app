@@ -38,6 +38,9 @@
     "production-codemagic": {
       "developmentClient": false,
       "autoIncrement": true,
+      "ios": {
+        "credentialsSource": "local"
+      },
       "env": {
         "SENTRY_AUTH_TOKEN": "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG": "rebelpug",
@@ -47,13 +50,8 @@
   },
   "submit": {
     "production": {
-      "android": {
-      },
-      "ios": {
-      }
-    },
-    "production-codemagic": {
-      "credentialsSource": "local"
+      "android": {},
+      "ios": {}
     }
   }
 }
