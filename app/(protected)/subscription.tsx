@@ -531,6 +531,7 @@ const styles = StyleSheet.create({
     },
     recommendedBadge: {
         alignSelf: 'center',
+        marginTop:16,
         marginBottom: 8,
         paddingHorizontal: 12,
         paddingVertical: 4,
