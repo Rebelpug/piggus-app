@@ -32,6 +32,22 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
+      - name: Debug authentication step by step
+        script: |
+          echo "=== Environment Check ==="
+          echo "EXPO_TOKEN set: $([ -n "$EXPO_TOKEN" ] && echo "YES" || echo "NO")"
+          echo "EXPO_TOKEN length: ${#EXPO_TOKEN}"
+          echo "Working directory: $(pwd)"
+
+          echo "=== EAS CLI Version ==="
+          eas --version
+
+          echo "=== Testing basic EAS auth ==="
+          eas whoami || echo "eas whoami failed"
+
+          echo "=== App.json content ==="
+          cat app.json
+
       - name: Check EAS project status
         script: |
           echo "Checking EAS project configuration..."
