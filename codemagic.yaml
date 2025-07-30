@@ -9,8 +9,6 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
-        SENTRY_SKIP_SOURCE_MAP_UPLOAD: 1
-        SENTRY_DISABLE_AUTO_UPLOAD: true
       node: 18
       # Android signing configuration
       android_signing:
@@ -34,7 +32,7 @@ workflows:
         script: npm install -g eas-cli
 
       - name: Build Android locally
-        script: SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform android --profile $EAS_PROFILE
+        script: SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform android --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (Android)
         script: |
@@ -71,8 +69,6 @@ workflows:
       vars:
         EAS_PROFILE: production
         EAS_NO_VCS: "1"
-        SENTRY_SKIP_SOURCE_MAP_UPLOAD: 1
-        SENTRY_DISABLE_AUTO_UPLOAD: true
       node: 18
       xcode: latest
       # iOS signing configuration
@@ -98,7 +94,7 @@ workflows:
         script: npm install -g eas-cli
 
       - name: Build iOS locally
-        script: SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform ios --profile $EAS_PROFILE
+        script: SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform ios --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (iOS)
         script: |
