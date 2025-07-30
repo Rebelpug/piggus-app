@@ -35,18 +35,6 @@
         "SENTRY_PROJECT": "piggus"
       }
     },
-    "production-codemagic": {
-      "developmentClient": false,
-      "autoIncrement": true,
-      "ios": {
-        "credentialsSource": "local"
-      },
-      "env": {
-        "SENTRY_AUTH_TOKEN": "SENTRY_AUTH_TOKEN",
-        "SENTRY_ORG": "rebelpug",
-        "SENTRY_PROJECT": "piggus"
-      }
-    }
   },
   "submit": {
     "production": {
