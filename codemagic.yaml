@@ -32,7 +32,7 @@ workflows:
         script: npm install -g eas-cli
 
       - name: Build Android locally
-        script: EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform android --profile $EAS_PROFILE
+        script: SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform android --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (Android)
         script: |
@@ -94,7 +94,7 @@ workflows:
         script: npm install -g eas-cli
 
       - name: Build iOS locally
-        script: EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform ios --profile $EAS_PROFILE
+        script: SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform ios --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (iOS)
         script: |
