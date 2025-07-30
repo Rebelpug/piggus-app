@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.3](https://github.com/Rebelpug/piggus-app/compare/v1.3.2...v1.3.3) (2025-07-30)
+
+
+### Bug Fixes
+
+* Added chache and renamed token ([d2d0eaf](https://github.com/Rebelpug/piggus-app/commit/d2d0eafa99a1575d485e8ebdc582a368d6a2e285))
+* Added working login to eas ([24b240a](https://github.com/Rebelpug/piggus-app/commit/24b240a4750baecbe78a21222c56895174ed91a9))
+* Moved badge position with extra margin ([fc83c84](https://github.com/Rebelpug/piggus-app/commit/fc83c8426a54005c6eb6a4224619b4fc5aa10565))
+* Moved cache outside of env ([0034e78](https://github.com/Rebelpug/piggus-app/commit/0034e7883cbd2ca473b0c3d551b0f7638136b4a1))
+* Moved flow for checking subscription status on app load ([1b14c6e](https://github.com/Rebelpug/piggus-app/commit/1b14c6ede15c8c2ed77112b1a613b3d0034606b8))
+* Passing dynamically the api key for android and apple ([2bac4d0](https://github.com/Rebelpug/piggus-app/commit/2bac4d03e2d5dd0d48a5bd4635380a628eb1becb))
+* Removed local reference to expo ([cabe4b4](https://github.com/Rebelpug/piggus-app/commit/cabe4b4ea4bdf5a7ce3121dbd942978ea73f8be2))
+* Removed login of expo ([2ae02b9](https://github.com/Rebelpug/piggus-app/commit/2ae02b99977a5fd3c1bd4aa71fb985b8c81e77b3))
+* Unsubscribe button should bring now to the app manager ([1aebe45](https://github.com/Rebelpug/piggus-app/commit/1aebe45bad104ea90a7ce13ba0a84b8ed005d4b6))
+* Updated CI flow with codemagic to use npx ([effbe9a](https://github.com/Rebelpug/piggus-app/commit/effbe9a73480f78e1e01f3b973d4790aea1f2da8))
+
 ### [1.3.2](https://github.com/Rebelpug/piggus-app/compare/v1.3.1...v1.3.2) (2025-07-28)
 
 
