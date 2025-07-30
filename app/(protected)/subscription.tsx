@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import {StyleSheet, ScrollView, Alert, ActivityIndicator, Platform} from 'react-native';
 import {
     Layout,
     Text,
@@ -94,9 +94,10 @@ export default function SubscriptionScreen() {
         try {
             setLoading(true);
 
-            // Initialize RevenueCat
-            const apiKey = 'goog_tdPIKeWXCJWfLxhbLDlxzEvqnSI';
-            await Purchases.configure({ apiKey });
+            const apiKey = (Platform.OS === 'android'
+                ? process.env.EXPO_PUBLIC_REVENUE_CAT_GOOGLE_API_KEY
+                : process.env.EXPO_PUBLIC_REVENUE_CAT_APPLE_API_KEY) || '';
+            Purchases.configure({ apiKey });
 
             // Set user ID if you have one
             // await Purchases.logIn(userProfile?.id || 'anonymous');
