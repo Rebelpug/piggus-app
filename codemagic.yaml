@@ -45,8 +45,10 @@ workflows:
           fi
 
     artifacts:
-      - build/**/*.apk
-      - build/**/*.aab
+      - "*.aab"
+      - "*.apk"
+      - build-*.aab
+      - build-*.apk
 
     publishing:
       google_play:
@@ -107,7 +109,8 @@ workflows:
           fi
 
     artifacts:
-      - ios/build/**/*.ipa
+      - "*.ipa"
+      - build-*.ipa
 
     publishing:
       app_store_connect:
