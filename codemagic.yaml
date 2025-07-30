@@ -69,7 +69,7 @@ workflows:
       groups:
         - Production
       vars:
-        EAS_PROFILE: production
+        EAS_PROFILE: production-codemagic
         EAS_NO_VCS: "1"
         EXPO_NO_CAPABILITY_SYNC: "1"  # Prevent EAS from managing capabilities
       node: 18
@@ -94,13 +94,6 @@ workflows:
 
       - name: Install EAS CLI
         script: npm install -g eas-cli
-
-      - name: Set up iOS signing
-        script: |
-          echo "Using Codemagic's iOS signing certificates"
-          # Create a dummy credentials file to prevent EAS from trying to manage signing
-          mkdir -p ~/.expo
-          echo '{}' > ~/.expo/credentials.json
 
       - name: Build iOS locally
         script: |
