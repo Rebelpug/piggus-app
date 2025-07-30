@@ -32,25 +32,8 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
 
-      - name: Authenticate with EAS
-        script: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN is not set"
-            exit 1
-          fi
-          eas login --non-interactive
-
-      - name: Verify Expo authentication
-        script: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN is not set"
-            exit 1
-          fi
-          echo "EXPO_TOKEN is set"
-          eas whoami
-
       - name: Build Android locally
-        script: eas build --local --platform android --profile $EAS_PROFILE
+        script: EXPO_TOKEN=$EXPO_TOKEN eas build --local --platform android --profile $EAS_PROFILE
 
       - name: Upload Sentry sourcemaps (Android)
         script: |
