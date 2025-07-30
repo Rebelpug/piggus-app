@@ -45,50 +45,6 @@ export default function SubscriptionScreen() {
         initializePurchases();
     }, []);
 
-    // Sync subscription status between RevenueCat and backend
-    const syncSubscriptionStatus = async () => {
-        try {
-            if (!customerInfo) return;
-
-            const hasRevenueCatPremium = typeof customerInfo.entitlements.active['premium'] !== "undefined";
-            const backendSubscription = userProfile?.subscription;
-            const hasBackendPremium = backendSubscription?.subscription_tier === 'premium';
-
-            // Only sync if there's a mismatch
-            if ((hasRevenueCatPremium === hasBackendPremium)) {
-                console.log('Subscription status already in sync');
-                return;
-            }
-
-            const targetTier = hasRevenueCatPremium ? 'premium' : 'free';
-            console.log(`Syncing: RevenueCat has ${hasRevenueCatPremium ? 'premium' : 'free'}, updating backend to ${targetTier}`);
-
-            try {
-                await piggusApi.updateSubscription(targetTier, customerInfo.originalAppUserId);
-                await refreshProfile();
-                console.log('Subscription sync completed successfully');
-            } catch (backendError: any) {
-                console.error('Backend subscription sync failed:', backendError);
-
-                // Check if it's the specific RevenueCat validation error
-                if (backendError?.response?.data?.message?.includes('No active subscription found in RevenueCat')) {
-                    console.log('Backend validation failed due to RevenueCat API issues - subscription may still be valid locally');
-                } else {
-                    // For other errors, still log but don't throw
-                    console.error('Unexpected backend sync error:', backendError);
-                }
-            }
-        } catch (error) {
-            console.error('Error in subscription sync process:', error);
-        }
-    };
-
-    // Sync subscription status whenever customerInfo changes
-    useEffect(() => {
-        if (customerInfo && userProfile) {
-            syncSubscriptionStatus();
-        }
-    }, [customerInfo, userProfile]);
 
     const initializePurchases = async () => {
         try {

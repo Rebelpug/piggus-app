@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import {View, Text, ActivityIndicator, StyleSheet, Alert} from 'react-native';
+import {View, Text, ActivityIndicator, StyleSheet, Alert, Platform} from 'react-native';
 import type { Profile } from '@/types/profile';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -15,6 +15,8 @@ import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/services/
 // import { apiCreateExpensesGroup } from '@/client/expense';
 // import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/client/profile';
 import {useEncryption} from "@/context/EncryptionContext";
+import Purchases from 'react-native-purchases';
+import { piggusApi } from '@/client/piggusApi';
 
 // Import the form component normally since we fixed the circular dependency
 import ProfileCreationForm from '@/components/account/ProfileCreationForm';
@@ -88,6 +90,49 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // Sync subscription status between RevenueCat and backend
+    const syncRevenueCatSubscription = useCallback(async (profile: Profile): Promise<Profile> => {
+        try {
+            // Initialize RevenueCat if not already done
+            const apiKey = (Platform.OS === 'android'
+                ? process.env.EXPO_PUBLIC_REVENUE_CAT_GOOGLE_API_KEY
+                : process.env.EXPO_PUBLIC_REVENUE_CAT_APPLE_API_KEY) || '';
+            
+            if (apiKey) {
+                Purchases.configure({ apiKey });
+                
+                // Get RevenueCat customer info
+                const customerInfo = await Purchases.getCustomerInfo();
+                const hasRevenueCatPremium = typeof customerInfo.entitlements.active['premium'] !== "undefined";
+                const hasBackendPremium = profile.subscription?.subscription_tier === 'premium';
+
+                // Only sync if there's a mismatch
+                if (hasRevenueCatPremium !== hasBackendPremium) {
+                    const targetTier = hasRevenueCatPremium ? 'premium' : 'free';
+                    console.log(`Syncing subscription: RevenueCat has ${hasRevenueCatPremium ? 'premium' : 'free'}, updating backend to ${targetTier}`);
+
+                    try {
+                        await piggusApi.updateSubscription(targetTier, customerInfo.originalAppUserId);
+                        
+                        // Refetch profile to get updated subscription status
+                        const updatedResult = await apiFetchProfile(user!, encryptData!, decryptData!);
+                        if (updatedResult.data) {
+                            console.log('Subscription sync completed successfully');
+                            return updatedResult.data;
+                        }
+                    } catch (backendError: any) {
+                        console.error('Backend subscription sync failed:', backendError);
+                        // Don't throw error - return original profile and let app continue
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error syncing RevenueCat subscription:', error);
+            // Don't throw error - return original profile and let app continue
+        }
+        return profile;
+    }, [user, encryptData, decryptData]);
+
     // Fetch the user's profile
     const fetchUserProfile = useCallback(async (): Promise<void> => {
         // Don't attempt to fetch if auth is not fully initialized or if we're missing required dependencies
@@ -105,8 +150,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
             if (result.data) {
                 console.log('Profile found and loaded');
-                setUserProfile(result.data);
-                setOnboardingCompleted(!!result.data.profile.budgeting?.budget);
+                
+                // Sync RevenueCat subscription status
+                const syncedProfile = await syncRevenueCatSubscription(result.data);
+                
+                setUserProfile(syncedProfile);
+                setOnboardingCompleted(!!syncedProfile.profile.budgeting?.budget);
             } else {
                 console.log('No profile found for user, will need to create one', result.error);
                 // We'll let the UI handle profile creation rather than doing it automatically
@@ -119,7 +168,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [user, encryptData, decryptData, authInitialized, encryptionInitialized]);
+    }, [user, encryptData, decryptData, authInitialized, encryptionInitialized, syncRevenueCatSubscription]);
 
     // Create a profile for the user
     const createUserProfile = useCallback(
