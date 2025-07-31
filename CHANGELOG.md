@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/Rebelpug/piggus-app/compare/v1.4.0...v1.4.1) (2025-07-31)
+
+
+### Bug Fixes
+
+* Added required information for apple ([7145685](https://github.com/Rebelpug/piggus-app/commit/7145685f52f8b46e1c512d79d4b2606e16d12eb8))
+
 ## [1.4.0](https://github.com/Rebelpug/piggus-app/compare/v1.3.3...v1.4.0) (2025-07-31)
 
 
