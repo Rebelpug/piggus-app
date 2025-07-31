@@ -18,6 +18,7 @@ import { useProfile } from '@/context/ProfileContext';
 import { router } from 'expo-router';
 import Purchases, { PurchasesPackage, CustomerInfo, PurchasesOffering } from 'react-native-purchases';
 import { piggusApi } from '@/client/piggusApi';
+import {useInvestment} from "@/context/InvestmentContext";
 
 interface PricingTier {
     package: PurchasesPackage;
@@ -32,6 +33,7 @@ export default function SubscriptionScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { userProfile, refreshProfile } = useProfile();
+    const { fetchPortfolios } = useInvestment();
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState(false);
     const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
@@ -132,6 +134,7 @@ export default function SubscriptionScreen() {
                 console.log('Updating backend subscription to premium after purchase');
                 await piggusApi.updateSubscription('premium', customerInfo.originalAppUserId);
                 await refreshProfile();
+                fetchPortfolios().catch(console.error);
             } catch (backendError: any) {
                 console.error('Error updating backend subscription after purchase:', backendError);
 
@@ -322,6 +325,8 @@ export default function SubscriptionScreen() {
                     {[
                         { icon: 'people', text: t('subscription.features.allFreeFeatures'), isPremium: false },
                         { icon: 'card', text: t('subscription.features.bankImport'), isPremium: true },
+                        { icon: 'bar-chart', text: t('subscription.features.investmentImport'), isPremium: true },
+                        { icon: 'trending-up', text: t('subscription.features.investmentsUpdate'), isPremium: true },
                         { icon: 'heart', text: t('subscription.features.supportUs'), isPremium: true },
                     ].map((feature, index) => (
                         <Layout key={index}>

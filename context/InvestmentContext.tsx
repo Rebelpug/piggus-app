@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState, ReactNode, useEffect, useCallback} from 'react';
+import React, {createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef} from 'react';
 import {
   PortfolioData,
   PortfolioWithDecryptedData,
@@ -6,7 +6,6 @@ import {
 import { InvestmentData, InvestmentWithDecryptedData } from '@/types/investment';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-// Use services instead of direct client imports
 import {
   apiCreatePortfolio,
   apiFetchPortfolios,
@@ -17,24 +16,15 @@ import {
   apiHandlePortfolioInvitation,
   apiUpdatePortfolio,
   apiRemoveUserFromPortfolio,
+  apiLookupInvestmentByIsin,
 } from '@/services/investmentService';
-// Keep old client imports as backup
-// import {
-//   apiCreatePortfolio,
-//   apiFetchPortfolios,
-//   apiAddInvestment,
-//   apiUpdateInvestment,
-//   apiDeleteInvestment,
-//   apiInviteUserToPortfolio,
-//   apiHandlePortfolioInvitation,
-//   apiUpdatePortfolio,
-//   apiRemoveUserFromPortfolio,
-// } from '@/client/investment';
+import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
 import {useEncryption} from "@/context/EncryptionContext";
 
 interface InvestmentContextType {
   portfolios: PortfolioWithDecryptedData[];
   isLoading: boolean;
+  isSyncing: boolean;
   error: string | null;
   addInvestment: (portfolioId: string, investment: InvestmentData) => Promise<InvestmentWithDecryptedData | null>;
   updateInvestment: (
@@ -66,6 +56,7 @@ interface InvestmentContextType {
       accept: boolean
   ) => Promise<{ success: boolean; error?: string }>;
   getPendingInvitations: () => PortfolioWithDecryptedData[];
+  fetchPortfolios: () => Promise<void>;
 }
 
 const InvestmentContext = createContext<InvestmentContextType | undefined>(undefined);
@@ -76,37 +67,8 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
   const { userProfile } = useProfile();
   const [portfolios, setPortfolios] = useState<PortfolioWithDecryptedData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchPortfolios = useCallback(async () => {
-    try {
-      if (!user || !isEncryptionInitialized || !userProfile) {
-        console.error('User or private key not found, or encryption not initialized');
-        setIsLoading(false);
-        setError('User or private key not found, or encryption not initialized');
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      const result = await apiFetchPortfolios(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
-
-      if (result.data) {
-        setPortfolios(result.data);
-      } else {
-        setPortfolios([]);
-        setError(result.error || 'Failed to load portfolios');
-      }
-
-      setIsLoading(false);
-    } catch (e: any) {
-      console.error('Failed to fetch portfolios', e);
-      setIsLoading(false);
-      setError(`Failed to fetch portfolios ${e.message || e?.toString()}`);
-      return;
-    }
-  }, [user, isEncryptionInitialized, userProfile, decryptWithPrivateKey, decryptWithExternalEncryptionKey]);
 
   const createPortfolio = async (portfolioData: PortfolioData) => {
     try {
@@ -179,7 +141,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateInvestment = async (portfolioId: string, updatedInvestment: InvestmentWithDecryptedData) => {
+  const updateInvestment = useCallback(async (portfolioId: string, updatedInvestment: InvestmentWithDecryptedData) => {
     try {
       if (!user || !isEncryptionInitialized) {
         console.error('You must be logged in to update an investment');
@@ -230,7 +192,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       setError(error.message || 'Failed to update investment');
       return null;
     }
-  };
+  }, [user, isEncryptionInitialized, portfolios, decryptWithPrivateKey, encryptWithExternalEncryptionKey]);
 
   const deleteInvestment = async (portfolioId: string, id: string) => {
     try {
@@ -263,6 +225,131 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       setError(error.message || 'Failed to delete investment');
     }
   };
+
+  const syncInvestmentPrices = useCallback(async (userPortfolios: PortfolioWithDecryptedData[]) => {
+    try {
+      // Only sync for premium users
+      if (userProfile?.subscription?.subscription_tier !== 'premium') {
+        return;
+      }
+
+      if (!userPortfolios || userPortfolios.length === 0) {
+        console.log('No portfolios found');
+        return;
+      }
+
+      console.log('Starting investment price sync for premium user');
+      setIsSyncing(true);
+
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+
+      let syncCount = 0;
+      let errorCount = 0;
+
+      for (const portfolio of userPortfolios) {
+        if (!portfolio.investments || portfolio.investments.length === 0) {
+          continue;
+        }
+
+        for (const investment of portfolio.investments) {
+          const investmentData = investment.data;
+
+          // Check conditions for syncing
+          const hasISIN = investmentData.isin && investmentData.isin.trim() !== '';
+          const hasExchange = investmentData.exchange_market && investmentData.exchange_market.trim() !== '';
+          const isEligibleType = ['etf', 'stock', 'mutualFund'].includes(investmentData.type);
+
+          // Check if last update is older than today
+          const lastUpdated = investmentData.last_updated;
+          const isOlderThanToday = !lastUpdated || lastUpdated.split('T')[0] < todayString;
+
+          if (hasISIN && hasExchange && isEligibleType && isOlderThanToday) {
+            try {
+              console.log(`Syncing price for investment: ${investmentData.name} (${investmentData.isin})`);
+
+              const lookupResult = await apiLookupInvestmentByIsin(
+                  formatStringWithoutSpacesAndSpecialChars(investmentData.isin || '').toUpperCase(),
+                  investmentData?.exchange_market?.trim().toUpperCase()
+              );
+
+              if (lookupResult.success && lookupResult.data && lookupResult.data.length > 0) {
+                const newPrice = lookupResult.data[0].previousClose;
+
+                if (newPrice && newPrice !== investmentData.current_price) {
+                  // Update the investment with new price
+                  const updatedInvestmentData = {
+                    ...investmentData,
+                    current_price: newPrice,
+                    last_updated: new Date().toISOString(),
+                  };
+
+                  const updatedInvestment = {
+                    ...investment,
+                    data: updatedInvestmentData,
+                  };
+
+                  // Update in database
+                  const result = await updateInvestment(portfolio.id, updatedInvestment);
+
+                  if (result) {
+                    syncCount++;
+                    console.log(`Successfully synced price for ${investmentData.name}: ${newPrice}`);
+                  } else {
+                    errorCount++;
+                    console.error(`Failed to update investment ${investmentData.name} in database`);
+                  }
+                }
+              } else {
+                console.log(`No price data found for ${investmentData.name} (${investmentData.isin})`);
+              }
+            } catch (error) {
+              errorCount++;
+              console.error(`Error syncing price for ${investmentData.name}:`, error);
+            }
+          }
+        }
+      }
+
+      console.log(`Price sync completed. Updated: ${syncCount}, Errors: ${errorCount}`);
+
+    } catch (error) {
+      console.error('Error during investment price sync:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [updateInvestment, userProfile?.subscription?.subscription_tier]);
+
+  const fetchPortfolios = useCallback(async () => {
+    try {
+      if (!user || !isEncryptionInitialized || !userProfile) {
+        console.error('User or private key not found, or encryption not initialized');
+        setIsLoading(false);
+        setError('User or private key not found, or encryption not initialized');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      const result = await apiFetchPortfolios(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
+
+      if (result.data) {
+        setPortfolios(result.data);
+        syncInvestmentPrices(result.data).catch(e => console.error('Failed to sync investment prices', e));
+      } else {
+        setPortfolios([]);
+        setError(result.error || 'Failed to load portfolios');
+      }
+
+      setIsLoading(false);
+    } catch (e: any) {
+      console.error('Failed to fetch portfolios', e);
+      setIsLoading(false);
+      setError(`Failed to fetch portfolios ${e.message || e?.toString()}`);
+      return;
+    }
+  }, [user, isEncryptionInitialized, userProfile, decryptWithPrivateKey, decryptWithExternalEncryptionKey, syncInvestmentPrices]);
 
   const inviteUserToPortfolio = async (portfolioId: string, username: string) => {
     try {
@@ -429,6 +516,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           value={{
             portfolios,
             isLoading,
+            isSyncing,
             error,
             addInvestment,
             updateInvestment,
@@ -439,6 +527,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
             updatePortfolio,
             handlePortfolioInvitation,
             getPendingInvitations,
+            fetchPortfolios
           }}
       >
         {children}

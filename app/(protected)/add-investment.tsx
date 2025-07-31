@@ -101,7 +101,6 @@ export default function AddInvestmentScreen() {
     const selectedType = investmentTypes[selectedTypeIndex.row];
     const selectedTypeName = selectedType ? t(`investmentTypes.${selectedType.id}`) : '';
     const selectedCurrency = currencies[selectedCurrencyIndex.row];
-    //const selectedResult = selectedResultIndex ? isinResults[selectedResultIndex.row] : null;
 
     const validateForm = (): boolean => {
         const newErrors: { [key: string]: string } = {};

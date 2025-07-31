@@ -32,7 +32,7 @@ export default function InvestmentsScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { user } = useAuth();
-    const { portfolios, isLoading, error } = useInvestment();
+    const { portfolios, isLoading, isSyncing, error } = useInvestment();
     const { userProfile } = useProfile();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath | undefined>();
@@ -256,6 +256,15 @@ export default function InvestmentsScreen() {
                 style={{ backgroundColor: colors.background }}
             />
 
+            {isSyncing && (
+                <View style={[styles.syncAlert, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+                    <Ionicons name="sync" size={16} color={colors.primary} />
+                    <Text style={[styles.syncAlertText, { color: colors.primary }]}>
+                        Syncing investments...
+                    </Text>
+                </View>
+            )}
+
             {filteredInvestments.length === 0 ? (
                 <ScrollView
                     style={styles.list}
@@ -426,5 +435,20 @@ const styles = StyleSheet.create({
     statsButtonText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    syncAlert: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        marginHorizontal: 16,
+        marginBottom: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    syncAlertText: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 8,
+        flex: 1,
     },
 });

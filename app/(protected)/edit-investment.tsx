@@ -429,6 +429,10 @@ export default function EditInvestmentScreen() {
                             style={styles.input}
                         />
 
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('addInvestment.isinLookupInstruction')}
+                        </Text>
+
                         <Input
                             label={t('editInvestment.symbolOptional')}
                             placeholder="e.g., AAPL"
@@ -726,6 +730,13 @@ const styles = StyleSheet.create({
     summaryValue: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    instructionText: {
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: -12,
+        marginBottom: 16,
+        textAlign: 'center',
     },
     deleteButtonContainer: {
         marginTop: 16,
