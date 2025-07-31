@@ -230,6 +230,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
     try {
       // Only sync for premium users
       if (userProfile?.subscription?.subscription_tier !== 'premium') {
+        console.log('No premium user, skipping investment price sync');
         return;
       }
 
@@ -509,7 +510,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
     if (isEncryptionInitialized) {
       fetchPortfolios().catch(error => console.error('Failed to fetch portfolios:', error));
     }
-  }, [user, userProfile, fetchPortfolios, isEncryptionInitialized]);
+  }, [user, userProfile, isEncryptionInitialized]);
 
   return (
       <InvestmentContext.Provider

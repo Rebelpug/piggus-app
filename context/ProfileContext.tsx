@@ -95,7 +95,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const syncRevenueCatSubscription = useCallback(async (profile: Profile): Promise<Profile> => {
         try {
             // Skip sync in development environment
-            if (Constants.expoConfig?.extra?.eas?.profile === 'development') {
+            if (__DEV__) {
                 return profile;
             }
 
