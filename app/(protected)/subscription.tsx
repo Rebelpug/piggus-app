@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {StyleSheet, ScrollView, Alert, ActivityIndicator, Platform, Linking} from 'react-native';
+import {StyleSheet, ScrollView, Alert, ActivityIndicator, Platform, Linking, TouchableOpacity, View} from 'react-native';
 import {
     Layout,
     Text,
@@ -26,6 +26,11 @@ interface PricingTier {
     currencyCode: string;
     originalPrice: number;
     formattedPrice: string;
+    // Apple compliance requirements
+    subscriptionTitle: string;
+    duration: string;
+    pricePerDuration: string;
+    autoRenewalInfo: string;
 }
 
 export default function SubscriptionScreen() {
@@ -34,6 +39,46 @@ export default function SubscriptionScreen() {
     const { t } = useLocalization();
     const { userProfile, refreshProfile } = useProfile();
     const { fetchPortfolios } = useInvestment();
+
+    // Helper function to get subscription details for Apple compliance
+    const getSubscriptionDetails = (pkg: PurchasesPackage) => {
+        const packageType = pkg.packageType;
+        const identifier = pkg.identifier.toLowerCase();
+
+        let subscriptionTitle = '';
+        let duration = '';
+        let pricePerDuration = '';
+        let autoRenewalInfo = '';
+
+        // Determine subscription type and duration
+        const isAnnual = packageType === 'ANNUAL' || identifier.includes('annual') || identifier.includes('yearly');
+        const isMonthly = packageType === 'MONTHLY' || identifier.includes('monthly');
+
+        if (isAnnual) {
+            subscriptionTitle = t('subscription.annual.title');
+            duration = t('subscription.compliance.durationYear');
+            pricePerDuration = `${pkg.product.priceString} ${t('subscription.compliance.perYear')}`;
+            autoRenewalInfo = t('subscription.autoRenewal.yearly');
+        } else if (isMonthly) {
+            subscriptionTitle = t('subscription.monthly.title');
+            duration = t('subscription.compliance.durationMonth');
+            pricePerDuration = `${pkg.product.priceString} ${t('subscription.compliance.perMonth')}`;
+            autoRenewalInfo = t('subscription.autoRenewal.monthly');
+        } else {
+            // Fallback for other subscription types
+            subscriptionTitle = pkg.product.title || t('subscription.compliance.premiumSubscription');
+            duration = t('subscription.compliance.durationCustom');
+            pricePerDuration = pkg.product.priceString;
+            autoRenewalInfo = t('subscription.autoRenewal.default');
+        }
+
+        return {
+            subscriptionTitle,
+            duration,
+            pricePerDuration,
+            autoRenewalInfo
+        };
+    };
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState(false);
     const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
@@ -70,13 +115,21 @@ export default function SubscriptionScreen() {
 
             // Process pricing information
             if (offerings.current?.availablePackages) {
-                const processedTiers = offerings.current.availablePackages.map(pkg => ({
-                    package: pkg,
-                    localizedPrice: pkg.product.priceString, // Already localized by the store
-                    currencyCode: pkg.product.currencyCode || 'USD',
-                    originalPrice: pkg.product.price,
-                    formattedPrice: formatPrice(pkg.product.price, pkg.product.currencyCode || 'USD'),
-                }));
+                const processedTiers = offerings.current.availablePackages.map(pkg => {
+                    const subscriptionDetails = getSubscriptionDetails(pkg);
+                    return {
+                        package: pkg,
+                        localizedPrice: pkg.product.priceString, // Already localized by the store
+                        currencyCode: pkg.product.currencyCode || 'USD',
+                        originalPrice: pkg.product.price,
+                        formattedPrice: formatPrice(pkg.product.price, pkg.product.currencyCode || 'USD'),
+                        // Apple compliance requirements
+                        subscriptionTitle: subscriptionDetails.subscriptionTitle,
+                        duration: subscriptionDetails.duration,
+                        pricePerDuration: subscriptionDetails.pricePerDuration,
+                        autoRenewalInfo: subscriptionDetails.autoRenewalInfo,
+                    };
+                });
 
                 setPricingTiers(processedTiers);
             }
@@ -319,6 +372,21 @@ export default function SubscriptionScreen() {
                     <Text category='s2' appearance='hint' style={styles.tierDescription}>
                         {isAnnual ? t('subscription.annual.description') : t('subscription.monthly.description')}
                     </Text>
+
+                    {/* Apple Compliance Information */}
+                    <Layout style={styles.complianceInfo}>
+                        <Text category='c2' appearance='hint' style={styles.complianceText}>
+                            <Text style={styles.complianceLabel}>{t('subscription.compliance.duration')} </Text>
+                            {pricingTier.duration}
+                        </Text>
+                        <Text category='c2' appearance='hint' style={styles.complianceText}>
+                            <Text style={styles.complianceLabel}>{t('subscription.compliance.price')} </Text>
+                            {pricingTier.pricePerDuration}
+                        </Text>
+                        <Text category='c2' appearance='hint' style={styles.complianceText}>
+                            {pricingTier.autoRenewalInfo}
+                        </Text>
+                    </Layout>
                 </Layout>
 
                 <Layout style={styles.featuresContainer}>
@@ -467,6 +535,21 @@ export default function SubscriptionScreen() {
                         <Text category='c1' appearance='hint' style={styles.footerNote}>
                             {t('subscription.termsNote')}
                         </Text>
+
+                        <View style={styles.legalLinks}>
+                            <TouchableOpacity
+                                style={styles.legalLink}
+                                onPress={() => Linking.openURL('https://piggus.finance/toc-app')}
+                            >
+                                <Text style={[styles.legalLinkText, { color: colors.primary }]}>{t('profile.termsAndConditions')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.legalLink}
+                                onPress={() => Linking.openURL('https://piggus.finance/privacy-app')}
+                            >
+                                <Text style={[styles.legalLinkText, { color: colors.primary }]}>{t('profile.privacyPolicy')}</Text>
+                            </TouchableOpacity>
+                        </View>
 
                         <Button
                             appearance='ghost'
@@ -639,5 +722,36 @@ const styles = StyleSheet.create({
     },
     restoreButton: {
         borderRadius: 8,
+    },
+    legalLinks: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginVertical: 16,
+        gap: 32,
+    },
+    legalLink: {
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    legalLinkText: {
+        fontSize: 14,
+        textDecorationLine: 'underline',
+        textAlign: 'center',
+    },
+    complianceInfo: {
+        marginTop: 12,
+        marginBottom: 8,
+        padding: 8,
+        borderRadius: 6,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    complianceText: {
+        fontSize: 11,
+        lineHeight: 16,
+        marginBottom: 2,
+    },
+    complianceLabel: {
+        fontWeight: '600',
     },
 });

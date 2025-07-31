@@ -1022,6 +1022,21 @@
     "error": "Error",
     "initializationError": "Failed to load subscription information. Please try again.",
     "purchaseError": "Failed to complete purchase. Please try again.",
-    "restoreError": "Failed to restore purchases. Please try again."
+    "restoreError": "Failed to restore purchases. Please try again.",
+    "autoRenewal": {
+      "monthly": "Automatically renews monthly unless cancelled at least 24 hours before the end of the current period.",
+      "yearly": "Automatically renews yearly unless cancelled at least 24 hours before the end of the current period.",
+      "default": "Automatically renews unless cancelled at least 24 hours before the end of the current period."
+    },
+    "compliance": {
+      "duration": "Duration:",
+      "price": "Price:",
+      "durationMonth": "1 month",
+      "durationYear": "1 year",
+      "durationCustom": "Custom period",
+      "perMonth": "per month",
+      "perYear": "per year",
+      "premiumSubscription": "Premium Subscription"
+    }
   }
 }
