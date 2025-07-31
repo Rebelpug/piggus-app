@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/Rebelpug/piggus-app/compare/v1.3.3...v1.4.0) (2025-07-31)
+
+
+### Features
+
+* Added automatic update of etf pricing for premium users ([71bd9d6](https://github.com/Rebelpug/piggus-app/commit/71bd9d6b97e03a4a02e34dc628126856ac11a3ee))
+* Added functionality to find initial investment during creation for premium ([fa9f5ce](https://github.com/Rebelpug/piggus-app/commit/fa9f5ce4660ae3107cb820c83196e102e4b44abc))
+
+
+### Bug Fixes
+
+* It was constantly refetching the profile during app opening ([b4274b3](https://github.com/Rebelpug/piggus-app/commit/b4274b3f4dac518d97c7f8c96e87a7e82811ea7c))
+* Refunding expenses now track correctly the amount ([17f320d](https://github.com/Rebelpug/piggus-app/commit/17f320df17dbce42d3caf62d42e62bb65acff814))
+
 ### [1.3.3](https://github.com/Rebelpug/piggus-app/compare/v1.3.2...v1.3.3) (2025-07-30)
 
 
