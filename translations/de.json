@@ -293,6 +293,10 @@
     "expenseGroupsCount": "Ausgabengruppen ({{count}})",
     "portfolioGroups": "Portfolio-Gruppen"
   },
+  "addInvestment": {
+    "findInvestment": "Investition finden",
+    "isinLookupInstruction": "ISIN und Börsenplatz hinzufügen, um die Investition automatisch abzurufen"
+  },
   "investmentStatistics": {
     "title": "Investitionsstatistiken",
     "allPortfolios": "Alle Portfolios",

@@ -293,6 +293,10 @@
     "expenseGroupsCount": "Uitgavengroepen ({{count}})",
     "portfolioGroups": "Portefeuillegroepen"
   },
+  "addInvestment": {
+    "findInvestment": "Find Investment",
+    "isinLookupInstruction": "Add ISIN and exchange market to automatically fetch the investment"
+  },
   "investmentStatistics": {
     "title": "Investeringsstatistieken",
     "allPortfolios": "Alle Portefeuilles",

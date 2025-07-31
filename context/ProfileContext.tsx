@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {View, Text, ActivityIndicator, StyleSheet, Alert, Platform} from 'react-native';
+import Constants from 'expo-constants';
 import type { Profile } from '@/types/profile';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -93,14 +94,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     // Sync subscription status between RevenueCat and backend
     const syncRevenueCatSubscription = useCallback(async (profile: Profile): Promise<Profile> => {
         try {
+            // Skip sync in development environment
+            if (Constants.expoConfig?.extra?.eas?.profile === 'development') {
+                return profile;
+            }
+
             // Initialize RevenueCat if not already done
             const apiKey = (Platform.OS === 'android'
                 ? process.env.EXPO_PUBLIC_REVENUE_CAT_GOOGLE_API_KEY
                 : process.env.EXPO_PUBLIC_REVENUE_CAT_APPLE_API_KEY) || '';
-            
+
             if (apiKey) {
                 Purchases.configure({ apiKey });
-                
+
                 // Get RevenueCat customer info
                 const customerInfo = await Purchases.getCustomerInfo();
                 const hasRevenueCatPremium = typeof customerInfo.entitlements.active['premium'] !== "undefined";
@@ -113,7 +119,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
                     try {
                         await piggusApi.updateSubscription(targetTier, customerInfo.originalAppUserId);
-                        
+
                         // Refetch profile to get updated subscription status
                         const updatedResult = await apiFetchProfile(user!, encryptData!, decryptData!);
                         if (updatedResult.data) {
@@ -150,10 +156,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
             if (result.data) {
                 console.log('Profile found and loaded');
-                
+
                 // Sync RevenueCat subscription status
                 const syncedProfile = await syncRevenueCatSubscription(result.data);
-                
+
                 setUserProfile(syncedProfile);
                 setOnboardingCompleted(!!syncedProfile.profile.budgeting?.budget);
             } else {

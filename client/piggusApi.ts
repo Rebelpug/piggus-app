@@ -1,6 +1,7 @@
 import { getHttpClient } from './http';
 import {Profile, Subscription} from "@/types/profile";
 import { VersionResponse, VersionCheckResponse, VersionCheckRequest } from "@/types/version";
+import { LookupSearchResult } from "@/types/investment";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || ''
 
@@ -221,6 +222,7 @@ export interface PiggusApi {
     inviteToPortfolio: (portfolioId: string, data: { username: string; encryptedPortfolioKey: string }) => Promise<PortfolioMembership>;
     handlePortfolioInvite: (portfolioId: string, data: { accept: boolean }) => Promise<{ success: boolean }>;
     removePortfolioMember: (portfolioId: string, userId: string) => Promise<{ success: boolean }>;
+    lookupInvestmentByIsin: (isin: string, exchange?: string) => Promise<LookupSearchResult[]>;
 
     // Profile Methods
     getProfile: () => Promise<Profile>;
@@ -409,6 +411,15 @@ export const piggusApi: PiggusApi = {
     removePortfolioMember: async (portfolioId: string, userId: string) => {
         const httpClient = getHttpClient();
         const response = await httpClient.delete(`${BASE_URL}/api/v1/portfolios/${portfolioId}/members/${userId}`);
+        return response.data;
+    },
+
+    lookupInvestmentByIsin: async (isin: string, exchange?: string) => {
+        const httpClient = getHttpClient();
+        const url = exchange
+            ? `${BASE_URL}/api/v1/portfolios/lookup/isin/${isin}?exchange=${exchange}`
+            : `${BASE_URL}/api/v1/portfolios/lookup/isin/${isin}`;
+        const response = await httpClient.get(url);
         return response.data;
     },
 

@@ -363,6 +363,8 @@
     "isinCode": "ISIN Code",
     "enterIsinCode": "Enter ISIN code",
     "findComingSoon": "Find (Coming soon premium feature)",
+    "findInvestment": "Find Investment",
+    "isinLookupInstruction": "Add ISIN and exchange market to automatically fetch the investment",
     "searching": "Searching...",
     "portfolio": "Portfolio",
     "selectPortfolio": "Select portfolio",

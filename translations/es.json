@@ -293,6 +293,10 @@
     "expenseGroupsCount": "Grupos de Gastos ({{count}})",
     "portfolioGroups": "Grupos de Carteras"
   },
+  "addInvestment": {
+    "findInvestment": "Buscar Inversión",
+    "isinLookupInstruction": "Añadir ISIN y mercado de intercambio para obtener automáticamente la inversión"
+  },
   "investmentStatistics": {
     "title": "Estadísticas de Inversión",
     "allPortfolios": "Todas las Carteras",

@@ -6,7 +6,7 @@ import {
   PortfolioData,
   PortfolioWithDecryptedData,
 } from '@/types/portfolio';
-import { InvestmentData, InvestmentWithDecryptedData } from '@/types/investment';
+import { InvestmentData, InvestmentWithDecryptedData, LookupSearchResult } from '@/types/investment';
 import { User } from '@supabase/supabase-js';
 
 // Investment service functions that bridge the old client API with piggusApi
@@ -434,6 +434,32 @@ export const apiRemoveUserFromPortfolio = async (
     return {
       success: false,
       error: error.message || 'Failed to remove user from portfolio',
+    };
+  }
+};
+
+export const apiLookupInvestmentByIsin = async (
+    isin: string,
+    exchange?: string
+): Promise<{ success: boolean; data?: LookupSearchResult[]; error?: string }> => {
+  try {
+    if (!isin) {
+      return {
+        success: false,
+        error: 'ISIN is required',
+      };
+    }
+
+    const result = await piggusApi.lookupInvestmentByIsin(isin, exchange);
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error: any) {
+    console.error('Error looking up investment by ISIN:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to lookup investment',
     };
   }
 };

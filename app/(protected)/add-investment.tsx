@@ -15,7 +15,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useInvestment} from '@/context/InvestmentContext';
 import {useProfile} from '@/context/ProfileContext';
-import {InvestmentData} from '@/types/investment';
+import {InvestmentData, LookupSearchResult} from '@/types/investment';
+import {apiLookupInvestmentByIsin} from '@/services/investmentService';
 import {Ionicons} from '@expo/vector-icons';
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {Colors} from '@/constants/Colors';
@@ -30,8 +31,6 @@ import {
     InvestmentStats
 } from '@/utils/financeUtils';
 import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
-
-// Investment types with localized names
 
 const investmentTypes = [
     { id: 'stock', icon: 'trending-up' },
@@ -48,8 +47,6 @@ const investmentTypes = [
 
 const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY'];
 
-
-
 export default function AddInvestmentScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
@@ -61,9 +58,7 @@ export default function AddInvestmentScreen() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLookingUp, setIsLookingUp] = useState(false);
-    //const [isinResults, setIsinResults] = useState<ISINResult[]>([]);
-    const [showResults, setShowResults] = useState(false);
-    const [selectedResultIndex, setSelectedResultIndex] = useState<IndexPath | undefined>(undefined);
+    const [lookupError, setLookupError] = useState<string>('');
 
     // Get user's default currency and find its index
     const userDefaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
@@ -147,93 +142,111 @@ export default function AddInvestmentScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // const handleISINLookup = async () => {
-    //     if (!formData.isin.trim()) {
-    //         Alert.alert('Error', 'Please enter an ISIN code');
-    //         return;
-    //     }
-    //
-    //     setIsLookingUp(true);
-    //     setIsinResults([]);
-    //     setShowResults(false);
-    //     setSelectedResultIndex(undefined);
-    //
-    //     try {
-    //         const response = await lookupISIN(formData.isin);
-    //
-    //         if (response.success && response.data) {
-    //             setIsinResults(response.data);
-    //
-    //             if (response.data.length === 1) {
-    //                 // Single result - prefill form
-    //                 const result = response.data[0];
-    //                 setFormData(prev => ({
-    //                     ...prev,
-    //                     name: result.Name,
-    //                     symbol: result.Code,
-    //                     exchange_market: result.Exchange,
-    //                     current_price: result.previousClose.toString(),
-    //                 }));
-    //
-    //                 // Set currency based on result
-    //                 const currencyIndex = currencies.findIndex(c => c === result.Currency);
-    //                 if (currencyIndex !== -1) {
-    //                     setSelectedCurrencyIndex(new IndexPath(currencyIndex));
-    //                 }
-    //
-    //                 // Set type based on result
-    //                 const typeIndex = investmentTypes.findIndex(t => t.id === result.Type.toLowerCase());
-    //                 if (typeIndex !== -1) {
-    //                     setSelectedTypeIndex(new IndexPath(typeIndex));
-    //                 }
-    //             } else if (response.data.length > 1) {
-    //                 // Multiple results - show selection
-    //                 setShowResults(true);
-    //             } else {
-    //                 Alert.alert('No Results', 'No investment data found for this ISIN.');
-    //             }
-    //         } else {
-    //             Alert.alert('Error', response.error || 'Failed to lookup ISIN');
-    //         }
-    //     } catch (error) {
-    //         console.error('ISIN lookup error:', error);
-    //         Alert.alert('Error', 'An unexpected error occurred during ISIN lookup.');
-    //     } finally {
-    //         setIsLookingUp(false);
-    //     }
-    // };
-    //
-    // const handleConfirmSelection = () => {
-    //     if (!selectedResult) {
-    //         Alert.alert('Error', 'Please select an investment option');
-    //         return;
-    //     }
-    //
-    //     // Prefill form with selected result
-    //     setFormData(prev => ({
-    //         ...prev,
-    //         name: selectedResult.Name,
-    //         symbol: selectedResult.Code,
-    //         exchange_market: selectedResult.Exchange,
-    //         current_price: selectedResult.previousClose.toString(),
-    //     }));
-    //
-    //     // Set currency based on result
-    //     const currencyIndex = currencies.findIndex(c => c === selectedResult.Currency);
-    //     if (currencyIndex !== -1) {
-    //         setSelectedCurrencyIndex(new IndexPath(currencyIndex));
-    //     }
-    //
-    //     // Set type based on result
-    //     const typeIndex = investmentTypes.findIndex(t => t.id === selectedResult.Type.toLowerCase());
-    //     if (typeIndex !== -1) {
-    //         setSelectedTypeIndex(new IndexPath(typeIndex));
-    //     }
-    //
-    //     setShowResults(false);
-    //     setSelectedResultIndex(undefined);
-    //     Alert.alert('Success', 'Investment details have been prefilled.');
-    // };
+    const handleISINLookup = async () => {
+        if (!formData.isin.trim() || !formData.exchange_market.trim()) {
+            setLookupError('Please enter both ISIN code and exchange market');
+            return;
+        }
+
+        setIsLookingUp(true);
+        setLookupError('');
+
+        try {
+            const response = await apiLookupInvestmentByIsin(
+                formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
+                formData.exchange_market.trim().toUpperCase()
+            );
+
+            if (response.success && response.data) {
+                if (response.data.length === 0) {
+                    setLookupError('No investment found for the given ISIN');
+                } else {
+                    // Use the first result to prefill the form
+                    const result = response.data[0];
+                    setFormData(prev => ({
+                        ...prev,
+                        name: result.Name,
+                        symbol: result.Code,
+                        current_price: result.previousClose.toString(),
+                        purchase_price: result.previousClose.toString(),
+                    }));
+
+                    // Set currency based on result
+                    const currencyIndex = currencies.findIndex(c => c === result.Currency);
+                    if (currencyIndex !== -1) {
+                        setSelectedCurrencyIndex(new IndexPath(currencyIndex));
+                    }
+
+                    // Set type based on result - try to match with existing types
+                    if (result.Type) {
+                        const resultType = result.Type.toLowerCase();
+
+                        // Find matching investment type
+                        let matchingTypeIndex = -1;
+
+                        // First try exact matches with common type mappings
+                        const typeMapping: { [key: string]: string } = {
+                            'etf': 'etf',
+                            'stock': 'stock',
+                            'equity': 'stock',
+                            'fund': 'mutualFund',
+                            'mutual fund': 'mutualFund',
+                            'bond': 'bond',
+                            'crypto': 'cryptocurrency',
+                            'cryptocurrency': 'cryptocurrency',
+                            'real estate': 'realEstate',
+                            'commodity': 'commodity'
+                        };
+
+                        const mappedType = typeMapping[resultType];
+                        if (mappedType) {
+                            matchingTypeIndex = investmentTypes.findIndex(t => t.id === mappedType);
+                        }
+
+                        // If no exact match, try partial matches
+                        if (matchingTypeIndex === -1) {
+                            for (const investmentType of investmentTypes) {
+                                // Check if the result type contains keywords related to investment types
+                                if (resultType.includes('etf') && investmentType.id === 'etf') {
+                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    break;
+                                } else if ((resultType.includes('stock') || resultType.includes('equity') || resultType.includes('share')) && investmentType.id === 'stock') {
+                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    break;
+                                } else if ((resultType.includes('fund') || resultType.includes('mutual')) && investmentType.id === 'mutualFund') {
+                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    break;
+                                } else if (resultType.includes('bond') && investmentType.id === 'bond') {
+                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    break;
+                                } else if ((resultType.includes('crypto') || resultType.includes('bitcoin') || resultType.includes('digital')) && investmentType.id === 'cryptocurrency') {
+                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Set the type if we found a match, otherwise leave default
+                        if (matchingTypeIndex !== -1) {
+                            setSelectedTypeIndex(new IndexPath(matchingTypeIndex));
+                        }
+                    }
+
+                    Alert.alert(
+                        'Success',
+                        'Investment details have been automatically filled. Please review and adjust as needed.'
+                    );
+                }
+            } else {
+                setLookupError(response.error || 'Failed to lookup investment');
+            }
+        } catch (error) {
+            console.error('ISIN lookup error:', error);
+            setLookupError('An unexpected error occurred during lookup');
+        } finally {
+            setIsLookingUp(false);
+        }
+    };
 
     const handleSubmit = async () => {
         if (!validateForm()) {
@@ -391,50 +404,45 @@ export default function AddInvestmentScreen() {
                             label={t('addInvestment.isinCode')}
                             placeholder={t('addInvestment.enterIsinCode')}
                             value={formData.isin}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text }))}
+                            onChangeText={(text) => {
+                                setFormData(prev => ({ ...prev, isin: text }));
+                                setLookupError('');
+                            }}
+                        />
+
+                        <Input
+                            style={styles.input}
+                            label={t('addInvestment.exchangeMarket')}
+                            placeholder='e.g., NASDAQ, LSE, XETRA'
+                            value={formData.exchange_market}
+                            onChangeText={(text) => {
+                                setFormData(prev => ({ ...prev, exchange_market: text }));
+                                setLookupError('');
+                            }}
                         />
 
                         <Button
                             style={[styles.input, styles.findButton]}
                             size='medium'
                             appearance='outline'
-                            onPress={() => {}}
-                            //disabled={isLookingUp || !formData.isin.trim()}
-                            disabled={true}
+                            onPress={handleISINLookup}
+                            disabled={isLookingUp || !formData.isin.trim() || !formData.exchange_market.trim() || userProfile?.subscription?.subscription_tier !== 'premium'}
                             accessoryLeft={isLookingUp ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
                         >
-                            {isLookingUp ? t('addInvestment.searching') : t('addInvestment.findComingSoon')}
+                            {isLookingUp ? t('addInvestment.searching') : userProfile?.subscription?.subscription_tier !== 'premium' ? `${t('addInvestment.findInvestment')} (Premium Feature)` : t('addInvestment.findInvestment')}
                         </Button>
 
-                        {/*{showResults && isinResults.length > 1 && (
-                            <>
-                                <Select
-                                    style={styles.input}
-                                    label='Select Investment Option'
-                                    placeholder='Choose from available options'
-                                    value={selectedResult ? `${selectedResult.Name} (${selectedResult.Exchange})` : ''}
-                                    selectedIndex={selectedResultIndex}
-                                    onSelect={(index) => setSelectedResultIndex(index as IndexPath)}
-                                >
-                                    {isinResults.map((result, index) => (
-                                        <SelectItem
-                                            key={index}
-                                            title={`${result.Name} - ${result.Exchange} (${result.Currency})`}
-                                        />
-                                    ))}
-                                </Select>
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('addInvestment.isinLookupInstruction')}
+                        </Text>
 
-                                <Button
-                                    style={[styles.input, styles.confirmButton]}
-                                    size='medium'
-                                    onPress={handleConfirmSelection}
-                                    disabled={!selectedResult}
-                                    accessoryLeft={() => <Ionicons name="checkmark" size={20} color="white" />}
-                                >
-                                    Confirm Selection
-                                </Button>
-                            </>
-                        )}*/}
+                        {lookupError && (
+                            <View style={[styles.errorAlert, { backgroundColor: colors.error + '15', borderColor: colors.error + '30' }]}>
+                                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                                <Text style={[styles.errorAlertText, { color: colors.error }]}>{lookupError}</Text>
+                            </View>
+                        )}
+
                         <Select
                             style={styles.input}
                             label={t('addInvestment.portfolio')}
@@ -477,14 +485,6 @@ export default function AddInvestmentScreen() {
                             placeholder='e.g., AAPL'
                             value={formData.symbol}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
-                        />
-
-                        <Input
-                            style={styles.input}
-                            label={t('addInvestment.exchangeMarket')}
-                            placeholder='e.g., NASDAQ, LSE, XETRA'
-                            value={formData.exchange_market}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text.toUpperCase() }))}
                         />
 
                         <Input
@@ -790,5 +790,26 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: -12,
         marginBottom: 16,
+    },
+    instructionText: {
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: -12,
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    errorAlert: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginTop: -12,
+        marginBottom: 16,
+    },
+    errorAlertText: {
+        fontSize: 12,
+        marginLeft: 8,
+        flex: 1,
     },
 });

@@ -293,6 +293,10 @@
     "expenseGroupsCount": "Gruppi di Spese ({{count}})",
     "portfolioGroups": "Gruppi Portfolio"
   },
+  "addInvestment": {
+    "findInvestment": "Trova Investimento",
+    "isinLookupInstruction": "Aggiungi ISIN e mercato di scambio per recuperare automaticamente l'investimento"
+  },
   "investmentStatistics": {
     "title": "Statistiche Investimenti",
     "allPortfolios": "Tutti i Portfolio",

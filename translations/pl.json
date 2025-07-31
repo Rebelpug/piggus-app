@@ -293,6 +293,10 @@
     "expenseGroupsCount": "Grupy Wydatków ({{count}})",
     "portfolioGroups": "Grupy Portfolio"
   },
+  "addInvestment": {
+    "findInvestment": "Find Investment",
+    "isinLookupInstruction": "Add ISIN and exchange market to automatically fetch the investment"
+  },
   "subscription": {
     "title": "Subskrypcja",
     "chooseYourPlan": "Wybierz Swój Plan",
