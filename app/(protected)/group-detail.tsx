@@ -41,6 +41,7 @@ export default function GroupDetailScreen() {
     const [inviteLoading, setInviteLoading] = useState(false);
     const [refundModalVisible, setRefundModalVisible] = useState(false);
     const [refundFormData, setRefundFormData] = useState({
+        from_user_id: '',
         to_user_id: '',
         amount: '',
         description: '',
@@ -133,8 +134,13 @@ export default function GroupDetailScreen() {
     };
 
     const handleRefundSubmit = async () => {
-        if (!group || !user || !refundFormData.to_user_id || !refundFormData.amount) {
+        if (!group || !user || !refundFormData.from_user_id || !refundFormData.to_user_id || !refundFormData.amount) {
             Alert.alert(t('groupDetail.error'), t('groupDetail.fillAllFields'));
+            return;
+        }
+
+        if (refundFormData.from_user_id === refundFormData.to_user_id) {
+            Alert.alert(t('groupDetail.error'), 'Cannot create a refund to the same person');
             return;
         }
 
@@ -147,7 +153,7 @@ export default function GroupDetailScreen() {
         setRefundLoading(true);
         try {
             const refundData = {
-                from_user_id: user.id,
+                from_user_id: refundFormData.from_user_id,
                 to_user_id: refundFormData.to_user_id,
                 amount,
                 currency: group.data?.currency || 'USD',
@@ -164,7 +170,7 @@ export default function GroupDetailScreen() {
 
             if (result.success) {
                 setRefundModalVisible(false);
-                setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                setRefundFormData({ from_user_id: '', to_user_id: '', amount: '', description: '' });
                 setEditingRefund(null);
             } else {
                 Alert.alert('Error', result.error || t('groupDetail.saveRefundFailed'));
@@ -179,6 +185,7 @@ export default function GroupDetailScreen() {
     const handleEditRefund = (refund: GroupRefund) => {
         setEditingRefund(refund);
         setRefundFormData({
+            from_user_id: refund.from_user_id,
             to_user_id: refund.to_user_id,
             amount: refund.amount.toString(),
             description: refund.description || '',
@@ -634,7 +641,7 @@ export default function GroupDetailScreen() {
                                         accessoryLeft={(props) => <Ionicons name="add-outline" size={16} color={props?.tintColor || '#FFFFFF'} />}
                                         onPress={() => {
                                             setEditingRefund(null);
-                                            setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                                            setRefundFormData({ from_user_id: '', to_user_id: '', amount: '', description: '' });
                                             setRefundModalVisible(true);
                                         }}
                                     >
@@ -718,7 +725,7 @@ export default function GroupDetailScreen() {
                                             accessoryLeft={(props) => <Ionicons name="add" size={20} color={props?.tintColor || '#FFFFFF'} />}
                                             onPress={() => {
                                                 setEditingRefund(null);
-                                                setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                                                setRefundFormData({ from_user_id: '', to_user_id: '', amount: '', description: '' });
                                                 setRefundModalVisible(true);
                                             }}
                                         >
@@ -799,9 +806,30 @@ export default function GroupDetailScreen() {
                             {t('groupDetail.addRefundDescription')}
                         </Text>
 
+                        <Text category='label' style={styles.fieldLabel}>{t('groupDetail.refundFrom')}</Text>
+                        <Layout style={styles.selectContainer}>
+                            {group?.members?.filter(m => m.status === 'confirmed').map(member => (
+                                <TouchableOpacity
+                                    key={member.user_id}
+                                    style={[
+                                        styles.memberSelectItem,
+                                        refundFormData.from_user_id === member.user_id && styles.memberSelectItemSelected
+                                    ]}
+                                    onPress={() => setRefundFormData(prev => ({ ...prev, from_user_id: member.user_id }))}
+                                >
+                                    <Text style={[
+                                        styles.memberSelectText,
+                                        refundFormData.from_user_id === member.user_id && styles.memberSelectTextSelected
+                                    ]}>
+                                        {member.username}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </Layout>
+
                         <Text category='label' style={styles.fieldLabel}>{t('groupDetail.refundTo')}</Text>
                         <Layout style={styles.selectContainer}>
-                            {group?.members?.filter(m => m.status === 'confirmed' && m.user_id !== user?.id).map(member => (
+                            {group?.members?.filter(m => m.status === 'confirmed').map(member => (
                                 <TouchableOpacity
                                     key={member.user_id}
                                     style={[
@@ -853,7 +881,7 @@ export default function GroupDetailScreen() {
                             <Button
                                 style={styles.modalButton}
                                 onPress={handleRefundSubmit}
-                                disabled={refundLoading || !refundFormData.to_user_id || !refundFormData.amount}
+                                disabled={refundLoading || !refundFormData.from_user_id || !refundFormData.to_user_id || !refundFormData.amount}
                                 accessoryLeft={refundLoading ? () => <Spinner size='small' status='control' /> : undefined}
                             >
                                 {refundLoading ? t('groupDetail.saving') : editingRefund ? t('groupDetail.update') : t('groupDetail.addRefund')}

@@ -881,6 +881,7 @@
     "sendInvite": "Send Invite",
     "editRefund": "Edit Refund",
     "addRefundDescription": "Record a refund payment between group members.",
+    "refundFrom": "Refund From",
     "refundTo": "Refund To",
     "amount": "Amount",
     "description": "Description (Optional)",

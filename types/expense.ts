@@ -392,10 +392,10 @@ export const calculateGroupBalances = (
   if (refunds) {
     refunds.forEach(refund => {
       if (balances.hasOwnProperty(refund.from_user_id)) {
-        balances[refund.from_user_id] -= refund.amount;
+        balances[refund.from_user_id] += refund.amount;
       }
       if (balances.hasOwnProperty(refund.to_user_id)) {
-        balances[refund.to_user_id] += refund.amount;
+        balances[refund.to_user_id] -= refund.amount;
       }
     });
   }
