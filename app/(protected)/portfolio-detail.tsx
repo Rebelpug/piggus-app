@@ -275,91 +275,6 @@ export default function PortfolioDetailScreen() {
         );
     };
 
-    const renderPerformanceTab = () => {
-        if (!portfolio?.investments || portfolio.investments.length === 0) {
-            return (
-                <Layout style={styles.tabContent}>
-                    <Layout style={styles.emptyState}>
-                        <Ionicons name="analytics-outline" size={64} color={colors.icon} style={styles.emptyIcon} />
-                        <Text category='h6' style={[styles.emptyTitle, { color: colors.text }]}>{t('portfolioDetail.noPerformanceData')}</Text>
-                        <Text category='s1' appearance='hint' style={[styles.emptyDescription, { color: colors.icon }]}>
-                            {t('portfolioDetail.addInvestmentsForAnalytics')}
-                        </Text>
-                    </Layout>
-                </Layout>
-            );
-        }
-
-        // Calculate performance by type
-        const performanceByType = portfolio.investments.reduce((acc, investment) => {
-            const type = investment.data.type;
-            const currentValue = investment.data.quantity * (investment.data.current_price || investment.data.purchase_price);
-            const initialValue = investment.data.quantity * investment.data.purchase_price;
-
-            if (!acc[type]) {
-                acc[type] = { currentValue: 0, initialValue: 0, count: 0 };
-            }
-
-            acc[type].currentValue += currentValue;
-            acc[type].initialValue += initialValue;
-            acc[type].count += 1;
-
-            return acc;
-        }, {} as Record<string, { currentValue: number; initialValue: number; count: number }>);
-
-        return (
-            <Layout style={styles.tabContent}>
-                <ScrollView style={styles.performanceList} showsVerticalScrollIndicator={false}>
-                    <View style={styles.performanceContainer}>
-                        {Object.entries(performanceByType).map(([type, data]) => {
-                            const gainLoss = data.currentValue - data.initialValue;
-                            const gainLossPercentage = data.initialValue > 0 ? (gainLoss / data.initialValue) * 100 : 0;
-                            const typeInfo = getInvestmentTypes(t).find(typeItem => typeItem.id === type);
-
-                            return (
-                                <Card key={type} style={[styles.performanceCard, { backgroundColor: colors.card }]}>
-                                    <View style={styles.performanceHeader}>
-                                        <View style={styles.performanceInfo}>
-                                            <View style={[
-                                                styles.typeIcon,
-                                                { backgroundColor: getInvestmentTypeColor(type) + '20' }
-                                            ]}>
-                                                <Ionicons
-                                                    name={getInvestmentTypeIcon(type) as any}
-                                                    size={20}
-                                                    color={getInvestmentTypeColor(type)}
-                                                />
-                                            </View>
-                                            <View style={styles.performanceDetails}>
-                                                <Text style={[styles.performanceTitle, { color: colors.text }]}>
-                                                    {typeInfo?.name || type}
-                                                </Text>
-                                                <Text style={[styles.performanceSubtitle, { color: colors.icon }]}>
-                                                    {data.count} {data.count === 1 ? t('portfolioDetail.investmentCount') : t('portfolioDetail.investmentCount_plural')}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        <View style={styles.performanceAmount}>
-                                            <Text style={[styles.performanceValue, { color: colors.text }]}>
-                                                {formatCurrency(data.currentValue)}
-                                            </Text>
-                                            <Text style={[
-                                                styles.performanceGainLoss,
-                                                { color: gainLoss >= 0 ? '#4CAF50' : '#F44336' }
-                                            ]}>
-                                                {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercentage.toFixed(2)}%)
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </Card>
-                            );
-                        })}
-                    </View>
-                    <View style={{ height: 100 }} />
-                </ScrollView>
-            </Layout>
-        );
-    };
 
     const renderBackAction = () => (
         <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
@@ -536,9 +451,6 @@ export default function PortfolioDetailScreen() {
                                         </Layout>
                                     )}
                                 </View>
-                            </Tab>
-                            <Tab title={t('portfolioDetail.performance')}>
-                                {renderPerformanceTab()}
                             </Tab>
                             <Tab title={t('portfolioDetail.members')}>
                                 <Layout style={styles.tabContent}>
@@ -741,49 +653,6 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     gainLossText: {
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    performanceList: {
-        flex: 1,
-    },
-    performanceContainer: {
-        gap: 12,
-    },
-    performanceCard: {
-        borderRadius: 12,
-        padding: 16,
-    },
-    performanceHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    performanceInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    performanceDetails: {
-        flex: 1,
-    },
-    performanceTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    performanceSubtitle: {
-        fontSize: 14,
-    },
-    performanceAmount: {
-        alignItems: 'flex-end',
-    },
-    performanceValue: {
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    performanceGainLoss: {
         fontSize: 12,
         fontWeight: '500',
     },

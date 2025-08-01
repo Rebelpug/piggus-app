@@ -101,6 +101,11 @@ export default function InvestmentItem({ item, portfolioId }: InvestmentItemProp
                             <Text style={[styles.purchaseDate, { color: colors.icon }]}>
                                 Purchased {formatDate(item.data.purchase_date)}
                             </Text>
+                            {item.data.last_updated && (
+                                <Text style={[styles.lastUpdated, { color: colors.icon }]}>
+                                    Last updated {formatDate(item.data.last_updated)}
+                                </Text>
+                            )}
                         </View>
                     </View>
                     <View style={styles.investmentAmount}>
@@ -164,6 +169,9 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     purchaseDate: {
+        fontSize: 12,
+    },
+    lastUpdated: {
         fontSize: 12,
     },
     investmentAmount: {

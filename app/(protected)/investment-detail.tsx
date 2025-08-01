@@ -456,6 +456,34 @@ export default function InvestmentDetailScreen() {
                                 {investment.data.currency}
                             </Text>
                         </View>
+
+                        {investment.data.last_updated && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.lastUpdated')}</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {formatDate(investment.data.last_updated)}
+                                </Text>
+                            </View>
+                        )}
+
+                        {investment.data.isin && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.isin')}</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {investment.data.isin}
+                                </Text>
+                            </View>
+                        )}
+
+                        {investment.data.exchange_market && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.exchangeMarket')}</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {investment.data.exchange_market}
+                                </Text>
+                            </View>
+                        )}
+
                         {investment.data.notes && (
                             <View style={styles.detailRow}>
                                 <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.notes')}</Text>
