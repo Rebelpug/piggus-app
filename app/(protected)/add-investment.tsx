@@ -419,6 +419,9 @@ export default function AddInvestmentScreen() {
                                 setLookupError('');
                             }}
                         />
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('addInvestment.exchangeMarketInstruction')}
+                        </Text>
 
                         <Button
                             style={[styles.input, styles.findButton]}

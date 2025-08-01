@@ -203,7 +203,7 @@ export default function EditInvestmentScreen() {
             const investmentData: InvestmentData = {
                 name: formData.name.trim(),
                 isin: formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
-                exchange_market: formData.exchange_market.trim(),
+                exchange_market: formData.exchange_market?.trim()?.toUpperCase(),
                 symbol: formData.symbol.trim() || null,
                 type: selectedType.id,
                 quantity: Number(formData.quantity),
@@ -420,17 +420,19 @@ export default function EditInvestmentScreen() {
                             onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text }))}
                             style={styles.input}
                         />
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('addInvestment.isinLookupInstruction')}
+                        </Text>
 
                         <Input
                             label={t('editInvestment.exchangeMarketOptional')}
                             placeholder="e.g., MX"
                             value={formData.exchange_market}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text.toUpperCase() }))}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text }))}
                             style={styles.input}
                         />
-
                         <Text style={[styles.instructionText, { color: colors.icon }]}>
-                            {t('addInvestment.isinLookupInstruction')}
+                            {t('addInvestment.exchangeMarketInstruction')}
                         </Text>
 
                         <Input
