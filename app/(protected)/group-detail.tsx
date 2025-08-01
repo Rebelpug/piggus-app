@@ -795,7 +795,7 @@ export default function GroupDetailScreen() {
                     onBackdropPress={() => {
                         setRefundModalVisible(false);
                         setEditingRefund(null);
-                        setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                        setRefundFormData({ from_user_id: '',to_user_id: '', amount: '', description: '' });
                     }}
                 >
                     <Card disabled={true}>
@@ -873,7 +873,7 @@ export default function GroupDetailScreen() {
                                 onPress={() => {
                                     setRefundModalVisible(false);
                                     setEditingRefund(null);
-                                    setRefundFormData({ to_user_id: '', amount: '', description: '' });
+                                    setRefundFormData({ from_user_id: '', to_user_id: '', amount: '', description: '' });
                                 }}
                             >
                                 Cancel
