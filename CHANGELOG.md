@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/Rebelpug/piggus-app/compare/v1.4.1...v1.5.0) (2025-08-01)
+
+
+### Features
+
+* Added tracking of taxation ([eec46b2](https://github.com/Rebelpug/piggus-app/commit/eec46b20dd3a857e5c47717bd8f196b131cea3c8))
+
+
+### Bug Fixes
+
+* Added note to help which exchange market to choose ([f5fe564](https://github.com/Rebelpug/piggus-app/commit/f5fe5644b1b5c1d0acc5927c453e7c1ee4634671))
+* Fixed information on exchange market for investments ([279e634](https://github.com/Rebelpug/piggus-app/commit/279e634e29fa8ee8fff8fc4edf7f7219f2d638df))
+* Fixed missing type on form data for refunds ([d44515d](https://github.com/Rebelpug/piggus-app/commit/d44515dc22b82760c893367807a9f975640e634d))
+
 ### [1.4.1](https://github.com/Rebelpug/piggus-app/compare/v1.4.0...v1.4.1) (2025-07-31)
 
 
