@@ -67,6 +67,23 @@ export default function InvestmentItem({ item, portfolioId }: InvestmentItemProp
     const gainLoss = returns.totalGainLoss;
     const gainLossPercentage = returns.totalGainLossPercentage;
 
+    // Check if this is an interest-bearing investment with minimal price appreciation
+    const isInterestBearingInvestment = ['bond', 'checkingAccount', 'savingsAccount'].includes(item.data.type);
+    const hasInterestRate = item.data.interest_rate && item.data.interest_rate > 0;
+    const currentPrice = item.data.current_price || item.data.purchase_price;
+    const purchasePrice = item.data.purchase_price;
+    const priceAppreciation = Math.abs(currentPrice - purchasePrice) / purchasePrice;
+    const hasMinimalPriceAppreciation = priceAppreciation < 0.05; // Less than 5% price change
+
+    // Check if we should show net interest rate as an additional row
+    const shouldShowNetInterestRate = isInterestBearingInvestment && hasInterestRate;
+    let netInterestRate = 0;
+    if (shouldShowNetInterestRate) {
+        const grossInterestRate = item.data.interest_rate || 0;
+        const taxationRate = (item.data.taxation || 0) / 100;
+        netInterestRate = grossInterestRate * (1 - taxationRate);
+    }
+
     const handlePress = () => {
         if (portfolioId) {
             router.push(`/(protected)/investment-detail?investmentId=${item.id}&portfolioId=${portfolioId}`);
@@ -118,6 +135,14 @@ export default function InvestmentItem({ item, portfolioId }: InvestmentItemProp
                         ]}>
                             {formatCurrency(gainLoss, investmentCurrency)} ({formatPercentage(gainLossPercentage)})
                         </Text>
+                        {shouldShowNetInterestRate && (
+                            <Text style={[
+                                styles.netInterestText,
+                                { color: netInterestRate > 0 ? '#4CAF50' : '#9E9E9E' }
+                            ]}>
+                                {netInterestRate.toFixed(2)}% net interest
+                            </Text>
+                        )}
                     </View>
                 </View>
             </View>
@@ -185,5 +210,10 @@ const styles = StyleSheet.create({
     gainLossText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    netInterestText: {
+        fontSize: 12,
+        fontWeight: '500',
+        marginTop: 2,
     },
 });

@@ -484,6 +484,15 @@ export default function InvestmentDetailScreen() {
                             </View>
                         )}
 
+                        {investment.data.taxation !== undefined && investment.data.taxation !== null && (
+                            <View style={styles.detailRow}>
+                                <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.taxation')}</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>
+                                    {investment.data.taxation}%
+                                </Text>
+                            </View>
+                        )}
+
                         {investment.data.notes && (
                             <View style={styles.detailRow}>
                                 <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.notes')}</Text>

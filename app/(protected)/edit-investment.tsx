@@ -92,6 +92,7 @@ export default function EditInvestmentScreen() {
         quantity: '',
         purchase_price: '',
         current_price: '',
+        taxation: '',
         purchase_date: new Date(),
         notes: '',
         interest_rate: '',
@@ -119,6 +120,7 @@ export default function EditInvestmentScreen() {
                         quantity: foundInvestment.data.quantity?.toString() || '',
                         purchase_price: foundInvestment.data.purchase_price?.toString() || '',
                         current_price: foundInvestment.data.current_price?.toString() || '',
+                        taxation: foundInvestment.data.taxation ? foundInvestment.data.taxation.toString() : '',
                         purchase_date: foundInvestment.data.purchase_date
                             ? new Date(foundInvestment.data.purchase_date)
                             : new Date(),
@@ -176,6 +178,10 @@ export default function EditInvestmentScreen() {
             newErrors.current_price = t('editInvestment.currentPricePositive');
         }
 
+        if (formData.taxation && (isNaN(Number(formData.taxation)) || Number(formData.taxation) < 0 || Number(formData.taxation) > 100)) {
+            newErrors.taxation = t('editInvestment.taxationValidRange');
+        }
+
         if (supportsInterestRate(selectedType.id) && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
             newErrors.interest_rate = t('editInvestment.interestRatePositive');
         }
@@ -213,6 +219,7 @@ export default function EditInvestmentScreen() {
                 currency: selectedCurrency,
                 last_updated: new Date().toISOString(),
                 notes: formData.notes.trim() || null,
+                taxation: formData.taxation ? Number(formData.taxation) : 0,
                 interest_rate: supportsInterestRate(selectedType.id) && formData.interest_rate ? Number(formData.interest_rate) : null,
                 maturity_date: supportsMaturityDate(selectedType.id) && formData.maturity_date ? formData.maturity_date.toISOString() : null,
             };
@@ -342,7 +349,8 @@ export default function EditInvestmentScreen() {
                 maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
                 notes: formData.notes,
                 symbol: formData.symbol,
-                exchange_market: formData.exchange_market
+                exchange_market: formData.exchange_market,
+                taxation: formData.taxation ? Number(formData.taxation) : 0
             }
         };
 
@@ -515,6 +523,20 @@ export default function EditInvestmentScreen() {
                         <Text style={[styles.premiumNote, { color: colors.icon }]}>
                             {t('editInvestment.automaticPriceUpdates')}
                         </Text>
+
+                        <View style={styles.taxationContainer}>
+                            <Input
+                                style={styles.taxationInput}
+                                label={t('editInvestment.taxation')}
+                                placeholder='0'
+                                value={formData.taxation}
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, taxation: text }))}
+                                keyboardType='decimal-pad'
+                                status={errors.taxation ? 'danger' : 'basic'}
+                            />
+                            <Text style={[styles.percentageSymbol, { color: colors.text }]}>%</Text>
+                        </View>
+                        {errors.taxation && <Text style={[styles.errorText, { color: colors.error }]}>{errors.taxation}</Text>}
 
                         {supportsInterestRate(selectedType.id) && (
                             <>
@@ -753,6 +775,22 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontStyle: 'italic',
         marginTop: -12,
+        marginBottom: 16,
+    },
+    taxationContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginBottom: 20,
+    },
+    taxationInput: {
+        flex: 1,
+        marginBottom: 0,
+        borderRadius: 12,
+    },
+    percentageSymbol: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginLeft: 8,
         marginBottom: 16,
     },
 });

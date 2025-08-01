@@ -89,6 +89,7 @@ export default function AddInvestmentScreen() {
         quantity: '',
         purchase_price: '',
         current_price: '',
+        taxation: '',
         purchase_date: new Date(),
         notes: '',
         interest_rate: '',
@@ -123,6 +124,10 @@ export default function AddInvestmentScreen() {
 
         if (formData.current_price && (isNaN(Number(formData.current_price)) || Number(formData.current_price) <= 0)) {
             newErrors.current_price = t('addInvestment.currentPricePositive');
+        }
+
+        if (formData.taxation && (isNaN(Number(formData.taxation)) || Number(formData.taxation) < 0 || Number(formData.taxation) > 100)) {
+            newErrors.taxation = t('addInvestment.taxationValidRange');
         }
 
         if ((selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
@@ -270,6 +275,7 @@ export default function AddInvestmentScreen() {
                 last_updated: new Date().toISOString(),
                 interest_rate: selectedType.id === 'bond' && formData.interest_rate ? Number(formData.interest_rate) : null,
                 maturity_date: selectedType.id === 'bond' && formData.maturity_date ? formData.maturity_date.toISOString() : null,
+                taxation: formData.taxation ? Number(formData.taxation) : 0,
             };
 
             const result = await addInvestment(selectedPortfolio.id, investmentData);
@@ -339,7 +345,8 @@ export default function AddInvestmentScreen() {
                 maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
                 notes: formData.notes,
                 symbol: formData.symbol,
-                exchange_market: formData.exchange_market
+                exchange_market: formData.exchange_market,
+                taxation: formData.taxation ? Number(formData.taxation) : 0
             }
         };
 
@@ -541,6 +548,20 @@ export default function AddInvestmentScreen() {
                         <Text style={[styles.premiumNote, { color: colors.icon }]}>
                             {t('addInvestment.automaticPriceUpdates')}
                         </Text>
+
+                        <View style={styles.taxationContainer}>
+                            <Input
+                                style={styles.taxationInput}
+                                label={t('addInvestment.taxation')}
+                                placeholder='0'
+                                value={formData.taxation}
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, taxation: text }))}
+                                keyboardType='decimal-pad'
+                                status={errors.taxation ? 'danger' : 'basic'}
+                            />
+                            <Text style={[styles.percentageSymbol, { color: colors.text }]}>%</Text>
+                        </View>
+                        {errors.taxation && <Text style={[styles.errorText, { color: colors.error }]}>{errors.taxation}</Text>}
 
                         {(selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && (
                             <>
@@ -813,5 +834,21 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginLeft: 8,
         flex: 1,
+    },
+    taxationContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginBottom: 20,
+    },
+    taxationInput: {
+        flex: 1,
+        marginBottom: 0,
+        borderRadius: 12,
+    },
+    percentageSymbol: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginLeft: 8,
+        marginBottom: 16,
     },
 });

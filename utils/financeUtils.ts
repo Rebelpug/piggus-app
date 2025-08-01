@@ -37,13 +37,15 @@ export const calculateDividendsInterestEarned = (investment: InvestmentDetails):
   const purchaseDate = new Date(investment.data.purchase_date);
   const yearsSincePurchase = Math.max(0, (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
 
+  let dividendsInterest = 0;
+
   // For bonds and accounts with interest rates
   if (['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type)) {
     const interestRate = investment.data.interest_rate || 0;
 
     if (interestRate > 0) {
       const initialValue = quantity * purchasePrice;
-      return initialValue * (interestRate / 100) * yearsSincePurchase;
+      dividendsInterest = initialValue * (interestRate / 100) * yearsSincePurchase;
     }
   }
 
@@ -53,11 +55,17 @@ export const calculateDividendsInterestEarned = (investment: InvestmentDetails):
 
     if (dividendYield > 0) {
       const currentValue = quantity * currentPrice;
-      return currentValue * (dividendYield / 100) * yearsSincePurchase;
+      dividendsInterest = currentValue * (dividendYield / 100) * yearsSincePurchase;
     }
   }
 
-  return 0;
+  // Apply taxation to dividends/interest if it's positive
+  if (dividendsInterest > 0) {
+    const taxationRate = (investment.data.taxation || 0) / 100;
+    dividendsInterest = dividendsInterest * (1 - taxationRate);
+  }
+
+  return dividendsInterest;
 };
 
 export const calculateCurrentValue = (investment: InvestmentDetails): number => {
@@ -90,11 +98,15 @@ export const calculateEstimatedYearlyGainLoss = (investment: InvestmentDetails):
   const capitalGainPerYear = (currentValue - investedValue) / yearsSincePurchase;
   const interestPerYear = (interestRate / 100) * investedValue;
   const totalYearlyGain = capitalGainPerYear + interestPerYear;
-  const yearlyGainPercentage = (totalYearlyGain / investedValue) * 100;
+  
+  // Apply taxation to gains if they are positive
+  const taxationRate = (investment.data.taxation || 0) / 100;
+  const afterTaxYearlyGain = totalYearlyGain > 0 ? totalYearlyGain * (1 - taxationRate) : totalYearlyGain;
+  const afterTaxYearlyGainPercentage = (afterTaxYearlyGain / investedValue) * 100;
 
   return {
-    absolute: totalYearlyGain,
-    percentage: yearlyGainPercentage
+    absolute: afterTaxYearlyGain,
+    percentage: afterTaxYearlyGainPercentage
   };
 };
 
@@ -193,6 +205,12 @@ export const calculateExpectedFutureValue = (
 
     default:
       expectedAnnualReturn = 0.05; // Conservative default
+  }
+
+  // Apply taxation to expected returns if positive
+  if (expectedAnnualReturn > 0) {
+    const taxationRate = (investment.data.taxation || 0) / 100;
+    expectedAnnualReturn = expectedAnnualReturn * (1 - taxationRate);
   }
 
   return currentValue * Math.pow(1 + expectedAnnualReturn, yearsFromNow);
@@ -333,22 +351,23 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     };
   }
 
-  const totalValue = investments.reduce((sum, inv) => {
-    return sum + calculateCurrentValue(inv);
-  }, 0);
-
   const totalInvested = investments.reduce((sum, inv) => {
     return sum + (inv.data.quantity * inv.data.purchase_price);
   }, 0);
 
-  // Calculate total dividends and interest earned first
-  const totalDividendsInterestEarned = investments.reduce((sum, inv) => {
-    return sum + calculateDividendsInterestEarned(inv);
-  }, 0);
+  // Calculate after-tax values by using individual investment calculations
+  let totalAfterTaxValue = 0;
+  let totalAfterTaxGainLoss = 0;
+  let totalDividendsInterestEarned = 0;
 
-  const baseGainLoss = totalValue - totalInvested;
-  const totalGainLoss = baseGainLoss + totalDividendsInterestEarned;
-  const totalGainLossPercentage = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+  investments.forEach(inv => {
+    const individualReturns = calculateIndividualInvestmentReturns(inv);
+    totalAfterTaxValue += individualReturns.totalValue;
+    totalAfterTaxGainLoss += individualReturns.totalGainLoss;
+    totalDividendsInterestEarned += individualReturns.dividendsInterestEarned;
+  });
+
+  const totalGainLossPercentage = totalInvested > 0 ? (totalAfterTaxGainLoss / totalInvested) * 100 : 0;
 
   // Calculate weighted average CAGR
   let totalWeightedCAGR = 0;
@@ -363,41 +382,39 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     }
   });
 
-  // Calculate weighted average expected yearly yield
+  // Calculate weighted average expected yearly yield using after-tax values
   let totalWeightedYield = 0;
   investments.forEach(inv => {
-    const currentValue = calculateCurrentValue(inv);
-    if (currentValue > 0) {
+    const individualReturns = calculateIndividualInvestmentReturns(inv);
+    if (individualReturns.totalValue > 0) {
       const expectedYield = calculateExpectedYearlyYield(inv);
-      totalWeightedYield += expectedYield * currentValue;
+      // Apply taxation to expected yield if positive
+      const taxationRate = (inv.data.taxation || 0) / 100;
+      const afterTaxExpectedYield = expectedYield > 0 ? expectedYield * (1 - taxationRate) : expectedYield;
+      totalWeightedYield += afterTaxExpectedYield * individualReturns.totalValue;
     }
   });
 
-  // Use the already calculated dividends and interest earned
-  const dividendsInterestEarned = totalDividendsInterestEarned;
-
-  // Type breakdown
+  // Type breakdown using after-tax values
   const typeBreakdown: TypeBreakdown = investments.reduce((acc, inv) => {
     const type = inv.data.type || 'other';
-    const currentValue = calculateCurrentValue(inv);
-    const invested = inv.data.quantity * inv.data.purchase_price;
-    const gainLoss = currentValue - invested;
+    const individualReturns = calculateIndividualInvestmentReturns(inv);
 
     if (!acc[type]) {
       acc[type] = { value: 0, count: 0, gainLoss: 0 };
     }
 
-    acc[type].value += currentValue;
+    acc[type].value += individualReturns.totalValue;
     acc[type].count += 1;
-    acc[type].gainLoss += gainLoss;
+    acc[type].gainLoss += individualReturns.totalGainLoss;
 
     return acc;
   }, {} as TypeBreakdown);
 
   // Calculate dividends/interest earned percentage
-  const dividendsInterestEarnedPercentage = totalInvested > 0 ? (dividendsInterestEarned / totalInvested) * 100 : 0;
+  const dividendsInterestEarnedPercentage = totalInvested > 0 ? (totalDividendsInterestEarned / totalInvested) * 100 : 0;
 
-  // Calculate estimated yearly gain/loss
+  // Calculate estimated yearly gain/loss using after-tax values
   let totalYearlyGain = 0;
   let totalWeightedYearlyPercentage = 0;
   let totalYearlyWeight = 0;
@@ -405,7 +422,7 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
   investments.forEach(inv => {
     const invested = inv.data.quantity * inv.data.purchase_price;
     if (invested > 0) {
-      const yearlyGain = calculateEstimatedYearlyGainLoss(inv);
+      const yearlyGain = calculateEstimatedYearlyGainLoss(inv); // Already after-tax
       totalYearlyGain += yearlyGain.absolute;
       totalWeightedYearlyPercentage += yearlyGain.percentage * invested;
       totalYearlyWeight += invested;
@@ -417,20 +434,20 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
 
   // Calculate projected value for 10 years using the estimated yearly gain/loss rate
   const yearlyGainLossRate = estimatedYearlyGainLossPercentage / 100;
-  const projectedValue10Years = calculateProjectedValueWithComposition(totalValue, yearlyGainLossRate, 10);
+  const projectedValue10Years = calculateProjectedValueWithComposition(totalAfterTaxValue, yearlyGainLossRate, 10);
 
   return {
-    totalValue,
+    totalValue: totalAfterTaxValue,
     totalInvested,
-    totalGainLoss,
+    totalGainLoss: totalAfterTaxGainLoss,
     totalGainLossPercentage,
-    dividendsInterestEarned,
+    dividendsInterestEarned: totalDividendsInterestEarned,
     dividendsInterestEarnedPercentage,
     estimatedYearlyGainLoss,
     estimatedYearlyGainLossPercentage,
     projectedValue10Years,
     investmentCount: investments.length,
-    averageValue: investments.length > 0 ? totalValue / investments.length : 0,
+    averageValue: investments.length > 0 ? totalAfterTaxValue / investments.length : 0,
     typeBreakdown,
   };
 };
@@ -501,14 +518,23 @@ export const calculateIndividualInvestmentReturns = (investment: InvestmentDetai
 
   const currentValue = calculateCurrentValue(investment);
   const baseGainLoss = currentValue - totalInvested;
+  
+  // Apply taxation to capital gains only if positive
+  const taxationRate = (investment.data.taxation || 0) / 100;
+  const afterTaxBaseGainLoss = baseGainLoss > 0 ? baseGainLoss * (1 - taxationRate) : baseGainLoss;
+  
+  // dividendsInterestEarned already has taxation applied inside the function
   const dividendsInterestEarned = calculateDividendsInterestEarned(investment);
-  const totalGainLoss = baseGainLoss + dividendsInterestEarned;
+  
+  const totalGainLoss = afterTaxBaseGainLoss + dividendsInterestEarned;
   const totalGainLossPercentage = (totalGainLoss / totalInvested) * 100;
   const dividendsInterestEarnedPercentage = (dividendsInterestEarned / totalInvested) * 100;
+  
+  // estimatedYearlyGain already has taxation applied inside the function
   const estimatedYearlyGain = calculateEstimatedYearlyGainLoss(investment);
 
   return {
-    totalValue: currentValue,
+    totalValue: totalInvested + totalGainLoss, // Invested amount + after-tax gains
     totalInvested,
     totalGainLoss,
     totalGainLossPercentage,

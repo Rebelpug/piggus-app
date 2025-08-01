@@ -16,6 +16,7 @@ export type InvestmentData = {
   dividend_yield?: number | null;
   sector?: string | null;
   risk_level?: string | null;
+  taxation?: number | null;
 };
 
 export type Investment = {
