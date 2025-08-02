@@ -227,6 +227,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
   };
 
   const syncInvestmentPrices = useCallback(async (userPortfolios: PortfolioWithDecryptedData[]) => {
+    const portfolioUpdates: { [key: string]: PortfolioWithDecryptedData } = {};
     try {
       // Only sync for premium users
       if (userProfile?.subscription?.subscription_tier !== 'premium') {
@@ -236,6 +237,11 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       if (!userPortfolios || userPortfolios.length === 0) {
         console.log('No portfolios found');
+        return;
+      }
+
+      if (!user || !isEncryptionInitialized) {
+        console.error('You must be logged in to sync investment prices');
         return;
       }
 
@@ -291,9 +297,19 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                   };
 
                   // Update in database
-                  const result = await updateInvestment(portfolio.id, updatedInvestment);
+                  const result = await apiUpdateInvestment(user, portfolio.id, portfolio.encrypted_key, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+                  const changedInvestment = result.data;
 
-                  if (result) {
+                  if (changedInvestment) {
+                    // Store updated investment
+                    portfolioUpdates[portfolio.id] = portfolioUpdates[portfolio.id] || {
+                      ...portfolio,
+                      investments: [...portfolio.investments]
+                    };
+                    const investmentIndex = portfolioUpdates[portfolio.id].investments.findIndex(inv => inv.id === updatedInvestment.id);
+                    if (investmentIndex !== -1) {
+                      portfolioUpdates[portfolio.id].investments[investmentIndex] = changedInvestment;
+                    }
                     syncCount++;
                     console.log(`Successfully synced price for ${investmentData.name}: ${newPrice}`);
                   } else {
@@ -313,6 +329,15 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       }
 
       console.log(`Price sync completed. Updated: ${syncCount}, Errors: ${errorCount}`);
+
+      // Update portfolios state with all changes
+      if (Object.keys(portfolioUpdates).length > 0) {
+        setPortfolios(prev =>
+            prev.map(portfolio =>
+                portfolioUpdates[portfolio.id] || portfolio
+            )
+        );
+      }
 
     } catch (error) {
       console.error('Error during investment price sync:', error);
