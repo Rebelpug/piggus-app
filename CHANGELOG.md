@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/Rebelpug/piggus-app/compare/v1.5.0...v1.5.1) (2025-08-02)
+
+
+### Bug Fixes
+
+* Fixed updating current value of investments ([0a58ce3](https://github.com/Rebelpug/piggus-app/commit/0a58ce39ea5d8ca50611596a7f42f42d44d1efcc))
+* Made clear that automatic pricing update is already available ([23ce82a](https://github.com/Rebelpug/piggus-app/commit/23ce82aa89da3e1202b1cc38c4f6281f1043ebd4))
+
 ## [1.5.0](https://github.com/Rebelpug/piggus-app/compare/v1.4.1...v1.5.0) (2025-08-01)
 
 
