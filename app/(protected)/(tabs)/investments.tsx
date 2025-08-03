@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
+import { StyleSheet, RefreshControl, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
 import {
     Layout,
     Text,
@@ -300,14 +300,12 @@ export default function InvestmentsScreen() {
                 />
             )}
 
-            {filteredInvestments.length > 0 && (
-                <TouchableOpacity
-                    style={[styles.fab, { backgroundColor: colors.primary }]}
-                    onPress={handleAddInvestment}
-                >
-                    <Ionicons name="add" size={24} color="white" />
-                </TouchableOpacity>
-            )}
+            <TouchableOpacity
+                style={[styles.fab, { backgroundColor: colors.primary }]}
+                onPress={handleAddInvestment}
+            >
+                <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
