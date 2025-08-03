@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.2](https://github.com/Rebelpug/piggus-app/compare/v1.5.1...v1.5.2) (2025-08-03)
+
+
+### Bug Fixes
+
+* For some users the add investment button is not visible ([7904115](https://github.com/Rebelpug/piggus-app/commit/79041151773912bf61a2c3520b7400422204f69a))
+
 ### [1.5.1](https://github.com/Rebelpug/piggus-app/compare/v1.5.0...v1.5.1) (2025-08-02)
 
 
