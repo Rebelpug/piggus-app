@@ -208,7 +208,8 @@ export const apiProcessRecurringExpenses = async (
         const nextDue = recurringExpense.data.next_due_date ? new Date(recurringExpense.data.next_due_date) : null;
 
         // Check if we need to generate a new expense based on the recurring schedule
-        if (nextDue && now >= nextDue) {
+        // Skip generation if should_generate_expenses is explicitly set to false
+        if (nextDue && now >= nextDue && recurringExpense.data.should_generate_expenses !== false) {
           // Find the group membership for this recurring expense
           const groupMembership = groupMemberships.find(gm => gm.group_id === recurringExpense.group_id);
           if (!groupMembership) {

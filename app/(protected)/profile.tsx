@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, Alert, TouchableOpacity, View, Image, Switch, Linking } from 'react-native';
+import Constants from 'expo-constants';
 import {
     Text,
     Input,
@@ -513,7 +514,7 @@ export default function ProfileScreen() {
 
                 <View style={styles.footer}>
                     <Text style={[styles.version, { color: colors.icon }]}>
-                        {t('profile.version')} 1.0.0
+                        {t('profile.version')} {Constants.expoConfig?.version || '1.0.0'}
                     </Text>
                 </View>
             </ScrollView>

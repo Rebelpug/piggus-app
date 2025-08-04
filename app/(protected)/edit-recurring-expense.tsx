@@ -108,6 +108,7 @@ export default function EditRecurringExpenseScreen() {
     const [selectedSplitMethodIndex, setSelectedSplitMethodIndex] = useState<IndexPath>(new IndexPath(0)); // Default to equal split
     const [participants, setParticipants] = useState<ExpenseParticipant[]>([]);
     const [customAmounts, setCustomAmounts] = useState<{ [userId: string]: string }>({});
+    const [shouldGenerateExpenses, setShouldGenerateExpenses] = useState(true);
 
     // Load recurring expense data on mount
     useEffect(() => {
@@ -130,6 +131,7 @@ export default function EditRecurringExpenseScreen() {
         setStartDate(new Date(foundRecurringExpense.data.start_date));
         setIsActive(foundRecurringExpense.data.is_active);
         setParticipants(foundRecurringExpense.data.participants);
+        setShouldGenerateExpenses(foundRecurringExpense.data.should_generate_expenses ?? true);
 
         if (foundRecurringExpense.data.end_date) {
             setEndDate(new Date(foundRecurringExpense.data.end_date));
@@ -267,6 +269,7 @@ export default function EditRecurringExpenseScreen() {
                 end_date: hasEndDate && endDate ? endDate.toISOString().split('T')[0] : undefined,
                 next_due_date: recurringExpense.data.next_due_date, // Keep existing next due date
                 last_generated_date: recurringExpense.data.last_generated_date,
+                should_generate_expenses: shouldGenerateExpenses,
                 is_active: isActive,
             };
 
@@ -491,6 +494,22 @@ export default function EditRecurringExpenseScreen() {
                                 onChange={setIsActive}
                             />
                         </View>
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleLabelContainer}>
+                                <Text style={[styles.toggleLabel, { color: colors.text }]}>Generate Expenses</Text>
+                                <Text category='c1' appearance='hint' style={styles.toggleDescription}>
+                                    {userProfile?.bank_accounts?.some(account => account.active) 
+                                        ? 'Not recommended if bank account is connected to avoid adding expenses twice'
+                                        : 'Automatically create expenses for this recurring schedule'
+                                    }
+                                </Text>
+                            </View>
+                            <Toggle
+                                checked={shouldGenerateExpenses}
+                                onChange={setShouldGenerateExpenses}
+                            />
+                        </View>
                     </Card>
 
                     {/* Payment Details - Only show if group has multiple members */}
@@ -627,6 +646,14 @@ const styles = StyleSheet.create({
     toggleLabel: {
         fontSize: 14,
         fontWeight: '500',
+    },
+    toggleLabelContainer: {
+        flex: 1,
+        marginRight: 16,
+    },
+    toggleDescription: {
+        marginTop: 4,
+        lineHeight: 16,
     },
     participantRow: {
         flexDirection: 'row',

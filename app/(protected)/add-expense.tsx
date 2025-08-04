@@ -101,6 +101,7 @@ export default function AddExpenseScreen() {
     const [selectedSplitMethodIndex, setSelectedSplitMethodIndex] = useState<IndexPath>(new IndexPath(0)); // Default to equal split
     const [participants, setParticipants] = useState<ExpenseParticipant[]>([]);
     const [customAmounts, setCustomAmounts] = useState<{ [userId: string]: string }>({});
+    const [shouldGenerateExpenses, setShouldGenerateExpenses] = useState(true);
 
     // Filter out groups that are confirmed
     const availableGroups = React.useMemo(() => {
@@ -158,6 +159,12 @@ export default function AddExpenseScreen() {
             }
         }
     }, [selectedGroupIndex, availableGroups]);
+
+    // Set default for shouldGenerateExpenses based on bank connection status
+    useEffect(() => {
+        const hasBankAccount = userProfile?.bank_accounts?.some(account => account.active) || false;
+        setShouldGenerateExpenses(!hasBankAccount);
+    }, [userProfile?.bank_accounts]);
 
     // Initialize participants when group is selected
     useEffect(() => {
@@ -291,6 +298,7 @@ export default function AddExpenseScreen() {
                     start_date: today,
                     next_due_date: nextDueDate,
                     last_generated_date: today,
+                    should_generate_expenses: shouldGenerateExpenses,
                     is_active: true,
                 };
 
@@ -661,21 +669,39 @@ export default function AddExpenseScreen() {
                     </Layout>
 
                     {isRecurring && (
-                        <Select
-                            style={styles.input}
-                            label={t('addExpense.recurringIntervalLabel')}
-                            placeholder={t('addExpense.recurringIntervalPlaceholder')}
-                            value={recurringInterval ? t(`addExpense.recurringIntervals.${recurringInterval}`) : ''}
-                            onSelect={(index) => {
-                                const intervals = ['daily', 'weekly', 'monthly', 'yearly'];
-                                setRecurringInterval(intervals[(index as IndexPath).row]);
-                            }}
-                        >
-                            <SelectItem title={t('addExpense.recurringIntervals.daily')} />
-                            <SelectItem title={t('addExpense.recurringIntervals.weekly')} />
-                            <SelectItem title={t('addExpense.recurringIntervals.monthly')} />
-                            <SelectItem title={t('addExpense.recurringIntervals.yearly')} />
-                        </Select>
+                        <>
+                            <Select
+                                style={styles.input}
+                                label={t('addExpense.recurringIntervalLabel')}
+                                placeholder={t('addExpense.recurringIntervalPlaceholder')}
+                                value={recurringInterval ? t(`addExpense.recurringIntervals.${recurringInterval}`) : ''}
+                                onSelect={(index) => {
+                                    const intervals = ['daily', 'weekly', 'monthly', 'yearly'];
+                                    setRecurringInterval(intervals[(index as IndexPath).row]);
+                                }}
+                            >
+                                <SelectItem title={t('addExpense.recurringIntervals.daily')} />
+                                <SelectItem title={t('addExpense.recurringIntervals.weekly')} />
+                                <SelectItem title={t('addExpense.recurringIntervals.monthly')} />
+                                <SelectItem title={t('addExpense.recurringIntervals.yearly')} />
+                            </Select>
+
+                            <Layout style={styles.toggleContainer}>
+                                <Layout style={styles.toggleLabelContainer}>
+                                    <Text category='s1'>{t('addExpense.shouldGenerateExpenses')}</Text>
+                                    <Text category='c1' appearance='hint'>
+                                        {userProfile?.bank_accounts?.some(account => account.active) 
+                                            ? t('addExpense.shouldGenerateExpensesDescriptionWithBank')
+                                            : t('addExpense.shouldGenerateExpensesDescription')
+                                        }
+                                    </Text>
+                                </Layout>
+                                <Toggle
+                                    checked={shouldGenerateExpenses}
+                                    onChange={setShouldGenerateExpenses}
+                                />
+                            </Layout>
+                        </>
                     )}
                 </View>
 

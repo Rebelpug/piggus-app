@@ -138,6 +138,7 @@ export type RecurringExpenseData = {
   start_date: string;
   end_date?: string;
   next_due_date: string;
+  should_generate_expenses?: boolean;
   last_generated_date?: string;
   is_active: boolean;
 };
