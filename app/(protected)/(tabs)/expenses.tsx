@@ -564,6 +564,15 @@ export default function ExpensesScreen() {
             {renderMonthSelector()}
             {renderBankConnectionBanner()}
 
+            {refreshing && (
+                <View style={[styles.syncAlert, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+                    <Ionicons name="sync" size={16} color={colors.primary} />
+                    <Text style={[styles.syncAlertText, { color: colors.primary }]}>
+                        Syncing bank transactions...
+                    </Text>
+                </View>
+            )}
+
             <TabView
                 selectedIndex={selectedIndex}
                 onSelect={index => setSelectedIndex(index)}
@@ -733,5 +742,20 @@ const styles = StyleSheet.create({
     bankButton: {
         paddingHorizontal: 12,
         borderRadius: 8,
+    },
+    syncAlert: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        marginHorizontal: 16,
+        marginBottom: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    syncAlertText: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 8,
+        flex: 1,
     },
 });
