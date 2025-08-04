@@ -122,7 +122,7 @@ export default function BankConnectionWizard({ visible, onClose }: BankConnectio
             setAgreement(agreementData);
 
             // Step 2: Create requisition
-            const redirectUrl = 'piggus://bank-auth-complete'; // Deep link for your app
+            const redirectUrl = 'piggus://expenses';
             const requisitionData = await piggusApi.createBankRequisition(
                 redirectUrl,
                 selectedInstitute,
