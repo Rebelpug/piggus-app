@@ -9,7 +9,7 @@ import {
     SelectItem,
     IndexPath
 } from '@ui-kitten/components';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useInvestment } from '@/context/InvestmentContext';
 import { useAuth } from '@/context/AuthContext';
@@ -34,6 +34,7 @@ export default function InvestmentsScreen() {
     const { user } = useAuth();
     const { portfolios, isLoading, isSyncing, error } = useInvestment();
     const { userProfile } = useProfile();
+    const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPortfolioIndex, setSelectedPortfolioIndex] = useState<IndexPath | undefined>();
 
@@ -301,7 +302,13 @@ export default function InvestmentsScreen() {
             )}
 
             <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary }]}
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: colors.primary,
+                        bottom: Math.max(insets.bottom + 20, 60) // Ensure minimum 90px from bottom, or safe area + tab bar height
+                    }
+                ]}
                 onPress={handleAddInvestment}
             >
                 <Ionicons name="add" size={24} color="white" />
@@ -407,7 +414,6 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: 20,
         right: 20,
         width: 56,
         height: 56,

@@ -8,7 +8,7 @@ import {
     Tab,
     TabView
 } from '@ui-kitten/components';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
@@ -38,6 +38,7 @@ export default function ExpensesScreen() {
     const { user } = useAuth();
     const { expensesGroups, recurringExpenses, syncBankTransactions, isLoading, error } = useExpense();
     const { userProfile } = useProfile();
+    const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [selectedMonth, setSelectedMonth] = useState<string>('current'); // 'current' for default 3-month view, or specific month like '2025-05'
@@ -593,7 +594,13 @@ export default function ExpensesScreen() {
             </TabView>
 
             <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary }]}
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: colors.primary,
+                        bottom: Math.max(insets.bottom + 20, 60) // Ensure minimum 90px from bottom, or safe area + tab bar height
+                    }
+                ]}
                 onPress={handleAddExpense}
             >
                 <Ionicons name="add" size={24} color="white" />
@@ -662,7 +669,6 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: 20,
         right: 20,
         width: 56,
         height: 56,
