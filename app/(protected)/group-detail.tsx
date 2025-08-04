@@ -22,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { ExpenseWithDecryptedData, calculateGroupBalances, calculateUserShare, GroupRefund } from '@/types/expense';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
+import ExpenseItem from '@/components/expenses/ExpenseItem';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import {useLocalization} from "@/context/LocalizationContext";
@@ -219,89 +220,19 @@ export default function GroupDetailScreen() {
         );
     };
 
-    const getCategoryColor = (category: string) => {
-        const colors: { [key: string]: string } = {
-            food: '#FF6B6B',
-            transportation: '#4ECDC4',
-            housing: '#45B7D1',
-            utilities: '#96CEB4',
-            entertainment: '#FFEAA7',
-            shopping: '#DDA0DD',
-            health: '#98D8C8',
-            education: '#A8E6CF',
-            personal: '#FFB6C1',
-            travel: '#87CEEB',
-            other: '#D3D3D3',
-        };
-        return colors[category] || colors.other;
-    };
 
     const renderExpenseItem = ({ item }: { item: ExpenseWithDecryptedData }) => {
         if (!item || !item.data) {
             return null;
         }
 
-        const userShare = calculateUserShare(item, user?.id || '');
-        const isPayer = item.data.payer_user_id === user?.id;
-        const isSharedExpense = item.data.participants.length > 1;
+        // Add group name to the item for ExpenseItem component
+        const itemWithGroupName = {
+            ...item,
+            groupName: group?.data?.name || 'Unknown Group'
+        };
 
-        return (
-            <TouchableOpacity
-                style={[styles.expenseCard, { backgroundColor: colors.card, shadowColor: colors.text }]}
-                onPress={() => {
-                    router.push({
-                        pathname: '/(protected)/expense-detail',
-                        params: {
-                            expenseId: item.id,
-                            groupId: item.group_id
-                        }
-                    });
-                }}
-            >
-                <View style={styles.expenseCardContent}>
-                    <View style={styles.expenseHeader}>
-                        <View style={styles.expenseMainInfo}>
-                            <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(item.data.category) + '20' }]}>
-                                <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(item.data.category) }]} />
-                            </View>
-                            <View style={styles.expenseDetails}>
-                                <Text style={[styles.expenseTitle, { color: colors.text }]}>
-                                    {item.data.name || 'Unnamed Expense'}
-                                </Text>
-                                <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
-                                    {formatDate(item.data.date)} • {item.data.participants.length} participant{item.data.participants.length !== 1 ? 's' : ''}
-                                </Text>
-                            </View>
-                        </View>
-                        <View style={styles.expenseAmount}>
-                            <Text style={[styles.amountText, { color: colors.text }]}>
-                                {formatCurrency(userShare, item.data.currency)}
-                            </Text>
-                            {isSharedExpense && (
-                                <Text style={[styles.totalAmountText, { color: colors.icon }]}>
-                                    of {formatCurrency(item.data.amount, item.data.currency)}
-                                </Text>
-                            )}
-                        </View>
-                    </View>
-
-                    <View style={styles.expenseFooter}>
-                        <View style={styles.expenseCategory}>
-                            <Text style={[styles.categoryText, { color: colors.icon }]}>
-                                {item.data.category || 'other'}
-                            </Text>
-                        </View>
-                        {isPayer && (
-                            <View style={[styles.payerBadge, { backgroundColor: colors.primary + '20' }]}>
-                                <Text style={[styles.payerText, { color: colors.primary }]}>
-                                    {t('groupDetail.youPaid')}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-            </TouchableOpacity>
-        );
+        return <ExpenseItem item={itemWithGroupName} />;
     };
 
     const renderMemberItem = ({ item }: { item: any }) => {
@@ -1014,91 +945,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     expensesContainer: {
-        paddingHorizontal: 20,
         paddingTop: 10,
         gap: 12,
-    },
-    expenseCard: {
-        borderRadius: 16,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        marginBottom: 12,
-    },
-    expenseCardContent: {
-        padding: 16,
-    },
-    expenseHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-    },
-    expenseMainInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    categoryIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    categoryDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-    },
-    expenseDetails: {
-        flex: 1,
-    },
-    expenseTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    expenseSubtitle: {
-        fontSize: 14,
-    },
-    expenseAmount: {
-        alignItems: 'flex-end',
-    },
-    amountText: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    totalAmountText: {
-        fontSize: 12,
-    },
-    expenseFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
-        paddingTop: 12,
-    },
-    expenseCategory: {
-        flex: 1,
-    },
-    categoryText: {
-        fontSize: 12,
-        fontWeight: '500',
-        textTransform: 'capitalize',
-    },
-    payerBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    payerText: {
-        fontSize: 12,
-        fontWeight: '600',
     },
     statusIndicator: {
         width: 12,
