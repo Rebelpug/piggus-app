@@ -105,16 +105,17 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
                     </View>
                     <View style={styles.expenseAmount}>
                         <Text style={[styles.amountText, { color: colors.text }]}>
-                            {formatCurrency(userShare, item.data.currency)}
+                            {formatCurrency(totalAmount, item.data.currency)}
+
                         </Text>
                         {isSharedExpense && (
                             <Text style={[styles.totalAmountText, { color: colors.icon }]}>
-                                of {formatCurrency(totalAmount, item.data.currency)}
+                                Your share: {formatCurrency(userShare, item.data.currency)}
                             </Text>
                         )}
                     </View>
                 </View>
-                
+
                 <View style={styles.expenseFooter}>
                     <View style={styles.expenseCategory}>
                         <Text style={[styles.categoryText, { color: colors.icon }]}>
