@@ -440,17 +440,18 @@ export const apiRemoveUserFromPortfolio = async (
 
 export const apiLookupInvestmentByIsin = async (
     isin: string,
-    exchange?: string
+    exchange: string,
+    type: string,
+    currency: string,
 ): Promise<{ success: boolean; data?: LookupSearchResult[]; error?: string }> => {
   try {
-    if (!isin) {
+    if (!isin || !exchange || !type || !currency) {
       return {
         success: false,
-        error: 'ISIN is required',
+        error: 'Missing required parameters: isin, exchange, type, currency',
       };
     }
-
-    const result = await piggusApi.lookupInvestmentByIsin(isin, exchange);
+    const result = await piggusApi.lookupInvestmentByIsin(isin, exchange, type, currency);
     return {
       success: true,
       data: result,

@@ -222,7 +222,7 @@ export interface PiggusApi {
     inviteToPortfolio: (portfolioId: string, data: { username: string; encryptedPortfolioKey: string }) => Promise<PortfolioMembership>;
     handlePortfolioInvite: (portfolioId: string, data: { accept: boolean }) => Promise<{ success: boolean }>;
     removePortfolioMember: (portfolioId: string, userId: string) => Promise<{ success: boolean }>;
-    lookupInvestmentByIsin: (isin: string, exchange?: string) => Promise<LookupSearchResult[]>;
+    lookupInvestmentByIsin: (isin: string, exchange: string, type: string, currency: string) => Promise<LookupSearchResult[]>;
 
     // Profile Methods
     getProfile: () => Promise<Profile>;
@@ -414,11 +414,9 @@ export const piggusApi: PiggusApi = {
         return response.data;
     },
 
-    lookupInvestmentByIsin: async (isin: string, exchange?: string) => {
+    lookupInvestmentByIsin: async (isin: string, exchange: string, type: string, currency: string) => {
         const httpClient = getHttpClient();
-        const url = exchange
-            ? `${BASE_URL}/api/v1/portfolios/lookup/isin/${isin}?exchange=${exchange}`
-            : `${BASE_URL}/api/v1/portfolios/lookup/isin/${isin}`;
+        const url = `${BASE_URL}/api/v1/portfolios/lookup/isin/${isin}?exchange=${exchange}&type=${type}&currency=${currency}`
         const response = await httpClient.get(url);
         return response.data;
     },

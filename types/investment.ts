@@ -10,6 +10,7 @@ export type InvestmentData = {
   currency: string;
   current_price: number | null;
   last_updated: string | null;
+  last_tentative_update: string | null;
   notes: string | null;
   interest_rate?: number | null;
   maturity_date?: string | null;
@@ -53,14 +54,17 @@ export type InvestmentFormData = {
 };
 
 export const INVESTMENT_TYPES = [
-  { value: 'stock', label: 'Stock' },
-  { value: 'etf', label: 'ETF' },
-  { value: 'crypto', label: 'Cryptocurrency' },
-  { value: 'bond', label: 'Bond' },
-  { value: 'real_estate', label: 'Real Estate' },
-  { value: 'commodity', label: 'Commodity' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'other', label: 'Other' },
+  { id: 'stock', icon: 'trending-up' },
+  { id: 'bond', icon: 'shield-checkmark' },
+  { id: 'cryptocurrency', icon: 'bar-chart' },
+  { id: 'etf', icon: 'bar-chart' },
+  { id: 'mutualFund', icon: 'pie-chart' },
+  { id: 'realEstate', icon: 'home' },
+  { id: 'commodity', icon: 'diamond' },
+  { id: 'checkingAccount', icon: 'wallet'},
+  { id: 'savingsAccount', icon: 'cash'},
+  { id: 'certificate', icon: 'trending-up' },
+  { id: 'other', icon: 'ellipsis-horizontal' },
 ];
 
 export const RISK_LEVELS = [

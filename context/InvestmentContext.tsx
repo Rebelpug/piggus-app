@@ -265,11 +265,13 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           // Check conditions for syncing
           const hasISIN = investmentData.isin && investmentData.isin.trim() !== '';
           const hasExchange = investmentData.exchange_market && investmentData.exchange_market.trim() !== '';
-          const isEligibleType = ['etf', 'stock', 'mutualFund'].includes(investmentData.type);
+          const isEligibleType = ['etf', 'stock', 'mutualFund', 'certificate', 'cryptocurrency'].includes(investmentData.type);
 
           // Check if last update is older than today
           const lastUpdated = investmentData.last_updated;
-          const isOlderThanToday = !lastUpdated || lastUpdated.split('T')[0] < todayString;
+          const lastTentativeUpdate = investmentData.last_tentative_update;
+          const isOlderThanToday = (!lastUpdated || lastUpdated.split('T')[0] < todayString) &&
+              (!lastTentativeUpdate || lastTentativeUpdate.split('T')[0] < todayString);
 
           if (hasISIN && hasExchange && isEligibleType && isOlderThanToday) {
             try {
@@ -277,7 +279,9 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
               const lookupResult = await apiLookupInvestmentByIsin(
                   formatStringWithoutSpacesAndSpecialChars(investmentData.isin || '').toUpperCase(),
-                  investmentData?.exchange_market?.trim().toUpperCase()
+                  investmentData?.exchange_market?.trim().toUpperCase() || '',
+                  investmentData.type,
+                  investmentData.currency,
               );
 
               if (lookupResult.success && lookupResult.data && lookupResult.data.length > 0) {
@@ -289,6 +293,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                     ...investmentData,
                     current_price: newPrice,
                     last_updated: new Date().toISOString(),
+                    last_tentative_update: new Date().toISOString(),
                   };
 
                   const updatedInvestment = {
@@ -319,8 +324,31 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                 }
               } else {
                 console.log(`No price data found for ${investmentData.name} (${investmentData.isin})`);
+                // Update tentative update date to prevent multiple attempts on the same day
+                const updatedInvestmentData = {
+                  ...investmentData,
+                  last_tentative_update: new Date().toISOString(),
+                };
+
+                const updatedInvestment = {
+                  ...investment,
+                  data: updatedInvestmentData,
+                };
+
+                // Update in database
+                await apiUpdateInvestment(user, portfolio.id, portfolio.encrypted_key, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
               }
             } catch (error) {
+              // Update tentative update date even on error to prevent multiple attempts on the same day
+              const updatedInvestmentData = {
+                ...investmentData,
+                last_tentative_update: new Date().toISOString(),
+              };
+              const updatedInvestment = {
+                ...investment,
+                data: updatedInvestmentData,
+              };
+              await apiUpdateInvestment(user, portfolio.id, portfolio.encrypted_key, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
               errorCount++;
               console.error(`Error syncing price for ${investmentData.name}:`, error);
             }

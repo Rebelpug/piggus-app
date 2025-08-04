@@ -15,7 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useInvestment} from '@/context/InvestmentContext';
 import {useProfile} from '@/context/ProfileContext';
-import {InvestmentData, LookupSearchResult} from '@/types/investment';
+import {INVESTMENT_TYPES, InvestmentData, LookupSearchResult} from '@/types/investment';
 import {apiLookupInvestmentByIsin} from '@/services/investmentService';
 import {Ionicons} from '@expo/vector-icons';
 import {useColorScheme} from '@/hooks/useColorScheme';
@@ -31,19 +31,6 @@ import {
     InvestmentStats
 } from '@/utils/financeUtils';
 import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
-
-const investmentTypes = [
-    { id: 'stock', icon: 'trending-up' },
-    { id: 'bond', icon: 'shield-checkmark' },
-    { id: 'cryptocurrency', icon: 'flash' },
-    { id: 'etf', icon: 'bar-chart' },
-    { id: 'mutualFund', icon: 'pie-chart' },
-    { id: 'realEstate', icon: 'home' },
-    { id: 'commodity', icon: 'diamond' },
-    {id: 'checkingAccount', icon: 'wallet'},
-    {id: 'savingsAccount', icon: 'cash'},
-    { id: 'other', icon: 'ellipsis-horizontal' },
-];
 
 const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY'];
 
@@ -99,7 +86,7 @@ export default function AddInvestmentScreen() {
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const selectedPortfolio = portfolios[selectedPortfolioIndex.row];
-    const selectedType = investmentTypes[selectedTypeIndex.row];
+    const selectedType = INVESTMENT_TYPES[selectedTypeIndex.row];
     const selectedTypeName = selectedType ? t(`investmentTypes.${selectedType.id}`) : '';
     const selectedCurrency = currencies[selectedCurrencyIndex.row];
 
@@ -158,7 +145,9 @@ export default function AddInvestmentScreen() {
         try {
             const response = await apiLookupInvestmentByIsin(
                 formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
-                formData.exchange_market.trim().toUpperCase()
+                formData.exchange_market.trim().toUpperCase(),
+                INVESTMENT_TYPES[selectedTypeIndex.row].id || '',
+                currencies[selectedCurrencyIndex.row] || '',
             );
 
             if (response.success && response.data) {
@@ -204,27 +193,27 @@ export default function AddInvestmentScreen() {
 
                         const mappedType = typeMapping[resultType];
                         if (mappedType) {
-                            matchingTypeIndex = investmentTypes.findIndex(t => t.id === mappedType);
+                            matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === mappedType);
                         }
 
                         // If no exact match, try partial matches
                         if (matchingTypeIndex === -1) {
-                            for (const investmentType of investmentTypes) {
+                            for (const investmentType of INVESTMENT_TYPES) {
                                 // Check if the result type contains keywords related to investment types
                                 if (resultType.includes('etf') && investmentType.id === 'etf') {
-                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
                                     break;
                                 } else if ((resultType.includes('stock') || resultType.includes('equity') || resultType.includes('share')) && investmentType.id === 'stock') {
-                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
                                     break;
                                 } else if ((resultType.includes('fund') || resultType.includes('mutual')) && investmentType.id === 'mutualFund') {
-                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
                                     break;
                                 } else if (resultType.includes('bond') && investmentType.id === 'bond') {
-                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
                                     break;
                                 } else if ((resultType.includes('crypto') || resultType.includes('bitcoin') || resultType.includes('digital')) && investmentType.id === 'cryptocurrency') {
-                                    matchingTypeIndex = investmentTypes.findIndex(t => t.id === investmentType.id);
+                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
                                     break;
                                 }
                             }
@@ -273,6 +262,7 @@ export default function AddInvestmentScreen() {
                 currency: selectedCurrency,
                 notes: formData.notes.trim() || null,
                 last_updated: new Date().toISOString(),
+                last_tentative_update: new Date().toISOString(),
                 interest_rate: selectedType.id === 'bond' && formData.interest_rate ? Number(formData.interest_rate) : null,
                 maturity_date: selectedType.id === 'bond' && formData.maturity_date ? formData.maturity_date.toISOString() : null,
                 taxation: formData.taxation ? Number(formData.taxation) : 0,
@@ -340,6 +330,7 @@ export default function AddInvestmentScreen() {
                 current_price: currentPrice,
                 purchase_date: formData.purchase_date.toISOString().split('T')[0],
                 last_updated: new Date().toISOString(),
+                last_tentative_update: new Date().toISOString(),
                 currency: selectedCurrency,
                 interest_rate: Number(formData.interest_rate) || 0,
                 maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
@@ -474,7 +465,7 @@ export default function AddInvestmentScreen() {
                             selectedIndex={selectedTypeIndex}
                             onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
                         >
-                            {investmentTypes.map((type, index) => (
+                            {INVESTMENT_TYPES.map((type, index) => (
                                 <SelectItem key={index} title={t(`investmentTypes.${type.id}`)} />
                             ))}
                         </Select>

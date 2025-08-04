@@ -26,7 +26,7 @@ import {
     calculateIndividualInvestmentReturns,
     InvestmentStats
 } from '@/utils/financeUtils';
-import { InvestmentData } from '@/types/investment';
+import {INVESTMENT_TYPES, InvestmentData} from '@/types/investment';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
@@ -56,8 +56,6 @@ export default function EditInvestmentScreen() {
     const { portfolios, updateInvestment, deleteInvestment, addInvestment } = useInvestment();
     const { userProfile } = useProfile();
     const { t } = useLocalization();
-
-    const investmentTypes = getInvestmentTypes(t);
 
     // Helper function to check if investment type supports interest rates
     const supportsInterestRate = (typeId: string) => {
@@ -137,7 +135,7 @@ export default function EditInvestmentScreen() {
                         setSelectedPortfolioIndex(new IndexPath(portfolioIndex));
                     }
 
-                    const typeIndex = investmentTypes.findIndex(t => t.id === foundInvestment.data.type);
+                    const typeIndex = INVESTMENT_TYPES.findIndex(t => t.id === foundInvestment.data.type);
                     if (typeIndex >= 0) {
                         setSelectedTypeIndex(new IndexPath(typeIndex));
                     }
@@ -152,7 +150,8 @@ export default function EditInvestmentScreen() {
     }, [params.investmentId, params.portfolioId, portfolios.length, investment]);
 
     const selectedPortfolio = portfolios[selectedPortfolioIndex.row];
-    const selectedType = investmentTypes[selectedTypeIndex.row];
+    const selectedType = INVESTMENT_TYPES[selectedTypeIndex.row];
+    const selectedTypeName = selectedType ? t(`investmentTypes.${selectedType.id}`) : '';
     const selectedCurrency = currencies[selectedCurrencyIndex.row];
 
     const validateForm = (): boolean => {
@@ -218,6 +217,7 @@ export default function EditInvestmentScreen() {
                 purchase_date: formData.purchase_date.toISOString(),
                 currency: selectedCurrency,
                 last_updated: new Date().toISOString(),
+                last_tentative_update: new Date().toISOString(),
                 notes: formData.notes.trim() || null,
                 taxation: formData.taxation ? Number(formData.taxation) : 0,
                 interest_rate: supportsInterestRate(selectedType.id) && formData.interest_rate ? Number(formData.interest_rate) : null,
@@ -344,6 +344,7 @@ export default function EditInvestmentScreen() {
                 current_price: currentPrice,
                 purchase_date: formData.purchase_date.toISOString().split('T')[0],
                 last_updated: new Date().toISOString(),
+                last_tentative_update: new Date().toISOString(),
                 currency: selectedCurrency,
                 interest_rate: Number(formData.interest_rate) || 0,
                 maturity_date: formData.maturity_date ? formData.maturity_date.toISOString().split('T')[0] : null,
@@ -455,11 +456,11 @@ export default function EditInvestmentScreen() {
                             label={t('editInvestment.investmentTypeRequired')}
                             selectedIndex={selectedTypeIndex}
                             onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
-                            value={selectedType?.name}
+                            value={selectedTypeName || ''}
                             style={styles.input}
                         >
-                            {investmentTypes.map((type, index) => (
-                                <SelectItem key={index} title={type.name} />
+                            {INVESTMENT_TYPES.map((type, index) => (
+                                <SelectItem key={index} title={t(`investmentTypes.${type.id}`)} />
                             ))}
                         </Select>
 
