@@ -540,6 +540,7 @@
     "certificate": "Certificate",
     "checkingAccount": "Checking Account",
     "savingsAccount": "Savings Account",
+    "privatePension": "Private Pension",
     "other": "Other"
   },
   "investmentStatistics": {

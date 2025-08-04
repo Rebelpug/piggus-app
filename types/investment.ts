@@ -53,17 +53,19 @@ export type InvestmentFormData = {
   risk_level?: string;
 };
 
+
 export const INVESTMENT_TYPES = [
   { id: 'stock', icon: 'trending-up' },
   { id: 'bond', icon: 'shield-checkmark' },
-  { id: 'cryptocurrency', icon: 'bar-chart' },
+  { id: 'cryptocurrency', icon: 'logo-bitcoin' },
+  { id: 'certificate', icon: 'document-text' },
   { id: 'etf', icon: 'bar-chart' },
   { id: 'mutualFund', icon: 'pie-chart' },
   { id: 'realEstate', icon: 'home' },
   { id: 'commodity', icon: 'diamond' },
-  { id: 'checkingAccount', icon: 'wallet'},
-  { id: 'savingsAccount', icon: 'cash'},
-  { id: 'certificate', icon: 'trending-up' },
+  { id: 'checkingAccount', icon: 'card' },
+  { id: 'savingsAccount', icon: 'cash' },
+  { id: 'privatePension', icon: 'time' },
   { id: 'other', icon: 'ellipsis-horizontal' },
 ];
 
