@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/Rebelpug/piggus-app/compare/v1.5.2...v1.6.0) (2025-08-04)
+
+
+### Features
+
+* Added automatic price fetching for cryptocurrencies ([154420a](https://github.com/Rebelpug/piggus-app/commit/154420aeafa0a1bbce6e9442c1da321382b9312c))
+* Added function to avoid generating expense for recurring if not desired ([06a5944](https://github.com/Rebelpug/piggus-app/commit/06a59446eb58ec01c9ea95ef0cd2171b0e7561a6))
+
+
+### Bug Fixes
+
+* Added missing sync visual aid when sycning banks ([78258bd](https://github.com/Rebelpug/piggus-app/commit/78258bd8f830b6e57cdd905fb0eba37705f3d6d2))
+* Deleting an account shouldn't show an error ([cbd42e2](https://github.com/Rebelpug/piggus-app/commit/cbd42e201169246dd35505f7c3eaec94c6bd1572))
+* Expense group expenses were not using the same ExpenseItem ([7522e33](https://github.com/Rebelpug/piggus-app/commit/7522e335c6b3ef6abe1f0f68dc2819e4a87a30d7))
+* Fixed redirect after bank connection ([03a3f6b](https://github.com/Rebelpug/piggus-app/commit/03a3f6b76485b55665965056de9fcbe53495b257))
+* force add button to be visible in investments and expenses ([d9bf150](https://github.com/Rebelpug/piggus-app/commit/d9bf15059b6dab2e205ecd61201f7c230b3ea331))
+* Inverted expense total to better track it in shared groups ([3014cd9](https://github.com/Rebelpug/piggus-app/commit/3014cd93d15db4887041ce8e62c5ddde179b2a9e))
+
 ### [1.5.2](https://github.com/Rebelpug/piggus-app/compare/v1.5.1...v1.5.2) (2025-08-03)
 
 
