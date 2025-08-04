@@ -97,9 +97,13 @@ export default function ProfileScreen() {
                         try {
                             await apiDeleteProfile();
                             router.replace('/login');
-                            await signOut();
                         } catch (error) {
                             Alert.alert('Error', 'Failed to delete account');
+                        }
+                        try {
+                            await signOut();
+                        } catch (e) {
+                            // This is needed but at the same time it fails so we don't want to show errors here.
                         } finally {
                             setLoading(false);
                         }
@@ -393,15 +397,15 @@ export default function ProfileScreen() {
                                 <Ionicons name="star-outline" size={20} color={colors.primary} />
                             </View>
                             <Text style={[styles.labelText, { color: colors.text }]}>
-                                {userProfile?.subscription?.subscription_tier === 'premium' 
-                                    ? t('subscription.managePlan') 
+                                {userProfile?.subscription?.subscription_tier === 'premium'
+                                    ? t('subscription.managePlan')
                                     : t('subscription.upgrade')
                                 }
                             </Text>
                         </View>
                         <View style={styles.preferenceValue}>
                             <Text style={[styles.currentValue, { color: colors.icon }]}>
-                                {userProfile?.subscription?.subscription_tier === 'premium' 
+                                {userProfile?.subscription?.subscription_tier === 'premium'
                                     ? t('subscription.premium.title')
                                     : t('subscription.free.title')
                                 }
