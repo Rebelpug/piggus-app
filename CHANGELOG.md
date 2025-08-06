@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.1](https://github.com/Rebelpug/piggus-app/compare/v1.6.0...v1.6.1) (2025-08-06)
+
+
+### Bug Fixes
+
+* Added retry when getting subscriptions ([c119d05](https://github.com/Rebelpug/piggus-app/commit/c119d05c0ef0a7704b21bbd78ddbfc02265c5962))
+* More form of investments now accept interests rates ([24245bf](https://github.com/Rebelpug/piggus-app/commit/24245bf85c7f70707c3083f88d24412f674a1325))
+* Show yearly estimated earnings in breakdown ([34a152f](https://github.com/Rebelpug/piggus-app/commit/34a152f98a74d83d33f2f4dc7080525984169f8d))
+
 ## [1.6.0](https://github.com/Rebelpug/piggus-app/compare/v1.5.2...v1.6.0) (2025-08-04)
 
 
