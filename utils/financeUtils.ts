@@ -14,7 +14,7 @@ export interface InvestmentStats {
   projectedValue10Years: number;
   investmentCount: number;
   averageValue: number;
-  typeBreakdown: { [key: string]: { value: number; count: number; gainLoss: number } };
+  typeBreakdown: TypeBreakdown;
 }
 
 export interface TypeBreakdown {
@@ -22,6 +22,8 @@ export interface TypeBreakdown {
     value: number;
     count: number;
     gainLoss: number;
+    estimatedYearlyGainLoss: number;
+    estimatedYearlyGainLossPercentage: number;
   };
 }
 
@@ -402,12 +404,20 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     const individualReturns = calculateIndividualInvestmentReturns(inv);
 
     if (!acc[type]) {
-      acc[type] = { value: 0, count: 0, gainLoss: 0 };
+      acc[type] = {
+        value: 0,
+        count: 0,
+        gainLoss: 0,
+        estimatedYearlyGainLoss: 0,
+        estimatedYearlyGainLossPercentage: 0
+      };
     }
 
     acc[type].value += individualReturns.totalValue;
     acc[type].count += 1;
     acc[type].gainLoss += individualReturns.totalGainLoss;
+    acc[type].estimatedYearlyGainLoss += individualReturns.estimatedYearlyGainLoss;
+    acc[type].estimatedYearlyGainLossPercentage = acc[type].value > 0 ? (acc[type].estimatedYearlyGainLoss / acc[type].value) * 100 : 0;
 
     return acc;
   }, {} as TypeBreakdown);

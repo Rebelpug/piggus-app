@@ -37,10 +37,10 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
 
   // Filter out invalid data points
   const validData = data.filter(point => {
-    return point && 
-           typeof point.year === 'number' && 
-           typeof point.value === 'number' && 
-           isFinite(point.value) && 
+    return point &&
+           typeof point.year === 'number' &&
+           typeof point.value === 'number' &&
+           isFinite(point.value) &&
            !isNaN(point.value);
   });
 
@@ -63,12 +63,12 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
     const x = padding + (index / (validData.length - 1)) * chartWidth;
     const normalizedValue = (point.value - minValue) / valueRange;
     const y = padding + chartHeight - normalizedValue * chartHeight;
-    
+
     // Validate coordinates
     if (!isFinite(x) || !isFinite(y)) {
       return null;
     }
-    
+
     return `${x},${y}`;
   }).filter(Boolean).join(' ');
 
@@ -79,12 +79,12 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       const x = padding + (index / (validData.length - 1)) * chartWidth;
       const normalizedValue = (point.value - minValue) / valueRange;
       const y = padding + chartHeight - normalizedValue * chartHeight;
-      
+
       // Validate coordinates
       if (!isFinite(x) || !isFinite(y)) {
         return null;
       }
-      
+
       return `${x},${y}`;
     }).filter(Boolean),
     `${padding + chartWidth},${padding + chartHeight}` // End at bottom right
@@ -128,12 +128,12 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
         const x = padding + (index / (validData.length - 1)) * chartWidth;
         const normalizedValue = (point.value - minValue) / valueRange;
         const y = padding + chartHeight - normalizedValue * chartHeight;
-        
+
         // Validate coordinates before rendering
         if (!isFinite(x) || !isFinite(y)) {
           return null;
         }
-        
+
         return (
           <Circle
             key={index}
@@ -151,12 +151,12 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       {validData.map((point, index) => {
         if (index % 2 === 0 || index === validData.length - 1) { // Show every other year + last year
           const x = padding + (index / (validData.length - 1)) * chartWidth;
-          
+
           // Validate coordinate and year value
           if (!isFinite(x) || !point.year) {
             return null;
           }
-          
+
           return (
             <SvgText
               key={`year-${index}`}
@@ -217,7 +217,7 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
     let cumulativePercentage = 0;
     slices = validData.map((item, index) => {
       const percentage = Number(item.value);
-      
+
       // Defensive checks for all calculations
       if (!isFinite(percentage) || isNaN(percentage) || percentage <= 0) {
         return null;
@@ -577,7 +577,7 @@ export default function InvestmentStatisticsScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.detailedBreakdown')}</Text>
           <View style={[styles.typeContainer, { backgroundColor: colors.card }]}>
-            {Object.entries(investmentStats.typeBreakdown).map(([type, data]) => {
+          {Object.entries(investmentStats.typeBreakdown).map(([type, data]) => {
               const typeInfo = investmentTypes.find(t => t.id === type);
               const percentage = investmentStats.totalValue > 0 ? (data.value / investmentStats.totalValue) * 100 : 0;
 
@@ -607,13 +607,14 @@ export default function InvestmentStatisticsScreen() {
                           styles.progressFill,
                           {
                             width: `${getProgressWidth(data.value, maxTypeValue)}%`,
-                            backgroundColor: data.gainLoss >= 0 ? colors.success : colors.error
+                            backgroundColor: data.estimatedYearlyGainLossPercentage >= 0 ? colors.success : colors.error
                           }
                         ]}
                       />
                     </View>
                     <Text style={[styles.typeCount, { color: colors.icon }]}>
-                      {data.count} {t('investmentStatistics.investmentsCount')} • {data.gainLoss >= 0 ? '+' : ''}{formatCurrency(data.gainLoss, userProfile?.profile.defaultCurrency)}
+
+                      {data.count} {t('investmentStatistics.investmentsCount')} • {data.estimatedYearlyGainLossPercentage >= 0 ? '+' : ''}{isFinite(data.estimatedYearlyGainLossPercentage) ? data.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
                     </Text>
                   </View>
                 </View>
