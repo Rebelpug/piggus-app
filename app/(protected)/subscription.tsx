@@ -84,6 +84,8 @@ export default function SubscriptionScreen() {
     const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
     const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+    const [retryCount, setRetryCount] = useState(0);
+    const [hasError, setHasError] = useState(false);
 
     const isPremium = userProfile?.subscription?.subscription_tier === 'premium';
     const hasActiveSubscription = customerInfo?.entitlements.active.premium;
@@ -92,29 +94,74 @@ export default function SubscriptionScreen() {
         initializePurchases();
     }, []);
 
-    const initializePurchases = async () => {
+    // Silent retry mechanism
+    const retryInitialization = async () => {
+        if (retryCount < 3) { // Max 3 retries
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => {
+                initializePurchases(true); // Silent retry
+            }, Math.pow(2, retryCount) * 1000); // Exponential backoff: 1s, 2s, 4s
+        }
+    };
+
+    const initializePurchases = async (isSilentRetry: boolean = false) => {
         try {
             setLoading(true);
+            setHasError(false);
 
             const apiKey = (Platform.OS === 'android'
                 ? process.env.EXPO_PUBLIC_REVENUE_CAT_GOOGLE_API_KEY
                 : process.env.EXPO_PUBLIC_REVENUE_CAT_APPLE_API_KEY) || '';
-            Purchases.configure({ apiKey });
+            
+            // Only configure if not already configured (to avoid multiple configurations)
+            try {
+                Purchases.configure({ apiKey });
+            } catch (configError) {
+                // Already configured, ignore
+            }
 
             // Set user ID if you have one
             // await Purchases.logIn(userProfile?.id || 'anonymous');
 
-            // Get offerings and customer info
-            const [offerings, customerInfo] = await Promise.all([
-                Purchases.getOfferings(),
-                Purchases.getCustomerInfo()
-            ]);
+            // Get offerings and customer info with individual error handling
+            let offerings, customerInfo;
+            
+            try {
+                const results = await Promise.allSettled([
+                    Purchases.getOfferings(),
+                    Purchases.getCustomerInfo()
+                ]);
 
-            setOfferings(offerings.current);
-            setCustomerInfo(customerInfo);
+                if (results[0].status === 'fulfilled') {
+                    offerings = results[0].value;
+                } else {
+                    console.error('Failed to get offerings:', results[0].reason);
+                }
+
+                if (results[1].status === 'fulfilled') {
+                    customerInfo = results[1].value;
+                } else {
+                    console.error('Failed to get customer info:', results[1].reason);
+                }
+
+                // If both failed, throw error
+                if (!offerings && !customerInfo) {
+                    throw new Error('Failed to load subscription data');
+                }
+            } catch (apiError) {
+                console.error('RevenueCat API error:', apiError);
+                throw apiError;
+            }
+
+            if (offerings) {
+                setOfferings(offerings.current);
+            }
+            if (customerInfo) {
+                setCustomerInfo(customerInfo);
+            }
 
             // Process pricing information
-            if (offerings.current?.availablePackages) {
+            if (offerings?.current?.availablePackages) {
                 const processedTiers = offerings.current.availablePackages.map(pkg => {
                     const subscriptionDetails = getSubscriptionDetails(pkg);
                     return {
@@ -134,9 +181,22 @@ export default function SubscriptionScreen() {
                 setPricingTiers(processedTiers);
             }
 
+            // Reset retry count on success
+            setRetryCount(0);
+
         } catch (error: any) {
             console.error('Error initializing purchases:', error);
-            Alert.alert(t('subscription.error'), t('subscription.initializationError'));
+            setHasError(true);
+            
+            if (!isSilentRetry) {
+                // Try silent retry first
+                retryInitialization();
+            } else {
+                // Only show error after retries are exhausted
+                if (retryCount >= 3) {
+                    Alert.alert(t('subscription.error'), t('subscription.initializationError'));
+                }
+            }
         } finally {
             setLoading(false);
         }
@@ -218,21 +278,38 @@ export default function SubscriptionScreen() {
     const handleRestorePurchases = async () => {
         try {
             setPurchasing(true);
-            const customerInfo = await Purchases.restorePurchases();
+            
+            // Add timeout to prevent hanging
+            const customerInfo = await Promise.race([
+                Purchases.restorePurchases(),
+                new Promise<never>((_, reject) => 
+                    setTimeout(() => reject(new Error('Restore timeout')), 30000)
+                )
+            ]);
+            
             setCustomerInfo(customerInfo);
 
             // Update backend subscription based on restored purchase
             try {
                 const subscriptionTier = customerInfo.entitlements.active.premium ? 'premium' : 'free';
                 console.log(`Updating backend subscription to ${subscriptionTier} after restore`);
-                await piggusApi.updateSubscription(subscriptionTier, customerInfo.originalAppUserId);
+                
+                // Add timeout for backend call as well
+                await Promise.race([
+                    piggusApi.updateSubscription(subscriptionTier, customerInfo.originalAppUserId),
+                    new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error('Backend update timeout')), 15000)
+                    )
+                ]);
+                
                 await refreshProfile();
             } catch (backendError: any) {
                 console.error('Error updating backend subscription after restore:', backendError);
 
-                // Check if it's a RevenueCat validation error
-                if (backendError?.response?.data?.message?.includes('No active subscription found in RevenueCat')) {
-                    console.log('Backend validation failed due to RevenueCat API issues - restore was successful locally');
+                // Check if it's a RevenueCat validation error or timeout
+                if (backendError?.response?.data?.message?.includes('No active subscription found in RevenueCat') ||
+                    backendError.message === 'Backend update timeout') {
+                    console.log('Backend validation failed due to RevenueCat API issues or timeout - restore was successful locally');
                 } else {
                     console.error('Unexpected backend error after restore:', backendError);
                 }
@@ -240,9 +317,15 @@ export default function SubscriptionScreen() {
             }
 
             Alert.alert(t('subscription.restored'), t('subscription.restoreSuccess'));
-        } catch (error) {
+        } catch (error: any) {
             console.error('Restore error:', error);
-            Alert.alert(t('subscription.error'), t('subscription.restoreError'));
+            
+            let errorMessage = t('subscription.restoreError');
+            if (error.message === 'Restore timeout') {
+                errorMessage = t('subscription.restoreTimeout');
+            }
+            
+            Alert.alert(t('subscription.error'), errorMessage);
         } finally {
             setPurchasing(false);
         }
@@ -446,8 +529,52 @@ export default function SubscriptionScreen() {
                 <Layout style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text category='s1' style={styles.loadingText}>
-                        {t('subscription.loading')}
+                        {retryCount > 0 ? t('subscription.retrying') : t('subscription.loading')}
                     </Text>
+                    {retryCount > 0 && (
+                        <Text category='c1' appearance='hint' style={styles.retryText}>
+                            {t('subscription.attemptCount', { count: retryCount })}
+                        </Text>
+                    )}
+                </Layout>
+            </SafeAreaView>
+        );
+    }
+
+    // Show fallback mode if we have partial data or user profile subscription info
+    const canShowFallbackMode = userProfile?.subscription || customerInfo;
+    
+    // Show error state only after all retries are exhausted and no fallback data
+    if (hasError && retryCount >= 3 && !offerings && !customerInfo && !canShowFallbackMode) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <TopNavigation
+                    title={t('subscription.title')}
+                    alignment='center'
+                    accessoryLeft={renderBackAction}
+                    style={{ backgroundColor: colors.background }}
+                />
+                <Layout style={styles.loadingContainer}>
+                    <Layout style={[styles.errorIconContainer, { backgroundColor: colors.error + '20' }]}>
+                        <Ionicons name="alert-circle" size={64} color={colors.error} />
+                    </Layout>
+                    <Text category='h6' style={[styles.errorTitle, { color: colors.text }]}>
+                        {t('subscription.loadError')}
+                    </Text>
+                    <Text category='s2' appearance='hint' style={styles.errorDescription}>
+                        {t('subscription.loadErrorDescription')}
+                    </Text>
+                    <Button
+                        style={styles.retryButton}
+                        size='medium'
+                        onPress={() => {
+                            setRetryCount(0);
+                            setHasError(false);
+                            initializePurchases();
+                        }}
+                    >
+                        {t('subscription.tryAgain')}
+                    </Button>
                 </Layout>
             </SafeAreaView>
         );
@@ -471,6 +598,27 @@ export default function SubscriptionScreen() {
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 <Layout style={styles.content}>
+                    {/* Warning banner for fallback mode */}
+                    {hasError && canShowFallbackMode && (
+                        <Layout style={[styles.warningBanner, { backgroundColor: colors.warning + '15', borderColor: colors.warning + '30' }]}>
+                            <Ionicons name="warning" size={20} color={colors.warning} />
+                            <Layout style={styles.warningContent}>
+                                <Text category='c1' style={[styles.warningText, { color: colors.warning }]}>
+                                    {t('subscription.limitedMode')}
+                                </Text>
+                                <TouchableOpacity onPress={() => {
+                                    setRetryCount(0);
+                                    setHasError(false);
+                                    initializePurchases();
+                                }}>
+                                    <Text category='c2' style={[styles.warningRetryText, { color: colors.warning }]}>
+                                        {t('subscription.tapToRetry')}
+                                    </Text>
+                                </TouchableOpacity>
+                            </Layout>
+                        </Layout>
+                    )}
+
                     <Layout style={styles.headerContainer}>
                         <Layout style={styles.iconContainer}>
                             <Ionicons name="star" size={64} color={colors.primary} />
@@ -586,6 +734,54 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
         textAlign: 'center',
+    },
+    retryText: {
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    errorIconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    errorTitle: {
+        textAlign: 'center',
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    errorDescription: {
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 32,
+        paddingHorizontal: 32,
+    },
+    retryButton: {
+        borderRadius: 12,
+        paddingHorizontal: 32,
+    },
+    warningBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginBottom: 16,
+    },
+    warningContent: {
+        flex: 1,
+        marginLeft: 12,
+        backgroundColor: 'transparent',
+    },
+    warningText: {
+        fontWeight: '500',
+        marginBottom: 2,
+    },
+    warningRetryText: {
+        fontWeight: '600',
+        textDecorationLine: 'underline',
     },
     headerContainer: {
         alignItems: 'center',
