@@ -24,6 +24,7 @@ export {
   apiHandlePortfolioInvitation,
   apiUpdatePortfolio,
   apiRemoveUserFromPortfolio,
+  apiLookupInvestmentBySymbol,
 } from './investmentService';
 
 // Profile services

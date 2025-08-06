@@ -59,12 +59,12 @@ export default function EditInvestmentScreen() {
 
     // Helper function to check if investment type supports interest rates
     const supportsInterestRate = (typeId: string) => {
-        return ['bond', 'checkingAccount', 'savingsAccount'].includes(typeId);
+        return true; // All investment types now support interest rates
     };
 
     // Helper function to check if investment type supports maturity date (only bonds)
     const supportsMaturityDate = (typeId: string) => {
-        return typeId === 'bond';
+        return typeId === 'bond' || typeId === 'certificate' || typeId === 'savingsAccount';
     };
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -181,8 +181,8 @@ export default function EditInvestmentScreen() {
             newErrors.taxation = t('editInvestment.taxationValidRange');
         }
 
-        if (supportsInterestRate(selectedType.id) && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
-            newErrors.interest_rate = t('editInvestment.interestRatePositive');
+        if (formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) < 0)) {
+            newErrors.interest_rate = t('editInvestment.interestRateValidRange');
         }
 
         if (supportsMaturityDate(selectedType.id) && formData.maturity_date && formData.maturity_date <= formData.purchase_date) {
@@ -220,7 +220,7 @@ export default function EditInvestmentScreen() {
                 last_tentative_update: new Date().toISOString(),
                 notes: formData.notes.trim() || null,
                 taxation: formData.taxation ? Number(formData.taxation) : 0,
-                interest_rate: supportsInterestRate(selectedType.id) && formData.interest_rate ? Number(formData.interest_rate) : null,
+                interest_rate: formData.interest_rate ? Number(formData.interest_rate) : null,
                 maturity_date: supportsMaturityDate(selectedType.id) && formData.maturity_date ? formData.maturity_date.toISOString() : null,
             };
 
@@ -423,34 +423,15 @@ export default function EditInvestmentScreen() {
                         {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
                         <Input
-                            label={t('editInvestment.isinOptional')}
-                            placeholder="e.g., IT9282990139"
-                            value={formData.isin}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text }))}
-                            style={styles.input}
-                        />
-                        <Text style={[styles.instructionText, { color: colors.icon }]}>
-                            {t('addInvestment.isinLookupInstruction')}
-                        </Text>
-
-                        <Input
-                            label={t('editInvestment.exchangeMarketOptional')}
-                            placeholder="e.g., MX"
-                            value={formData.exchange_market}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text }))}
-                            style={styles.input}
-                        />
-                        <Text style={[styles.instructionText, { color: colors.icon }]}>
-                            {t('addInvestment.exchangeMarketInstruction')}
-                        </Text>
-
-                        <Input
                             label={t('editInvestment.symbolOptional')}
                             placeholder="e.g., AAPL"
                             value={formData.symbol}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
                             style={styles.input}
                         />
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('editInvestment.symbolLookupInstruction')}
+                        </Text>
 
                         <Select
                             label={t('editInvestment.investmentTypeRequired')}
@@ -475,6 +456,25 @@ export default function EditInvestmentScreen() {
                                 <SelectItem key={index} title={currency} />
                             ))}
                         </Select>
+
+                        <Input
+                            label={t('editInvestment.exchangeMarketOptional')}
+                            placeholder="e.g., MX"
+                            value={formData.exchange_market}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, exchange_market: text }))}
+                            style={styles.input}
+                        />
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('addInvestment.exchangeMarketInstruction')}
+                        </Text>
+
+                        <Input
+                            label={t('editInvestment.isinOptional')}
+                            placeholder="e.g., IT9282990139"
+                            value={formData.isin}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, isin: text }))}
+                            style={styles.input}
+                        />
                     </Card>
 
                     {/* Investment Details */}
@@ -539,7 +539,7 @@ export default function EditInvestmentScreen() {
                         </View>
                         {errors.taxation && <Text style={[styles.errorText, { color: colors.error }]}>{errors.taxation}</Text>}
 
-                        {supportsInterestRate(selectedType.id) && (
+                        {(
                             <>
                                 <Input
                                     label={t('editInvestment.interestRate')}

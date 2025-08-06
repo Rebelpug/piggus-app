@@ -87,6 +87,17 @@ export interface LookupSearchResult {
   previousCloseDate: string;
 }
 
+export interface InvestmentLookupResultV2 {
+  symbol: string;
+  exchange: string;
+  name: string;
+  type: string;
+  currency: string;
+  price: string;
+  previousClose: number;
+  previousCloseDate: string;
+}
+
 export const SECTORS = [
   { value: 'technology', label: 'Technology' },
   { value: 'healthcare', label: 'Healthcare' },

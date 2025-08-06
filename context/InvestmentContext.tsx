@@ -16,7 +16,7 @@ import {
   apiHandlePortfolioInvitation,
   apiUpdatePortfolio,
   apiRemoveUserFromPortfolio,
-  apiLookupInvestmentByIsin,
+  apiLookupInvestmentBySymbol,
 } from '@/services/investmentService';
 import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
 import {useEncryption} from "@/context/EncryptionContext";
@@ -263,7 +263,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           const investmentData = investment.data;
 
           // Check conditions for syncing
-          const hasISIN = investmentData.isin && investmentData.isin.trim() !== '';
+          const hasSymbol = investmentData.symbol && investmentData.symbol.trim() !== '';
           const hasExchange = investmentData.exchange_market && investmentData.exchange_market.trim() !== '';
           const isEligibleType = ['etf', 'stock', 'mutualFund', 'certificate', 'cryptocurrency'].includes(investmentData.type);
 
@@ -273,25 +273,26 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           const isOlderThanToday = (!lastUpdated || lastUpdated.split('T')[0] < todayString) &&
               (!lastTentativeUpdate || lastTentativeUpdate.split('T')[0] < todayString);
 
-          if (hasISIN && hasExchange && isEligibleType && isOlderThanToday) {
+          if (hasSymbol && hasExchange && isEligibleType && isOlderThanToday) {
             try {
               console.log(`Syncing price for investment: ${investmentData.name} (${investmentData.isin})`);
 
-              const lookupResult = await apiLookupInvestmentByIsin(
-                  formatStringWithoutSpacesAndSpecialChars(investmentData.isin || '').toUpperCase(),
+              const lookupResult = await apiLookupInvestmentBySymbol(
+                  formatStringWithoutSpacesAndSpecialChars(investmentData.symbol || ''),
                   investmentData?.exchange_market?.trim().toUpperCase() || '',
                   investmentData.type,
                   investmentData.currency,
               );
 
-              if (lookupResult.success && lookupResult.data && lookupResult.data.length > 0) {
-                const newPrice = lookupResult.data[0].previousClose;
+              if (lookupResult.success && lookupResult.data) {
+                const newPrice = Number(lookupResult.data.price);
 
                 if (newPrice && newPrice !== investmentData.current_price) {
                   // Update the investment with new price
                   const updatedInvestmentData = {
                     ...investmentData,
                     current_price: newPrice,
+                    symbol: lookupResult.data.symbol,
                     last_updated: new Date().toISOString(),
                     last_tentative_update: new Date().toISOString(),
                   };
@@ -323,7 +324,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                   }
                 }
               } else {
-                console.log(`No price data found for ${investmentData.name} (${investmentData.isin})`);
+                console.log(`No price data found for ${investmentData.name} (${investmentData.symbol})`);
                 // Update tentative update date to prevent multiple attempts on the same day
                 const updatedInvestmentData = {
                   ...investmentData,

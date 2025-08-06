@@ -39,23 +39,21 @@ export const calculateDividendsInterestEarned = (investment: InvestmentDetails):
 
   let dividendsInterest = 0;
 
-  // For bonds and accounts with interest rates
-  if (['bond', 'checkingAccount', 'savingsAccount'].includes(investment.data.type)) {
-    const interestRate = investment.data.interest_rate || 0;
-
-    if (interestRate > 0) {
-      const initialValue = quantity * purchasePrice;
-      dividendsInterest = initialValue * (interestRate / 100) * yearsSincePurchase;
-    }
+  // For any investment type with interest rates
+  const interestRate = investment.data.interest_rate || 0;
+  if (interestRate > 0) {
+    const initialValue = quantity * purchasePrice;
+    dividendsInterest = initialValue * (interestRate / 100) * yearsSincePurchase;
   }
 
-  // For stocks and ETFs with dividend yields
+  // For stocks and ETFs with dividend yields (in addition to interest rates)
   if (['stock', 'etf'].includes(investment.data.type)) {
     const dividendYield = investment.data.dividend_yield || 0;
 
     if (dividendYield > 0) {
       const currentValue = quantity * currentPrice;
-      dividendsInterest = currentValue * (dividendYield / 100) * yearsSincePurchase;
+      const dividendIncome = currentValue * (dividendYield / 100) * yearsSincePurchase;
+      dividendsInterest += dividendIncome; // Add to existing interest calculation
     }
   }
 
@@ -98,7 +96,7 @@ export const calculateEstimatedYearlyGainLoss = (investment: InvestmentDetails):
   const capitalGainPerYear = (currentValue - investedValue) / yearsSincePurchase;
   const interestPerYear = (interestRate / 100) * investedValue;
   const totalYearlyGain = capitalGainPerYear + interestPerYear;
-  
+
   // Apply taxation to gains if they are positive
   const taxationRate = (investment.data.taxation || 0) / 100;
   const afterTaxYearlyGain = totalYearlyGain > 0 ? totalYearlyGain * (1 - taxationRate) : totalYearlyGain;
@@ -140,9 +138,10 @@ export const calculateExpectedYearlyYield = (investment: InvestmentWithDecrypted
     return investment.data.interest_rate || 0;
   }
 
-  // For savings/checking accounts, use interest rate
-  if (['checkingAccount', 'savingsAccount'].includes(type)) {
-    return investment.data.interest_rate || 0;
+  // For any investment with an interest rate, use it as the primary yield
+  const interestRate = investment.data.interest_rate || 0;
+  if (interestRate > 0) {
+    return interestRate;
   }
 
   // For stocks and ETFs, use dividend yield if available, otherwise use historical performance
@@ -184,15 +183,19 @@ export const calculateExpectedFutureValue = (
     case 'checkingAccount':
     case 'savingsAccount':
       // For accounts, use interest rate but account for inflation
-      const interestRate = (investment.data.interest_rate || 0) / 100;
+      const accountInterestRate = (investment.data.interest_rate || 0) / 100;
       const inflationRate = 0.03; // Assume 3% inflation
-      expectedAnnualReturn = Math.max(0, interestRate - inflationRate);
+      expectedAnnualReturn = Math.max(0, accountInterestRate - inflationRate);
       break;
 
     case 'stock':
     case 'etf':
-      // For stocks/ETFs, use historical performance but cap extremes
-      if (historicalROI !== null) {
+      // For stocks/ETFs, consider interest rate if specified, otherwise use historical performance
+      const stockInterestRate = (investment.data.interest_rate || 0) / 100;
+      if (stockInterestRate > 0) {
+        // If an interest rate is specified, use it as the primary return expectation
+        expectedAnnualReturn = stockInterestRate;
+      } else if (historicalROI !== null) {
         // Use historical performance but moderate it (regression to mean)
         const marketAverage = 0.10; // Assume 10% long-term market average
         expectedAnnualReturn = (historicalROI * 0.7) + (marketAverage * 0.3);
@@ -204,7 +207,9 @@ export const calculateExpectedFutureValue = (
       break;
 
     default:
-      expectedAnnualReturn = 0.05; // Conservative default
+      // For any other investment type, use interest rate if specified
+      const defaultInterestRate = (investment.data.interest_rate || 0) / 100;
+      expectedAnnualReturn = defaultInterestRate > 0 ? defaultInterestRate : 0.05; // Conservative default
   }
 
   // Apply taxation to expected returns if positive
@@ -255,25 +260,21 @@ export const calculateIndividualROI = (investment: InvestmentWithDecryptedData):
     }
   }
 
-  // Special handling for checking/savings accounts
-  if (['checkingAccount', 'savingsAccount'].includes(investment.data.type)) {
-    const interestRate = investment.data.interest_rate || 0;
+  // Special handling for any investment with an explicit interest rate
+  const interestRate = investment.data.interest_rate || 0;
+  if (interestRate > 0) {
+    return interestRate / 100;
+  }
 
-    // If there's a stated interest rate, use it
-    if (interestRate) {
-      return interestRate / 100;
+  // Special handling for checking/savings accounts without interest rates
+  if (['checkingAccount', 'savingsAccount'].includes(investment.data.type) && !interestRate) {
+    const currentPrice = investment.data.current_price || purchasePrice;
+    if (currentPrice !== purchasePrice && yearsSincePurchase > 0) {
+      // Calculate based on balance growth
+      return Math.pow(currentPrice / purchasePrice, 1 / yearsSincePurchase) - 1;
     }
-
-    // If no interest rate but there's balance growth, calculate based on that
-    if (!interestRate) {
-      const currentPrice = investment.data.current_price || purchasePrice;
-      if (currentPrice !== purchasePrice && yearsSincePurchase > 0) {
-        // Calculate based on balance growth
-        return Math.pow(currentPrice / purchasePrice, 1 / yearsSincePurchase) - 1;
-      }
-      // If no growth and no interest rate, assume minimal return (0.01% for liquidity)
-      return 0.0001;
-    }
+    // If no growth and no interest rate, assume minimal return (0.01% for liquidity)
+    return 0.0001;
   }
 
   // For stocks, ETFs, and other market investments
@@ -518,18 +519,18 @@ export const calculateIndividualInvestmentReturns = (investment: InvestmentDetai
 
   const currentValue = calculateCurrentValue(investment);
   const baseGainLoss = currentValue - totalInvested;
-  
+
   // Apply taxation to capital gains only if positive
   const taxationRate = (investment.data.taxation || 0) / 100;
   const afterTaxBaseGainLoss = baseGainLoss > 0 ? baseGainLoss * (1 - taxationRate) : baseGainLoss;
-  
+
   // dividendsInterestEarned already has taxation applied inside the function
   const dividendsInterestEarned = calculateDividendsInterestEarned(investment);
-  
+
   const totalGainLoss = afterTaxBaseGainLoss + dividendsInterestEarned;
   const totalGainLossPercentage = (totalGainLoss / totalInvested) * 100;
   const dividendsInterestEarnedPercentage = (dividendsInterestEarned / totalInvested) * 100;
-  
+
   // estimatedYearlyGain already has taxation applied inside the function
   const estimatedYearlyGain = calculateEstimatedYearlyGainLoss(investment);
 

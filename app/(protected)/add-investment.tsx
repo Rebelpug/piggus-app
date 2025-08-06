@@ -15,18 +15,14 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useInvestment} from '@/context/InvestmentContext';
 import {useProfile} from '@/context/ProfileContext';
-import {INVESTMENT_TYPES, InvestmentData, LookupSearchResult} from '@/types/investment';
-import {apiLookupInvestmentByIsin} from '@/services/investmentService';
+import {INVESTMENT_TYPES, InvestmentData} from '@/types/investment';
+import {apiLookupInvestmentBySymbol} from '@/services/investmentService';
 import {Ionicons} from '@expo/vector-icons';
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {Colors} from '@/constants/Colors';
 import {ThemedView} from '@/components/ThemedView';
 import {useLocalization} from '@/context/LocalizationContext';
 import {
-    calculateCurrentValue,
-    calculateCAGR,
-    calculateExpectedYearlyYield,
-    calculateDividendsInterestEarned,
     calculateIndividualInvestmentReturns,
     InvestmentStats
 } from '@/utils/financeUtils';
@@ -117,8 +113,8 @@ export default function AddInvestmentScreen() {
             newErrors.taxation = t('addInvestment.taxationValidRange');
         }
 
-        if ((selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) <= 0)) {
-            newErrors.interest_rate = t('addInvestment.interestRatePositive');
+        if (formData.interest_rate && (isNaN(Number(formData.interest_rate)) || Number(formData.interest_rate) < 0)) {
+            newErrors.interest_rate = t('addInvestment.interestRateValidRange');
         }
 
         if (selectedType.id === 'bond' && formData.maturity_date && formData.maturity_date <= formData.purchase_date) {
@@ -133,9 +129,19 @@ export default function AddInvestmentScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleISINLookup = async () => {
-        if (!formData.isin.trim() || !formData.exchange_market.trim()) {
-            setLookupError('Please enter both ISIN code and exchange market');
+    const handleSymbolLookup = async () => {
+        if (!formData.symbol.trim() || !formData.exchange_market.trim()) {
+            setLookupError('Please enter both symbol and exchange market');
+            return;
+        }
+
+        if (!selectedType?.id) {
+            setLookupError('Please select an investment type first');
+            return;
+        }
+
+        if (!selectedCurrency) {
+            setLookupError('Please select a currency first');
             return;
         }
 
@@ -143,87 +149,26 @@ export default function AddInvestmentScreen() {
         setLookupError('');
 
         try {
-            const response = await apiLookupInvestmentByIsin(
-                formatStringWithoutSpacesAndSpecialChars(formData.isin).toUpperCase(),
+            const response = await apiLookupInvestmentBySymbol(
+                formData.symbol.trim().toUpperCase(),
                 formData.exchange_market.trim().toUpperCase(),
                 INVESTMENT_TYPES[selectedTypeIndex.row].id || '',
                 currencies[selectedCurrencyIndex.row] || '',
             );
 
             if (response.success && response.data) {
-                if (response.data.length === 0) {
-                    setLookupError('No investment found for the given ISIN');
+                if (!response.data) {
+                    setLookupError('No investment found for the given symbol');
                 } else {
-                    // Use the first result to prefill the form
-                    const result = response.data[0];
+                    // Use the result to prefill the form
+                    const result = response.data;
                     setFormData(prev => ({
                         ...prev,
-                        name: result.Name,
-                        symbol: result.Code,
-                        current_price: result.previousClose.toString(),
-                        purchase_price: result.previousClose.toString(),
+                        name: result.name,
+                        symbol: result.symbol,
+                        current_price: result.price,
+                        purchase_price: result.price,
                     }));
-
-                    // Set currency based on result
-                    const currencyIndex = currencies.findIndex(c => c === result.Currency);
-                    if (currencyIndex !== -1) {
-                        setSelectedCurrencyIndex(new IndexPath(currencyIndex));
-                    }
-
-                    // Set type based on result - try to match with existing types
-                    if (result.Type) {
-                        const resultType = result.Type.toLowerCase();
-
-                        // Find matching investment type
-                        let matchingTypeIndex = -1;
-
-                        // First try exact matches with common type mappings
-                        const typeMapping: { [key: string]: string } = {
-                            'etf': 'etf',
-                            'stock': 'stock',
-                            'equity': 'stock',
-                            'fund': 'mutualFund',
-                            'mutual fund': 'mutualFund',
-                            'bond': 'bond',
-                            'crypto': 'cryptocurrency',
-                            'cryptocurrency': 'cryptocurrency',
-                            'real estate': 'realEstate',
-                            'commodity': 'commodity'
-                        };
-
-                        const mappedType = typeMapping[resultType];
-                        if (mappedType) {
-                            matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === mappedType);
-                        }
-
-                        // If no exact match, try partial matches
-                        if (matchingTypeIndex === -1) {
-                            for (const investmentType of INVESTMENT_TYPES) {
-                                // Check if the result type contains keywords related to investment types
-                                if (resultType.includes('etf') && investmentType.id === 'etf') {
-                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
-                                    break;
-                                } else if ((resultType.includes('stock') || resultType.includes('equity') || resultType.includes('share')) && investmentType.id === 'stock') {
-                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
-                                    break;
-                                } else if ((resultType.includes('fund') || resultType.includes('mutual')) && investmentType.id === 'mutualFund') {
-                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
-                                    break;
-                                } else if (resultType.includes('bond') && investmentType.id === 'bond') {
-                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
-                                    break;
-                                } else if ((resultType.includes('crypto') || resultType.includes('bitcoin') || resultType.includes('digital')) && investmentType.id === 'cryptocurrency') {
-                                    matchingTypeIndex = INVESTMENT_TYPES.findIndex(t => t.id === investmentType.id);
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Set the type if we found a match, otherwise leave default
-                        if (matchingTypeIndex !== -1) {
-                            setSelectedTypeIndex(new IndexPath(matchingTypeIndex));
-                        }
-                    }
 
                     Alert.alert(
                         'Success',
@@ -234,7 +179,7 @@ export default function AddInvestmentScreen() {
                 setLookupError(response.error || 'Failed to lookup investment');
             }
         } catch (error) {
-            console.error('ISIN lookup error:', error);
+            console.error('Symbol lookup error:', error);
             setLookupError('An unexpected error occurred during lookup');
         } finally {
             setIsLookingUp(false);
@@ -263,7 +208,7 @@ export default function AddInvestmentScreen() {
                 notes: formData.notes.trim() || null,
                 last_updated: new Date().toISOString(),
                 last_tentative_update: new Date().toISOString(),
-                interest_rate: selectedType.id === 'bond' && formData.interest_rate ? Number(formData.interest_rate) : null,
+                interest_rate: formData.interest_rate ? Number(formData.interest_rate) : null,
                 maturity_date: selectedType.id === 'bond' && formData.maturity_date ? formData.maturity_date.toISOString() : null,
                 taxation: formData.taxation ? Number(formData.taxation) : 0,
             };
@@ -398,11 +343,11 @@ export default function AddInvestmentScreen() {
 
                         <Input
                             style={styles.input}
-                            label={t('addInvestment.isinCode')}
-                            placeholder={t('addInvestment.enterIsinCode')}
-                            value={formData.isin}
+                            label={t('addInvestment.symbol')}
+                            placeholder='e.g., AAPL'
+                            value={formData.symbol}
                             onChangeText={(text) => {
-                                setFormData(prev => ({ ...prev, isin: text }));
+                                setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }));
                                 setLookupError('');
                             }}
                         />
@@ -421,20 +366,56 @@ export default function AddInvestmentScreen() {
                             {t('addInvestment.exchangeMarketInstruction')}
                         </Text>
 
+                        <Select
+                            style={styles.input}
+                            label={t('addInvestment.investmentType')}
+                            placeholder={t('addInvestment.selectType')}
+                            value={selectedTypeName || ''}
+                            selectedIndex={selectedTypeIndex}
+                            onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
+                        >
+                            {INVESTMENT_TYPES.map((type, index) => (
+                                <SelectItem key={index} title={t(`investmentTypes.${type.id}`)} />
+                            ))}
+                        </Select>
+
+                        <Select
+                            style={styles.input}
+                            label={t('addInvestment.currency')}
+                            placeholder={t('addInvestment.selectCurrency')}
+                            value={selectedCurrency || ''}
+                            selectedIndex={selectedCurrencyIndex}
+                            onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
+                        >
+                            {currencies.map((currency, index) => (
+                                <SelectItem key={index} title={currency} />
+                            ))}
+                        </Select>
+
                         <Button
                             style={[styles.input, styles.findButton]}
                             size='medium'
                             appearance='outline'
-                            onPress={handleISINLookup}
-                            disabled={isLookingUp || !formData.isin.trim() || !formData.exchange_market.trim() || userProfile?.subscription?.subscription_tier !== 'premium'}
+                            onPress={handleSymbolLookup}
+                            disabled={isLookingUp || !formData.symbol.trim() || !formData.exchange_market.trim() || !selectedType?.id || !selectedCurrency || userProfile?.subscription?.subscription_tier !== 'premium'}
                             accessoryLeft={isLookingUp ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
                         >
                             {isLookingUp ? t('addInvestment.searching') : userProfile?.subscription?.subscription_tier !== 'premium' ? `${t('addInvestment.findInvestment')} (Premium Feature)` : t('addInvestment.findInvestment')}
                         </Button>
 
                         <Text style={[styles.instructionText, { color: colors.icon }]}>
-                            {t('addInvestment.isinLookupInstruction')}
+                            {t('addInvestment.symbolLookupInstruction')}
                         </Text>
+
+                        <Input
+                            style={styles.input}
+                            label={t('addInvestment.isinCode')}
+                            placeholder={t('addInvestment.enterIsinCode')}
+                            value={formData.isin}
+                            onChangeText={(text) => {
+                                setFormData(prev => ({ ...prev, isin: text }));
+                            }}
+                        />
 
                         {lookupError && (
                             <View style={[styles.errorAlert, { backgroundColor: colors.error + '15', borderColor: colors.error + '30' }]}>
@@ -457,19 +438,6 @@ export default function AddInvestmentScreen() {
                             ))}
                         </Select>
 
-                        <Select
-                            style={styles.input}
-                            label={t('addInvestment.investmentType')}
-                            placeholder={t('addInvestment.selectType')}
-                            value={selectedTypeName || ''}
-                            selectedIndex={selectedTypeIndex}
-                            onSelect={(index) => setSelectedTypeIndex(index as IndexPath)}
-                        >
-                            {INVESTMENT_TYPES.map((type, index) => (
-                                <SelectItem key={index} title={t(`investmentTypes.${type.id}`)} />
-                            ))}
-                        </Select>
-
                         <Input
                             style={styles.input}
                             label={t('addInvestment.investmentName')}
@@ -477,14 +445,6 @@ export default function AddInvestmentScreen() {
                             value={formData.name}
                             onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                             status={formData.name.trim() ? 'basic' : 'danger'}
-                        />
-
-                        <Input
-                            style={styles.input}
-                            label={t('addInvestment.symbol')}
-                            placeholder='e.g., AAPL'
-                            value={formData.symbol}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
                         />
 
                         <Input
@@ -499,19 +459,6 @@ export default function AddInvestmentScreen() {
                         <Text style={[styles.premiumNote, { color: colors.icon }]}>
                             {t('addInvestment.purchasePriceNote')}
                         </Text>
-
-                        <Select
-                            style={styles.input}
-                            label={t('addInvestment.currency')}
-                            placeholder={t('addInvestment.selectCurrency')}
-                            value={selectedCurrency || ''}
-                            selectedIndex={selectedCurrencyIndex}
-                            onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
-                        >
-                            {currencies.map((currency, index) => (
-                                <SelectItem key={index} title={currency} />
-                            ))}
-                        </Select>
 
                         <Input
                             style={styles.input}
@@ -554,19 +501,19 @@ export default function AddInvestmentScreen() {
                         </View>
                         {errors.taxation && <Text style={[styles.errorText, { color: colors.error }]}>{errors.taxation}</Text>}
 
-                        {(selectedType.id === 'bond' || selectedType.id === 'checkingAccount' || selectedType.id === 'savingsAccount') && (
-                            <>
-                                <Input
-                                    style={styles.input}
-                                    label={t('addInvestment.interestRate')}
-                                    placeholder='e.g., 3.5'
-                                    value={formData.interest_rate}
-                                    onChangeText={(text) => setFormData(prev => ({ ...prev, interest_rate: text }))}
-                                    keyboardType='decimal-pad'
-                                    status={errors.interest_rate ? 'danger' : 'basic'}
-                                />
-                                {errors.interest_rate && <Text style={styles.errorText}>{errors.interest_rate}</Text>}
+                        <Input
+                            style={styles.input}
+                            label={t('addInvestment.interestRate')}
+                            placeholder='e.g., 3.5'
+                            value={formData.interest_rate}
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, interest_rate: text }))}
+                            keyboardType='decimal-pad'
+                            status={errors.interest_rate ? 'danger' : 'basic'}
+                        />
+                        {errors.interest_rate && <Text style={styles.errorText}>{errors.interest_rate}</Text>}
 
+                        {(selectedType.id === 'bond' || selectedType.id === 'certificate' || selectedType.id === 'savingsAccount') && (
+                            <>
                                 <Datepicker
                                     style={styles.input}
                                     label={t('addInvestment.maturityDate')}

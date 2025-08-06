@@ -6,7 +6,7 @@ import {
   PortfolioData,
   PortfolioWithDecryptedData,
 } from '@/types/portfolio';
-import { InvestmentData, InvestmentWithDecryptedData, LookupSearchResult } from '@/types/investment';
+import { InvestmentData, InvestmentWithDecryptedData, LookupSearchResult, InvestmentLookupResultV2 } from '@/types/investment';
 import { User } from '@supabase/supabase-js';
 
 // Investment service functions that bridge the old client API with piggusApi
@@ -461,6 +461,33 @@ export const apiLookupInvestmentByIsin = async (
     return {
       success: false,
       error: error.message || 'Failed to lookup investment',
+    };
+  }
+};
+
+export const apiLookupInvestmentBySymbol = async (
+    symbol: string,
+    exchangeMarket: string,
+    type: string,
+    currency: string,
+): Promise<{ success: boolean; data?: InvestmentLookupResultV2 | null; error?: string }> => {
+  try {
+    if (!symbol || !exchangeMarket) {
+      return {
+        success: false,
+        error: 'Missing required parameters: symbol, exchangeMarket',
+      };
+    }
+    const result = await piggusApi.lookupInvestmentBySymbol(symbol, exchangeMarket, type, currency);
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error: any) {
+    console.error('Error looking up investment by symbol:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to lookup investment by symbol',
     };
   }
 };
