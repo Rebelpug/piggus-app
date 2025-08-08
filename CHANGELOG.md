@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/Rebelpug/piggus-app/compare/v1.6.2...v1.7.0) (2025-08-08)
+
+
+### Features
+
+* Added more details in the investment screen ([bee70d7](https://github.com/Rebelpug/piggus-app/commit/bee70d7303854b144b20fc96f949ed84fcaae454))
+* When adding a new investment have the functionality to search it by isin ([597c02b](https://github.com/Rebelpug/piggus-app/commit/597c02b24711d3bc00f5fa3adf71ed64d8aa18fb))
+* When updating an investment have the functionality to search it by symbol ([27bd8d8](https://github.com/Rebelpug/piggus-app/commit/27bd8d82c9a24efa6bd930d0104ec5c404f7a1ef))
+
+
+### Bug Fixes
+
+* Fixed calculation of estimated values ([c0f57f6](https://github.com/Rebelpug/piggus-app/commit/c0f57f65b551bdc049cc9b28e9433b2bc110f0a4))
+* Title of investment tracked properly ([034c28a](https://github.com/Rebelpug/piggus-app/commit/034c28a9bc854bcaf25409cdd1dcdb8526625299))
+
 ### [1.6.2](https://github.com/Rebelpug/piggus-app/compare/v1.6.1...v1.6.2) (2025-08-06)
 
 ### [1.6.1](https://github.com/Rebelpug/piggus-app/compare/v1.6.0...v1.6.1) (2025-08-06)
