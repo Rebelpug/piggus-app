@@ -11,7 +11,8 @@ import {
     SelectItem,
     IndexPath,
     Datepicker,
-    Card
+    Card,
+    Spinner
 } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -32,6 +33,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { ThemedView } from '@/components/ThemedView';
 import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
+import {apiSearchSymbolsWithQuotes} from "@/services/investmentService";
+import {SymbolSearchWithQuoteResult} from '@/types/portfolio';
 
 const getInvestmentTypes = (t: (key: string) => string) => [
     { id: 'stock', name: t('investmentTypes.stock'), icon: 'trending-up' },
@@ -57,11 +60,6 @@ export default function EditInvestmentScreen() {
     const { userProfile } = useProfile();
     const { t } = useLocalization();
 
-    // Helper function to check if investment type supports interest rates
-    const supportsInterestRate = (typeId: string) => {
-        return true; // All investment types now support interest rates
-    };
-
     // Helper function to check if investment type supports maturity date (only bonds)
     const supportsMaturityDate = (typeId: string) => {
         return typeId === 'bond' || typeId === 'certificate' || typeId === 'savingsAccount';
@@ -71,6 +69,12 @@ export default function EditInvestmentScreen() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [investment, setInvestment] = useState<any>(null);
     const [portfolio, setPortfolio] = useState<any>(null);
+
+    // Search functionality
+    const [isSearching, setIsSearching] = useState(false);
+    const [lookupError, setLookupError] = useState<string>('');
+    const [searchResults, setSearchResults] = useState<SymbolSearchWithQuoteResult[]>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
 
     // Get user's default currency and find its index
     const userDefaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
@@ -153,6 +157,59 @@ export default function EditInvestmentScreen() {
     const selectedType = INVESTMENT_TYPES[selectedTypeIndex.row];
     const selectedTypeName = selectedType ? t(`investmentTypes.${selectedType.id}`) : '';
     const selectedCurrency = currencies[selectedCurrencyIndex.row];
+
+    const handleSymbolSearch = async () => {
+        if (!formData.symbol.trim()) {
+            setLookupError(t('editInvestment.enterSymbolToSearch', 'Please enter a symbol to search'));
+            return;
+        }
+
+        setIsSearching(true);
+        setLookupError('');
+        setSearchResults([]);
+
+        try {
+            const response = await apiSearchSymbolsWithQuotes(formData.symbol.trim().toUpperCase());
+
+            if (response.success && response.data) {
+                if (!response.data || response.data.length === 0) {
+                    setLookupError(t('editInvestment.noInvestmentsFound', 'No investments found for the given symbol'));
+                } else {
+                    setSearchResults(response.data);
+                    setShowSearchResults(true);
+                }
+            } else {
+                setLookupError(response.error || t('editInvestment.failedToSearch', 'Failed to search for investments'));
+            }
+        } catch (error) {
+            console.error('Symbol search error:', error);
+            setLookupError(t('editInvestment.unexpectedSearchError', 'An unexpected error occurred during search'));
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleSelectSearchResult = (result: SymbolSearchWithQuoteResult) => {
+        const symbolData = result.symbolSearch;
+        const quoteData = result.quote;
+
+        setFormData(prev => ({
+            ...prev,
+            name: symbolData.name,
+            symbol: symbolData.symbol,
+            exchange_market: symbolData.region,
+            current_price: quoteData?.price || '',
+            // Note: We don't update purchase_price here as per requirements
+        }));
+
+        // Update currency selection if it exists in our list
+        const currencyIndex = currencies.findIndex(c => c === symbolData.currency);
+        if (currencyIndex >= 0) {
+            setSelectedCurrencyIndex(new IndexPath(currencyIndex));
+        }
+
+        setShowSearchResults(false);
+    };
 
     const validateForm = (): boolean => {
         const newErrors: { [key: string]: string } = {};
@@ -426,12 +483,80 @@ export default function EditInvestmentScreen() {
                             label={t('editInvestment.symbolOptional')}
                             placeholder="e.g., AAPL"
                             value={formData.symbol}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }))}
+                            onChangeText={(text) => {
+                                setFormData(prev => ({ ...prev, symbol: text.toUpperCase() }));
+                                setLookupError('');
+                            }}
                             style={styles.input}
                         />
+                        <Button
+                            style={[styles.input, styles.findButton]}
+                            size='medium'
+                            appearance='outline'
+                            onPress={handleSymbolSearch}
+                            disabled={isSearching || !formData.symbol.trim() || userProfile?.subscription?.subscription_tier !== 'premium'}
+                            accessoryLeft={isSearching ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
+                        >
+                            {isSearching ? t('editInvestment.searching', 'Searching...') : userProfile?.subscription?.subscription_tier !== 'premium' ? `${t('editInvestment.findInvestment', 'Find Investment')} (Premium Feature)` : t('editInvestment.findInvestment', 'Find Investment')}
+                        </Button>
+
                         <Text style={[styles.instructionText, { color: colors.icon }]}>
                             {t('editInvestment.symbolLookupInstruction')}
                         </Text>
+
+                        {lookupError && (
+                            <View style={[styles.errorAlert, { backgroundColor: colors.error + '15', borderColor: colors.error + '30' }]}>
+                                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                                <Text style={[styles.errorAlertText, { color: colors.error }]}>{lookupError}</Text>
+                            </View>
+                        )}
+
+                        {showSearchResults && searchResults.length > 0 && (
+                            <View style={[styles.searchResultsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
+                                    {t('editInvestment.searchResults', 'Search Results')}
+                                </Text>
+                                <ScrollView style={styles.searchResultsList} nestedScrollEnabled={true}>
+                                    {searchResults.map((result, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
+                                            onPress={() => handleSelectSearchResult(result)}
+                                        >
+                                            <View style={styles.searchResultContent}>
+                                                <Text style={[styles.searchResultSymbol, { color: colors.text }]}>
+                                                    {result.symbolSearch.symbol}
+                                                </Text>
+                                                <Text style={[styles.searchResultName, { color: colors.text }]}>
+                                                    {result.symbolSearch.name}
+                                                </Text>
+                                                <View style={styles.searchResultDetails}>
+                                                    <Text style={[styles.searchResultDetail, { color: colors.icon }]}>
+                                                        {result.symbolSearch.region} | {result.symbolSearch.currency}
+                                                    </Text>
+                                                    {result.quote && (
+                                                        <Text style={[styles.searchResultPrice, { color: colors.text }]}>
+                                                            {result.quote.price} {result.symbolSearch.currency}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                                <Text style={[styles.searchResultSymbolCTA, { color: colors.primary }]}>
+                                                    Select
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                                <TouchableOpacity
+                                    style={styles.closeSearchResults}
+                                    onPress={() => setShowSearchResults(false)}
+                                >
+                                    <Text style={[styles.closeSearchResultsText, { color: colors.primary }]}>
+                                        {t('editInvestment.close', 'Close')}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
                         <Select
                             label={t('editInvestment.investmentTypeRequired')}
@@ -793,5 +918,83 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginLeft: 8,
         marginBottom: 16,
+    },
+    // Search functionality styles
+    findButton: {
+        marginBottom: 16,
+    },
+    errorAlert: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginTop: -12,
+        marginBottom: 16,
+    },
+    errorAlertText: {
+        fontSize: 12,
+        marginLeft: 8,
+        flex: 1,
+    },
+    searchResultsContainer: {
+        marginTop: -10,
+        marginBottom: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+    },
+    searchResultsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E8E8E8',
+    },
+    searchResultsList: {
+        maxHeight: 200,
+    },
+    searchResultItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+    },
+    searchResultContent: {
+        flex: 1,
+    },
+    searchResultSymbol: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    searchResultName: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+    searchResultDetails: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 4,
+    },
+    searchResultDetail: {
+        fontSize: 11,
+    },
+    searchResultPrice: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    searchResultSymbolCTA: {
+        marginTop: 4,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#4CAF50',
+    },
+    closeSearchResults: {
+        padding: 12,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#E8E8E8',
+    },
+    closeSearchResultsText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

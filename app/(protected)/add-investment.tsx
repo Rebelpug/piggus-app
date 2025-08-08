@@ -376,7 +376,7 @@ export default function AddInvestmentScreen() {
                         {showSearchResults && searchResults.length > 0 && (
                             <View style={[styles.searchResultsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                 <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
-                                    {t('addInvestment.searchResults', 'Search Results')} ({searchResults.length})
+                                    {t('addInvestment.searchResults', 'Search Results')}
                                 </Text>
                                 <ScrollView style={styles.searchResultsList} nestedScrollEnabled={true}>
                                     {searchResults.map((result, index) => (
