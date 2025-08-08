@@ -11,6 +11,7 @@ import { randomBytes, utf8ToBytes, bytesToUtf8 } from '@noble/hashes/utils'; // 
 import { RSA } from 'react-native-rsa-native';
 import { Buffer } from 'buffer';
 import {InteractionManager} from "react-native";
+import * as LZString from 'lz-string';
 
 // =====================================================================
 // Constants and Utility Functions
@@ -329,5 +330,61 @@ export async function verifySignature(publicKey: string, data: string, signature
   } catch (err) {
     console.error('Error verifying RSA signature', err);
     return false;
+  }
+}
+
+// =====================================================================
+// Compression
+// =====================================================================
+export function encryptDataWithCompression(data: any, key: Uint8Array): string {
+  try {
+    const jsonString = typeof data === 'object' ? JSON.stringify(data) : String(data);
+
+    // Use compressToUTF16 for maximum compatibility
+    const compressed = LZString.compressToUTF16(jsonString);
+
+    if (!compressed) {
+      console.warn('Compression failed, falling back to uncompressed');
+      return encryptWithAES(data, key);
+    }
+
+    // Create an object with version info
+    const versionedData = {
+      v: 2, // Shorter key
+      d: compressed // Shorter key for better compression
+    };
+
+    return encryptWithAES(versionedData, key);
+  } catch (error) {
+    console.error('Compression error, falling back to uncompressed:', error);
+    return encryptWithAES(data, key);
+  }
+}
+
+export function decryptCompressedData(encryptedData: string, key: Uint8Array): any {
+  try {
+    const decrypted = decryptWithAES(encryptedData, key);
+
+    // Check if it's the new versioned format
+    if (typeof decrypted === 'object' && decrypted.v === 2) {
+      // New compressed format
+      const decompressed = LZString.decompressFromUTF16(decrypted.d);
+
+      if (decompressed === null) {
+        throw new Error('Decompression failed');
+      }
+
+      return JSON.parse(decompressed);
+    } else {
+      // Legacy format
+      if (typeof decrypted === 'string') {
+        return JSON.parse(decrypted);
+      } else {
+        return decrypted;
+      }
+    }
+  } catch (error) {
+    console.error('Decryption/decompression error:', error);
+    throw new Error('Failed to decrypt and decompress data');
   }
 }

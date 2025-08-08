@@ -4,12 +4,15 @@ import {
     generateKeyPair,
     encryptPrivateKey,
     decryptPrivateKey,
-    encryptData,
-    decryptData,
     decryptFromSender,
     encryptWithPublicKey,
     signData,
-    verifySignature, decryptWithRSA, base64ToArrayBuffer, generateEncryptionKey,
+    verifySignature,
+    decryptWithRSA,
+    base64ToArrayBuffer,
+    generateEncryptionKey,
+    encryptDataWithCompression,
+    decryptCompressedData,
 } from '@/lib/encryption';
 import {SecureKeyManager} from "@/lib/secureKeyManager";
 
@@ -274,7 +277,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         }
 
         try {
-            return encryptData(data, encryptionKey);
+            return encryptDataWithCompression(data, encryptionKey);
         } catch (error) {
             console.error('Encryption failed:', error);
             return '';
@@ -289,7 +292,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
         }
 
         try {
-            return decryptData(encryptedData, encryptionKey);
+            return decryptCompressedData(encryptedData, encryptionKey);
         } catch (error) {
             console.error('Decryption failed:', error);
             throw error;
@@ -305,7 +308,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
         try {
             const convertedEncryptionKey = base64ToArrayBuffer(encryptionKey);
-            return encryptData(data, convertedEncryptionKey);
+            return encryptDataWithCompression(data, convertedEncryptionKey);
         } catch (error) {
             console.error('Encryption failed:', error);
             return '';
@@ -320,7 +323,7 @@ export const EncryptionProvider: React.FC<{children: ReactNode}> = ({ children }
 
         try {
             const convertedEncryptionKey = base64ToArrayBuffer(encryptionKey);
-            return decryptData(encryptedData, convertedEncryptionKey);
+            return decryptCompressedData(encryptedData, convertedEncryptionKey);
         } catch (error) {
             console.error('Decryption failed:', error);
             throw error;
