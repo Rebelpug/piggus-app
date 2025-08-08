@@ -139,9 +139,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
         const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-        
-        console.log('📅 Loading current month expenses:', currentYear, currentMonth);
-        
+
         // Calculate start and end dates for current month
         const startDate = new Date(currentYear, currentMonth - 1, 1);
         const endDate = new Date(currentYear, currentMonth, 0);
@@ -186,7 +184,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             }
           })
         );
-        
+
         setExpensesGroups(groupsWithCurrentMonthExpenses);
         setCachedMonths(prev => new Set(prev).add(monthKey));
 
@@ -273,9 +271,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const fetchExpensesForMonth = useCallback(async (year: number, month: number, forceRefresh = false) => {
     return new Promise<void>((resolve, reject) => {
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      
+
       console.log('🔄 fetchExpensesForMonth called for:', year, month);
-      
+
       if (!user || !isEncryptionInitialized) {
         console.log('❌ User or encryption not ready');
         resolve();
@@ -283,7 +281,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('🔄 Month key:', monthKey);
-      
+
       // Check cached months using functional update
       setCachedMonths(prevCached => {
         if (!forceRefresh && prevCached.has(monthKey)) {
@@ -291,7 +289,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           resolve();
           return prevCached;
         }
-        
+
         if (forceRefresh) {
           console.log('🔄 Force refreshing month:', monthKey);
         }
@@ -301,13 +299,13 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         const endDate = new Date(year, month, 0);
         const startDateString = startDate.toISOString().split('T')[0];
         const endDateString = endDate.toISOString().split('T')[0];
-        
+
         console.log('🔄 Fetching month date range:', startDateString, 'to', endDateString);
 
         // Access current groups and fetch month data
         setExpensesGroups(currentGroups => {
           console.log('🔄 Current groups count:', currentGroups.length);
-          
+
           // Perform async fetch and update groups
           (async () => {
             try {
@@ -315,7 +313,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                 currentGroups.map(async (group) => {
                   try {
                     console.log('🔄 Fetching for group:', group.id, group.data?.name);
-                    
+
                     const paginatedResult = await apiFetchExpensesPaginated(
                       user,
                       group.id,
@@ -358,10 +356,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               );
 
               console.log('🔄 Updated groups for month', monthKey, '. Total expenses per group:', updatedGroups.map(g => ({ id: g.id, name: g.data?.name, count: g.expenses.length })));
-              
+
               // Update groups state with fetched data
               setExpensesGroups(updatedGroups);
-              
+
               console.log('✅ Successfully fetched expenses for month:', monthKey);
               resolve();
             } catch (error) {
@@ -369,7 +367,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               reject(error);
             }
           })();
-          
+
           // Return current groups for now (they'll be updated asynchronously)
           return currentGroups;
         });
@@ -1041,7 +1039,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       // Find both groups
       const fromGroup = expensesGroups.find(g => g.id === fromGroupId);
       const toGroup = expensesGroups.find(g => g.id === toGroupId);
-      
+
       if (!fromGroup || !toGroup) {
         console.error('Source or destination group not found');
         setError('Source or destination group not found');
