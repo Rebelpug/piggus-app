@@ -1,4 +1,4 @@
-import {InvestmentWithDecryptedData} from '@/types/investment';
+import { InvestmentWithDecryptedData } from '@/types/investment';
 
 export type InvestmentDetails = Omit<InvestmentWithDecryptedData, 'portfolio_id' | 'created_at' | 'updated_at'>;
 
@@ -11,16 +11,16 @@ export interface InvestmentStats {
   dividendsInterestEarnedPercentage: number;
   estimatedYearlyGainLoss: number;
   estimatedYearlyGainLossPercentage: number;
-  yearlyDividendInterest: number; // Yearly dividend/interest earnings
-  yearlyDividendInterestPercentage: number; // Yearly dividend/interest percentage
-  yearlyCapitalGains: number; // Yearly capital gains
-  yearlyCapitalGainsPercentage: number; // Yearly capital gains percentage
+  yearlyDividendInterest: number;
+  yearlyDividendInterestPercentage: number;
+  yearlyCapitalGains: number;
+  yearlyCapitalGainsPercentage: number;
   projectedValue10Years: number;
   investmentCount: number;
   averageValue: number;
   typeBreakdown: TypeBreakdown;
-  cagr: number; // Compound Annual Growth Rate
-  estimatedTaxRate: number; // Average estimated tax rate across investments
+  cagr: number;
+  estimatedTaxRate: number;
 }
 
 export interface TypeBreakdown {
@@ -30,442 +30,439 @@ export interface TypeBreakdown {
     gainLoss: number;
     estimatedYearlyGainLoss: number;
     estimatedYearlyGainLossPercentage: number;
-    investedValue: number; // Amount invested in this type
+    investedValue: number;
   };
 }
 
-// Calculate dividends and interest earned for income-generating assets (LIFETIME)
-export const calculateDividendsInterestEarned = (investment: InvestmentDetails): number => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const currentPrice = investment.data.current_price || purchasePrice;
+/**
+ * Apply tax to a positive amount; does nothing on zero or negative values.
+ */
+const applyTax = (amount: number, taxRatePercent: number | null): number => {
+  if (taxRatePercent === null) return amount;
+  if (amount <= 0 || taxRatePercent <= 0) return amount;
+  return amount * (1 - taxRatePercent / 100);
+};
 
-  if (quantity === 0 || purchasePrice === 0) return 0;
+/**
+ * Calculate lifetime dividends and interest earned after tax.
+ */
+export const calculateDividendsInterestEarned = (investment: InvestmentDetails): number => {
+  const {
+    quantity = 0,
+    purchase_price = 0,
+    current_price,
+    interest_rate = 0,
+    dividend_yield = 0,
+    taxation = 0,
+    purchase_date,
+    type,
+  } = investment.data;
+
+  if (quantity === 0 || purchase_price === 0) return 0;
+
+  const currPrice = current_price ?? purchase_price;
 
   const currentDate = new Date();
-  const purchaseDate = new Date(investment.data.purchase_date);
-  const yearsSincePurchase = Math.max(0, (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+  const purchaseDate = new Date(purchase_date);
+  let yearsSincePurchase = (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+  if (yearsSincePurchase < 0) yearsSincePurchase = 0;
 
   let dividendsInterest = 0;
 
-  // For any investment type with interest rates
-  const interestRate = investment.data.interest_rate || 0;
-  if (interestRate > 0) {
-    const initialValue = quantity * purchasePrice;
-    dividendsInterest = initialValue * (interestRate / 100) * yearsSincePurchase;
+  if (interest_rate && interest_rate > 0) {
+    const initialValue = quantity * purchase_price;
+    dividendsInterest += initialValue * (interest_rate / 100) * yearsSincePurchase;
   }
 
-  // For stocks and ETFs with dividend yields (in addition to interest rates)
-  if (['stock', 'etf'].includes(investment.data.type)) {
-    const dividendYield = investment.data.dividend_yield || 0;
-
-    if (dividendYield > 0) {
-      const currentValue = quantity * currentPrice;
-      const dividendIncome = currentValue * (dividendYield / 100) * yearsSincePurchase;
-      dividendsInterest += dividendIncome; // Add to existing interest calculation
+  if (['stock', 'etf'].includes(type)) {
+    if (dividend_yield && dividend_yield > 0) {
+      const currentValue = quantity * currPrice;
+      dividendsInterest += currentValue * (dividend_yield / 100) * yearsSincePurchase;
     }
   }
 
-  // Apply taxation to dividends/interest if it's positive
-  if (dividendsInterest > 0) {
-    const taxationRate = (investment.data.taxation || 0) / 100;
-    dividendsInterest = dividendsInterest * (1 - taxationRate);
-  }
-
-  return dividendsInterest;
+  return applyTax(dividendsInterest, taxation);
 };
 
-// Calculate yearly dividend/interest earnings
+/**
+ * Calculate estimated yearly dividend and interest earnings after tax.
+ */
 export const calculateYearlyDividendInterest = (investment: InvestmentDetails): number => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const currentPrice = investment.data.current_price || purchasePrice;
+  const {
+    quantity = 0,
+    purchase_price = 0,
+    current_price,
+    interest_rate = 0,
+    dividend_yield = 0,
+    taxation = 0,
+    type,
+  } = investment.data;
 
-  if (quantity === 0 || purchasePrice === 0) return 0;
+  if (quantity === 0 || purchase_price === 0) return 0;
+
+  const currPrice = current_price ?? purchase_price;
 
   let yearlyDividendInterest = 0;
 
-  // For any investment type with interest rates
-  const interestRate = investment.data.interest_rate || 0;
-  if (interestRate > 0) {
-    const initialValue = quantity * purchasePrice;
-    yearlyDividendInterest = initialValue * (interestRate / 100);
+  if (interest_rate && interest_rate > 0) {
+    const initialValue = quantity * purchase_price;
+    yearlyDividendInterest += initialValue * (interest_rate / 100);
   }
 
-  // For stocks and ETFs with dividend yields (in addition to interest rates)
-  if (['stock', 'etf'].includes(investment.data.type)) {
-    const dividendYield = investment.data.dividend_yield || 0;
-
-    if (dividendYield > 0) {
-      const currentValue = quantity * currentPrice;
-      const yearlyDividendIncome = currentValue * (dividendYield / 100);
-      yearlyDividendInterest += yearlyDividendIncome; // Add to existing interest calculation
+  if (['stock', 'etf'].includes(type)) {
+    if (dividend_yield && dividend_yield > 0) {
+      const currentValue = quantity * currPrice;
+      yearlyDividendInterest += currentValue * (dividend_yield / 100);
     }
   }
 
-  // Apply taxation to dividends/interest if it's positive
-  if (yearlyDividendInterest > 0) {
-    const taxationRate = (investment.data.taxation || 0) / 100;
-    yearlyDividendInterest = yearlyDividendInterest * (1 - taxationRate);
+  return applyTax(yearlyDividendInterest, taxation);
+};
+
+export const calculateYearlyCapitalGains = (investment: InvestmentDetails): number => {
+  const {
+    quantity = 0,
+    purchase_price = 0,
+    current_price,
+    taxation = 0,
+    purchase_date,
+    maturity_date,
+    type,
+  } = investment.data;
+
+  if (quantity === 0 || purchase_price === 0) return 0;
+
+  const currPrice = current_price ?? purchase_price;
+  const investedValue = quantity * purchase_price;
+
+  const currentDate = new Date();
+  const purchaseDate = new Date(purchase_date);
+
+  let yearsSincePurchase = (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+  // Floor at 0.1 years (~36 days)
+  yearsSincePurchase = Math.max(yearsSincePurchase, 0.1);
+
+  // Special handling for zero coupon bonds (no interest rate, has maturity)
+  if (type === 'bond' && !investment.data.interest_rate && maturity_date) {
+    const maturityDate = new Date(maturity_date);
+    const yearsToMaturity = (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+    if (yearsToMaturity > 0) {
+      // The total gain is face value minus invested
+      const faceValue = quantity * currPrice;  // assuming current_price is face value for zero coupon bonds
+      const totalGain = faceValue - investedValue;
+
+      // The realized gain so far is proportional to time elapsed since purchase:
+      const totalBondDuration = (maturityDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+      const realizedGain = totalGain * (yearsSincePurchase / totalBondDuration);
+
+      // Annualize the realized gain over time held
+      const yearlyCapitalGain = realizedGain / yearsSincePurchase;
+
+      return applyTax(yearlyCapitalGain > 0 ? yearlyCapitalGain : realizedGain, taxation);
+    }
   }
 
-  return yearlyDividendInterest;
-};
-
-// Calculate yearly capital gains (excluding dividends/interest)
-export const calculateYearlyCapitalGains = (investment: InvestmentDetails): number => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const currentPrice = investment.data.current_price || purchasePrice;
-
-  if (quantity === 0 || purchasePrice === 0) return 0;
-
-  const investedValue = quantity * purchasePrice;
-  const currentValue = quantity * currentPrice;
-
-  const currentDate = new Date();
-  const purchaseDate = new Date(investment.data.purchase_date);
-  const yearsSincePurchase = Math.max(1, (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
-
-  // Calculate yearly capital gains (price appreciation only)
+  // For other investment types or bonds without maturity date, use previous logic
+  const currentValue = quantity * currPrice;
   const totalCapitalGain = currentValue - investedValue;
+
   const yearlyCapitalGain = totalCapitalGain / yearsSincePurchase;
 
-  // Apply taxation to capital gains if they are positive
-  const taxationRate = (investment.data.taxation || 0) / 100;
-  const afterTaxYearlyCapitalGain = yearlyCapitalGain > 0 ? yearlyCapitalGain * (1 - taxationRate) : yearlyCapitalGain;
-
-  return afterTaxYearlyCapitalGain;
+  return applyTax(yearlyCapitalGain > 0 ? yearlyCapitalGain : totalCapitalGain, taxation);
 };
 
+/**
+ * Calculate current total value of the investment.
+ */
 export const calculateCurrentValue = (investment: InvestmentDetails): number => {
-  const quantity = investment.data.quantity || 0;
-  const currentPrice = investment.data.current_price || investment.data.purchase_price || 0;
+  const { quantity = 0, current_price, purchase_price = 0 } = investment.data;
+  const currPrice = current_price ?? purchase_price;
 
-  return quantity * currentPrice;
+  return quantity * currPrice;
 };
 
-// Calculate estimated yearly gain/loss using compound annual growth rate (CAGR) approach
+/**
+ * Calculate estimated yearly gain/loss after tax using CAGR for price appreciation plus income.
+ * Handles zero-coupon bonds with yield to maturity based on current date to maturity.
+ */
 export const calculateEstimatedYearlyGainLoss = (investment: InvestmentDetails): { absolute: number; percentage: number } => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const currentPrice = investment.data.current_price || purchasePrice;
+  const {
+    quantity = 0,
+    purchase_price = 0,
+    current_price,
+    interest_rate = 0,
+    dividend_yield = 0,
+    taxation = 0,
+    purchase_date,
+    maturity_date,
+    type,
+  } = investment.data;
 
-  if (quantity === 0 || purchasePrice === 0) return { absolute: 0, percentage: 0 };
+  if (quantity === 0 || purchase_price === 0) return { absolute: 0, percentage: 0 };
 
-  const investedValue = quantity * purchasePrice;
-  const currentValue = quantity * currentPrice;
+  const currPrice = current_price ?? purchase_price;
+  const investedValue = quantity * purchase_price;
+  const currentValue = quantity * currPrice;
 
   const currentDate = new Date();
-  const purchaseDate = new Date(investment.data.purchase_date);
-  const yearsSincePurchase = Math.max(1, (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)); // Minimum 1 year
+  const purchaseDate = new Date(purchase_date);
 
-  // Special handling for zero coupon bonds - use yield to maturity instead of current performance
-  if (investment.data.type === 'bond' && !investment.data.interest_rate && investment.data.maturity_date) {
-    const maturityDate = new Date(investment.data.maturity_date);
-    const yearsToMaturity = (maturityDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    
+  // Minimum floor of 0.1 years to avoid inflated returns during short holding periods
+  let yearsSincePurchase = (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  yearsSincePurchase = Math.max(yearsSincePurchase, 0.1);
+
+  // Handle zero-coupon bond YTM from current date to maturity date if no interest rate specified
+  if (type === 'bond' && !interest_rate && maturity_date) {
+    const maturityDate = new Date(maturity_date);
+    const yearsToMaturity = (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
     if (yearsToMaturity > 0) {
-      const yieldToMaturity = Math.pow(currentValue / investedValue, 1 / yearsToMaturity) - 1;
+      // Use face_value if available, otherwise current price as proxy for maturity value
+      const faceValue = quantity * currPrice;
+
+      const yieldToMaturity = Math.pow(faceValue / investedValue, 1 / yearsToMaturity) - 1;
       const annualCapitalGain = investedValue * yieldToMaturity;
-      
-      // Apply taxation to gains if they are positive
-      const taxationRate = (investment.data.taxation || 0) / 100;
-      const afterTaxYearlyGain = annualCapitalGain > 0 ? annualCapitalGain * (1 - taxationRate) : annualCapitalGain;
-      const afterTaxYearlyGainPercentage = (afterTaxYearlyGain / investedValue) * 100;
+
+      const afterTaxGain = applyTax(annualCapitalGain, taxation);
 
       return {
-        absolute: afterTaxYearlyGain,
-        percentage: afterTaxYearlyGainPercentage
+        absolute: afterTaxGain,
+        percentage: (afterTaxGain / investedValue) * 100,
       };
     }
   }
 
-  // Calculate compound annual growth rate (CAGR) for capital gains
-  const capitalGainCAGR = currentValue > 0 && investedValue > 0 
-    ? Math.pow(currentValue / investedValue, 1 / yearsSincePurchase) - 1
-    : 0;
+  // Calculate CAGR for capital gains
+  const capitalGainCAGR = currentValue > 0 && investedValue > 0
+      ? Math.pow(currentValue / investedValue, 1 / yearsSincePurchase) - 1
+      : 0;
 
-  // Calculate annual capital gain in absolute terms
   const annualCapitalGain = investedValue * capitalGainCAGR;
-
-  // Add any annual interest/dividend income
-  const interestRate = investment.data.interest_rate || 0;
-  const dividendYield = investment.data.dividend_yield || 0;
-  const annualIncome = investedValue * ((interestRate + dividendYield) / 100);
-
+  const annualIncome = investedValue * (((interest_rate || 0) + (dividend_yield || 0)) / 100);
   const totalYearlyGain = annualCapitalGain + annualIncome;
 
-  // Apply taxation to gains if they are positive
-  const taxationRate = (investment.data.taxation || 0) / 100;
-  const afterTaxYearlyGain = totalYearlyGain > 0 ? totalYearlyGain * (1 - taxationRate) : totalYearlyGain;
-  const afterTaxYearlyGainPercentage = (afterTaxYearlyGain / investedValue) * 100;
+  const afterTaxYearlyGain = applyTax(totalYearlyGain, taxation);
 
   return {
     absolute: afterTaxYearlyGain,
-    percentage: afterTaxYearlyGainPercentage
+    percentage: (afterTaxYearlyGain / investedValue) * 100,
   };
 };
 
-// Calculate CAGR (Compound Annual Growth Rate) for annualized returns
+/**
+ * Calculate CAGR (Compound Annual Growth Rate) for capital gains only.
+ * Caps values for very short holdings.
+ */
 export const calculateCAGR = (investment: InvestmentWithDecryptedData): number => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const currentPrice = investment.data.current_price || purchasePrice;
+  const {
+    quantity = 0,
+    purchase_price = 0,
+    current_price,
+    purchase_date,
+  } = investment.data;
 
-  if (quantity === 0 || purchasePrice === 0) return 0;
+  if (quantity === 0 || purchase_price === 0) return 0;
 
-  const initialValue = quantity * purchasePrice;
-  const currentValue = quantity * currentPrice;
+  const currPrice = current_price ?? purchase_price;
+  const initialValue = quantity * purchase_price;
+  const currentValue = quantity * currPrice;
 
-  const purchaseDate = new Date(investment.data.purchase_date);
+  const purchaseDate = new Date(purchase_date);
   const currentDate = new Date();
+
   const daysSincePurchase = (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
-  const yearsSincePurchase = daysSincePurchase / 365.25;
+  const yearsSincePurchase = Math.max(daysSincePurchase / 365.25, 0.1); // floor at 0.1 years
 
   if (currentValue <= 0 || initialValue <= 0) return 0;
 
-  // For very recent investments (less than 30 days), return simple return rate capped at reasonable bounds
+  // For very recent investments (< 30 days), use capped simple return
   if (daysSincePurchase < 30) {
     const simpleReturn = (currentValue - initialValue) / initialValue;
-    return Math.max(-0.5, Math.min(0.5, simpleReturn)); // Cap at ±50%
+    return Math.max(-0.5, Math.min(0.5, simpleReturn)); // cap at ±50%
   }
 
-  // For investments less than 1 year, use minimum of 3 months for calculation
-  const adjustedYears = Math.max(0.25, yearsSincePurchase);
+  // CAGR calculation
+  let cagr = Math.pow(currentValue / initialValue, 1 / yearsSincePurchase) - 1;
 
-  // CAGR = (Current Value / Invested Amount) ^ (1 / years) - 1
-  const cagr = Math.pow(currentValue / initialValue, 1 / adjustedYears) - 1;
-  
-  // Cap CAGR at reasonable bounds
-  return Math.max(-0.95, Math.min(10, cagr)); // Cap between -95% and 1000%
+  return Math.max(-0.95, Math.min(10, cagr)); // cap between -95% and 1000%
 };
 
-// Calculate expected yearly yield based on investment type
+/**
+ * Calculate expected yearly yield based on investment type and attributes.
+ * Yields are capped for reasonableness.
+ */
 export const calculateExpectedYearlyYield = (investment: InvestmentWithDecryptedData): number => {
-  const type = investment.data.type;
+  const {
+    type,
+    interest_rate = 0,
+    dividend_yield = 0,
+    purchase_price = 0,
+    current_price,
+    purchase_date,
+    maturity_date,
+    taxation = 0,
+  } = investment.data;
 
-  // For bonds, use stated interest rate or calculate yield to maturity for zero coupon bonds
   if (type === 'bond') {
-    const interestRate = investment.data.interest_rate || 0;
-    if (interestRate > 0) {
-      return interestRate;
+    if (interest_rate && interest_rate > 0) {
+      return interest_rate;
     }
-    
-    // For zero coupon bonds, use yield to maturity calculation
-    if (investment.data.maturity_date) {
-      const purchasePrice = investment.data.purchase_price || 0;
-      const faceValue = investment.data.current_price || purchasePrice;
-      const purchaseDate = new Date(investment.data.purchase_date);
-      const maturityDate = new Date(investment.data.maturity_date);
-      const yearsToMaturity = (maturityDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      
-      if (yearsToMaturity > 0 && purchasePrice > 0 && faceValue > 0) {
-        const yieldToMaturity = (Math.pow(faceValue / purchasePrice, 1 / yearsToMaturity) - 1) * 100;
-        return Math.max(0, Math.min(50, yieldToMaturity)); // Cap between 0% and 50%
+    if (maturity_date) {
+      const purchaseDate = new Date(purchase_date);
+      const maturityDate = new Date(maturity_date);
+      const currentDate = new Date();
+
+      const yearsToMaturity = (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      if (yearsToMaturity <= 0) return 0;
+
+      const purchasePrice = purchase_price;
+      const faceVal = (current_price ?? purchase_price);
+
+      if (purchasePrice > 0 && faceVal > 0) {
+        const yieldToMaturity = (Math.pow(faceVal / purchasePrice, 1 / yearsToMaturity) - 1) * 100;
+        const cappedYield = Math.max(0, Math.min(50, yieldToMaturity));
+        return applyTax(cappedYield, taxation);
       }
     }
-    
-    return 0; // Default for bonds without interest rate or maturity date
+    return 0;
   }
 
-  // For any investment with an interest rate, use it as the primary yield
-  const interestRate = investment.data.interest_rate || 0;
-  if (interestRate > 0) {
-    return interestRate;
+  if (interest_rate && interest_rate > 0) {
+    return applyTax(interest_rate, taxation);
   }
 
-  // For stocks and ETFs, use dividend yield if available, otherwise use historical performance
   if (['stock', 'etf'].includes(type)) {
-    const dividendYield = investment.data.dividend_yield || 0;
-    if (dividendYield > 0) {
-      return dividendYield;
+    if (dividend_yield && dividend_yield > 0) {
+      return applyTax(dividend_yield, taxation);
     }
 
-    // Fall back to historical CAGR
+    // fallback to historical CAGR scaled to percentage
     const cagr = calculateCAGR(investment);
-    return Math.max(-50, Math.min(50, cagr * 100)); // Cap between -50% and 50%
+    return Math.max(-50, Math.min(50, cagr * 100));
   }
 
-  // Default: use historical CAGR
-  const cagr = calculateCAGR(investment);
-  return Math.max(-50, Math.min(50, cagr * 100)); // Cap between -50% and 50%
+  // Default conservative estimate 5%
+  return 0.05 * 100; // as percentage with no tax here as fallback
 };
 
-// Enhanced function to calculate expected future value
+/**
+ * Calculate expected future value after given years, compounding expected yearly return.
+ */
 export const calculateExpectedFutureValue = (
     investment: InvestmentWithDecryptedData,
     yearsFromNow: number
 ): number => {
   const currentValue = calculateCurrentValue(investment);
-  const investmentType = investment.data.type;
+  if (currentValue <= 0 || yearsFromNow <= 0) return currentValue;
 
-  // Get historical performance to project future returns
-  const historicalROI = calculateIndividualROI(investment);
-
-  let expectedAnnualReturn: number;
-
-  switch (investmentType) {
-    case 'bond':
-      // For bonds, use the stated interest rate as expected return
-      expectedAnnualReturn = (investment.data.interest_rate || 0) / 100;
-      break;
-
-    case 'checkingAccount':
-    case 'savingsAccount':
-      // For accounts, use interest rate but account for inflation
-      const accountInterestRate = (investment.data.interest_rate || 0) / 100;
-      const inflationRate = 0.03; // Assume 3% inflation
-      expectedAnnualReturn = Math.max(0, accountInterestRate - inflationRate);
-      break;
-
-    case 'stock':
-    case 'etf':
-      // For stocks/ETFs, consider interest rate if specified, otherwise use historical performance
-      const stockInterestRate = (investment.data.interest_rate || 0) / 100;
-      if (stockInterestRate > 0) {
-        // If an interest rate is specified, use it as the primary return expectation
-        expectedAnnualReturn = stockInterestRate;
-      } else if (historicalROI !== null) {
-        // Use historical performance but moderate it (regression to mean)
-        const marketAverage = 0.10; // Assume 10% long-term market average
-        expectedAnnualReturn = (historicalROI * 0.7) + (marketAverage * 0.3);
-      } else {
-        expectedAnnualReturn = 0.10; // Default to market average
-      }
-      // Cap between -20% and 25% for reasonableness
-      expectedAnnualReturn = Math.max(-0.20, Math.min(0.25, expectedAnnualReturn));
-      break;
-
-    default:
-      // For any other investment type, use interest rate if specified
-      const defaultInterestRate = (investment.data.interest_rate || 0) / 100;
-      expectedAnnualReturn = defaultInterestRate > 0 ? defaultInterestRate : 0.05; // Conservative default
-  }
-
-  // Apply taxation to expected returns if positive
-  if (expectedAnnualReturn > 0) {
-    const taxationRate = (investment.data.taxation || 0) / 100;
-    expectedAnnualReturn = expectedAnnualReturn * (1 - taxationRate);
-  }
+  const expectedYieldPercentage = calculateExpectedYearlyYield(investment) || 0;
+  const expectedAnnualReturn = expectedYieldPercentage / 100;
 
   return currentValue * Math.pow(1 + expectedAnnualReturn, yearsFromNow);
 };
 
-// Calculate individual investment ROI
+/**
+ * Calculate individual investment ROI as annualized return.
+ */
 export const calculateIndividualROI = (investment: InvestmentWithDecryptedData): number | null => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
+  const {
+    quantity = 0,
+    purchase_price = 0,
+    current_price,
+    purchase_date,
+    maturity_date,
+    interest_rate = 0,
+    type,
+  } = investment.data;
 
-  if (quantity === 0 || purchasePrice === 0) return null;
+  if (quantity === 0 || purchase_price === 0) return null;
 
-  const initialValue = quantity * purchasePrice;
-  const currentValue = calculateCurrentValue(investment);
+  const currPrice = current_price ?? purchase_price;
+  const initialValue = quantity * purchase_price;
+  const currentValue = quantity * currPrice;
 
-  const purchaseDate = new Date(investment.data.purchase_date);
+  const purchaseDate = new Date(purchase_date);
   const currentDate = new Date();
-  const daysSincePurchase = Math.floor((currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  const daysSincePurchase = (currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
   const yearsSincePurchase = daysSincePurchase / 365.25;
 
-  // Special handling for bonds
-  if (investment.data.type === 'bond') {
-    // For zero coupon bonds, calculate yield to maturity if we have maturity date
-    const interestRate = investment.data.interest_rate || 0;
-
-    if (!interestRate && investment.data.maturity_date) {
-      const maturityDate = new Date(investment.data.maturity_date);
-      const totalDaysToMaturity = Math.floor((maturityDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      const yearsToMaturity = totalDaysToMaturity / 365.25;
-
+  if (type === 'bond') {
+    if (!interest_rate && maturity_date) {
+      const maturityDate = new Date(maturity_date);
+      const yearsToMaturity = (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
       if (yearsToMaturity > 0) {
-        // Use face value (current_price) as maturity value for zero coupon bonds
-        const faceValue = investment.data.current_price || purchasePrice;
-        const yieldToMaturity = Math.pow(faceValue / purchasePrice, 1 / yearsToMaturity) - 1;
-        // Cap yield to reasonable bounds
-        return Math.max(-0.5, Math.min(0.5, yieldToMaturity)); // Cap between -50% and 50%
+        const faceVal = quantity * currPrice;
+        const ytm = Math.pow(faceVal / initialValue, 1 / yearsToMaturity) - 1;
+        return Math.max(-0.5, Math.min(0.5, ytm));
       }
     }
-
-    // For regular bonds with interest rates, use the stated interest rate
-    if (interestRate) {
-      return interestRate / 100;
+    if (interest_rate) {
+      return interest_rate / 100;
     }
   }
 
-  // Special handling for any investment with an explicit interest rate
-  const interestRate = investment.data.interest_rate || 0;
-  if (interestRate > 0) {
-    return interestRate / 100;
+  if (interest_rate && interest_rate > 0) {
+    return interest_rate / 100;
   }
 
-  // Special handling for checking/savings accounts without interest rates
-  if (['checkingAccount', 'savingsAccount'].includes(investment.data.type) && !interestRate) {
-    const currentPrice = investment.data.current_price || purchasePrice;
-    if (currentPrice !== purchasePrice && yearsSincePurchase > 0) {
-      // Calculate based on balance growth
-      return Math.pow(currentPrice / purchasePrice, 1 / yearsSincePurchase) - 1;
+  if (['checkingAccount', 'savingsAccount'].includes(type) && !interest_rate) {
+    if (currPrice !== purchase_price && yearsSincePurchase > 0) {
+      return Math.pow(currPrice / purchase_price, 1 / yearsSincePurchase) - 1;
     }
-    // If no growth and no interest rate, assume minimal return (0.01% for liquidity)
     return 0.0001;
   }
 
-  // For stocks, ETFs, and other market investments
   if (yearsSincePurchase <= 0) {
-    // For same-day purchases, estimate based on current vs purchase price
-    const currentPrice = investment.data.current_price || purchasePrice;
-    if (currentPrice !== purchasePrice) {
-      // Assume this represents a reasonable annual expectation
-      const priceChange = (currentPrice - purchasePrice) / purchasePrice;
-      // Cap the annualized estimate for same-day investments
-      return Math.max(-0.5, Math.min(0.5, priceChange));
-    }
-    return null;
+    const priceChange = (currPrice - purchase_price) / purchase_price;
+    return Math.max(-0.5, Math.min(0.5, priceChange));
   }
 
-  // Use CAGR for annualized returns
   if (currentValue <= 0 || initialValue <= 0) return null;
 
   const annualizedReturn = Math.pow(currentValue / initialValue, 1 / yearsSincePurchase) - 1;
 
-  // Filter out extreme outliers but be more lenient for short-term holdings
-  const maxReturn = yearsSincePurchase < 0.25 ? 5.0 : 2.0; // 500% for < 3 months, 200% for longer
+  const maxReturn = yearsSincePurchase < 0.25 ? 5.0 : 2.0;
   if (Math.abs(annualizedReturn) > maxReturn) return null;
 
   return annualizedReturn;
 };
 
-// Calculate weighted average yearly ROI using CAGR
+/**
+ * Calculate portfolio weighted average CAGR based on individual investments.
+ */
 export const calculateYearlyROI = (investments: InvestmentWithDecryptedData[]): number => {
   if (!investments.length) return 0;
 
   let totalWeightedROI = 0;
   let totalInitialValue = 0;
-  let validInvestments = 0;
 
   for (const investment of investments) {
-    const quantity = investment.data.quantity || 0;
-    const purchasePrice = investment.data.purchase_price || 0;
+    const { quantity = 0, purchase_price = 0 } = investment.data;
 
-    if (quantity === 0 || purchasePrice === 0) continue;
+    if (quantity === 0 || purchase_price === 0) continue;
 
-    const initialValue = quantity * purchasePrice;
+    const initialValue = quantity * purchase_price;
     const cagr = calculateCAGR(investment);
 
-    // Filter out extreme outliers (beyond ±200% annually)
     if (Math.abs(cagr) > 2.0) continue;
 
     totalWeightedROI += cagr * initialValue;
     totalInitialValue += initialValue;
-    validInvestments++;
   }
 
-  // If no valid investments, return 0
-  if (validInvestments === 0 || totalInitialValue === 0) return 0;
+  if (totalInitialValue === 0) return 0;
 
   return totalWeightedROI / totalInitialValue;
 };
 
-// Simplified investment statistics calculation
+/**
+ * Calculate comprehensive investment statistics for a list of investments.
+ */
 export const calculateInvestmentStatistics = (investments: InvestmentWithDecryptedData[]): InvestmentStats => {
   if (!investments?.length) {
     return {
@@ -490,30 +487,30 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     };
   }
 
-  const totalInvested = investments.reduce((sum, inv) => {
-    return sum + (inv.data.quantity * inv.data.purchase_price);
-  }, 0);
+  const totalInvested = investments.reduce(
+      (sum, inv) => sum + ((inv.data.quantity || 0) * (inv.data.purchase_price || 0)),
+      0
+  );
 
-  // Calculate after-tax values by using individual investment calculations
   let totalAfterTaxValue = 0;
   let totalAfterTaxGainLoss = 0;
   let totalDividendsInterestEarned = 0;
 
   investments.forEach(inv => {
-    const individualReturns = calculateIndividualInvestmentReturns(inv);
-    totalAfterTaxValue += individualReturns.totalValue;
-    totalAfterTaxGainLoss += individualReturns.totalGainLoss;
-    totalDividendsInterestEarned += individualReturns.dividendsInterestEarned;
+    const returns = calculateIndividualInvestmentReturns(inv);
+    totalAfterTaxValue += returns.totalValue;
+    totalAfterTaxGainLoss += returns.totalGainLoss;
+    totalDividendsInterestEarned += returns.dividendsInterestEarned;
   });
 
   const totalGainLossPercentage = totalInvested > 0 ? (totalAfterTaxGainLoss / totalInvested) * 100 : 0;
 
-  // Calculate weighted average CAGR
+  // Weighted average CAGR
   let totalWeightedCAGR = 0;
   let totalWeight = 0;
 
   investments.forEach(inv => {
-    const invested = inv.data.quantity * inv.data.purchase_price;
+    const invested = (inv.data.quantity || 0) * (inv.data.purchase_price || 0);
     if (invested > 0) {
       const cagr = calculateCAGR(inv);
       totalWeightedCAGR += cagr * invested;
@@ -521,23 +518,22 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
     }
   });
 
-  // Calculate weighted average expected yearly yield using after-tax values
+  // Weighted average expected yield
   let totalWeightedYield = 0;
   investments.forEach(inv => {
-    const individualReturns = calculateIndividualInvestmentReturns(inv);
-    if (individualReturns.totalValue > 0) {
+    const returns = calculateIndividualInvestmentReturns(inv);
+    if (returns.totalValue > 0) {
       const expectedYield = calculateExpectedYearlyYield(inv);
-      // Apply taxation to expected yield if positive
-      const taxationRate = (inv.data.taxation || 0) / 100;
-      const afterTaxExpectedYield = expectedYield > 0 ? expectedYield * (1 - taxationRate) : expectedYield;
-      totalWeightedYield += afterTaxExpectedYield * individualReturns.totalValue;
+      const taxRate = (inv.data.taxation || 0) / 100;
+      const afterTaxExpectedYield = expectedYield > 0 ? expectedYield * (1 - taxRate) : expectedYield;
+      totalWeightedYield += afterTaxExpectedYield * returns.totalValue;
     }
   });
 
-  // Type breakdown using after-tax values
+  // Type breakdown by investment type
   const typeBreakdown: TypeBreakdown = investments.reduce((acc, inv) => {
     const type = inv.data.type || 'other';
-    const individualReturns = calculateIndividualInvestmentReturns(inv);
+    const returns = calculateIndividualInvestmentReturns(inv);
     const investedAmount = (inv.data.quantity || 0) * (inv.data.purchase_price || 0);
 
     if (!acc[type]) {
@@ -547,32 +543,32 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
         gainLoss: 0,
         estimatedYearlyGainLoss: 0,
         estimatedYearlyGainLossPercentage: 0,
-        investedValue: 0
+        investedValue: 0,
       };
     }
 
-    acc[type].value += individualReturns.totalValue;
+    acc[type].value += returns.totalValue;
     acc[type].count += 1;
-    acc[type].gainLoss += individualReturns.totalGainLoss;
-    acc[type].estimatedYearlyGainLoss += individualReturns.estimatedYearlyGainLoss;
-    acc[type].estimatedYearlyGainLossPercentage = acc[type].value > 0 ? (acc[type].estimatedYearlyGainLoss / acc[type].value) * 100 : 0;
+    acc[type].gainLoss += returns.totalGainLoss;
+    acc[type].estimatedYearlyGainLoss += returns.estimatedYearlyGainLoss;
+    acc[type].estimatedYearlyGainLossPercentage =
+        acc[type].value > 0 ? (acc[type].estimatedYearlyGainLoss / acc[type].value) * 100 : 0;
     acc[type].investedValue += investedAmount;
 
     return acc;
   }, {} as TypeBreakdown);
 
-  // Calculate dividends/interest earned percentage
   const dividendsInterestEarnedPercentage = totalInvested > 0 ? (totalDividendsInterestEarned / totalInvested) * 100 : 0;
 
-  // Calculate estimated yearly gain/loss using after-tax values
+  // Estimated yearly gain/loss computations
   let totalYearlyGain = 0;
   let totalWeightedYearlyPercentage = 0;
   let totalYearlyWeight = 0;
 
   investments.forEach(inv => {
-    const invested = inv.data.quantity * inv.data.purchase_price;
+    const invested = (inv.data.quantity || 0) * (inv.data.purchase_price || 0);
     if (invested > 0) {
-      const yearlyGain = calculateEstimatedYearlyGainLoss(inv); // Already after-tax
+      const yearlyGain = calculateEstimatedYearlyGainLoss(inv);
       totalYearlyGain += yearlyGain.absolute;
       totalWeightedYearlyPercentage += yearlyGain.percentage * invested;
       totalYearlyWeight += invested;
@@ -582,22 +578,19 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
   const estimatedYearlyGainLoss = totalYearlyGain;
   const estimatedYearlyGainLossPercentage = totalYearlyWeight > 0 ? totalWeightedYearlyPercentage / totalYearlyWeight : 0;
 
-  // Calculate projected value for 10 years using the estimated yearly gain/loss rate
   const yearlyGainLossRate = estimatedYearlyGainLossPercentage / 100;
   const projectedValue10Years = calculateProjectedValueWithComposition(totalAfterTaxValue, yearlyGainLossRate, 10);
 
-  // Calculate portfolio CAGR (Compound Annual Growth Rate)
   let portfolioCagr = 0;
-  if (totalInvested > 0 && totalWeightedCAGR > 0) {
-    portfolioCagr = totalWeightedCAGR / totalInvested;
+  if (totalInvested > 0 && totalWeight > 0) {
+    portfolioCagr = totalWeightedCAGR / totalWeight;
   }
 
-  // Calculate average estimated tax rate
   let avgTaxRate = 0;
   let totalTaxWeight = 0;
   investments.forEach(inv => {
     const invested = (inv.data.quantity || 0) * (inv.data.purchase_price || 0);
-    const taxRate = inv.data.taxation || 0; // Fixed: use taxation field instead of estimated_tax_rate
+    const taxRate = inv.data.taxation || 0;
     if (invested > 0) {
       avgTaxRate += taxRate * invested;
       totalTaxWeight += invested;
@@ -605,7 +598,6 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
   });
   const estimatedTaxRate = totalTaxWeight > 0 ? avgTaxRate / totalTaxWeight : 0;
 
-  // Calculate yearly dividend/interest and capital gains using the new separate functions
   let totalYearlyDividend = 0;
   let totalYearlyCapitalGains = 0;
   investments.forEach(inv => {
@@ -638,7 +630,9 @@ export const calculateInvestmentStatistics = (investments: InvestmentWithDecrypt
   };
 };
 
-// Additional utility function for portfolio analysis
+/**
+ * Provide projections for portfolio over different time horizons.
+ */
 export const getInvestmentProjections = (
     investments: InvestmentWithDecryptedData[],
     timeHorizons: number[] = [1, 3, 5, 10]
@@ -654,18 +648,21 @@ export const getInvestmentProjections = (
   return projections;
 };
 
-// Calculate projected value using yearly return composition
+/**
+ * Calculate projected value with compounding yearly ROI.
+ */
 export const calculateProjectedValueWithComposition = (
     currentValue: number,
     yearlyROI: number,
     years: number
 ): number => {
   if (currentValue <= 0 || years <= 0) return currentValue;
-
   return currentValue * Math.pow(1 + yearlyROI, years);
 };
 
-// Generate projection data for charts using yearly return composition
+/**
+ * Generate projection data points suitable for charts.
+ */
 export const generateProjectionData = (
     currentValue: number,
     yearlyROI: number,
@@ -683,11 +680,12 @@ export const generateProjectionData = (
   return data;
 };
 
-
+/**
+ * Calculate all returns (total value, gain/loss, dividends, yearly estimates) for a single investment.
+ */
 export const calculateIndividualInvestmentReturns = (investment: InvestmentDetails) => {
-  const quantity = investment.data.quantity || 0;
-  const purchasePrice = investment.data.purchase_price || 0;
-  const totalInvested = quantity * purchasePrice;
+  const { quantity = 0, purchase_price = 0, taxation = 0 } = investment.data;
+  const totalInvested = quantity * purchase_price;
 
   if (totalInvested === 0) {
     return {
@@ -698,35 +696,31 @@ export const calculateIndividualInvestmentReturns = (investment: InvestmentDetai
       dividendsInterestEarned: 0,
       dividendsInterestEarnedPercentage: 0,
       estimatedYearlyGainLoss: 0,
-      estimatedYearlyGainLossPercentage: 0
+      estimatedYearlyGainLossPercentage: 0,
     };
   }
 
   const currentValue = calculateCurrentValue(investment);
   const baseGainLoss = currentValue - totalInvested;
 
-  // Apply taxation to capital gains only if positive
-  const taxationRate = (investment.data.taxation || 0) / 100;
-  const afterTaxBaseGainLoss = baseGainLoss > 0 ? baseGainLoss * (1 - taxationRate) : baseGainLoss;
+  const afterTaxBaseGainLoss = baseGainLoss > 0 ? baseGainLoss * (1 - (taxation || 0) / 100) : baseGainLoss;
 
-  // dividendsInterestEarned already has taxation applied inside the function
   const dividendsInterestEarned = calculateDividendsInterestEarned(investment);
 
   const totalGainLoss = afterTaxBaseGainLoss + dividendsInterestEarned;
   const totalGainLossPercentage = (totalGainLoss / totalInvested) * 100;
   const dividendsInterestEarnedPercentage = (dividendsInterestEarned / totalInvested) * 100;
 
-  // estimatedYearlyGain already has taxation applied inside the function
   const estimatedYearlyGain = calculateEstimatedYearlyGainLoss(investment);
 
   return {
-    totalValue: totalInvested + totalGainLoss, // Invested amount + after-tax gains
+    totalValue: totalInvested + totalGainLoss,
     totalInvested,
     totalGainLoss,
     totalGainLossPercentage,
     dividendsInterestEarned,
     dividendsInterestEarnedPercentage,
     estimatedYearlyGainLoss: estimatedYearlyGain.absolute,
-    estimatedYearlyGainLossPercentage: estimatedYearlyGain.percentage
+    estimatedYearlyGainLossPercentage: estimatedYearlyGain.percentage,
   };
 };

@@ -568,7 +568,7 @@ export default function InvestmentStatisticsScreen() {
             </View>
 
             <View style={styles.advancedRow}>
-              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Est. Capital Gain</Text>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Est. Yearly Capital Gain</Text>
               <View style={styles.advancedValueContainer}>
                 <Text style={[styles.advancedValue, { color: investmentStats.yearlyCapitalGains >= 0 ? colors.success : colors.error }]}>
                   {investmentStats.yearlyCapitalGains >= 0 ? '+' : ''}{formatCurrency(investmentStats.yearlyCapitalGains, userProfile?.profile?.defaultCurrency)}
@@ -678,7 +678,7 @@ export default function InvestmentStatisticsScreen() {
             <View style={styles.performanceRow}>
               <Text style={[styles.performanceLabel, { color: colors.icon }]}>Annualized Return (CAGR)</Text>
               <Text style={[styles.performanceValue, { color: investmentStats.cagr >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.cagr >= 0 ? '+' : ''}{isFinite(investmentStats.cagr) ? investmentStats.cagr.toFixed(2) : '0.00'}%
+                {investmentStats.cagr >= 0 ? '+' : ''}{isFinite(investmentStats.cagr) ? (investmentStats.cagr * 100).toFixed(2) : '0.00'}%
               </Text>
             </View>
 
