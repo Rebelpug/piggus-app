@@ -16,7 +16,7 @@ import {useLocalSearchParams, useRouter} from 'expo-router';
 import {useInvestment} from '@/context/InvestmentContext';
 import {useProfile} from '@/context/ProfileContext';
 import {INVESTMENT_TYPES, InvestmentData} from '@/types/investment';
-import {apiLookupInvestmentBySymbol} from '@/services/investmentService';
+import {apiSearchSymbolsWithQuotes} from '@/services/investmentService';
 import {Ionicons} from '@expo/vector-icons';
 import {useColorScheme} from '@/hooks/useColorScheme';
 import {Colors} from '@/constants/Colors';
@@ -27,6 +27,7 @@ import {
     InvestmentStats
 } from '@/utils/financeUtils';
 import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
+import {SymbolSearchWithQuoteResult} from '@/types/portfolio';
 
 const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY'];
 
@@ -40,8 +41,10 @@ export default function AddInvestmentScreen() {
     const { t } = useLocalization();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isLookingUp, setIsLookingUp] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
     const [lookupError, setLookupError] = useState<string>('');
+    const [searchResults, setSearchResults] = useState<SymbolSearchWithQuoteResult[]>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
 
     // Get user's default currency and find its index
     const userDefaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
@@ -129,61 +132,58 @@ export default function AddInvestmentScreen() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSymbolLookup = async () => {
-        if (!formData.symbol.trim() || !formData.exchange_market.trim()) {
-            setLookupError('Please enter both symbol and exchange market');
+    const handleSymbolSearch = async () => {
+        if (!formData.symbol.trim()) {
+            setLookupError(t('addInvestment.enterSymbolToSearch', 'Please enter a symbol to search'));
             return;
         }
 
-        if (!selectedType?.id) {
-            setLookupError('Please select an investment type first');
-            return;
-        }
-
-        if (!selectedCurrency) {
-            setLookupError('Please select a currency first');
-            return;
-        }
-
-        setIsLookingUp(true);
+        setIsSearching(true);
         setLookupError('');
+        setSearchResults([]);
 
         try {
-            const response = await apiLookupInvestmentBySymbol(
-                formData.symbol.trim().toUpperCase(),
-                formData.exchange_market.trim().toUpperCase(),
-                INVESTMENT_TYPES[selectedTypeIndex.row].id || '',
-                currencies[selectedCurrencyIndex.row] || '',
-            );
+            const response = await apiSearchSymbolsWithQuotes(formData.symbol.trim().toUpperCase());
 
             if (response.success && response.data) {
-                if (!response.data) {
-                    setLookupError('No investment found for the given symbol');
+                if (!response.data || response.data.length === 0) {
+                    setLookupError(t('addInvestment.noInvestmentsFound', 'No investments found for the given symbol'));
                 } else {
-                    // Use the result to prefill the form
-                    const result = response.data;
-                    setFormData(prev => ({
-                        ...prev,
-                        name: result.name,
-                        symbol: result.symbol,
-                        current_price: result.price,
-                        purchase_price: result.price,
-                    }));
-
-                    Alert.alert(
-                        'Success',
-                        'Investment details have been automatically filled. Please review and adjust as needed.'
-                    );
+                    setSearchResults(response.data);
+                    setShowSearchResults(true);
                 }
             } else {
-                setLookupError(response.error || 'Failed to lookup investment');
+                setLookupError(response.error || t('addInvestment.failedToSearch', 'Failed to search for investments'));
             }
         } catch (error) {
-            console.error('Symbol lookup error:', error);
-            setLookupError('An unexpected error occurred during lookup');
+            console.error('Symbol search error:', error);
+            setLookupError(t('addInvestment.unexpectedSearchError', 'An unexpected error occurred during search'));
         } finally {
-            setIsLookingUp(false);
+            setIsSearching(false);
         }
+    };
+
+    const handleSelectSearchResult = (result: SymbolSearchWithQuoteResult) => {
+        const symbolData = result.symbolSearch;
+        const quoteData = result.quote;
+
+        setFormData(prev => ({
+            ...prev,
+            name: symbolData.name,
+            symbol: symbolData.symbol,
+            exchange_market: symbolData.region,
+            current_price: quoteData?.price || '',
+            purchase_price: quoteData?.price || '',
+            currency: symbolData.currency,
+        }));
+
+        // Update currency selection if it exists in our list
+        const currencyIndex = currencies.findIndex(c => c === symbolData.currency);
+        if (currencyIndex >= 0) {
+            setSelectedCurrencyIndex(new IndexPath(currencyIndex));
+        }
+
+        setShowSearchResults(false);
     };
 
     const handleSubmit = async () => {
@@ -351,6 +351,74 @@ export default function AddInvestmentScreen() {
                                 setLookupError('');
                             }}
                         />
+                        <Button
+                            style={[styles.input, styles.findButton]}
+                            size='medium'
+                            appearance='outline'
+                            onPress={handleSymbolSearch}
+                            disabled={isSearching || !formData.symbol.trim() || userProfile?.subscription?.subscription_tier !== 'premium'}
+                            accessoryLeft={isSearching ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
+                        >
+                            {isSearching ? t('addInvestment.searching') : userProfile?.subscription?.subscription_tier !== 'premium' ? `${t('addInvestment.findInvestment')} (Premium Feature)` : t('addInvestment.findInvestment')}
+                        </Button>
+
+                        <Text style={[styles.instructionText, { color: colors.icon }]}>
+                            {t('addInvestment.symbolLookupInstruction')}
+                        </Text>
+
+                        {lookupError && (
+                            <View style={[styles.errorAlert, { backgroundColor: colors.error + '15', borderColor: colors.error + '30' }]}>
+                                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                                <Text style={[styles.errorAlertText, { color: colors.error }]}>{lookupError}</Text>
+                            </View>
+                        )}
+
+                        {showSearchResults && searchResults.length > 0 && (
+                            <View style={[styles.searchResultsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
+                                    {t('addInvestment.searchResults', 'Search Results')} ({searchResults.length})
+                                </Text>
+                                <ScrollView style={styles.searchResultsList} nestedScrollEnabled={true}>
+                                    {searchResults.map((result, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
+                                            onPress={() => handleSelectSearchResult(result)}
+                                        >
+                                            <View style={styles.searchResultContent}>
+                                                <Text style={[styles.searchResultSymbol, { color: colors.text }]}>
+                                                    {result.symbolSearch.symbol}
+                                                </Text>
+                                                <Text style={[styles.searchResultName, { color: colors.text }]}>
+                                                    {result.symbolSearch.name}
+                                                </Text>
+                                                <View style={styles.searchResultDetails}>
+                                                    <Text style={[styles.searchResultDetail, { color: colors.icon }]}>
+                                                        {result.symbolSearch.region} | {result.symbolSearch.currency}
+                                                    </Text>
+                                                    {result.quote && (
+                                                        <Text style={[styles.searchResultPrice, { color: colors.text }]}>
+                                                            {result.quote.price} {result.symbolSearch.currency}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                                <Text style={[styles.searchResultSymbolCTA, { color: colors.primary }]}>
+                                                    Select
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                                <TouchableOpacity
+                                    style={styles.closeSearchResults}
+                                    onPress={() => setShowSearchResults(false)}
+                                >
+                                    <Text style={[styles.closeSearchResultsText, { color: colors.primary }]}>
+                                        {t('addInvestment.close', 'Close')}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
                         <Input
                             style={styles.input}
@@ -392,21 +460,6 @@ export default function AddInvestmentScreen() {
                             ))}
                         </Select>
 
-                        <Button
-                            style={[styles.input, styles.findButton]}
-                            size='medium'
-                            appearance='outline'
-                            onPress={handleSymbolLookup}
-                            disabled={isLookingUp || !formData.symbol.trim() || !formData.exchange_market.trim() || !selectedType?.id || !selectedCurrency || userProfile?.subscription?.subscription_tier !== 'premium'}
-                            accessoryLeft={isLookingUp ? () => <Spinner size='small' /> : () => <Ionicons name="search" size={20} color={colors.primary} />}
-                        >
-                            {isLookingUp ? t('addInvestment.searching') : userProfile?.subscription?.subscription_tier !== 'premium' ? `${t('addInvestment.findInvestment')} (Premium Feature)` : t('addInvestment.findInvestment')}
-                        </Button>
-
-                        <Text style={[styles.instructionText, { color: colors.icon }]}>
-                            {t('addInvestment.symbolLookupInstruction')}
-                        </Text>
-
                         <Input
                             style={styles.input}
                             label={t('addInvestment.isinCode')}
@@ -416,13 +469,6 @@ export default function AddInvestmentScreen() {
                                 setFormData(prev => ({ ...prev, isin: text }));
                             }}
                         />
-
-                        {lookupError && (
-                            <View style={[styles.errorAlert, { backgroundColor: colors.error + '15', borderColor: colors.error + '30' }]}>
-                                <Ionicons name="alert-circle" size={16} color={colors.error} />
-                                <Text style={[styles.errorAlertText, { color: colors.error }]}>{lookupError}</Text>
-                            </View>
-                        )}
 
                         <Select
                             style={styles.input}
@@ -673,6 +719,72 @@ const styles = StyleSheet.create({
     input: {
         marginBottom: 20,
         borderRadius: 12,
+    },
+    searchButton: {
+        marginBottom: 20,
+        borderRadius: 12,
+        height: 40,
+        width: '100%',
+    },
+    searchResultsContainer: {
+        marginTop: -10,
+        marginBottom: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+    },
+    searchResultsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E8E8E8',
+    },
+    searchResultsList: {
+        maxHeight: 200,
+    },
+    searchResultItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+    },
+    searchResultContent: {
+        flex: 1,
+    },
+    searchResultSymbol: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    searchResultName: {
+        fontSize: 12,
+        marginTop: 2,
+    },
+    searchResultDetails: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 4,
+    },
+    searchResultDetail: {
+        fontSize: 11,
+    },
+    searchResultPrice: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    searchResultSymbolCTA: {
+        marginTop: 4,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#4CAF50',
+    },
+    closeSearchResults: {
+        padding: 12,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#E8E8E8',
+    },
+    closeSearchResultsText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     submitButton: {
         marginHorizontal: 20,

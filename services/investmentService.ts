@@ -5,6 +5,7 @@ import { piggusApi } from '@/client/piggusApi';
 import {
   PortfolioData,
   PortfolioWithDecryptedData,
+  SymbolSearchWithQuoteResult
 } from '@/types/portfolio';
 import { InvestmentData, InvestmentWithDecryptedData, LookupSearchResult, InvestmentLookupResultV2 } from '@/types/investment';
 import { User } from '@supabase/supabase-js';
@@ -488,6 +489,30 @@ export const apiLookupInvestmentBySymbol = async (
     return {
       success: false,
       error: error.message || 'Failed to lookup investment by symbol',
+    };
+  }
+};
+
+export const apiSearchSymbolsWithQuotes = async (
+    symbol: string,
+): Promise<{ success: boolean; data?: SymbolSearchWithQuoteResult[]; error?: string }> => {
+  try {
+    if (!symbol) {
+      return {
+        success: false,
+        error: 'Missing required parameter: symbol',
+      };
+    }
+    const result = await piggusApi.searchSymbolsWithQuotes(symbol);
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error: any) {
+    console.error('Error searching symbols with quotes:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to search symbols with quotes',
     };
   }
 };

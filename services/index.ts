@@ -27,6 +27,7 @@ export {
   apiUpdatePortfolio,
   apiRemoveUserFromPortfolio,
   apiLookupInvestmentBySymbol,
+  apiSearchSymbolsWithQuotes,
 } from './investmentService';
 
 // Profile services
