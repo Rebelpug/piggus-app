@@ -4,6 +4,7 @@ export type Subscription = {
   id: string;
   user_id: string;
   subscription_tier: SubscriptionTier;
+  override_no_revenue_cat_checker: boolean;
   created_at: string;
   updated_at: string;
 };

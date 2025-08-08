@@ -203,8 +203,9 @@ export interface PiggusApi {
     getExpenseGroup: (groupId: string) => Promise<{ expenses: Expense[]; members: ExpenseGroupMembership[]; [key: string]: any }>;
     updateExpenseGroup: (groupId: string, data: { encryptedData: any }) => Promise<ExpenseGroup>;
     getExpensesForGroup: (groupId: string) => Promise<Expense[]>;
-    addExpense: (groupId: string, data: { expenseId: string; encryptedData: any }) => Promise<Expense>;
-    updateExpense: (groupId: string, expenseId: string, data: { encryptedData: any }) => Promise<Expense>;
+    getExpensesForGroupPaginated: (groupId: string, params: { page: number; limit: number; startDate?: string; endDate?: string }) => Promise<{ expenses: Expense[]; total: number; page: number; limit: number; totalPages: number }>;
+    addExpense: (groupId: string, data: { expenseId: string; encryptedData: any; created_at?: string }) => Promise<Expense>;
+    updateExpense: (groupId: string, expenseId: string, data: { encryptedData: any; created_at?: string }) => Promise<Expense>;
     deleteExpense: (groupId: string, expenseId: string) => Promise<{ success: boolean }>;
     inviteToExpenseGroup: (groupId: string, data: { username: string; encryptedGroupKey: string }) => Promise<ExpenseGroupMembership>;
     handleExpenseGroupInvite: (groupId: string, data: { accept: boolean }) => Promise<{ success: boolean }>;
@@ -255,7 +256,7 @@ export interface PiggusApi {
     disconnectBank: () => Promise<{ success: boolean }>;
 
     // Bulk Operations
-    bulkAddUpdateExpenses: (expenses: Expense[]) => Promise<Expense[]>;
+    bulkAddUpdateExpenses: (expenses: { id: string; encrypted_data: any; group_id: string; isNew?: boolean; created_at?: string }[]) => Promise<Expense[]>;
 
     // Subscription Methods
     getSubscription: () => Promise<Subscription>;
@@ -309,6 +310,24 @@ export const piggusApi: PiggusApi = {
     getExpensesForGroup: async (groupId: string) => {
         const httpClient = getHttpClient();
         const response = await httpClient.get(`${BASE_URL}/api/v1/expense-groups/${groupId}/expenses`);
+        return response.data;
+    },
+
+    getExpensesForGroupPaginated: async (groupId: string, params: { page: number; limit: number; startDate?: string; endDate?: string }) => {
+        const httpClient = getHttpClient();
+        const searchParams = new URLSearchParams({
+            page: params.page.toString(),
+            limit: params.limit.toString(),
+        });
+
+        if (params.startDate) {
+            searchParams.append('startDate', params.startDate);
+        }
+        if (params.endDate) {
+            searchParams.append('endDate', params.endDate);
+        }
+
+        const response = await httpClient.get(`${BASE_URL}/api/v1/expense-groups/${groupId}/expenses/paginated?${searchParams.toString()}`);
         return response.data;
     },
 
@@ -558,7 +577,7 @@ export const piggusApi: PiggusApi = {
     },
 
     // Bulk Operations
-    bulkAddUpdateExpenses: async (expenses: Expense[]) => {
+    bulkAddUpdateExpenses: async (expenses: { id: string; encrypted_data: any; group_id: string; isNew?: boolean; created_at?: string }[]) => {
         const httpClient = getHttpClient();
         const response = await httpClient.post(`${BASE_URL}/api/v1/expense-groups/bulk-expenses`, {
             expenses

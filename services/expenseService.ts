@@ -2,6 +2,7 @@ import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { Buffer } from 'buffer';
 import { piggusApi } from '@/client/piggusApi';
+import { createExpenseTimestamp } from '@/utils/dateUtils';
 import {
   ExpenseData,
   ExpenseGroupData,
@@ -14,6 +15,63 @@ import {
 import { User } from '@supabase/supabase-js';
 
 // Expense service functions that bridge the old client API with piggusApi
+
+export const apiFetchExpensesPaginated = async (
+    user: User,
+    groupId: string,
+    groupKey: string,
+    params: { page: number; limit: number; startDate?: string; endDate?: string },
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
+): Promise<{ success: boolean; data?: { expenses: ExpenseWithDecryptedData[]; total: number; page: number; limit: number; totalPages: number }; error?: string }> => {
+  try {
+    if (!user || !groupId || !groupKey || !decryptWithExternalEncryptionKey) {
+      console.error('User credentials or group information is invalid');
+      return {
+        success: false,
+        error: 'User credentials or group information is invalid',
+      };
+    }
+
+    const paginatedResult = await piggusApi.getExpensesForGroupPaginated(groupId, params);
+
+    if (!paginatedResult) {
+      return {
+        success: true,
+        data: {
+          expenses: [],
+          total: 0,
+          page: params.page,
+          limit: params.limit,
+          totalPages: 0,
+        },
+      };
+    }
+
+    const decryptedExpenses = await Promise.all(
+      paginatedResult.expenses.map(async expense => ({
+        ...expense,
+        data: await decryptWithExternalEncryptionKey(groupKey, expense.encrypted_data),
+      }))
+    );
+
+    return {
+      success: true,
+      data: {
+        expenses: decryptedExpenses,
+        total: paginatedResult.total,
+        page: paginatedResult.page,
+        limit: paginatedResult.limit,
+        totalPages: paginatedResult.totalPages,
+      },
+    };
+  } catch (error: any) {
+    console.error('Error fetching paginated expenses:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to load paginated expenses',
+    };
+  }
+};
 
 export const apiFetchExpenses = async (
     user: User,
@@ -180,9 +238,13 @@ export const apiAddExpense = async (
     const expenseId = uuidv4();
     const encryptedData = await encryptWithExternalEncryptionKey(groupKey, expenseData);
 
+    // Use the expense date with current time as created_at for backend filtering
+    const createdAt = createExpenseTimestamp(expenseData.date);
+
     const expense = await piggusApi.addExpense(groupId, {
       expenseId,
       encryptedData,
+      created_at: createdAt,
     });
 
     return {
@@ -219,8 +281,12 @@ export const apiUpdateExpense = async (
 
     const encryptedData = await encryptWithExternalEncryptionKey(groupKey, updatedExpense.data);
 
+    // Use the updated expense date with current time as created_at for backend filtering
+    const createdAt = createExpenseTimestamp(updatedExpense.data.date);
+
     const expense = await piggusApi.updateExpense(groupId, updatedExpense.id, {
       encryptedData,
+      created_at: createdAt,
     });
 
     return {
@@ -639,10 +705,12 @@ export const apiMoveExpense = async (
     // Then, add the expense to the new group with updated data
     const newExpenseId = uuidv4();
     const encryptedData = await encryptWithExternalEncryptionKey(toGroupKey, updatedExpenseData);
+    const createdAt = createExpenseTimestamp(updatedExpenseData.date);
 
     const newExpense = await piggusApi.addExpense(toGroupId, {
       expenseId: newExpenseId,
       encryptedData,
+      created_at: createdAt,
     });
 
     return {
@@ -677,20 +745,23 @@ export const apiBulkInsertAndUpdateExpenses = async (
     const encryptedExpenses = await Promise.all(expenses.map(async expense => {
       const expenseId = expense.id || uuidv4();
       const encryptedData = await encryptWithExternalEncryptionKey(expense.group_key, expense.data);
+      const createdAt = createExpenseTimestamp(expense.data.date);
       return {
         expenseId,
         encryptedData,
         originalData: expense.data,
         isNew: !expense.id,
         group_id: expense.group_id,
+        created_at: createdAt,
       };
     }));
 
-    const results = await piggusApi.bulkAddUpdateExpenses(encryptedExpenses.map(({expenseId, encryptedData, group_id, isNew}) => ({
+    const results = await piggusApi.bulkAddUpdateExpenses(encryptedExpenses.map(({expenseId, encryptedData, group_id, isNew, created_at}) => ({
       id: expenseId,
       encrypted_data: encryptedData,
       group_id,
-      isNew
+      isNew,
+      created_at
     })));
 
     const processedExpenses = results.map((result, index) => ({

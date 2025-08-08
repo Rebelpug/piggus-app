@@ -99,6 +99,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 return profile;
             }
 
+            if (profile.subscription?.override_no_revenue_cat_checker) {
+                return profile;
+            }
+
             // Initialize RevenueCat if not already done
             const apiKey = (Platform.OS === 'android'
                 ? process.env.EXPO_PUBLIC_REVENUE_CAT_GOOGLE_API_KEY
