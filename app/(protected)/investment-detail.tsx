@@ -354,16 +354,7 @@ export default function InvestmentDetailScreen() {
                             <Text style={[styles.detailValue, {
                                 color: returns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336'
                             }]}>
-                                {returns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(returns.estimatedYearlyGainLoss, investment.data.currency)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.detailRow}>
-                            <Text style={[styles.detailLabel, { color: colors.icon }]}>{t('investmentDetail.estimatedYearlyGainLossPercentage')}</Text>
-                            <Text style={[styles.detailValue, {
-                                color: returns.estimatedYearlyGainLoss >= 0 ? '#4CAF50' : '#F44336'
-                            }]}>
-                                {returns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{returns.estimatedYearlyGainLossPercentage.toFixed(2)}%
+                                {returns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(returns.estimatedYearlyGainLoss, investment.data.currency)} ({returns.estimatedYearlyGainLoss >= 0 ? '+' : ''}{returns.estimatedYearlyGainLossPercentage.toFixed(2)}%)
                             </Text>
                         </View>
 

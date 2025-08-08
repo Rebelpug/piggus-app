@@ -361,16 +361,17 @@ export default function InvestmentStatisticsScreen() {
     return calculateInvestmentStatistics(investments);
   }, [portfolios, selectedPortfolio]);
 
+  // Define colors for consistency across pie chart and legend
+  const typeColors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+  ];
+
   // Create pie chart data for investment types
   const typesPieData: PieChartData[] = useMemo(() => {
     if (!investmentStats?.typeBreakdown || investmentStats.totalValue === 0) {
       return [];
     }
-
-    const typeColors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-    ];
 
     return Object.entries(investmentStats.typeBreakdown)
       .map(([type, data], index) => {
@@ -440,16 +441,23 @@ export default function InvestmentStatisticsScreen() {
           </View>
         )}
 
-        {/* Overview Section */}
+        {/* Section 1: Overview - 4 Key Metrics */}
         <View style={styles.summarySection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.overview')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Overview</Text>
 
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: colors.text }]}>
+                {formatCurrency(investmentStats.totalInvested, userProfile?.profile.defaultCurrency)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>Invested Value</Text>
+            </View>
+
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.statValue, { color: colors.text }]}>
                 {formatCurrency(investmentStats.totalValue, userProfile?.profile.defaultCurrency)}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.currentValue')}</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>Current Value</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
@@ -457,9 +465,9 @@ export default function InvestmentStatisticsScreen() {
                 {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss, userProfile?.profile.defaultCurrency)}
               </Text>
               <Text style={[styles.statPercentage, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.totalGainLossPercentage >= 0 ? '+' : ''}{isFinite(investmentStats.totalGainLossPercentage) ? investmentStats.totalGainLossPercentage.toFixed(2) : '0.00'}%
+                {investmentStats.totalGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.totalGainLossPercentage) ? investmentStats.totalGainLossPercentage.toFixed(2) : '0.00'}%
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.totalReturn')}</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>Total Return</Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
@@ -469,56 +477,14 @@ export default function InvestmentStatisticsScreen() {
               <Text style={[styles.statPercentage, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
                 {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.estimatedYearlyGainLossPercentage) ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.estimatedYearlyGainLoss')}</Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statValue, { color: colors.success }]}>
-                {formatCurrency(investmentStats.dividendsInterestEarned, userProfile?.profile?.defaultCurrency)}
-              </Text>
-              <Text style={[styles.statPercentage, { color: colors.success }]}>
-                {isFinite(investmentStats.dividendsInterestEarnedPercentage) ? investmentStats.dividendsInterestEarnedPercentage.toFixed(2) : '0.00'}%
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>{t('investmentStatistics.dividendsInterestEarned')}</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>Estimated Yearly Return</Text>
             </View>
           </View>
         </View>
 
-        {/* Investment Types Distribution */}
+        {/* Section 2: 10-Year Projection */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.investmentTypes')}</Text>
-
-          {typesPieData.length > 0 && (
-            <View style={styles.pieChartSection}>
-              <CustomPieChart
-                data={typesPieData}
-                size={280}
-                colors={colors}
-              />
-
-              {/* Custom Legend */}
-              <View style={styles.pieChartLegend}>
-                {typesPieData.map((item, index) => (
-                  <View key={index} style={styles.legendItem}>
-                    <View
-                      style={[
-                        styles.legendColorBox,
-                        { backgroundColor: item.color }
-                      ]}
-                    />
-                    <Text style={[styles.legendText, { color: colors.text }]}>
-                      {item.label} ({isFinite(item.value) ? item.value.toFixed(1) : '0.0'}%)
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* 10-Year Projection */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.tenYearProjection')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>10-Year Projection</Text>
 
           <View style={[styles.projectionCard, { backgroundColor: colors.card }]}>
             <View style={styles.projectionHeader}>
@@ -531,40 +497,40 @@ export default function InvestmentStatisticsScreen() {
             </View>
 
             {projectionLineData.length > 0 && (
-              <View style={styles.projectionChartSection}>
-                <CustomLineChart
-                  data={projectionLineData}
-                  size={{ width: width - 80, height: 200 }}
-                  colors={colors}
-                />
+                <View style={styles.projectionChartSection}>
+                  <CustomLineChart
+                      data={projectionLineData}
+                      size={{ width: width - 80, height: 200 }}
+                      colors={colors}
+                  />
 
-                <View style={styles.projectionStats}>
-                  <View style={styles.projectionStatItem}>
-                    <Text style={[styles.projectionStatValue, { color: colors.success }]}>
-                      {formatCurrency(projectionLineData[0]?.value || 0, userProfile?.profile.defaultCurrency)}
-                    </Text>
-                    <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                      {t('investmentStatistics.currentValue')}
-                    </Text>
-                  </View>
-                  <View style={styles.projectionStatItem}>
-                    <Text style={[styles.projectionStatValue, { color: colors.primary }]}>
-                      {formatCurrency(projectionLineData[projectionLineData.length - 1]?.value || 0, userProfile?.profile.defaultCurrency)}
-                    </Text>
-                    <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                      {t('investmentStatistics.projectedTenYears')}
-                    </Text>
-                  </View>
-                  <View style={styles.projectionStatItem}>
-                    <Text style={[styles.projectionStatValue, { color: colors.warning }]}>
-                      {formatCurrency((projectionLineData[projectionLineData.length - 1]?.value || 0) - (projectionLineData[0]?.value || 0), userProfile?.profile.defaultCurrency)}
-                    </Text>
-                    <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                      {t('investmentStatistics.potentialGains')}
-                    </Text>
+                  <View style={styles.projectionStats}>
+                    <View style={styles.projectionStatItem}>
+                      <Text style={[styles.projectionStatValue, { color: colors.success }]}>
+                        {formatCurrency(projectionLineData[0]?.value || 0, userProfile?.profile.defaultCurrency)}
+                      </Text>
+                      <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
+                        {t('investmentStatistics.currentValue')}
+                      </Text>
+                    </View>
+                    <View style={styles.projectionStatItem}>
+                      <Text style={[styles.projectionStatValue, { color: colors.primary }]}>
+                        {formatCurrency(projectionLineData[projectionLineData.length - 1]?.value || 0, userProfile?.profile.defaultCurrency)}
+                      </Text>
+                      <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
+                        {t('investmentStatistics.projectedTenYears')}
+                      </Text>
+                    </View>
+                    <View style={styles.projectionStatItem}>
+                      <Text style={[styles.projectionStatValue, { color: colors.warning }]}>
+                        {formatCurrency((projectionLineData[projectionLineData.length - 1]?.value || 0) - (projectionLineData[0]?.value || 0), userProfile?.profile.defaultCurrency)}
+                      </Text>
+                      <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
+                        {t('investmentStatistics.potentialGains')}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
             )}
 
             <Text style={[styles.projectionDisclaimer, { color: colors.icon }]}>
@@ -573,13 +539,96 @@ export default function InvestmentStatisticsScreen() {
           </View>
         </View>
 
-        {/* Type Breakdown */}
+        {/* Section 5: Advanced Metrics */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('investmentStatistics.detailedBreakdown')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Earnings</Text>
+          <View style={[styles.advancedContainer, { backgroundColor: colors.card }]}>
+            <View style={styles.advancedRow}>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Yearly Estimated Return</Text>
+              <View style={styles.advancedValueContainer}>
+                <Text style={[styles.advancedValue, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
+                  {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.estimatedYearlyGainLoss, userProfile?.profile?.defaultCurrency)}
+                </Text>
+                <Text style={[styles.statPercentage, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
+                  ({investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.estimatedYearlyGainLossPercentage) ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%)
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.advancedRow}>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Est. Yearly Dividend/Interest</Text>
+              <View style={styles.advancedValueContainer}>
+                <Text style={[styles.advancedValue, { color: colors.success }]}>
+                  {formatCurrency(investmentStats.yearlyDividendInterest, userProfile?.profile?.defaultCurrency)}
+                </Text>
+                <Text style={[styles.advancedPercentage, { color: colors.success }]}>
+                  ({isFinite(investmentStats.yearlyDividendInterestPercentage) ? investmentStats.yearlyDividendInterestPercentage.toFixed(2) : '0.00'}%)
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.advancedRow}>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Est. Capital Gain</Text>
+              <View style={styles.advancedValueContainer}>
+                <Text style={[styles.advancedValue, { color: investmentStats.yearlyCapitalGains >= 0 ? colors.success : colors.error }]}>
+                  {investmentStats.yearlyCapitalGains >= 0 ? '+' : ''}{formatCurrency(investmentStats.yearlyCapitalGains, userProfile?.profile?.defaultCurrency)}
+                </Text>
+                <Text style={[styles.advancedPercentage, { color: investmentStats.yearlyCapitalGains >= 0 ? colors.success : colors.error }]}>
+                  ({isFinite(investmentStats.yearlyCapitalGainsPercentage) ? investmentStats.yearlyCapitalGainsPercentage.toFixed(2) : '0.00'}%)
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Section 3: Investment Distribution */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Distribution</Text>
+
+          {typesPieData.length > 0 && (
+            <View style={styles.pieChartSection}>
+              <CustomPieChart
+                data={typesPieData}
+                size={280}
+                colors={colors}
+              />
+
+              {/* Custom Legend with Absolute Values */}
+              <View style={styles.pieChartLegend}>
+                {Object.entries(investmentStats.typeBreakdown).map(([type, data], index) => {
+                  const typeInfo = investmentTypes.find(t => t.id === type);
+                  const percentage = investmentStats.totalValue > 0 ? (data.value / investmentStats.totalValue) * 100 : 0;
+                  const colorIndex = index % typeColors.length;
+
+                  if (percentage <= 0) return null;
+
+                  return (
+                    <View key={type} style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColorBox,
+                          { backgroundColor: typeColors[colorIndex] }
+                        ]}
+                      />
+                      <Text style={[styles.legendText, { color: colors.text }]}>
+                        {typeInfo?.icon || '📦'} {typeInfo?.name || type} {formatCurrency(data.value, userProfile?.profile.defaultCurrency)} ({percentage.toFixed(1)}%)
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Section 4: Distribution Breakdown */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Distribution Breakdown</Text>
           <View style={[styles.typeContainer, { backgroundColor: colors.card }]}>
           {Object.entries(investmentStats.typeBreakdown).map(([type, data]) => {
               const typeInfo = investmentTypes.find(t => t.id === type);
-              const percentage = investmentStats.totalValue > 0 ? (data.value / investmentStats.totalValue) * 100 : 0;
+              const investedPercentage = investmentStats.totalInvested > 0 ? (data.investedValue || 0) / investmentStats.totalInvested * 100 : 0;
+              const estimatedEarning = data.estimatedYearlyGainLoss || 0;
 
               return (
                 <View key={type} style={styles.typeItem}>
@@ -595,7 +644,7 @@ export default function InvestmentStatisticsScreen() {
                         {formatCurrency(data.value, userProfile?.profile.defaultCurrency)}
                       </Text>
                       <Text style={[styles.typePercentage, { color: colors.icon }]}>
-                        {isFinite(percentage) ? percentage.toFixed(1) : '0.0'}%
+                        {isFinite(investedPercentage) ? investedPercentage.toFixed(1) : '0.0'}%
                       </Text>
                     </View>
                   </View>
@@ -606,20 +655,39 @@ export default function InvestmentStatisticsScreen() {
                         style={[
                           styles.progressFill,
                           {
-                            width: `${getProgressWidth(data.value, maxTypeValue)}%`,
-                            backgroundColor: data.estimatedYearlyGainLossPercentage >= 0 ? colors.success : colors.error
+                            width: `${getProgressWidth(data.investedValue || 0, investmentStats.totalInvested)}%`,
+                            backgroundColor: colors.primary
                           }
                         ]}
                       />
                     </View>
                     <Text style={[styles.typeCount, { color: colors.icon }]}>
-
-                      {data.count} {t('investmentStatistics.investmentsCount')} • {data.estimatedYearlyGainLossPercentage >= 0 ? '+' : ''}{isFinite(data.estimatedYearlyGainLossPercentage) ? data.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
+                      Est. earning: {estimatedEarning >= 0 ? '+' : ''}{formatCurrency(estimatedEarning, userProfile?.profile.defaultCurrency)} • {data.estimatedYearlyGainLossPercentage >= 0 ? '+' : ''}{isFinite(data.estimatedYearlyGainLossPercentage) ? data.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
                     </Text>
                   </View>
                 </View>
               );
             })}
+          </View>
+        </View>
+
+        {/* Section 6: Performance Metrics */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance Metrics</Text>
+          <View style={[styles.performanceContainer, { backgroundColor: colors.card }]}>
+            <View style={styles.performanceRow}>
+              <Text style={[styles.performanceLabel, { color: colors.icon }]}>Annualized Return (CAGR)</Text>
+              <Text style={[styles.performanceValue, { color: investmentStats.cagr >= 0 ? colors.success : colors.error }]}>
+                {investmentStats.cagr >= 0 ? '+' : ''}{isFinite(investmentStats.cagr) ? investmentStats.cagr.toFixed(2) : '0.00'}%
+              </Text>
+            </View>
+
+            <View style={styles.performanceRow}>
+              <Text style={[styles.performanceLabel, { color: colors.icon }]}>Estimated Tax Rate</Text>
+              <Text style={[styles.performanceValue, { color: colors.warning }]}>
+                {isFinite(investmentStats.estimatedTaxRate) ? investmentStats.estimatedTaxRate.toFixed(2) : '0.00'}%
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -917,5 +985,51 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     borderRadius: 12,
+  },
+  advancedContainer: {
+    borderRadius: 16,
+    padding: 16,
+  },
+  advancedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  advancedLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  advancedValueContainer: {
+    alignItems: 'flex-end',
+  },
+  advancedValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  advancedPercentage: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  performanceContainer: {
+    borderRadius: 16,
+    padding: 16,
+  },
+  performanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  performanceLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  performanceValue: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
