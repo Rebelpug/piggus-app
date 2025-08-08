@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMemo, useState } from 'react';
-import { StyleSheet, ScrollView, View, Dimensions, TouchableOpacity } from 'react-native';
+import { StyleSheet, ScrollView, View, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Text, TopNavigation, TopNavigationAction, Button, Modal, Card, Layout } from '@ui-kitten/components';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -168,7 +168,7 @@ interface MonthlyStats {
   transactionCount: number;
 }
 
-type PeriodType = 'all' | 'year' | 'month';
+type PeriodType = 'year' | 'month';
 
 interface PeriodFilter {
   type: PeriodType;
@@ -189,8 +189,16 @@ export default function ExpenseStatisticsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme || 'light'];
   const { user } = useAuth();
-  const { expensesGroups } = useExpense();
+  const { expensesGroups, fetchExpensesForMonth } = useExpense();
   const { userProfile } = useProfile();
+
+  // Ensure current month data is loaded when component mounts
+  React.useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    fetchExpensesForMonth(currentYear, currentMonth);
+  }, [fetchExpensesForMonth]);
 
   const defaultCurrency = userProfile?.profile?.defaultCurrency || 'EUR';
 
@@ -200,12 +208,20 @@ export default function ExpenseStatisticsScreen() {
     [userProfile?.profile?.budgeting?.categoryOverrides]
   );
 
-  // Period filter state
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>({ type: 'all' });
+  // Period filter state - Default to current month
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>(() => {
+    const now = new Date();
+    return {
+      type: 'month',
+      year: now.getFullYear(),
+      month: now.getMonth()
+    };
+  });
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [filterStep, setFilterStep] = useState<'type' | 'year' | 'month'>('type');
   const [filterMode, setFilterMode] = useState<'year' | 'month'>('year');
+  const [loadingFilter, setLoadingFilter] = useState(false);
 
   // Get available years from expenses
   const availableYears = useMemo(() => {
@@ -260,7 +276,6 @@ export default function ExpenseStatisticsScreen() {
           return expenseYear === periodFilter.year;
         case 'month':
           return expenseYear === periodFilter.year && expenseMonth === periodFilter.month;
-        case 'all':
         default:
           return true;
       }
@@ -307,18 +322,8 @@ export default function ExpenseStatisticsScreen() {
         }
         return periodData;
       } else {
-        // Show last 6 months for 'all' filter
-        const last6Months = [];
-        for (let i = 5; i >= 0; i--) {
-          const date = new Date(currentYear, currentMonth - i, 1);
-          last6Months.push({
-            period: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-            periodKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-            totalAmount: 0,
-            transactionCount: 0
-          });
-        }
-        return last6Months;
+        // Default case - shouldn't happen since we removed 'all' option
+        return [];
       }
     };
 
@@ -567,9 +572,8 @@ export default function ExpenseStatisticsScreen() {
       case 'month':
         const monthName = months.find(m => m.value === periodFilter.month)?.label;
         return `${monthName} ${periodFilter.year}`;
-      case 'all':
       default:
-        return 'All Time';
+        return 'Unknown Period';
     }
   };
 
@@ -579,7 +583,6 @@ export default function ExpenseStatisticsScreen() {
         return 'Monthly Trend';
       case 'month':
         return 'Daily Trend';
-      case 'all':
       default:
         return 'Monthly Trend';
     }
@@ -591,7 +594,6 @@ export default function ExpenseStatisticsScreen() {
         return 'Avg Monthly';
       case 'month':
         return 'Avg Daily';
-      case 'all':
       default:
         return 'Avg Monthly';
     }
@@ -618,6 +620,14 @@ export default function ExpenseStatisticsScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {loadingFilter && (
+          <View style={[styles.loadingOverlay, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.primary }]}>
+              Loading expenses...
+            </Text>
+          </View>
+        )}
         {/* Period Filter */}
         <View style={styles.filterSection}>
           <TouchableOpacity
@@ -908,20 +918,7 @@ export default function ExpenseStatisticsScreen() {
 
           {filterStep === 'type' && (
             <View style={styles.filterOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.filterOption,
-                  { backgroundColor: colors.background, borderColor: colors.border },
-                  periodFilter.type === 'all' && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }
-                ]}
-                onPress={() => {
-                  setPeriodFilter({ type: 'all' });
-                  setFilterModalVisible(false);
-                  setFilterStep('type');
-                }}
-              >
-                <Text style={[styles.filterOptionText, { color: colors.text }]}>All Time</Text>
-              </TouchableOpacity>
+              {/* Removed All Time option */}
 
               <TouchableOpacity
                 style={[styles.filterOption, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -957,11 +954,25 @@ export default function ExpenseStatisticsScreen() {
                     { backgroundColor: colors.background, borderColor: colors.border },
                     periodFilter.type === 'year' && periodFilter.year === year && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }
                   ]}
-                  onPress={() => {
+                  onPress={async () => {
                     if (filterMode === 'year') {
-                      setPeriodFilter({ type: 'year', year });
-                      setFilterModalVisible(false);
-                      setFilterStep('type');
+                      setLoadingFilter(true);
+                      try {
+                        setPeriodFilter({ type: 'year', year });
+                        setFilterModalVisible(false);
+                        setFilterStep('type');
+                        
+                        console.log('🔄 Fetching all months for year:', year);
+                        // Fetch all months for this year
+                        for (let month = 1; month <= 12; month++) {
+                          await fetchExpensesForMonth(year, month);
+                        }
+                        console.log('✅ Finished fetching all months for year:', year);
+                      } catch (error) {
+                        console.error('❌ Error fetching year data:', error);
+                      } finally {
+                        setLoadingFilter(false);
+                      }
                     } else {
                       setSelectedYear(year);
                       setFilterStep('month');
@@ -985,11 +996,23 @@ export default function ExpenseStatisticsScreen() {
                     { backgroundColor: colors.background, borderColor: colors.border },
                     periodFilter.type === 'month' && periodFilter.year === selectedYear && periodFilter.month === month.value && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }
                   ]}
-                  onPress={() => {
-                    setPeriodFilter({ type: 'month', year: selectedYear, month: month.value });
-                    setFilterModalVisible(false);
-                    setFilterStep('type');
-                    setSelectedYear(null);
+                  onPress={async () => {
+                    setLoadingFilter(true);
+                    try {
+                      setPeriodFilter({ type: 'month', year: selectedYear, month: month.value });
+                      setFilterModalVisible(false);
+                      setFilterStep('type');
+                      setSelectedYear(null);
+                      
+                      console.log('🔄 Fetching specific month:', selectedYear, month.value + 1);
+                      // Fetch the specific month
+                      await fetchExpensesForMonth(selectedYear, month.value + 1); // month.value is 0-indexed
+                      console.log('✅ Finished fetching specific month:', selectedYear, month.value + 1);
+                    } catch (error) {
+                      console.error('❌ Error fetching month data:', error);
+                    } finally {
+                      setLoadingFilter(false);
+                    }
                   }}
                 >
                   <Text style={[styles.monthOptionText, { color: colors.text }]}>{month.label.substring(0, 3)}</Text>
@@ -1398,5 +1421,20 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  loadingOverlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+    flex: 1,
   },
 });

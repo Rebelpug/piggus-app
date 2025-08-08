@@ -13,7 +13,8 @@ import { useProfile } from '@/context/ProfileContext';
 // Use services instead of direct client imports
 import {
   apiCreateExpensesGroup,
-  apiFetchExpenses,
+  apiFetchExpenseGroupsOnly,
+  apiFetchExpensesPaginated,
   apiAddExpense,
   apiUpdateExpense,
   apiDeleteExpense,
@@ -42,6 +43,9 @@ interface ExpenseContextType {
   recurringExpenses: RecurringExpenseWithDecryptedData[];
   isLoading: boolean;
   error: string | null;
+  fetchExpensesForMonth: (year: number, month: number, forceRefresh?: boolean) => Promise<void>;
+  cachedMonths: Set<string>;
+  clearMonthCache: (year?: number, month?: number) => void;
   addExpense: (groupId: string, expense: ExpenseData) => Promise<ExpenseWithDecryptedData | null>;
   updateExpense: (
       groupId: string,
@@ -113,8 +117,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpenseWithDecryptedData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cachedMonths, setCachedMonths] = useState<Set<string>>(new Set());
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpensesForCurrentMonth = useCallback(async () => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
         console.error('User or private key not found, or encryption not initialized');
@@ -126,10 +131,64 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      // Fetch regular expenses
-      const result = await apiFetchExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
+      // Fetch group structure first (without any expenses)
+      const result = await apiFetchExpenseGroupsOnly(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
       if (result.success && result.data) {
-        setExpensesGroups(result.data);
+        // Fetch current month expenses for each group
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+        
+        console.log('📅 Loading current month expenses:', currentYear, currentMonth);
+        
+        // Calculate start and end dates for current month
+        const startDate = new Date(currentYear, currentMonth - 1, 1);
+        const endDate = new Date(currentYear, currentMonth, 0);
+        const startDateString = startDate.toISOString().split('T')[0];
+        const endDateString = endDate.toISOString().split('T')[0];
+
+        // Fetch current month expenses for each group
+        const groupsWithCurrentMonthExpenses = await Promise.all(
+          result.data.map(async (group) => {
+            try {
+              const paginatedResult = await apiFetchExpensesPaginated(
+                user,
+                group.id,
+                group.encrypted_key,
+                {
+                  page: 1,
+                  limit: 1000,
+                  startDate: startDateString,
+                  endDate: endDateString
+                },
+                decryptWithExternalEncryptionKey
+              );
+
+              if (paginatedResult.success && paginatedResult.data) {
+                return {
+                  ...group,
+                  expenses: paginatedResult.data.expenses.sort(
+                    (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+                  )
+                };
+              }
+              return {
+                ...group,
+                expenses: []
+              };
+            } catch (error) {
+              console.error(`Error fetching current month expenses for group ${group.id}:`, error);
+              return {
+                ...group,
+                expenses: []
+              };
+            }
+          })
+        );
+        
+        setExpensesGroups(groupsWithCurrentMonthExpenses);
+        setCachedMonths(prev => new Set(prev).add(monthKey));
 
         // Fetch recurring expenses
         const recurringResult = await apiFetchRecurringExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
@@ -194,6 +253,135 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       return;
     }
   }, [user, isEncryptionInitialized, userProfile, decryptWithPrivateKey, decryptWithExternalEncryptionKey]);
+
+  const clearMonthCache = useCallback((year?: number, month?: number) => {
+    setCachedMonths(prev => {
+      const newSet = new Set(prev);
+      if (year && month) {
+        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+        newSet.delete(monthKey);
+        console.log('🗑️ Cleared cache for month:', monthKey);
+      } else {
+        newSet.clear();
+        console.log('🗑️ Cleared entire month cache');
+      }
+      console.log('🗑️ Remaining cached months:', Array.from(newSet));
+      return newSet;
+    });
+  }, []);
+
+  const fetchExpensesForMonth = useCallback(async (year: number, month: number, forceRefresh = false) => {
+    return new Promise<void>((resolve, reject) => {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      
+      console.log('🔄 fetchExpensesForMonth called for:', year, month);
+      
+      if (!user || !isEncryptionInitialized) {
+        console.log('❌ User or encryption not ready');
+        resolve();
+        return;
+      }
+
+      console.log('🔄 Month key:', monthKey);
+      
+      // Check cached months using functional update
+      setCachedMonths(prevCached => {
+        if (!forceRefresh && prevCached.has(monthKey)) {
+          console.log('✅ Month already cached:', monthKey);
+          resolve();
+          return prevCached;
+        }
+        
+        if (forceRefresh) {
+          console.log('🔄 Force refreshing month:', monthKey);
+        }
+
+        // Calculate start and end dates for the month
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+        const startDateString = startDate.toISOString().split('T')[0];
+        const endDateString = endDate.toISOString().split('T')[0];
+        
+        console.log('🔄 Fetching month date range:', startDateString, 'to', endDateString);
+
+        // Access current groups and fetch month data
+        setExpensesGroups(currentGroups => {
+          console.log('🔄 Current groups count:', currentGroups.length);
+          
+          // Perform async fetch and update groups
+          (async () => {
+            try {
+              const updatedGroups = await Promise.all(
+                currentGroups.map(async (group) => {
+                  try {
+                    console.log('🔄 Fetching for group:', group.id, group.data?.name);
+                    
+                    const paginatedResult = await apiFetchExpensesPaginated(
+                      user,
+                      group.id,
+                      group.encrypted_key,
+                      {
+                        page: 1,
+                        limit: 1000,
+                        startDate: startDateString,
+                        endDate: endDateString
+                      },
+                      decryptWithExternalEncryptionKey
+                    );
+
+                    console.log('🔄 Paginated result for group', group.id, ':', paginatedResult?.success, paginatedResult?.data?.expenses?.length || 0, 'expenses');
+
+                    if (paginatedResult.success && paginatedResult.data) {
+                      // Add new month expenses to existing expenses, avoiding duplicates
+                      const existingExpenseIds = new Set(group.expenses.map(exp => exp.id));
+                      const newMonthExpenses = paginatedResult.data.expenses.filter(
+                        exp => !existingExpenseIds.has(exp.id)
+                      );
+
+                      console.log('🔄 Group', group.id, '- Adding', newMonthExpenses.length, 'new expenses for month', monthKey);
+
+                      return {
+                        ...group,
+                        expenses: [...group.expenses, ...newMonthExpenses].sort(
+                          (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+                        )
+                      };
+                    }
+
+                    console.log('🔄 No expenses found for group', group.id, 'in month', monthKey);
+                    return group;
+                  } catch (error) {
+                    console.error(`❌ Error fetching expenses for group ${group.id}:`, error);
+                    return group;
+                  }
+                })
+              );
+
+              console.log('🔄 Updated groups for month', monthKey, '. Total expenses per group:', updatedGroups.map(g => ({ id: g.id, name: g.data?.name, count: g.expenses.length })));
+              
+              // Update groups state with fetched data
+              setExpensesGroups(updatedGroups);
+              
+              console.log('✅ Successfully fetched expenses for month:', monthKey);
+              resolve();
+            } catch (error) {
+              console.error('❌ Error fetching expenses for month:', error);
+              reject(error);
+            }
+          })();
+          
+          // Return current groups for now (they'll be updated asynchronously)
+          return currentGroups;
+        });
+
+        // Add to cached months
+        const newSet = new Set(prevCached);
+        newSet.add(monthKey);
+        console.log('🔄 Updated cached months:', Array.from(newSet));
+        return newSet;
+      });
+    });
+  }, [user, isEncryptionInitialized, decryptWithExternalEncryptionKey]);
 
   const createExpensesGroup = async (groupData: ExpenseGroupData) => {
     try {
@@ -363,7 +551,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       if (result.success) {
         // Refresh the groups list to get the updated members
-        await fetchExpenses();
+        await fetchExpensesForCurrentMonth();
       }
 
       return result;
@@ -1148,10 +1336,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (isEncryptionInitialized) {
-      fetchExpenses().catch(error => console.error('Failed to fetch expenses:', error));
+    if (isEncryptionInitialized && user && userProfile) {
+      fetchExpensesForCurrentMonth().catch(error => console.error('Failed to fetch expenses:', error));
     }
-  }, [user, userProfile, fetchExpenses, isEncryptionInitialized]);
+  }, [user?.id, userProfile?.id, isEncryptionInitialized]); // Only re-run when user/profile/encryption changes, not when fetchExpensesForCurrentMonth changes
 
   return (
       <ExpenseContext.Provider
@@ -1178,6 +1366,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             bulkUpdateExpenses,
             moveExpense,
             syncBankTransactions,
+            fetchExpensesForMonth,
+            cachedMonths,
+            clearMonthCache,
           }}
       >
         {children}

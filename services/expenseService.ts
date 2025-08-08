@@ -73,6 +73,78 @@ export const apiFetchExpensesPaginated = async (
   }
 };
 
+export const apiFetchExpenseGroupsOnly = async (
+    user: User,
+    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
+): Promise<{ success: boolean; data?: ExpenseGroupWithDecryptedData[]; error?: string }> => {
+  try {
+    if (!user || !decryptWithExternalEncryptionKey || !decryptWithPrivateKey) {
+      console.error('User credentials are invalid');
+      return {
+        success: false,
+        error: 'User credentials are invalid',
+      };
+    }
+
+    const memberships = await piggusApi.getExpenseGroups();
+
+    if (!memberships) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    const decryptedGroups = await Promise.all(
+        memberships.map(async membership => {
+          try {
+            const group = membership.expenses_groups;
+            // Decrypt the group key with the user's private key
+            const decryptedGroupKey = await decryptWithPrivateKey(membership.encrypted_group_key);
+            // Ensure the decrypted key is a string (base64)
+            const groupKeyString = typeof decryptedGroupKey === 'string' ? decryptedGroupKey : JSON.stringify(decryptedGroupKey);
+            // Validate that this looks like a base64 string
+            if (!/^[A-Za-z0-9+/]*={0,2}$/.test(groupKeyString)) {
+              console.error('Decrypted group key does not appear to be valid base64:', groupKeyString.substring(0, 50));
+              throw new Error('Invalid group key format');
+            }
+            // Now decrypt the group data using the decrypted group key
+            const decryptedExpenseGroupData = await decryptWithExternalEncryptionKey(groupKeyString, group.encrypted_data);
+
+            return {
+              id: group.id,
+              data: decryptedExpenseGroupData,
+              expenses: [], // Start with empty expenses array - will be filled by pagination
+              members: [{
+                ...membership,
+                username: membership.username || ''
+              }], // Start with just the current user's membership, full members can be loaded later if needed
+              membership_status: membership.status,
+              encrypted_key: groupKeyString,
+              created_at: group.created_at,
+              updated_at: group.updated_at,
+            } as ExpenseGroupWithDecryptedData;
+          } catch (error: any) {
+            console.error('Error decrypting group:', error);
+            throw error;
+          }
+        })
+    );
+
+    return {
+      success: true,
+      data: decryptedGroups,
+    };
+  } catch (error: any) {
+    console.error('Error fetching expense groups:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to load expense groups',
+    };
+  }
+};
+
 export const apiFetchExpenses = async (
     user: User,
     decryptWithPrivateKey: (encryptedData: string) => Promise<any>,

@@ -2,7 +2,9 @@
 
 // Expense services
 export {
-  apiFetchExpenses,
+  apiFetchExpenses, // Keep for backward compatibility if needed elsewhere
+  apiFetchExpenseGroupsOnly,
+  apiFetchExpensesPaginated,
   apiCreateExpensesGroup,
   apiAddExpense,
   apiUpdateExpense,

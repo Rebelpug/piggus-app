@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, ScrollView } from 'react-native';
+import { StyleSheet, RefreshControl, Alert, TouchableOpacity, View, FlatList, ScrollView, ActivityIndicator } from 'react-native';
 import {
     Layout,
     Text,
@@ -36,13 +36,14 @@ export default function ExpensesScreen() {
     const colors = Colors[colorScheme ?? 'light'];
     const { t } = useLocalization();
     const { user } = useAuth();
-    const { expensesGroups, recurringExpenses, syncBankTransactions, isLoading, error } = useExpense();
+    const { expensesGroups, recurringExpenses, syncBankTransactions, isLoading, error, fetchExpensesForMonth, clearMonthCache, cachedMonths } = useExpense();
     const { userProfile } = useProfile();
     const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [selectedMonth, setSelectedMonth] = useState<string>('current'); // 'current' for default 3-month view, or specific month like '2025-05'
     const [showBankWizard, setShowBankWizard] = useState(false);
+    const [loadingMonth, setLoadingMonth] = useState<string | null>(null);
 
     // Generate last 12 months for selector
     const monthOptions = React.useMemo(() => {
@@ -73,7 +74,7 @@ export default function ExpensesScreen() {
         }
 
         return months;
-    }, []);
+    }, [t]);
 
     // Flatten all expenses from all groups with error handling
     const allExpenses: (ExpenseWithDecryptedData & { groupName?: string })[] = React.useMemo(() => {
@@ -117,13 +118,16 @@ export default function ExpensesScreen() {
     // Filter expenses based on selected month
     const filteredExpenses = React.useMemo(() => {
         if (selectedMonth === 'current') {
-            // Show last 3 months
+            // Show only current month
             const now = new Date();
-            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
 
             return allExpenses.filter(expense => {
                 const expenseDate = new Date(expense.data.date);
-                return expenseDate >= threeMonthsAgo;
+                const expenseYear = expenseDate.getFullYear();
+                const expenseMonth = expenseDate.getMonth() + 1;
+                return expenseYear === currentYear && expenseMonth === currentMonth;
             });
         } else {
             // Show specific month
@@ -131,7 +135,9 @@ export default function ExpensesScreen() {
 
             return allExpenses.filter(expense => {
                 const expenseDate = new Date(expense.data.date);
-                return expenseDate.getFullYear() === year && expenseDate.getMonth() + 1 === month;
+                const expenseYear = expenseDate.getFullYear();
+                const expenseMonth = expenseDate.getMonth() + 1;
+                return expenseYear === year && expenseMonth === month;
             });
         }
     }, [allExpenses, selectedMonth]);
@@ -275,7 +281,29 @@ export default function ExpensesScreen() {
                                 borderColor: colors.border
                             }
                         ]}
-                        onPress={() => setSelectedMonth(month.value)}
+                        disabled={loadingMonth !== null}
+                        onPress={async () => {
+                            console.log('🔄 Month selector clicked:', month.value);
+                            
+                            // Show loading state and switch month immediately
+                            setSelectedMonth(month.value);
+                            setLoadingMonth(month.value);
+                            
+                            try {
+                                // If not current month, fetch the specific month
+                                if (month.value !== 'current') {
+                                    const [year, monthNum] = month.value.split('-').map(Number);
+                                    console.log('🔄 Fetching expenses for month:', year, monthNum);
+                                    
+                                    await fetchExpensesForMonth(year, monthNum);
+                                    console.log('✅ Finished fetching expenses for month:', year, monthNum);
+                                }
+                            } catch (error) {
+                                console.error('❌ Error fetching month expenses:', error);
+                            } finally {
+                                setLoadingMonth(null);
+                            }
+                        }}
                     >
                         <Text style={[
                             styles.monthOptionText,
@@ -506,6 +534,14 @@ export default function ExpensesScreen() {
 
     const renderExpensesTab = () => (
         <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
+            {loadingMonth !== null && (
+                <View style={[styles.monthLoadingOverlay, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.monthLoadingText, { color: colors.primary }]}>
+                        Loading expenses...
+                    </Text>
+                </View>
+            )}
             {filteredExpenses.length === 0 ? (
                 renderExpensesEmptyState()
             ) : (
@@ -715,6 +751,27 @@ const styles = StyleSheet.create({
     },
     monthOptionText: {
         fontSize: 14,
+    },
+    monthLoadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    monthLoadingOverlay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        marginHorizontal: 16,
+        marginTop: 8,
+        marginBottom: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    monthLoadingText: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 8,
+        flex: 1,
     },
     bankBanner: {
         marginHorizontal: 4,
