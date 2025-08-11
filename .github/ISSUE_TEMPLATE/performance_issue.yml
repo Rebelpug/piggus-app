@@ -1,0 +1,234 @@
+name: 🚀 Performance Issue
+description: Report performance problems like slow loading, crashes, or memory issues
+title: "[Performance]: "
+labels: ["performance", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a performance issue! This helps us keep Piggus fast and efficient.
+        
+        **Before submitting:** Please ensure you're using the latest version and check if others have reported similar issues.
+
+  - type: textarea
+    id: performance-issue
+    attributes:
+      label: 🐌 Performance Issue Description
+      description: Describe the performance problem you're experiencing
+      placeholder: |
+        Example: "The expense list takes 10+ seconds to load with 500+ expenses"
+        Example: "App crashes when uploading large images"
+        Example: "High memory usage causing app to be killed by OS"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: 📊 Issue Type
+      description: What type of performance issue is this?
+      options:
+        - Slow loading/rendering
+        - App crashes/freezes
+        - High memory usage
+        - High CPU usage
+        - Battery drain
+        - Network performance
+        - Animation/scroll stuttering
+        - Build/startup time
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-screens
+    attributes:
+      label: 📱 Affected Screens/Features
+      description: Which screens or features are affected?
+      multiple: true
+      options:
+        - Login/Registration
+        - Dashboard/Home
+        - Expense List/Tracking
+        - Investment Portfolio
+        - Statistics/Reports
+        - Group Expenses
+        - Profile/Settings
+        - All screens
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: Detailed steps to reproduce the performance issue
+      placeholder: |
+        1. Navigate to expenses screen
+        2. Add 100+ expenses
+        3. Scroll through the list
+        4. Notice stuttering/lag
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-performance
+    attributes:
+      label: ✅ Expected Performance
+      description: What performance did you expect?
+      placeholder: "Screen should load within 2 seconds, scrolling should be smooth"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-performance
+    attributes:
+      label: ❌ Actual Performance
+      description: What performance are you experiencing?
+      placeholder: "Screen takes 15+ seconds to load, scrolling is very choppy"
+    validations:
+      required: true
+
+  - type: input
+    id: data-size
+    attributes:
+      label: 📊 Data Size
+      description: How much data is involved? (number of expenses, images, etc.)
+      placeholder: "500 expenses, 50MB of images, 10 investment accounts"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 🔄 Frequency
+      description: How often does this performance issue occur?
+      options:
+        - Always (100%)
+        - Very often (80-99%)
+        - Often (50-79%)
+        - Sometimes (20-49%)
+        - Rarely (1-19%)
+        - Only once
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 📱 Platform
+      description: Which platform(s) are affected?
+      multiple: true
+      options:
+        - iOS
+        - Android
+        - Web
+        - Expo Go
+        - Development Build
+    validations:
+      required: true
+
+  - type: input
+    id: device-specs
+    attributes:
+      label: 📱 Device Specifications
+      description: Device model, RAM, storage, OS version
+      placeholder: "iPhone 12 Pro, 6GB RAM, iOS 17.0 / Samsung Galaxy S21, 8GB RAM, Android 13"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: 🔢 App Version
+      description: Version of Piggus you're using
+      placeholder: "1.7.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: performance-metrics
+    attributes:
+      label: 📈 Performance Metrics
+      description: Any specific performance data you can provide
+      placeholder: |
+        - Load time: 15 seconds
+        - Memory usage: 500MB
+        - CPU usage: 80%
+        - FPS during animations: 10-15fps
+        - Bundle size: 50MB
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: device-state
+    attributes:
+      label: 🔋 Device State
+      description: Device conditions when the issue occurs
+      placeholder: |
+        - Battery level: Low/Medium/High
+        - Available storage: 5GB free
+        - Background apps: Many/Few
+        - Network connection: WiFi/4G/5G
+        - Device temperature: Normal/Warm
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs-profiles
+    attributes:
+      label: 📋 Logs & Profiling Data
+      description: Performance logs, crash reports, or profiling data
+      placeholder: |
+        Please attach:
+        - Expo CLI performance logs
+        - Device performance profiles
+        - Crash logs
+        - Memory snapshots
+        - Network timing data
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: comparison
+    attributes:
+      label: 📊 Performance Comparison
+      description: How does performance compare across different conditions?
+      placeholder: |
+        - Works fine with <100 expenses, slow with >100 expenses
+        - Faster on iOS than Android
+        - Better performance on newer devices
+        - Worse on low-end devices
+    validations:
+      required: false
+
+  - type: textarea
+    id: workarounds
+    attributes:
+      label: 🛠️ Workarounds
+      description: Any workarounds you've found that improve performance
+      placeholder: |
+        - Restarting the app helps temporarily
+        - Clearing data improves performance
+        - Using smaller images works better
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      description: Please confirm the following
+      options:
+        - label: I have tested this on the latest version of the app
+          required: true
+        - label: I have checked if this issue affects multiple devices/platforms
+          required: false
+        - label: I have provided performance metrics where possible
+          required: false
+        - label: I have searched for existing performance issues
+          required: true

@@ -48,3 +48,4 @@ app-example
 
 .env.local
 /.claude/settings.local.json
+/codemagic.keystore

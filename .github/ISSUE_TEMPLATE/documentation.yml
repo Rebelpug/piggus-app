@@ -1,0 +1,138 @@
+name: 📚 Documentation Issue
+description: Report issues with documentation or suggest improvements
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Piggus documentation! Clear docs help everyone contribute better.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: 📖 Documentation Type
+      description: What type of documentation needs attention?
+      options:
+        - README.md
+        - CONTRIBUTING.md
+        - API Documentation
+        - Code Comments
+        - Setup Instructions
+        - Build/Deploy Guides
+        - User Guide
+        - Developer Guide
+        - Troubleshooting
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: 🎯 Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing information
+        - Incorrect/outdated information
+        - Unclear instructions
+        - Broken links
+        - Typos/grammar errors
+        - Need better examples
+        - Need more detail
+        - Need restructuring
+        - Translation needed
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 📍 Location
+      description: Where is this documentation located?
+      placeholder: "README.md, line 45 or https://github.com/Rebelpug/piggus-app/blob/main/docs/setup.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-content
+    attributes:
+      label: 📝 Current Content
+      description: What does the current documentation say? (copy/paste if applicable)
+      placeholder: Paste the current documentation content that needs improvement
+    validations:
+      required: false
+
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: ❌ What's Wrong/Missing
+      description: Clearly describe what's wrong or missing
+      placeholder: |
+        Example: "The setup instructions don't mention installing Expo CLI"
+        Example: "The link to Supabase docs is broken"
+        Example: "No explanation of environment variables"
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-improvement
+    attributes:
+      label: ✅ Suggested Improvement
+      description: How should this be fixed or improved?
+      placeholder: |
+        - What information should be added?
+        - How should existing content be changed?
+        - What examples would be helpful?
+    validations:
+      required: true
+
+  - type: textarea
+    id: target-audience
+    attributes:
+      label: 👥 Target Audience
+      description: Who is this documentation for?
+      placeholder: |
+        - New contributors
+        - Experienced developers
+        - End users
+        - System administrators
+        - All audiences
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📌 Additional Context
+      description: Any other context that would help improve the documentation
+      placeholder: |
+        - Related issues or discussions
+        - User feedback you've received
+        - Common questions this would answer
+        - Links to good examples from other projects
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: 🤝 Contribution
+      options:
+        - label: I would like to help fix this documentation issue
+          required: false
+        - label: I can provide examples or additional content
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      options:
+        - label: I have searched for existing documentation issues
+          required: true
+        - label: I have provided specific location information
+          required: true
+        - label: I have suggested concrete improvements
+          required: true

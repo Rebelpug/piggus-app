@@ -1,0 +1,159 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in Piggus
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out this form to help us understand and fix the issue.
+        
+        **Before submitting:** Please search existing issues to see if this bug has already been reported.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Tap on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: ✅ Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: ❌ Actual Behavior
+      description: A clear and concise description of what actually happened.
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 📱 Platform
+      description: Which platform(s) are affected?
+      multiple: true
+      options:
+        - iOS
+        - Android
+        - Web
+        - Expo Go
+        - Development Build
+    validations:
+      required: true
+
+  - type: input
+    id: device-info
+    attributes:
+      label: 📱 Device Information
+      description: Device model and OS version
+      placeholder: "iPhone 14, iOS 17.0 / Samsung Galaxy S23, Android 13"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: 🔢 App Version
+      description: Version of Piggus you're using
+      placeholder: "1.7.1"
+    validations:
+      required: true
+
+  - type: input
+    id: expo-version
+    attributes:
+      label: 🛠️ Expo SDK Version
+      description: Expo SDK version (found in app.json)
+      placeholder: "53.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment-details
+    attributes:
+      label: 🌍 Environment Details
+      description: Additional environment information
+      placeholder: |
+        - Node.js version: 
+        - npm/yarn version:
+        - Development OS: 
+        - Any relevant environment variables or configurations
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 Logs/Error Messages
+      description: Relevant logs, error messages, or stack traces
+      placeholder: |
+        Please include any relevant logs from:
+        - Expo CLI output
+        - Metro bundler
+        - Device logs
+        - Browser console (for web)
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Screenshots/Videos
+      description: If applicable, add screenshots or videos to help explain the problem
+      placeholder: Drag and drop images/videos here or paste URLs
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📌 Additional Context
+      description: Any other context about the problem
+      placeholder: |
+        - Does this happen consistently or intermittently?
+        - Did this work in a previous version?
+        - Any workarounds you've found?
+        - Related issues or PRs?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing issues before creating this bug report
+          required: true
+        - label: I have provided all the required information above
+          required: true
+        - label: I am using the latest version of the app (or have specified the version I'm using)
+          required: true
+        - label: This bug is reproducible
+          required: true

@@ -1,0 +1,137 @@
+name: ❓ Question
+description: Ask a question about Piggus development, usage, or contribution
+title: "[Question]: "
+labels: ["question", "needs-response"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got a question? We're here to help! 
+        
+        **Before asking:** Please check our [documentation](https://github.com/Rebelpug/piggus-app#readme), [discussions](https://github.com/Rebelpug/piggus-app/discussions), and existing issues.
+
+  - type: dropdown
+    id: question-category
+    attributes:
+      label: 🏷️ Question Category
+      description: What is your question about?
+      options:
+        - Setup & Installation
+        - Development Environment
+        - Building & Deployment
+        - Expo/React Native
+        - UI/UX Implementation
+        - State Management
+        - API Integration
+        - Database/Supabase
+        - Authentication & Security
+        - Performance Optimization
+        - Testing
+        - Contributing Guidelines
+        - Project Architecture
+        - Feature Implementation
+        - Troubleshooting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: ❓ Your Question
+      description: What would you like to know? Be as specific as possible.
+      placeholder: |
+        Please provide as much context as possible:
+        - What are you trying to achieve?
+        - What specific problem are you facing?
+        - What have you already tried?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🔍 Context & Background
+      description: Additional context that might be relevant
+      placeholder: |
+        - What you're working on
+        - Your experience level with React Native/Expo
+        - Relevant code snippets (if applicable)
+        - Screenshots or examples
+    validations:
+      required: false
+
+  - type: textarea
+    id: attempted-solutions
+    attributes:
+      label: 🛠️ What You've Tried
+      description: What solutions have you already attempted?
+      placeholder: |
+        - Documentation you've read
+        - Solutions you've tried
+        - Code changes you've made
+        - Resources you've consulted
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: 🌍 Environment
+      description: Your development environment (if relevant)
+      placeholder: "Node.js 18.x, Expo SDK 53, iOS/Android/Web"
+    validations:
+      required: false
+
+  - type: textarea
+    id: code-snippets
+    attributes:
+      label: 💻 Relevant Code
+      description: Include any relevant code snippets (if applicable)
+      placeholder: |
+        ```typescript
+        // Your code here
+        ```
+      render: typescript
+    validations:
+      required: false
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: ⏰ Urgency
+      description: How urgently do you need an answer?
+      options:
+        - Not urgent - whenever you have time
+        - Somewhat urgent - would appreciate an answer soon
+        - Urgent - blocking my work
+        - Very urgent - critical issue
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: research
+    attributes:
+      label: 🔍 Research Checklist
+      description: Please confirm you've done some research first
+      options:
+        - label: I have read the README and relevant documentation
+          required: true
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have tried to find the answer in official Expo/React Native docs
+          required: false
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 📌 Additional Information
+      description: Anything else that might be helpful
+      placeholder: |
+        - Links to relevant resources
+        - Related issues or discussions
+        - Expected timeline for needing an answer
+        - How this relates to your contribution or usage of Piggus
+    validations:
+      required: false

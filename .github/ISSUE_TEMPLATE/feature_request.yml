@@ -1,0 +1,184 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for Piggus
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please fill out this form to help us understand your idea.
+        
+        **Before submitting:** Please check our [Wanted Features](https://github.com/Rebelpug/piggus-app#-wanted-features) section and search existing issues.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: 🚀 Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Describe your feature request...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-solution
+    attributes:
+      label: 🎯 Problem & Solution
+      description: What problem does this feature solve? How does it add value?
+      placeholder: |
+        **Problem:** What problem are you trying to solve?
+        **Solution:** How would this feature solve it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: 👤 User Story
+      description: Describe this feature from a user's perspective
+      placeholder: "As a [type of user], I want [goal] so that [benefit/value]"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: 📱 Feature Type
+      description: What type of feature is this?
+      options:
+        - New Screen/Page
+        - UI/UX Enhancement
+        - Data/Analytics Feature
+        - Performance Improvement
+        - Accessibility Improvement
+        - Security Enhancement
+        - API Integration
+        - Developer Experience
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 📱 Target Platform(s)
+      description: Which platforms should this feature support?
+      multiple: true
+      options:
+        - iOS
+        - Android
+        - Web
+        - All Platforms
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Priority Level
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve my experience
+        - High - Essential for my workflow
+        - Critical - Blocking current usage
+    validations:
+      required: true
+
+  - type: textarea
+    id: detailed-requirements
+    attributes:
+      label: 📋 Detailed Requirements
+      description: Detailed requirements or specifications for the feature
+      placeholder: |
+        - Specific functionality needed
+        - User interface requirements
+        - Data requirements
+        - Business logic
+        - Integration needs
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockups-designs
+    attributes:
+      label: 🎨 Mockups/Designs
+      description: Include mockups, sketches, or design references if available
+      placeholder: Drag and drop images here or paste URLs to designs/mockups
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: ✅ Acceptance Criteria
+      description: What conditions must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] User can...
+        - [ ] System should...
+        - [ ] Feature works on...
+        - [ ] Performance meets...
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives-considered
+    attributes:
+      label: 🤔 Alternatives Considered
+      description: Have you considered any alternative solutions or features?
+      placeholder: Describe any alternative approaches you've thought about
+    validations:
+      required: false
+
+  - type: textarea
+    id: examples-references
+    attributes:
+      label: 📖 Examples & References
+      description: Examples of similar features in other apps or relevant documentation
+      placeholder: |
+        - Similar features in other apps
+        - Links to documentation or articles
+        - Industry standards or best practices
+    validations:
+      required: false
+
+  - type: textarea
+    id: implementation-suggestions
+    attributes:
+      label: 🛠️ Implementation Suggestions
+      description: Technical suggestions for implementation (optional)
+      placeholder: |
+        - Suggested technologies or libraries
+        - API endpoints that might be needed
+        - Database schema considerations
+        - Performance considerations
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: volunteer
+    attributes:
+      label: 🤝 Contribution
+      description: Contribution intentions
+      options:
+        - label: I would like to work on implementing this feature
+          required: false
+        - label: I can help with design/mockups
+          required: false
+        - label: I can help with testing
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing feature requests before creating this one
+          required: true
+        - label: I have checked the "Wanted Features" section in the README
+          required: true
+        - label: This feature aligns with Piggus's privacy-first philosophy
+          required: true
+        - label: I have provided sufficient detail for the development team to understand the request
+          required: true
