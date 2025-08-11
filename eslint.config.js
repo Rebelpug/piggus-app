@@ -10,6 +10,7 @@ module.exports = defineConfig([
       ".expo/*",
       "node_modules/*",
       "dist/*",
+      ".github/*",
       // IDEE
       ".idea/*",
       ".vscode/*",
