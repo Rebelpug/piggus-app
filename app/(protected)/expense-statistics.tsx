@@ -557,7 +557,6 @@ export default function ExpenseStatisticsScreen() {
     expensesGroups,
     user?.id,
     periodFilter,
-    allCategories,
     userProfile?.profile?.budgeting?.categoryOverrides,
   ]);
 

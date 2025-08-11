@@ -1,23 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, ScrollView, Alert, View, StatusBar } from "react-native";
-import {
-  Layout,
-  Text,
-  TopNavigation,
-  TopNavigationAction,
-  Divider,
-  Card,
-  Button,
-} from "@ui-kitten/components";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { useInvestment } from "@/context/InvestmentContext";
-import { ThemedView } from "@/components/ThemedView";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { useLocalization } from "@/context/LocalizationContext";
-import { calculateIndividualInvestmentReturns } from "@/utils/financeUtils";
+import React, {useEffect, useState} from "react";
+import {Alert, ScrollView, StatusBar, StyleSheet, View} from "react-native";
+import {Button, Card, Divider, Layout, Text, TopNavigation, TopNavigationAction,} from "@ui-kitten/components";
+import {SafeAreaView} from "react-native-safe-area-context";
+import {useLocalSearchParams, useRouter} from "expo-router";
+import {Ionicons} from "@expo/vector-icons";
+import {useInvestment} from "@/context/InvestmentContext";
+import {ThemedView} from "@/components/ThemedView";
+import {useColorScheme} from "@/hooks/useColorScheme";
+import {Colors} from "@/constants/Colors";
+import {useLocalization} from "@/context/LocalizationContext";
+import {calculateIndividualInvestmentReturns} from "@/utils/financeUtils";
 
 const getInvestmentTypes = (t: (key: string) => string) => [
   { id: "stock", name: t("investmentTypes.stock"), icon: "trending-up" },
@@ -202,63 +194,6 @@ export default function InvestmentDetailScreen() {
     );
   }
 
-  // Interest calculations for bonds and accounts
-  const calculateBondInterestReturn = () => {
-    const supportsInterest = [
-      "bond",
-      "checkingAccount",
-      "savingsAccount",
-    ].includes(investment.data.type);
-    if (!supportsInterest || !investment.data.interest_rate) return 0;
-
-    const quantity = investment.data.quantity || 0;
-    const purchasePrice = investment.data.purchase_price || 0;
-    const interestRate = investment.data.interest_rate || 0;
-
-    if (quantity === 0 || purchasePrice === 0 || interestRate === 0) return 0;
-
-    const initialValue = quantity * purchasePrice;
-
-    // Calculate time periods
-    const currentDate = new Date();
-    const purchaseDate = new Date(investment.data.purchase_date);
-    const maturityDate = investment.data.maturity_date
-      ? new Date(investment.data.maturity_date)
-      : null;
-
-    // Determine the end date for interest calculation
-    const endDate =
-      maturityDate && currentDate > maturityDate ? maturityDate : currentDate;
-
-    // Calculate days since purchase until end date
-    const daysSincePurchase = Math.floor(
-      (endDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    const yearsSincePurchase = Math.max(0, daysSincePurchase / 365.25);
-
-    // For demonstration purposes, if purchase date is today, use 1 year as example
-    const yearsForCalculation =
-      yearsSincePurchase === 0 ? 1 : yearsSincePurchase;
-
-    // Calculate annual interest return
-    const annualInterestReturn =
-      initialValue * (interestRate / 100) * yearsForCalculation;
-
-    console.log("INVESTMENT DETAIL Bond interest calculation:", {
-      investmentType: investment.data.type,
-      quantity,
-      purchasePrice,
-      interestRate,
-      initialValue,
-      daysSincePurchase,
-      yearsSincePurchase,
-      yearsForCalculation,
-      annualInterestReturn,
-    });
-
-    return annualInterestReturn;
-  };
-
   const getBondStatus = () => {
     if (investment.data.type !== "bond" || !investment.data.maturity_date)
       return "active";
@@ -280,10 +215,9 @@ export default function InvestmentDetailScreen() {
       return 0;
     }
 
-    const daysToMaturity = Math.floor(
-      (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+    return Math.floor(
+        (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
     );
-    return daysToMaturity;
   };
 
   const supportsInterest = [

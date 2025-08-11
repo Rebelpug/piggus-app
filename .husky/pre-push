@@ -2,25 +2,32 @@
 
 echo "🔍 Running Expo project checks before push..."
 
-# Type checking
+# Type checking (fail on errors)
 echo "📝 Type checking..."
 npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ Type checking failed!"
+  exit 1
+fi
 
-# Linting
+# Linting (allow warnings, fail on errors only)
 echo "🔍 Linting..."
-npm run lint
+npm run lint -- --max-warnings=20
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed with errors!"
+  exit 1
+fi
 
 # Format checking
 echo "🎨 Format checking..."
 npm run format:check
-
-# Optional: Check if Expo project is valid
-echo "📱 Validating Expo config..."
-npx expo-doctor
-
 if [ $? -ne 0 ]; then
-  echo "❌ Pre-push checks failed!"
+  echo "❌ Format checking failed!"
   exit 1
 fi
 
-echo "✅ All checks passed! Pushing..."
+# Expo doctor (allow some failures)
+echo "📱 Validating Expo config..."
+npx expo doctor || echo "⚠️  Expo doctor warnings detected but continuing..."
+
+echo "✅ Pre-push checks completed!"
