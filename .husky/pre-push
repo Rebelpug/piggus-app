@@ -16,7 +16,7 @@ npm run format:check
 
 # Optional: Check if Expo project is valid
 echo "📱 Validating Expo config..."
-npx expo doctor
+npx expo-doctor
 
 if [ $? -ne 0 ]; then
   echo "❌ Pre-push checks failed!"
