@@ -32,6 +32,7 @@ export default function OnboardingWrapper({
           currency: currency,
           current_price: amount,
           last_updated: new Date().toISOString(),
+          last_tentative_update: new Date().toISOString(),
           notes: "Initial bank account balance added during onboarding",
           interest_rate: null,
           maturity_date: null,

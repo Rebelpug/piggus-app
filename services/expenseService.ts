@@ -9,12 +9,8 @@ import {
   ExpenseGroupWithDecryptedData,
   ExpenseWithDecryptedData,
   GroupRefund,
-  ExpenseParticipant,
-  calculateEqualSplit,
 } from "@/types/expense";
 import { User } from "@supabase/supabase-js";
-
-// Expense service functions that bridge the old client API with piggusApi
 
 export const apiFetchExpensesPaginated = async (
   user: User,
@@ -761,7 +757,7 @@ export const apiAddRefund = async (
       data: {
         ...groupData,
         data: updatedGroupData,
-      } as ExpenseGroupWithDecryptedData,
+      } as unknown as ExpenseGroupWithDecryptedData,
     };
   } catch (error: any) {
     console.error("Error adding refund:", error);
@@ -843,7 +839,7 @@ export const apiUpdateRefund = async (
       data: {
         ...groupData,
         data: updatedGroupData,
-      } as ExpenseGroupWithDecryptedData,
+      } as unknown as ExpenseGroupWithDecryptedData,
     };
   } catch (error: any) {
     console.error("Error updating refund:", error);
@@ -910,7 +906,7 @@ export const apiDeleteRefund = async (
       data: {
         ...groupData,
         data: updatedGroupData,
-      } as ExpenseGroupWithDecryptedData,
+      } as unknown as ExpenseGroupWithDecryptedData,
     };
   } catch (error: any) {
     console.error("Error deleting refund:", error);

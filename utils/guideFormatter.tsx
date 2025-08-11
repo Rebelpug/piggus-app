@@ -1,5 +1,5 @@
-import React, { JSX } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, {JSX} from "react";
+import {StyleSheet, Text, View} from "react-native";
 
 export interface FormatterColors {
   text: string;
@@ -138,15 +138,12 @@ export class GuideFormatter {
       } | null = null;
 
       if (boldMatch && boldMatch.index !== undefined) {
-        const candidate = {
+        nextMatch = {
           index: boldMatch.index,
           length: boldMatch[0].length,
           content: boldMatch[1],
           type: "bold",
         };
-        if (!nextMatch || candidate.index < nextMatch.index) {
-          nextMatch = candidate;
-        }
       }
 
       if (italicMatch && italicMatch.index !== undefined) {

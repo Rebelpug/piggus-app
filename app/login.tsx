@@ -50,7 +50,7 @@ const LoginScreen = () => {
   useEffect(() => {
     if (isAuthenticated) {
       console.log("User is fully authenticated, redirecting to main app");
-      router.replace("/(protected)");
+      router.replace("/");
     }
   }, [isAuthenticated, router]);
 

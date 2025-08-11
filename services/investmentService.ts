@@ -104,7 +104,7 @@ export const apiFetchPortfolios = async (
             encrypted_key: portfolioKeyString,
             created_at: portfolio.created_at,
             updated_at: portfolio.updated_at,
-          } as PortfolioWithDecryptedData;
+          } as unknown as PortfolioWithDecryptedData;
         } catch (error: any) {
           console.error("Error decrypting portfolio:", error);
           throw error;
@@ -193,7 +193,7 @@ export const apiCreatePortfolio = async (
         encrypted_key: encryptionKeyBase64,
         created_at: result.portfolio.created_at,
         updated_at: result.portfolio.updated_at,
-      } as PortfolioWithDecryptedData,
+      } as unknown as PortfolioWithDecryptedData,
     };
   } catch (error: any) {
     console.error("Error creating portfolio:", error);
@@ -496,7 +496,7 @@ export const apiUpdatePortfolio = async (
         encrypted_key: encryptedKey,
         created_at: updatedPortfolio.created_at,
         updated_at: updatedPortfolio.updated_at,
-      } as PortfolioWithDecryptedData,
+      } as unknown as PortfolioWithDecryptedData,
     };
   } catch (error: any) {
     console.error("Error updating portfolio:", error);
