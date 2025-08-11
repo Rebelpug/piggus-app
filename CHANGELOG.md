@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.3](https://github.com/Rebelpug/piggus-app/compare/v1.7.2...v1.7.3) (2025-08-11)
+
+
+### Bug Fixes
+
+* Fixed fetching members of expenses groups ([89b9702](https://github.com/Rebelpug/piggus-app/commit/89b9702f30234098a70246518c6daa2329d0ae9e))
+
 ### [1.7.2](https://github.com/Rebelpug/piggus-app/compare/v1.7.1...v1.7.2) (2025-08-11)
 
 ### Bug Fixes
