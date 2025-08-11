@@ -328,7 +328,6 @@ When creating a pull request, please include:
 
 - 💬 [GitHub Discussions](https://github.com/Rebelpug/piggus-app/discussions) - General questions
 - 🐛 [GitHub Issues](https://github.com/Rebelpug/piggus-app/issues) - Bug reports
-- 📧 Email: support@rebelpug.com - Direct contact
 
 ### Development Questions
 

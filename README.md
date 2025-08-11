@@ -235,8 +235,6 @@ This project is licensed under the **Creative Commons Attribution-NonCommercial-
 
 See the [LICENSE](LICENSE) file for full details.
 
-**For commercial use**, please [contact us](mailto:support@rebelpug.com) for licensing options.
-
 ## 🙏 Acknowledgments
 
 - [Expo team](https://expo.dev) for the amazing development platform
@@ -245,7 +243,6 @@ See the [LICENSE](LICENSE) file for full details.
 
 ## 📞 Support
 
-- 📧 Email: support@rebelpug.com
 - 🐛 Issues: [GitHub Issues](https://github.com/Rebelpug/piggus-app/issues)
 - 💬 Discussions: [GitHub Discussions](https://github.com/Rebelpug/piggus-app/discussions)
 

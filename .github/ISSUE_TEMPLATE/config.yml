@@ -3,9 +3,6 @@ contact_links:
   - name: 💬 GitHub Discussions
     url: https://github.com/Rebelpug/piggus-app/discussions
     about: Ask questions and discuss ideas with the community
-  - name: 📧 Email Support
-    url: mailto:support@rebelpug.com
-    about: Contact us directly for sensitive issues or commercial inquiries
   - name: 📖 Documentation
     url: https://github.com/Rebelpug/piggus-app#readme
     about: Check our comprehensive README and contributing guidelines
