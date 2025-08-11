@@ -61,7 +61,7 @@ export default function InvestmentItem({ item, portfolioId }: InvestmentItemProp
 
     const currentValue = calculateCurrentValue(item);
     const investmentCurrency = item.data.currency || 'USD';
-    
+
     // Use the new return calculation functions
     const returns = calculateIndividualInvestmentReturns(item);
     const gainLoss = returns.totalGainLoss;
@@ -69,7 +69,7 @@ export default function InvestmentItem({ item, portfolioId }: InvestmentItemProp
 
     // Check if investment has an interest rate to display
     const hasInterestRate = item.data.interest_rate && item.data.interest_rate > 0;
-    
+
     // Calculate net interest rate if present
     let netInterestRate = 0;
     if (hasInterestRate) {
@@ -109,12 +109,14 @@ export default function InvestmentItem({ item, portfolioId }: InvestmentItemProp
                             <Text style={[styles.investmentSubtitle, { color: colors.icon }]}>
                                 {item.portfolioName || t('investments.unknownPortfolio')} • {item.data.quantity} {t('investments.shares')}
                             </Text>
-                            <Text style={[styles.purchaseDate, { color: colors.icon }]}>
-                                Purchased {formatDate(item.data.purchase_date)}
-                            </Text>
                             {item.data.last_updated && (
                                 <Text style={[styles.lastUpdated, { color: colors.icon }]}>
                                     Last updated {formatDate(item.data.last_updated)}
+                                </Text>
+                            )}
+                            {!item.data.last_updated && item.data.last_tentative_update && (
+                                <Text style={[styles.lastUpdated, { color: colors.icon }]}>
+                                    Last failed update {formatDate(item.data.last_tentative_update)}
                                 </Text>
                             )}
                         </View>
