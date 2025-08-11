@@ -1,15 +1,23 @@
-import React, {useEffect, useState} from "react";
-import {Alert, ScrollView, StatusBar, StyleSheet, View} from "react-native";
-import {Button, Card, Divider, Layout, Text, TopNavigation, TopNavigationAction,} from "@ui-kitten/components";
-import {SafeAreaView} from "react-native-safe-area-context";
-import {useLocalSearchParams, useRouter} from "expo-router";
-import {Ionicons} from "@expo/vector-icons";
-import {useInvestment} from "@/context/InvestmentContext";
-import {ThemedView} from "@/components/ThemedView";
-import {useColorScheme} from "@/hooks/useColorScheme";
-import {Colors} from "@/constants/Colors";
-import {useLocalization} from "@/context/LocalizationContext";
-import {calculateIndividualInvestmentReturns} from "@/utils/financeUtils";
+import React, { useEffect, useState } from "react";
+import { Alert, ScrollView, StatusBar, StyleSheet, View } from "react-native";
+import {
+  Button,
+  Card,
+  Divider,
+  Layout,
+  Text,
+  TopNavigation,
+  TopNavigationAction,
+} from "@ui-kitten/components";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useInvestment } from "@/context/InvestmentContext";
+import { ThemedView } from "@/components/ThemedView";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
+import { calculateIndividualInvestmentReturns } from "@/utils/financeUtils";
 
 const getInvestmentTypes = (t: (key: string) => string) => [
   { id: "stock", name: t("investmentTypes.stock"), icon: "trending-up" },
@@ -216,7 +224,7 @@ export default function InvestmentDetailScreen() {
     }
 
     return Math.floor(
-        (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+      (maturityDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
     );
   };
 
