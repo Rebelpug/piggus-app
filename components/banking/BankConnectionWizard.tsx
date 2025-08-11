@@ -204,7 +204,7 @@ export default function BankConnectionWizard({
       <Card
         style={[
           styles.restrictionCard,
-          { backgroundColor: colors.notification, borderColor: colors.primary },
+          { backgroundColor: colors.surface, borderColor: colors.primary },
         ]}
       >
         <Layout style={styles.restrictionItem}>

@@ -10,6 +10,7 @@ import {
   InvestmentLookupResultV2,
 } from "@/types/investment";
 import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
+import { IconProps } from "@ui-kitten/components";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || "";
 
@@ -87,7 +88,7 @@ export interface RecurringExpense {
 // Guide Types
 export interface Guide {
   id: string;
-  icon: string;
+  icon: IconProps;
   title: string;
   subtitle: string;
   content: string;
@@ -213,9 +214,7 @@ export interface PiggusApi {
     encryptedData: any;
     encryptedGroupKey: string;
   }) => Promise<ExpenseGroupMembership>;
-  getExpenseGroup: (
-    groupId: string,
-  ) => Promise<{
+  getExpenseGroup: (groupId: string) => Promise<{
     expenses: Expense[];
     members: ExpenseGroupMembership[];
     [key: string]: any;
@@ -275,9 +274,7 @@ export interface PiggusApi {
     encryptedData: any;
     encryptedPortfolioKey: string;
   }) => Promise<{ portfolio: Portfolio; membership: PortfolioMembership }>;
-  getPortfolio: (
-    portfolioId: string,
-  ) => Promise<{
+  getPortfolio: (portfolioId: string) => Promise<{
     investments: Investment[];
     members: PortfolioMembership[];
     [key: string]: any;

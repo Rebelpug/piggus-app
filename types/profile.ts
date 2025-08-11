@@ -21,12 +21,13 @@ export type AdditionalCategoryOverride = {
   id: string;
   name: string;
   icon: string;
+  parent?: string;
 };
 
 export type CategoryOverride = {
   name: string;
   icon: string;
-  parent: string;
+  parent?: string;
 };
 
 export type BudgetingData = {

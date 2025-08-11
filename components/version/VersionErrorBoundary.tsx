@@ -29,10 +29,9 @@ export class VersionErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Version system error:", error, errorInfo);
-
-    // Log to analytics/monitoring service if available
-    if (typeof global.ErrorUtils !== "undefined") {
-      global.ErrorUtils.reportFatalError?.(error);
+    const errorUtils = (global as any).ErrorUtils;
+    if (errorUtils && typeof errorUtils.reportFatalError === "function") {
+      errorUtils.reportFatalError(error);
     }
   }
 
