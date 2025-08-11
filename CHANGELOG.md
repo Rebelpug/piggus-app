@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.7.2](https://github.com/Rebelpug/piggus-app/compare/v1.7.1...v1.7.2) (2025-08-11)
 
-
 ### Bug Fixes
 
-* Fixed minor labels ([2f7966a](https://github.com/Rebelpug/piggus-app/commit/2f7966a1a7282703e17a76bc71ffcf1c2e4c7630))
+- Fixed minor labels ([2f7966a](https://github.com/Rebelpug/piggus-app/commit/2f7966a1a7282703e17a76bc71ffcf1c2e4c7630))
 
 ### [1.7.1](https://github.com/Rebelpug/piggus-app/compare/v1.7.0...v1.7.1) (2025-08-08)
 
