@@ -1,5 +1,5 @@
-import { Platform, Linking, Alert } from 'react-native';
-import { VERSION_CONFIG } from '@/config/version';
+import { Platform, Linking, Alert } from "react-native";
+import { VERSION_CONFIG } from "@/config/version";
 
 export class StoreUtils {
   /**
@@ -8,10 +8,10 @@ export class StoreUtils {
   static async openAppStore(): Promise<void> {
     try {
       let storeUrl: string;
-      
-      if (Platform.OS === 'ios') {
+
+      if (Platform.OS === "ios") {
         storeUrl = VERSION_CONFIG.IOS_APP_STORE_URL;
-      } else if (Platform.OS === 'android') {
+      } else if (Platform.OS === "android") {
         storeUrl = VERSION_CONFIG.ANDROID_PLAY_STORE_URL;
       } else {
         // Fallback for other platforms (web, etc.)
@@ -19,7 +19,7 @@ export class StoreUtils {
       }
 
       const supported = await Linking.canOpenURL(storeUrl);
-      
+
       if (supported) {
         await Linking.openURL(storeUrl);
       } else {
@@ -27,7 +27,7 @@ export class StoreUtils {
         StoreUtils.showManualUpdateInstructions();
       }
     } catch (error) {
-      console.error('Failed to open app store:', error);
+      console.error("Failed to open app store:", error);
       StoreUtils.showManualUpdateInstructions();
     }
   }
@@ -36,12 +36,12 @@ export class StoreUtils {
    * Show manual update instructions if automatic store opening fails
    */
   private static showManualUpdateInstructions(): void {
-    const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play Store';
-    
+    const storeName = Platform.OS === "ios" ? "App Store" : "Google Play Store";
+
     Alert.alert(
-      'Update Required',
+      "Update Required",
       `Please manually update the app from the ${storeName}. Search for "Piggus" to find the latest version.`,
-      [{ text: 'OK', style: 'default' }]
+      [{ text: "OK", style: "default" }],
     );
   }
 
@@ -49,8 +49,8 @@ export class StoreUtils {
    * Get the store URL for the current platform
    */
   static getStoreUrl(): string {
-    return Platform.OS === 'ios' 
-      ? VERSION_CONFIG.IOS_APP_STORE_URL 
+    return Platform.OS === "ios"
+      ? VERSION_CONFIG.IOS_APP_STORE_URL
       : VERSION_CONFIG.ANDROID_PLAY_STORE_URL;
   }
 

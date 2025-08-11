@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thank you for suggesting a new feature! Please fill out this form to help us understand your idea.
-        
+
         **Before submitting:** Please check our [Wanted Features](https://github.com/Rebelpug/piggus-app#-wanted-features) section and search existing issues.
 
   - type: textarea

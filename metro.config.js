@@ -1,13 +1,15 @@
-const { wrapWithReanimatedMetroConfig } = require('react-native-reanimated/metro-config');
 const {
-  getSentryExpoConfig
-} = require("@sentry/react-native/metro");
+  wrapWithReanimatedMetroConfig,
+} = require("react-native-reanimated/metro-config");
+const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getSentryExpoConfig(__dirname);
 
 // Enable safe code obfuscation for production builds
-const isProduction = process.env.NODE_ENV === 'production' || process.env.EAS_BUILD_PROFILE === 'production';
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.EAS_BUILD_PROFILE === "production";
 
 if (isProduction) {
   config.transformer = {

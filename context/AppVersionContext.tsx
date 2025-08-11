@@ -1,9 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import { AppVersionContextType, AppVersionState, VersionInfo } from '@/types/version';
-import { versionService, VersionService } from '@/services/versionService';
-import { StoreUtils } from '@/utils/storeUtils';
-import { APP_VERSION } from '@/config/version';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
+import { AppState, AppStateStatus } from "react-native";
+import {
+  AppVersionContextType,
+  AppVersionState,
+  VersionInfo,
+} from "@/types/version";
+import { versionService, VersionService } from "@/services/versionService";
+import { StoreUtils } from "@/utils/storeUtils";
+import { APP_VERSION } from "@/config/version";
 
 interface AppVersionProviderProps {
   children: ReactNode;
@@ -20,11 +31,13 @@ const initialState: AppVersionState = {
 
 const AppVersionContext = createContext<AppVersionContextType | null>(null);
 
-export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({ children }) => {
+export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({
+  children,
+}) => {
   const [state, setState] = useState<AppVersionState>(initialState);
 
   const updateState = useCallback((updates: Partial<AppVersionState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+    setState((prev) => ({ ...prev, ...updates }));
   }, []);
 
   const checkVersion = useCallback(async () => {
@@ -50,15 +63,16 @@ export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({ children
       } else {
         updateState({
           isLoading: false,
-          error: response.error || 'Failed to check app version',
+          error: response.error || "Failed to check app version",
           versionInfo: response.data,
         });
       }
     } catch (error) {
-      console.error('Version check error:', error);
+      console.error("Version check error:", error);
       updateState({
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
     }
   }, [state.checkingEnabled, updateState]);
@@ -71,7 +85,7 @@ export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({ children
     try {
       await StoreUtils.openAppStore();
     } catch (error) {
-      console.error('Failed to open app store:', error);
+      console.error("Failed to open app store:", error);
     }
   }, []);
 
@@ -82,13 +96,16 @@ export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({ children
   // Handle app state changes to check version when app becomes active
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active' && state.checkingEnabled) {
+      if (nextAppState === "active" && state.checkingEnabled) {
         // Check version when app becomes active
         checkVersion();
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
 
     return () => {
       subscription?.remove();
@@ -120,7 +137,7 @@ export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({ children
 export const useAppVersion = (): AppVersionContextType => {
   const context = useContext(AppVersionContext);
   if (!context) {
-    throw new Error('useAppVersion must be used within an AppVersionProvider');
+    throw new Error("useAppVersion must be used within an AppVersionProvider");
   }
   return context;
 };

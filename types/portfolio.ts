@@ -1,4 +1,4 @@
-import { InvestmentWithDecryptedData } from '@/types/investment';
+import { InvestmentWithDecryptedData } from "@/types/investment";
 
 export interface SymbolSearchResult {
   symbol: string;
@@ -60,7 +60,7 @@ export type PortfolioWithDecryptedData = {
   updated_at: string;
   data: PortfolioData;
   membership_id: string;
-  membership_status: 'confirmed' | 'pending' | 'rejected';
+  membership_status: "confirmed" | "pending" | "rejected";
   encrypted_key: string;
   investments: InvestmentWithDecryptedData[];
   members: PortfolioMemberWithProfile[];
@@ -71,6 +71,6 @@ export type PortfolioMembership = {
   user_id: string;
   portfolio_id: string;
   encrypted_portfolio_key: string;
-  status: 'confirmed' | 'pending' | 'rejected';
+  status: "confirmed" | "pending" | "rejected";
   created_at: string;
 };

@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import i18n, { getSystemLanguage } from '@/lib/i18n';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import i18n, { getSystemLanguage } from "@/lib/i18n";
 
 interface LocalizationContextType {
   currentLanguage: string;
@@ -15,30 +15,32 @@ interface LocalizationContextType {
 
 const LocalizationContext = createContext<LocalizationContextType | null>(null);
 
-const STORAGE_KEY = '@piggus_language';
+const STORAGE_KEY = "@piggus_language";
 
 const AVAILABLE_LANGUAGES = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
-  { code: 'pl', name: 'Polish', nativeName: 'Polski' },
-  { code: 'sv', name: 'Swedish', nativeName: 'Svenska' },
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "es", name: "Spanish", nativeName: "Español" },
+  { code: "fr", name: "French", nativeName: "Français" },
+  { code: "de", name: "German", nativeName: "Deutsch" },
+  { code: "it", name: "Italian", nativeName: "Italiano" },
+  { code: "pt", name: "Portuguese", nativeName: "Português" },
+  { code: "nl", name: "Dutch", nativeName: "Nederlands" },
+  { code: "pl", name: "Polish", nativeName: "Polski" },
+  { code: "sv", name: "Swedish", nativeName: "Svenska" },
 ];
 
-export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentLanguage, setCurrentLanguage] = useState<string>('en');
+export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [currentLanguage, setCurrentLanguage] = useState<string>("en");
 
   useEffect(() => {
     loadSavedLanguage();
   }, []);
 
   const loadSavedLanguage = async () => {
-    i18n.locale = 'en';
-    setCurrentLanguage('en');
+    i18n.locale = "en";
+    setCurrentLanguage("en");
     return;
     // try {
     //   const savedLanguage = await AsyncStorage.getItem(STORAGE_KEY);
@@ -65,7 +67,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentLanguage(language);
       i18n.locale = language;
     } catch (error) {
-      console.error('Error saving language:', error);
+      console.error("Error saving language:", error);
     }
   };
 
@@ -90,7 +92,9 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 export const useLocalization = () => {
   const context = useContext(LocalizationContext);
   if (!context) {
-    throw new Error('useLocalization must be used within a LocalizationProvider');
+    throw new Error(
+      "useLocalization must be used within a LocalizationProvider",
+    );
   }
   return context;
 };

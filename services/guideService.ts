@@ -1,10 +1,10 @@
-import { piggusApi, Guide } from '@/client/piggusApi';
+import { piggusApi, Guide } from "@/client/piggusApi";
 
 export const apiFetchGuides = async (): Promise<Guide[]> => {
   try {
     return await piggusApi.getGuides();
   } catch (error) {
-    console.error('Failed to fetch guides:', error);
+    console.error("Failed to fetch guides:", error);
     throw error;
   }
 };

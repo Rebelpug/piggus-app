@@ -53,26 +53,25 @@ export type InvestmentFormData = {
   risk_level?: string;
 };
 
-
 export const INVESTMENT_TYPES = [
-  { id: 'stock', icon: 'trending-up' },
-  { id: 'bond', icon: 'shield-checkmark' },
-  { id: 'cryptocurrency', icon: 'logo-bitcoin' },
-  { id: 'certificate', icon: 'document-text' },
-  { id: 'etf', icon: 'bar-chart' },
-  { id: 'mutualFund', icon: 'pie-chart' },
-  { id: 'realEstate', icon: 'home' },
-  { id: 'commodity', icon: 'diamond' },
-  { id: 'checkingAccount', icon: 'card' },
-  { id: 'savingsAccount', icon: 'cash' },
-  { id: 'privatePension', icon: 'time' },
-  { id: 'other', icon: 'ellipsis-horizontal' },
+  { id: "stock", icon: "trending-up" },
+  { id: "bond", icon: "shield-checkmark" },
+  { id: "cryptocurrency", icon: "logo-bitcoin" },
+  { id: "certificate", icon: "document-text" },
+  { id: "etf", icon: "bar-chart" },
+  { id: "mutualFund", icon: "pie-chart" },
+  { id: "realEstate", icon: "home" },
+  { id: "commodity", icon: "diamond" },
+  { id: "checkingAccount", icon: "card" },
+  { id: "savingsAccount", icon: "cash" },
+  { id: "privatePension", icon: "time" },
+  { id: "other", icon: "ellipsis-horizontal" },
 ];
 
 export const RISK_LEVELS = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
 ];
 
 export interface LookupSearchResult {
@@ -99,15 +98,15 @@ export interface InvestmentLookupResultV2 {
 }
 
 export const SECTORS = [
-  { value: 'technology', label: 'Technology' },
-  { value: 'healthcare', label: 'Healthcare' },
-  { value: 'financials', label: 'Financials' },
-  { value: 'consumer', label: 'Consumer' },
-  { value: 'industrials', label: 'Industrials' },
-  { value: 'energy', label: 'Energy' },
-  { value: 'utilities', label: 'Utilities' },
-  { value: 'materials', label: 'Materials' },
-  { value: 'real_estate', label: 'Real Estate' },
-  { value: 'communication', label: 'Communication' },
-  { value: 'other', label: 'Other' },
+  { value: "technology", label: "Technology" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "financials", label: "Financials" },
+  { value: "consumer", label: "Consumer" },
+  { value: "industrials", label: "Industrials" },
+  { value: "energy", label: "Energy" },
+  { value: "utilities", label: "Utilities" },
+  { value: "materials", label: "Materials" },
+  { value: "real_estate", label: "Real Estate" },
+  { value: "communication", label: "Communication" },
+  { value: "other", label: "Other" },
 ];

@@ -1,6 +1,6 @@
 // Import version from package.json
 // @ts-ignore
-const pkgVersion = require('../package.json').version;
+const pkgVersion = require("../package.json").version;
 
 // App version configuration
 export const APP_VERSION = pkgVersion;
@@ -11,8 +11,8 @@ export const VERSION_CONFIG = {
   ENABLED: true,
 
   // API endpoints
-  VERSION_ENDPOINT: '/piggus-bff/api/v1/version',
-  VERSION_CHECK_ENDPOINT: '/piggus-bff/api/v1/version/check',
+  VERSION_ENDPOINT: "/piggus-bff/api/v1/version",
+  VERSION_CHECK_ENDPOINT: "/piggus-bff/api/v1/version/check",
 
   // Retry configuration
   MAX_RETRIES: 3,
@@ -22,8 +22,9 @@ export const VERSION_CONFIG = {
   TIMEOUT: 10000, // milliseconds
 
   // Store URLs
-  IOS_APP_STORE_URL: 'https://apps.apple.com/app/piggus/id123456789', // Update with actual App Store URL
-  ANDROID_PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.rebelpug.piggus',
+  IOS_APP_STORE_URL: "https://apps.apple.com/app/piggus/id123456789", // Update with actual App Store URL
+  ANDROID_PLAY_STORE_URL:
+    "https://play.google.com/store/apps/details?id=com.rebelpug.piggus",
 };
 
 // Development overrides

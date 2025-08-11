@@ -5,12 +5,13 @@
 ## ✨ Features
 
 - 📊 **Expense Tracking** - Monitor your spending with categorized expenses
-- 💰 **Investment Portfolio** - Track your investments and portfolio performance  
+- 💰 **Investment Portfolio** - Track your investments and portfolio performance
 - 👥 **Group Expenses** - Share and split expenses with others
 - 📈 **Financial Insights** - Get detailed statistics and reports
 - 🔒 **Privacy-First** - End-to-end encryption keeps your data secure
 
 ## ✨ Wanted features
+
 - 🏦 **Multi-Currency Support** - Handle expenses in different currencies
 - 🌍 **Internationalization** - Available in multiple languages
 - 📱 **Cross-Platform** - Works on Web
@@ -26,24 +27,28 @@
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/piggus-app.git
    cd piggus-app
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env.local
    ```
-   
+
    Edit `.env.local` and configure the required services (see [Configuration](#-configuration) section).
 
 4. **Start the development server**
+
    ```bash
    npm start
    ```
@@ -59,11 +64,13 @@
 To fully use Piggus, you'll need to set up these services:
 
 #### 1. Supabase (Database & Backend)
+
 - The app uses the shared Supabase instance by default
 - For production use, create your own [Supabase project](https://supabase.com)
 - Update `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` in `.env.local`
 
 #### 2. Sentry (Error Monitoring) - Optional
+
 - Create a [Sentry](https://sentry.io) account
 - Set up a new React Native project
 - Update these variables in `.env.local`:
@@ -75,6 +82,7 @@ To fully use Piggus, you'll need to set up these services:
   ```
 
 #### 3. RevenueCat (In-App Purchases) - Optional
+
 - Create a [RevenueCat](https://www.revenuecat.com) account
 - Set up your app and get API keys
 - Update these variables in `.env.local`:
@@ -93,7 +101,7 @@ All environment variables are documented in `.env.example`. Variables prefixed w
 
 - `npm start` - Start the Expo development server
 - `npm run android` - Run on Android device/emulator
-- `npm run ios` - Run on iOS device/simulator  
+- `npm run ios` - Run on iOS device/simulator
 - `npm run web` - Run in web browser
 - `npm run lint` - Run ESLint
 - `npm run release` - Create a new release with standard-version
@@ -142,25 +150,29 @@ eas build --platform ios --profile production --local
 ### EAS Build (Recommended)
 
 1. **Install EAS CLI**
+
    ```bash
    npm install -g eas-cli
    ```
 
 2. **Login to Expo**
+
    ```bash
    eas login
    ```
 
 3. **Configure your project**
+
    ```bash
    eas build:configure
    ```
 
 4. **Build for production**
+
    ```bash
    # Android
    eas build --platform android --profile production
-   
+
    # iOS
    eas build --platform ios --profile production
    ```
@@ -215,6 +227,7 @@ Please use the [GitHub Issues](https://github.com/Rebelpug/piggus-app/issues) pa
 This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License** (CC BY-NC-SA 4.0).
 
 **What this means:**
+
 - ✅ You can use, modify, and distribute this software
 - ✅ You can contribute back to the project
 - ❌ You cannot use it for commercial purposes without permission

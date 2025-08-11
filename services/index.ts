@@ -13,7 +13,7 @@ export {
   apiHandleGroupInvitation,
   apiUpdateExpenseGroup,
   apiRemoveUserFromGroup,
-} from './expenseService';
+} from "./expenseService";
 
 // Investment/Portfolio services
 export {
@@ -28,14 +28,14 @@ export {
   apiRemoveUserFromPortfolio,
   apiLookupInvestmentBySymbol,
   apiSearchSymbolsWithQuotes,
-} from './investmentService';
+} from "./investmentService";
 
 // Profile services
 export {
   apiFetchProfile,
   apiCreateProfile,
   apiUpdateProfile,
-} from './profileService';
+} from "./profileService";
 
 // Recurring expense services
 export {
@@ -44,10 +44,7 @@ export {
   apiUpdateRecurringExpense,
   apiDeleteRecurringExpense,
   apiProcessRecurringExpenses,
-} from './recurringExpenseService';
+} from "./recurringExpenseService";
 
 // Guide services
-export {
-  apiFetchGuides,
-  apiFetchGuide,
-} from './guideService';
+export { apiFetchGuides, apiFetchGuide } from "./guideService";

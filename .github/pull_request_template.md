@@ -2,10 +2,10 @@
 
 <!-- Provide a clear and concise description of the changes made -->
 
-
 ## 🔗 Related Issue
 
 <!-- Link to the issue this PR addresses -->
+
 Closes #<!-- issue number -->
 
 ## 🎯 Type of Change
@@ -55,18 +55,20 @@ Closes #<!-- issue number -->
 
 <!-- List specific test scenarios -->
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## 📸 Screenshots/Videos
 
 <!-- Add screenshots or videos demonstrating the changes, especially for UI changes -->
 
 ### Before
+
 <!-- Screenshot/video of the previous state -->
 
 ### After
+
 <!-- Screenshot/video of the new state -->
 
 ## ⚡ Performance Impact
@@ -79,7 +81,6 @@ Closes #<!-- issue number -->
 
 <!-- If there's potential performance impact, describe it -->
 
-
 ## 🔄 Migration/Breaking Changes
 
 <!-- If this PR contains breaking changes, describe them and provide migration steps -->
@@ -88,7 +89,6 @@ Closes #<!-- issue number -->
 - [ ] Contains breaking changes (described below)
 
 <!-- Migration steps for breaking changes -->
-
 
 ## 📋 Code Quality Checklist
 
@@ -150,11 +150,9 @@ Closes #<!-- issue number -->
 
 <!-- Any specific areas you'd like reviewers to focus on -->
 
-
 ## 📌 Additional Context
 
 <!-- Any additional context, concerns, or notes for reviewers -->
-
 
 ---
 

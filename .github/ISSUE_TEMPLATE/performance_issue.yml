@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thank you for reporting a performance issue! This helps us keep Piggus fast and efficient.
-        
+
         **Before submitting:** Please ensure you're using the latest version and check if others have reported similar issues.
 
   - type: textarea

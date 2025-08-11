@@ -1,24 +1,24 @@
-import { piggusApi } from '@/client/piggusApi';
-import { Profile } from '@/types/profile';
-import { User } from '@supabase/supabase-js';
+import { piggusApi } from "@/client/piggusApi";
+import { Profile } from "@/types/profile";
+import { User } from "@supabase/supabase-js";
 
 // Profile service functions that bridge the old client API with piggusApi
 
 export const apiFetchProfile = async (
   user: User,
   encryptData: (data: any) => Promise<string | null>,
-  decryptData: (encryptedData: string) => Promise<any>
+  decryptData: (encryptedData: string) => Promise<any>,
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
     if (!user || !encryptData || !decryptData) {
-      console.error('User credentials or encryption functions are invalid');
+      console.error("User credentials or encryption functions are invalid");
       return {
         success: false,
-        error: 'User credentials or encryption functions are invalid',
+        error: "User credentials or encryption functions are invalid",
       };
     }
 
-    console.log('Fetching profile for user:', user.id);
+    console.log("Fetching profile for user:", user.id);
 
     const profile = await piggusApi.getProfile();
 
@@ -42,10 +42,13 @@ export const apiFetchProfile = async (
       data: decryptedProfile,
     };
   } catch (error: any) {
-    console.error('Failed to fetch profile:', error);
+    console.error("Failed to fetch profile:", error);
 
     // If it's a 404-like error, return success with no data (profile doesn't exist)
-    if (error.response?.status === 404 || error.message?.includes('not found')) {
+    if (
+      error.response?.status === 404 ||
+      error.message?.includes("not found")
+    ) {
       return {
         success: true,
         data: undefined,
@@ -54,7 +57,7 @@ export const apiFetchProfile = async (
 
     return {
       success: false,
-      error: error.message || 'Failed to load profile',
+      error: error.message || "Failed to load profile",
     };
   }
 };
@@ -64,28 +67,28 @@ export const apiCreateProfile = async (
   username: string,
   encryptData: (data: any) => Promise<string | null>,
   decryptData: (encryptedData: string) => Promise<any>,
-  defaultCurrency: string = 'EUR'
+  defaultCurrency: string = "EUR",
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
     if (!user || !encryptData || !decryptData) {
-      console.error('User credentials or encryption functions are invalid');
+      console.error("User credentials or encryption functions are invalid");
       return {
         success: false,
-        error: 'User credentials or encryption functions are invalid',
+        error: "User credentials or encryption functions are invalid",
       };
     }
 
     if (!username) {
       return {
         success: false,
-        error: 'Cannot create profile: No name provided',
+        error: "Cannot create profile: No name provided",
       };
     }
 
     if (!user.user_metadata?.public_key) {
       return {
         success: false,
-        error: 'Cannot create profile: No public key found',
+        error: "Cannot create profile: No public key found",
       };
     }
 
@@ -103,7 +106,7 @@ export const apiCreateProfile = async (
     if (!encryptedProfile) {
       return {
         success: false,
-        error: 'Cannot create profile: Failed to encrypt profile data',
+        error: "Cannot create profile: Failed to encrypt profile data",
       };
     }
 
@@ -126,27 +129,29 @@ export const apiCreateProfile = async (
       data: decryptedProfile,
     };
   } catch (error: any) {
-    console.error('Failed to create profile:', error);
+    console.error("Failed to create profile:", error);
     return {
       success: false,
-      error: error.message || 'Failed to create profile',
+      error: error.message || "Failed to create profile",
     };
   }
 };
 
 export const apiUpdateProfile = async (
   user: User,
-  profileData: Partial<Profile['profile']>,
+  profileData: Partial<Profile["profile"]>,
   currentProfile: Profile,
   encryptData: (data: any) => Promise<string | null>,
-  decryptData: (encryptedData: string) => Promise<any>
+  decryptData: (encryptedData: string) => Promise<any>,
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
     if (!user || !encryptData || !decryptData || !currentProfile) {
-      console.error('User credentials, profile, or encryption functions are invalid');
+      console.error(
+        "User credentials, profile, or encryption functions are invalid",
+      );
       return {
         success: false,
-        error: 'User credentials, profile, or encryption functions are invalid',
+        error: "User credentials, profile, or encryption functions are invalid",
       };
     }
 
@@ -162,7 +167,7 @@ export const apiUpdateProfile = async (
     if (!encryptedProfile) {
       return {
         success: false,
-        error: 'Cannot update profile: Failed to encrypt profile data',
+        error: "Cannot update profile: Failed to encrypt profile data",
       };
     }
 
@@ -171,7 +176,9 @@ export const apiUpdateProfile = async (
     });
 
     // Decrypt the updated profile data
-    const decryptedProfileData = await decryptData(updatedProfile.encrypted_data);
+    const decryptedProfileData = await decryptData(
+      updatedProfile.encrypted_data,
+    );
 
     const decryptedProfile: Profile = {
       ...updatedProfile,
@@ -183,16 +190,18 @@ export const apiUpdateProfile = async (
       data: decryptedProfile,
     };
   } catch (error: any) {
-    console.error('Failed to update profile:', error);
+    console.error("Failed to update profile:", error);
     return {
       success: false,
-      error: error.message || 'Failed to update profile',
+      error: error.message || "Failed to update profile",
     };
   }
 };
 
-export const apiDeleteProfile = async (
-): Promise<{ success: boolean; error?: string }> => {
+export const apiDeleteProfile = async (): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
   try {
     await piggusApi.deleteProfile();
 
@@ -200,11 +209,10 @@ export const apiDeleteProfile = async (
       success: true,
     };
   } catch (error: any) {
-    console.error('Failed to delete profile:', error);
+    console.error("Failed to delete profile:", error);
     return {
       success: false,
-      error: error.message || 'Failed to delete profile',
+      error: error.message || "Failed to delete profile",
     };
   }
 };
-

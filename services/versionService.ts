@@ -1,6 +1,10 @@
-import { piggusApi } from '@/client/piggusApi';
-import { VersionResponse, VersionCheckRequest, VersionCheckResponse } from '@/types/version';
-import { VERSION_CONFIG, APP_VERSION } from '@/config/version';
+import { piggusApi } from "@/client/piggusApi";
+import {
+  VersionResponse,
+  VersionCheckRequest,
+  VersionCheckResponse,
+} from "@/types/version";
+import { VERSION_CONFIG, APP_VERSION } from "@/config/version";
 
 export class VersionService {
   private static instance: VersionService;
@@ -19,11 +23,11 @@ export class VersionService {
     try {
       return await piggusApi.getVersion();
     } catch (error: any) {
-      console.error('Failed to get version info:', error);
+      console.error("Failed to get version info:", error);
       throw new Error(
-        error?.response?.data?.message || 
-        error?.message || 
-        'Failed to retrieve version information'
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to retrieve version information",
       );
     }
   }
@@ -31,13 +35,15 @@ export class VersionService {
   /**
    * Check if app version needs updating
    */
-  async checkVersion(version: string = APP_VERSION): Promise<VersionCheckResponse> {
+  async checkVersion(
+    version: string = APP_VERSION,
+  ): Promise<VersionCheckResponse> {
     try {
       const requestData: VersionCheckRequest = { version };
       return await piggusApi.checkVersion(requestData);
     } catch (error: any) {
-      console.error('Failed to check version:', error);
-      
+      console.error("Failed to check version:", error);
+
       // Return a fallback response that allows the app to continue
       return {
         success: false,
@@ -47,9 +53,10 @@ export class VersionService {
           update_required: false,
           update_suggested: false,
         },
-        error: error?.response?.data?.message || 
-               error?.message || 
-               'Failed to check app version'
+        error:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to check app version",
       };
     }
   }
@@ -57,28 +64,31 @@ export class VersionService {
   /**
    * Check version with retry logic
    */
-  async checkVersionWithRetry(version: string = APP_VERSION, maxRetries: number = VERSION_CONFIG.MAX_RETRIES): Promise<VersionCheckResponse> {
+  async checkVersionWithRetry(
+    version: string = APP_VERSION,
+    maxRetries: number = VERSION_CONFIG.MAX_RETRIES,
+  ): Promise<VersionCheckResponse> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const result = await this.checkVersion(version);
-        
+
         // If successful, return the result
         if (result.success) {
           return result;
         }
-        
+
         // If it's not the last attempt and not successful, continue to retry
         if (attempt < maxRetries) {
           await this.delay(VERSION_CONFIG.RETRY_DELAY * attempt);
           continue;
         }
-        
+
         return result;
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt < maxRetries) {
           console.log(`Version check attempt ${attempt} failed, retrying...`);
           await this.delay(VERSION_CONFIG.RETRY_DELAY * attempt);
@@ -95,7 +105,8 @@ export class VersionService {
         update_required: false,
         update_suggested: false,
       },
-      error: lastError?.message || 'Version check failed after multiple attempts'
+      error:
+        lastError?.message || "Version check failed after multiple attempts",
     };
   }
 
@@ -103,7 +114,7 @@ export class VersionService {
    * Utility method to delay execution
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -111,19 +122,19 @@ export class VersionService {
    * Returns: -1 if v1 < v2, 0 if equal, 1 if v1 > v2
    */
   static compareVersions(v1: string, v2: string): number {
-    const parts1 = v1.split('.').map(n => parseInt(n, 10));
-    const parts2 = v2.split('.').map(n => parseInt(n, 10));
-    
+    const parts1 = v1.split(".").map((n) => parseInt(n, 10));
+    const parts2 = v2.split(".").map((n) => parseInt(n, 10));
+
     const maxLength = Math.max(parts1.length, parts2.length);
-    
+
     for (let i = 0; i < maxLength; i++) {
       const part1 = parts1[i] || 0;
       const part2 = parts2[i] || 0;
-      
+
       if (part1 < part2) return -1;
       if (part1 > part2) return 1;
     }
-    
+
     return 0;
   }
 

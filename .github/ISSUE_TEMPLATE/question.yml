@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Got a question? We're here to help! 
-        
+
         **Before asking:** Please check our [documentation](https://github.com/Rebelpug/piggus-app#readme), [discussions](https://github.com/Rebelpug/piggus-app/discussions), and existing issues.
 
   - type: dropdown

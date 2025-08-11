@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running Expo project checks before push..."
+
+# Type checking
+echo "📝 Type checking..."
+npm run type-check
+
+# Linting
+echo "🔍 Linting..."
+npm run lint
+
+# Format checking
+echo "🎨 Format checking..."
+npm run format:check
+
+# Optional: Check if Expo project is valid
+echo "📱 Validating Expo config..."
+npx expo doctor
+
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-push checks failed!"
+  exit 1
+fi
+
+echo "✅ All checks passed! Pushing..."

@@ -16,6 +16,7 @@ Use `#` symbols to create different heading levels:
 ```
 
 **Result:**
+
 - H1: Large, bold heading (28px)
 - H2: Medium heading with top margin (22px)
 - H3: Smaller heading (18px)
@@ -24,24 +25,31 @@ Use `#` symbols to create different heading levels:
 ### 2. Text Formatting
 
 #### Bold Text
+
 Use double asterisks for bold text:
+
 ```
 **This text will be bold**
 ```
 
 You can also use bold text inline within paragraphs:
+
 ```
 This is a paragraph with **bold text** in the middle.
 ```
 
 #### Italic Text
+
 Use single asterisks for italic text:
+
 ```
 *This text will be italic*
 ```
 
 #### Inline Code
+
 Use backticks for inline code:
+
 ```
 Use the `useState` hook for state management.
 ```
@@ -49,7 +57,9 @@ Use the `useState` hook for state management.
 ### 3. Lists
 
 #### Bullet Lists
+
 Use `-` or `*` for bullet points:
+
 ```
 - First item
 - Second item
@@ -57,7 +67,9 @@ Use `-` or `*` for bullet points:
 ```
 
 #### Numbered Lists
+
 Use numbers with dots:
+
 ```
 1. First step
 2. Second step
@@ -65,6 +77,7 @@ Use numbers with dots:
 ```
 
 **Note:** Numbers will be automatically formatted, so you can use any number:
+
 ```
 1. First step
 1. Second step
@@ -74,17 +87,23 @@ Use numbers with dots:
 ### 4. Special Elements
 
 #### Blockquotes
+
 Use `>` for highlighted quotes or important notes:
+
 ```
 > This is an important note or tip that stands out from regular text.
 ```
 
 #### Dividers
+
 Use three dashes or equals signs for section dividers:
+
 ```
 ---
 ```
+
 or
+
 ```
 ===
 ```
@@ -92,7 +111,9 @@ or
 ### 5. Spacing
 
 #### Paragraphs
+
 Separate paragraphs with empty lines:
+
 ```
 This is the first paragraph.
 
@@ -100,6 +121,7 @@ This is the second paragraph.
 ```
 
 #### Line Breaks
+
 Use empty lines to add spacing between elements.
 
 ## Complete Example
@@ -137,7 +159,7 @@ Before you begin, make sure you have:
 
 Use the `50/30/20` rule:
 - **50%** for needs
-- **30%** for wants  
+- **30%** for wants
 - **20%** for savings and debt repayment
 
 This approach helps maintain a balanced financial life.

@@ -1,4 +1,4 @@
-export type SubscriptionTier = 'free' | 'premium' | 'enterprise';
+export type SubscriptionTier = "free" | "premium" | "enterprise";
 
 export type Subscription = {
   id: string;
@@ -15,7 +15,7 @@ export type BankAccount = {
   active_until: Date | null;
   last_fetched: Date | null;
   active: boolean;
-}
+};
 
 export type AdditionalCategoryOverride = {
   id: string;
@@ -32,7 +32,7 @@ export type CategoryOverride = {
 export type BudgetingData = {
   budget?: {
     amount: number;
-    period: 'monthly' | 'weekly' | 'yearly';
+    period: "monthly" | "weekly" | "yearly";
   } | null;
   categoryOverrides?: {
     edited: { [categoryId: string]: CategoryOverride };

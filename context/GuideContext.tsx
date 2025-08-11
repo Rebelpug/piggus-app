@@ -1,9 +1,15 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Guide } from '@/client/piggusApi';
-import { apiFetchGuides, apiFetchGuide } from '@/services';
-import {useAuth} from "@/context/AuthContext";
-import {useEncryption} from "@/context/EncryptionContext";
-import {useProfile} from "@/context/ProfileContext";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { Guide } from "@/client/piggusApi";
+import { apiFetchGuides, apiFetchGuide } from "@/services";
+import { useAuth } from "@/context/AuthContext";
+import { useEncryption } from "@/context/EncryptionContext";
+import { useProfile } from "@/context/ProfileContext";
 
 interface GuideContextType {
   guides: Guide[];
@@ -35,23 +41,23 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
       const fetchedGuides = await apiFetchGuides();
       setGuides(fetchedGuides);
     } catch (err) {
-      console.error('Failed to fetch guides:', err);
-      setError('Failed to load guides');
+      console.error("Failed to fetch guides:", err);
+      setError("Failed to load guides");
     } finally {
       setLoading(false);
     }
   };
 
   const getGuideById = (id: string): Guide | undefined => {
-    return guides.find(guide => guide.id === id);
+    return guides.find((guide) => guide.id === id);
   };
 
   const fetchGuideById = async (id: string): Promise<Guide> => {
     try {
       const guide = await apiFetchGuide(id);
       // Update the guides array with the fetched guide if it's not already there or if it needs updating
-      setGuides(prevGuides => {
-        const existingIndex = prevGuides.findIndex(g => g.id === id);
+      setGuides((prevGuides) => {
+        const existingIndex = prevGuides.findIndex((g) => g.id === id);
         if (existingIndex >= 0) {
           const newGuides = [...prevGuides];
           newGuides[existingIndex] = guide;
@@ -69,7 +75,9 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (isEncryptionInitialized) {
-      refreshGuides().catch(error => console.error('Failed to fetch guides:', error));
+      refreshGuides().catch((error) =>
+        console.error("Failed to fetch guides:", error),
+      );
     }
   }, [isEncryptionInitialized]);
 
@@ -83,16 +91,14 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
   };
 
   return (
-    <GuideContext.Provider value={value}>
-      {children}
-    </GuideContext.Provider>
+    <GuideContext.Provider value={value}>{children}</GuideContext.Provider>
   );
 };
 
 export const useGuides = (): GuideContextType => {
   const context = useContext(GuideContext);
   if (context === undefined) {
-    throw new Error('useGuides must be used within a GuideProvider');
+    throw new Error("useGuides must be used within a GuideProvider");
   }
   return context;
 };

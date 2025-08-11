@@ -1,26 +1,33 @@
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
-import { piggusApi } from '@/client/piggusApi';
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
+import { piggusApi } from "@/client/piggusApi";
 import {
   RecurringExpenseData,
   RecurringExpenseWithDecryptedData,
   ExpenseWithDecryptedData,
-} from '@/types/expense';
-import { User } from '@supabase/supabase-js';
+} from "@/types/expense";
+import { User } from "@supabase/supabase-js";
 
 // Recurring expense service functions that bridge the old client API with piggusApi
 
 export const apiFetchRecurringExpenses = async (
-    user: User,
-    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
-    decryptWithExternalEncryptionKey: (encryptionKey: string, encryptedData: string) => Promise<any>
-): Promise<{ success: boolean; data?: RecurringExpenseWithDecryptedData[]; error?: string }> => {
+  user: User,
+  decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+  decryptWithExternalEncryptionKey: (
+    encryptionKey: string,
+    encryptedData: string,
+  ) => Promise<any>,
+): Promise<{
+  success: boolean;
+  data?: RecurringExpenseWithDecryptedData[];
+  error?: string;
+}> => {
   try {
     if (!user || !decryptWithExternalEncryptionKey || !decryptWithPrivateKey) {
-      console.error('User credentials are invalid');
+      console.error("User credentials are invalid");
       return {
         success: false,
-        error: 'User credentials are invalid',
+        error: "User credentials are invalid",
       };
     }
 
@@ -34,28 +41,36 @@ export const apiFetchRecurringExpenses = async (
     }
 
     const decryptedRecurringExpenses = await Promise.all(
-        recurringExpenses.map(async recurringExpense => {
-          try {
-            // Decrypt the group key from the membership data
-            const decryptedGroupKey = await decryptWithPrivateKey(recurringExpense.group_membership.encrypted_group_key);
-            // Ensure the decrypted key is a string (base64)
-            const groupKeyString = typeof decryptedGroupKey === 'string' ? decryptedGroupKey : JSON.stringify(decryptedGroupKey);
+      recurringExpenses.map(async (recurringExpense) => {
+        try {
+          // Decrypt the group key from the membership data
+          const decryptedGroupKey = await decryptWithPrivateKey(
+            recurringExpense.group_membership.encrypted_group_key,
+          );
+          // Ensure the decrypted key is a string (base64)
+          const groupKeyString =
+            typeof decryptedGroupKey === "string"
+              ? decryptedGroupKey
+              : JSON.stringify(decryptedGroupKey);
 
-            // Decrypt the recurring expense data
-            const decryptedData = await decryptWithExternalEncryptionKey(groupKeyString, recurringExpense.encrypted_data);
+          // Decrypt the recurring expense data
+          const decryptedData = await decryptWithExternalEncryptionKey(
+            groupKeyString,
+            recurringExpense.encrypted_data,
+          );
 
-            return {
-              id: recurringExpense.id,
-              group_id: recurringExpense.group_id,
-              data: decryptedData,
-              created_at: recurringExpense.created_at,
-              updated_at: recurringExpense.updated_at,
-            } as RecurringExpenseWithDecryptedData;
-          } catch (error: any) {
-            console.error('Error decrypting recurring expense:', error);
-            throw error;
-          }
-        })
+          return {
+            id: recurringExpense.id,
+            group_id: recurringExpense.group_id,
+            data: decryptedData,
+            created_at: recurringExpense.created_at,
+            updated_at: recurringExpense.updated_at,
+          } as RecurringExpenseWithDecryptedData;
+        } catch (error: any) {
+          console.error("Error decrypting recurring expense:", error);
+          throw error;
+        }
+      }),
     );
 
     return {
@@ -63,32 +78,42 @@ export const apiFetchRecurringExpenses = async (
       data: decryptedRecurringExpenses,
     };
   } catch (error: any) {
-    console.error('Error fetching recurring expenses:', error);
+    console.error("Error fetching recurring expenses:", error);
     return {
       success: false,
-      error: error.message || 'Failed to load recurring expenses',
+      error: error.message || "Failed to load recurring expenses",
     };
   }
 };
 
 export const apiCreateRecurringExpense = async (
-    user: User,
-    groupId: string,
-    groupKey: string,
-    recurringExpenseData: RecurringExpenseData,
-    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
-    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
-): Promise<{ success: boolean; data?: RecurringExpenseWithDecryptedData; error?: string }> => {
+  user: User,
+  groupId: string,
+  groupKey: string,
+  recurringExpenseData: RecurringExpenseData,
+  decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+  encryptWithExternalEncryptionKey: (
+    encryptionKey: string,
+    data: any,
+  ) => Promise<string>,
+): Promise<{
+  success: boolean;
+  data?: RecurringExpenseWithDecryptedData;
+  error?: string;
+}> => {
   try {
     if (!user || !groupId || !groupKey || !recurringExpenseData) {
       return {
         success: false,
-        error: 'Invalid parameters',
+        error: "Invalid parameters",
       };
     }
 
     const recurringExpenseId = uuidv4();
-    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, recurringExpenseData);
+    const encryptedData = await encryptWithExternalEncryptionKey(
+      groupKey,
+      recurringExpenseData,
+    );
 
     const recurringExpense = await piggusApi.createRecurringExpense({
       recurringExpenseId,
@@ -104,36 +129,49 @@ export const apiCreateRecurringExpense = async (
       } as RecurringExpenseWithDecryptedData,
     };
   } catch (error: any) {
-    console.error('Error creating recurring expense:', error);
+    console.error("Error creating recurring expense:", error);
     return {
       success: false,
-      error: error.message || 'Failed to create recurring expense',
+      error: error.message || "Failed to create recurring expense",
     };
   }
 };
 
 export const apiUpdateRecurringExpense = async (
-    user: User,
-    groupId: string,
-    groupKey: string,
-    updatedRecurringExpense: RecurringExpenseWithDecryptedData,
-    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
-    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
-): Promise<{ success: boolean; data?: RecurringExpenseWithDecryptedData; error?: string }> => {
+  user: User,
+  groupId: string,
+  groupKey: string,
+  updatedRecurringExpense: RecurringExpenseWithDecryptedData,
+  decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+  encryptWithExternalEncryptionKey: (
+    encryptionKey: string,
+    data: any,
+  ) => Promise<string>,
+): Promise<{
+  success: boolean;
+  data?: RecurringExpenseWithDecryptedData;
+  error?: string;
+}> => {
   try {
     if (!user || !groupId || !groupKey || !updatedRecurringExpense) {
       return {
         success: false,
-        error: 'Invalid parameters',
+        error: "Invalid parameters",
       };
     }
 
-    const encryptedData = await encryptWithExternalEncryptionKey(groupKey, updatedRecurringExpense.data);
+    const encryptedData = await encryptWithExternalEncryptionKey(
+      groupKey,
+      updatedRecurringExpense.data,
+    );
 
-    const recurringExpense = await piggusApi.updateRecurringExpense(updatedRecurringExpense.id, {
-      groupId,
-      encryptedData,
-    });
+    const recurringExpense = await piggusApi.updateRecurringExpense(
+      updatedRecurringExpense.id,
+      {
+        groupId,
+        encryptedData,
+      },
+    );
 
     return {
       success: true,
@@ -143,46 +181,51 @@ export const apiUpdateRecurringExpense = async (
       } as RecurringExpenseWithDecryptedData,
     };
   } catch (error: any) {
-    console.error('Error updating recurring expense:', error);
+    console.error("Error updating recurring expense:", error);
     return {
       success: false,
-      error: error.message || 'Failed to update recurring expense',
+      error: error.message || "Failed to update recurring expense",
     };
   }
 };
 
 export const apiDeleteRecurringExpense = async (
-    user: User,
-    groupId: string,
-    recurringExpenseId: string
+  user: User,
+  groupId: string,
+  recurringExpenseId: string,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     if (!user || !groupId || !recurringExpenseId) {
       return {
         success: false,
-        error: 'Invalid parameters',
+        error: "Invalid parameters",
       };
     }
 
-    const result = await piggusApi.deleteRecurringExpense(recurringExpenseId, { groupId });
+    const result = await piggusApi.deleteRecurringExpense(recurringExpenseId, {
+      groupId,
+    });
     return {
       success: result.success,
     };
   } catch (error: any) {
-    console.error('Error deleting recurring expense:', error);
+    console.error("Error deleting recurring expense:", error);
     return {
       success: false,
-      error: error.message || 'Failed to delete recurring expense',
+      error: error.message || "Failed to delete recurring expense",
     };
   }
 };
 
 export const apiProcessRecurringExpenses = async (
-    user: User,
-    recurringExpenses: RecurringExpenseWithDecryptedData[],
-    groupMemberships: { group_id: string; encrypted_group_key: string }[],
-    decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
-    encryptWithExternalEncryptionKey: (encryptionKey: string, data: any) => Promise<string>
+  user: User,
+  recurringExpenses: RecurringExpenseWithDecryptedData[],
+  groupMemberships: { group_id: string; encrypted_group_key: string }[],
+  decryptWithPrivateKey: (encryptedData: string) => Promise<any>,
+  encryptWithExternalEncryptionKey: (
+    encryptionKey: string,
+    data: any,
+  ) => Promise<string>,
 ): Promise<{
   success: boolean;
   generatedExpenses?: ExpenseWithDecryptedData[];
@@ -193,7 +236,7 @@ export const apiProcessRecurringExpenses = async (
     if (!user || !recurringExpenses || !groupMemberships) {
       return {
         success: false,
-        error: 'Invalid parameters',
+        error: "Invalid parameters",
       };
     }
 
@@ -204,22 +247,39 @@ export const apiProcessRecurringExpenses = async (
     for (const recurringExpense of recurringExpenses) {
       try {
         const now = new Date();
-        const lastGenerated = recurringExpense.data.last_generated_date ? new Date(recurringExpense.data.last_generated_date) : null;
-        const nextDue = recurringExpense.data.next_due_date ? new Date(recurringExpense.data.next_due_date) : null;
+        const lastGenerated = recurringExpense.data.last_generated_date
+          ? new Date(recurringExpense.data.last_generated_date)
+          : null;
+        const nextDue = recurringExpense.data.next_due_date
+          ? new Date(recurringExpense.data.next_due_date)
+          : null;
 
         // Check if we need to generate a new expense based on the recurring schedule
         // Skip generation if should_generate_expenses is explicitly set to false
-        if (nextDue && now >= nextDue && recurringExpense.data.should_generate_expenses !== false) {
+        if (
+          nextDue &&
+          now >= nextDue &&
+          recurringExpense.data.should_generate_expenses !== false
+        ) {
           // Find the group membership for this recurring expense
-          const groupMembership = groupMemberships.find(gm => gm.group_id === recurringExpense.group_id);
+          const groupMembership = groupMemberships.find(
+            (gm) => gm.group_id === recurringExpense.group_id,
+          );
           if (!groupMembership) {
-            console.warn(`No group membership found for recurring expense ${recurringExpense.id}`);
+            console.warn(
+              `No group membership found for recurring expense ${recurringExpense.id}`,
+            );
             continue;
           }
 
           // Decrypt the group key
-          const decryptedGroupKey = await decryptWithPrivateKey(groupMembership.encrypted_group_key);
-          const groupKeyString = typeof decryptedGroupKey === 'string' ? decryptedGroupKey : JSON.stringify(decryptedGroupKey);
+          const decryptedGroupKey = await decryptWithPrivateKey(
+            groupMembership.encrypted_group_key,
+          );
+          const groupKeyString =
+            typeof decryptedGroupKey === "string"
+              ? decryptedGroupKey
+              : JSON.stringify(decryptedGroupKey);
 
           // Create the new expense data
           const expenseData = {
@@ -233,16 +293,16 @@ export const apiProcessRecurringExpenses = async (
           // Calculate next due date based on frequency
           let newNextDue = new Date(nextDue);
           switch (recurringExpense.data.interval) {
-            case 'daily':
+            case "daily":
               newNextDue.setDate(newNextDue.getDate() + 1);
               break;
-            case 'weekly':
+            case "weekly":
               newNextDue.setDate(newNextDue.getDate() + 7);
               break;
-            case 'monthly':
+            case "monthly":
               newNextDue.setMonth(newNextDue.getMonth() + 1);
               break;
-            case 'yearly':
+            case "yearly":
               newNextDue.setFullYear(newNextDue.getFullYear() + 1);
               break;
           }
@@ -255,16 +315,25 @@ export const apiProcessRecurringExpenses = async (
           };
 
           const expenseId = uuidv4();
-          const encryptedExpenseData = await encryptWithExternalEncryptionKey(groupKeyString, expenseData);
-          const encryptedRecurringData = await encryptWithExternalEncryptionKey(groupKeyString, updatedRecurringData);
+          const encryptedExpenseData = await encryptWithExternalEncryptionKey(
+            groupKeyString,
+            expenseData,
+          );
+          const encryptedRecurringData = await encryptWithExternalEncryptionKey(
+            groupKeyString,
+            updatedRecurringData,
+          );
 
           // Generate the expense using the piggusApi
-          const result = await piggusApi.generateExpenseFromRecurring(recurringExpense.id, {
-            expenseId,
-            groupId: recurringExpense.group_id,
-            encryptedExpenseData,
-            updatedRecurringData: encryptedRecurringData,
-          });
+          const result = await piggusApi.generateExpenseFromRecurring(
+            recurringExpense.id,
+            {
+              expenseId,
+              groupId: recurringExpense.group_id,
+              encryptedExpenseData,
+              updatedRecurringData: encryptedRecurringData,
+            },
+          );
 
           if (result.expense && result.updatedRecurring) {
             generatedExpenses.push({
@@ -282,7 +351,10 @@ export const apiProcessRecurringExpenses = async (
           }
         }
       } catch (error: any) {
-        console.error(`Error processing recurring expense ${recurringExpense.id}:`, error);
+        console.error(
+          `Error processing recurring expense ${recurringExpense.id}:`,
+          error,
+        );
         // Continue with other recurring expenses
       }
     }
@@ -293,10 +365,10 @@ export const apiProcessRecurringExpenses = async (
       updatedRecurring,
     };
   } catch (error: any) {
-    console.error('Error processing recurring expenses:', error);
+    console.error("Error processing recurring expenses:", error);
     return {
       success: false,
-      error: error.message || 'Failed to process recurring expenses',
+      error: error.message || "Failed to process recurring expenses",
     };
   }
 };

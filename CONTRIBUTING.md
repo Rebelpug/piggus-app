@@ -5,16 +5,19 @@ Thank you for your interest in contributing to Piggus! We welcome contributions 
 ## 🌟 Ways to Contribute
 
 ### 🐛 Bug Reports
+
 - Report bugs through [GitHub Issues](https://github.com/Rebelpug/piggus-app/issues)
 - Use the bug report template
 - Include steps to reproduce, expected behavior, and screenshots if applicable
 
 ### ✨ Feature Requests
+
 - Suggest new features through [GitHub Issues](https://github.com/Rebelpug/piggus-app/issues)
 - Use the feature request template
 - Check our "Wanted Features" section in the README for prioritized features
 
 ### 📝 Code Contributions
+
 - Bug fixes
 - Feature implementations
 - Performance improvements
@@ -22,12 +25,14 @@ Thank you for your interest in contributing to Piggus! We welcome contributions 
 - Test improvements
 
 ### 📚 Documentation
+
 - README improvements
 - Code comments
 - API documentation
 - Translation improvements
 
 ### 🌍 Translations
+
 - Add new languages
 - Improve existing translations
 - Fix translation errors
@@ -102,6 +107,7 @@ types/               # TypeScript definitions
 ### Component Guidelines
 
 #### React Components
+
 ```typescript
 // Use functional components with TypeScript
 interface MyComponentProps {
@@ -120,16 +126,19 @@ export function MyComponent({ title, onPress }: MyComponentProps) {
 ```
 
 #### UI Components
+
 - Use `ThemedView` and `ThemedText` for consistent theming
 - Follow the existing UI Kitten patterns
 - Ensure components are accessible
 
 ### State Management
+
 - Use React Context for global state
 - Keep component state local when possible
 - Use custom hooks for complex state logic
 
 ### API Integration
+
 - All API calls should go through service files
 - Handle errors gracefully
 - Use proper TypeScript types for API responses
@@ -137,6 +146,7 @@ export function MyComponent({ title, onPress }: MyComponentProps) {
 ## 🧪 Testing
 
 ### Running Tests
+
 ```bash
 # Run all tests
 npm test
@@ -149,6 +159,7 @@ npm run lint
 ```
 
 ### Writing Tests
+
 - Write tests for new features
 - Include edge cases
 - Test error scenarios
@@ -157,11 +168,13 @@ npm run lint
 ## 🔒 Security Considerations
 
 ### Privacy First
+
 - Never log sensitive user data
 - Ensure encryption is properly implemented
 - Review security implications of changes
 
 ### Environment Variables
+
 - Never commit secrets to git
 - Use `.env.local` for local development
 - Update `.env.example` for new required variables
@@ -171,12 +184,14 @@ npm run lint
 ### Before Submitting
 
 1. **Update your branch**
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. **Test your changes**
+
    ```bash
    npm run lint
    npm test
@@ -202,6 +217,7 @@ type(scope): description
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -212,6 +228,7 @@ type(scope): description
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 ```
 feat(expenses): add category filtering
 fix(auth): resolve login redirect issue
@@ -241,6 +258,7 @@ When creating a pull request, please include:
 ### Adding Translations
 
 1. **Add new keys to English**
+
    ```json
    {
      "newFeature": {
@@ -251,6 +269,7 @@ When creating a pull request, please include:
    ```
 
 2. **Add translations for other languages**
+
    ```json
    {
      "newFeature": {
@@ -261,14 +280,16 @@ When creating a pull request, please include:
    ```
 
 3. **Use in components**
+
    ```typescript
    import { useTranslation } from '../context/LocalizationContext';
-   
+
    const { t } = useTranslation();
    return <Text>{t('newFeature.title')}</Text>;
    ```
 
 ### Translation Guidelines
+
 - Keep strings concise but descriptive
 - Use placeholders for dynamic content
 - Consider cultural context, not just literal translation
@@ -277,16 +298,19 @@ When creating a pull request, please include:
 ## 📱 Platform-Specific Guidelines
 
 ### iOS Considerations
+
 - Test on various iOS versions
 - Follow iOS Human Interface Guidelines
 - Test with different screen sizes
 
 ### Android Considerations
+
 - Test on different Android versions
 - Follow Material Design principles
 - Test on various device configurations
 
 ### Web Considerations
+
 - Ensure responsive design
 - Test keyboard navigation
 - Verify accessibility features
@@ -294,18 +318,22 @@ When creating a pull request, please include:
 ## 🆘 Getting Help
 
 ### Resources
+
 - [Expo Documentation](https://docs.expo.dev/)
 - [React Native Documentation](https://reactnative.dev/)
 - [Supabase Documentation](https://supabase.com/docs)
 - [UI Kitten Documentation](https://akveo.github.io/react-native-ui-kitten/)
 
 ### Community
+
 - 💬 [GitHub Discussions](https://github.com/Rebelpug/piggus-app/discussions) - General questions
 - 🐛 [GitHub Issues](https://github.com/Rebelpug/piggus-app/issues) - Bug reports
 - 📧 Email: support@rebelpug.com - Direct contact
 
 ### Development Questions
+
 If you're stuck on something:
+
 1. Check existing issues and discussions
 2. Create a discussion thread
 3. Provide context and code samples
@@ -314,6 +342,7 @@ If you're stuck on something:
 ## 🏆 Recognition
 
 Contributors will be:
+
 - Listed in the README contributors section
 - Mentioned in release notes for significant contributions
 - Invited to the contributors team for regular contributors
@@ -343,18 +372,21 @@ Contributors will be:
 ## 🎯 Contribution Priorities
 
 ### High Priority
+
 - 🏦 Multi-currency support implementation
 - 🌍 Web platform support
 - 🔐 Security improvements
 - 🐛 Bug fixes
 
 ### Medium Priority
+
 - 📱 UI/UX improvements
 - 🚀 Performance optimizations
 - 📝 Documentation improvements
 - 🌍 Additional translations
 
 ### Low Priority
+
 - 🧹 Code refactoring
 - 🎨 Visual enhancements
 - 📊 Analytics improvements

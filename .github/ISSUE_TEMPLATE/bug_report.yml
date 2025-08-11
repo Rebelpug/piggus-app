@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thank you for reporting a bug! Please fill out this form to help us understand and fix the issue.
-        
+
         **Before submitting:** Please search existing issues to see if this bug has already been reported.
 
   - type: textarea

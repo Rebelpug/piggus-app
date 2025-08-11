@@ -2,13 +2,21 @@
  * Recovery Key Management for Piggus App
  * Handles generation, storage, and encryption of recovery keys using BIP39 standard
  */
-import 'react-native-get-random-values';
-import * as Crypto from 'expo-crypto';
-import { gcm } from '@noble/ciphers/aes';
-import { randomBytes } from '@noble/hashes/utils';
-import { generateMnemonic, mnemonicToSeed, validateMnemonic } from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english';
-import { arrayBufferToBase64, base64ToArrayBuffer, deriveKeyFromPassword } from './encryption';
+import "react-native-get-random-values";
+import * as Crypto from "expo-crypto";
+import { gcm } from "@noble/ciphers/aes";
+import { randomBytes } from "@noble/hashes/utils";
+import {
+  generateMnemonic,
+  mnemonicToSeed,
+  validateMnemonic,
+} from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english";
+import {
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+  deriveKeyFromPassword,
+} from "./encryption";
 
 // Constants for recovery key
 const RECOVERY_PHRASE_WORDS = 12; // 12-word mnemonic (128 bits of entropy)
@@ -19,26 +27,28 @@ const RECOVERY_PHRASE_WORDS = 12; // 12-word mnemonic (128 bits of entropy)
 export function generateRecoveryPhrase(): string[] {
   // Generate a 12-word BIP39 mnemonic (128 bits of entropy)
   const mnemonic = generateMnemonic(wordlist, 128);
-  return mnemonic.split(' ');
+  return mnemonic.split(" ");
 }
 
 /**
  * Generate a recovery key from a BIP39 mnemonic phrase
  */
-export async function mnemonicToRecoveryKey(mnemonic: string[]): Promise<string> {
-  const mnemonicString = mnemonic.join(' ');
-  
+export async function mnemonicToRecoveryKey(
+  mnemonic: string[],
+): Promise<string> {
+  const mnemonicString = mnemonic.join(" ");
+
   // Validate the mnemonic first
   if (!validateMnemonic(mnemonicString, wordlist)) {
-    throw new Error('Invalid mnemonic phrase');
+    throw new Error("Invalid mnemonic phrase");
   }
-  
+
   // Convert mnemonic to seed (512 bits / 64 bytes)
   const seed = await mnemonicToSeed(mnemonicString);
-  
+
   // Use first 32 bytes (256 bits) as recovery key
   const recoveryKey = seed.slice(0, 32);
-  
+
   return arrayBufferToBase64(recoveryKey);
 }
 
@@ -49,23 +59,25 @@ export function validateRecoveryPhrase(phrase: string[]): boolean {
   if (phrase.length !== RECOVERY_PHRASE_WORDS) {
     return false;
   }
-  
-  const mnemonicString = phrase.join(' ');
+
+  const mnemonicString = phrase.join(" ");
   return validateMnemonic(mnemonicString, wordlist);
 }
 
 /**
  * Convert a recovery phrase back to a recovery key
  */
-export async function recoveryPhraseToKey(phrase: string[]): Promise<string | null> {
+export async function recoveryPhraseToKey(
+  phrase: string[],
+): Promise<string | null> {
   try {
     if (!validateRecoveryPhrase(phrase)) {
       return null;
     }
-    
+
     return await mnemonicToRecoveryKey(phrase);
   } catch (error) {
-    console.error('Error converting recovery phrase to key:', error);
+    console.error("Error converting recovery phrase to key:", error);
     return null;
   }
 }
@@ -75,29 +87,32 @@ export async function recoveryPhraseToKey(phrase: string[]): Promise<string | nu
  */
 export async function encryptPrivateKeyWithRecoveryKey(
   privateKey: string,
-  recoveryKey: string
+  recoveryKey: string,
 ): Promise<string> {
   try {
     // Derive encryption key from recovery key
-    const { key: encryptionKey } = await deriveKeyFromPassword(recoveryKey, undefined);
-    
+    const { key: encryptionKey } = await deriveKeyFromPassword(
+      recoveryKey,
+      undefined,
+    );
+
     // Generate IV for AES-GCM
     const iv = randomBytes(12);
-    
+
     // Encrypt the private key
     const cipher = gcm(encryptionKey, iv);
     const privateKeyBytes = base64ToArrayBuffer(privateKey);
     const encrypted = cipher.encrypt(privateKeyBytes);
-    
+
     // Combine IV and encrypted data
     const combined = new Uint8Array(iv.length + encrypted.length);
     combined.set(iv, 0);
     combined.set(encrypted, iv.length);
-    
+
     return arrayBufferToBase64(combined);
   } catch (error) {
-    console.error('Error encrypting private key with recovery key:', error);
-    throw new Error('Failed to encrypt private key with recovery key');
+    console.error("Error encrypting private key with recovery key:", error);
+    throw new Error("Failed to encrypt private key with recovery key");
   }
 }
 
@@ -106,25 +121,28 @@ export async function encryptPrivateKeyWithRecoveryKey(
  */
 export async function decryptPrivateKeyWithRecoveryKey(
   encryptedPrivateKey: string,
-  recoveryKey: string
+  recoveryKey: string,
 ): Promise<string> {
   try {
     // Derive encryption key from recovery key
-    const { key: encryptionKey } = await deriveKeyFromPassword(recoveryKey, undefined);
-    
+    const { key: encryptionKey } = await deriveKeyFromPassword(
+      recoveryKey,
+      undefined,
+    );
+
     // Split IV and encrypted data
     const combined = base64ToArrayBuffer(encryptedPrivateKey);
     const iv = combined.slice(0, 12);
     const encrypted = combined.slice(12);
-    
+
     // Decrypt the private key
     const cipher = gcm(encryptionKey, iv);
     const decrypted = cipher.decrypt(encrypted);
-    
+
     return arrayBufferToBase64(decrypted);
   } catch (error) {
-    console.error('Error decrypting private key with recovery key:', error);
-    throw new Error('Failed to decrypt private key with recovery key');
+    console.error("Error decrypting private key with recovery key:", error);
+    throw new Error("Failed to decrypt private key with recovery key");
   }
 }
 
@@ -132,21 +150,21 @@ export async function decryptPrivateKeyWithRecoveryKey(
  * Format recovery phrase for display
  */
 export function formatRecoveryPhraseForDisplay(phrase: string[]): string {
-  return phrase.map((word, index) => `${index + 1}. ${word}`).join('\n');
+  return phrase.map((word, index) => `${index + 1}. ${word}`).join("\n");
 }
 
 /**
  * Format recovery phrase for download/sharing
  */
 export function formatRecoveryPhraseForExport(phrase: string[]): string {
-  const timestamp = new Date().toISOString().split('T')[0];
+  const timestamp = new Date().toISOString().split("T")[0];
   return `Piggus Recovery Phrase (BIP39) - Generated on ${timestamp}
 
 IMPORTANT: Keep this recovery phrase safe and secure!
 This is the only way to recover your account if you forget your password.
 
 Recovery Phrase (12-word BIP39 mnemonic):
-${phrase.map((word, index) => `${index + 1}. ${word}`).join('\n')}
+${phrase.map((word, index) => `${index + 1}. ${word}`).join("\n")}
 
 Instructions:
 1. Write down these words in exact order on paper
@@ -166,14 +184,17 @@ For questions, visit: https://piggus.finance/support`;
  */
 export async function recoverPrivateKeyFromMnemonic(
   recoveryPhrase: string[],
-  encryptedPrivateKey: string
+  encryptedPrivateKey: string,
 ): Promise<string> {
   // Convert mnemonic to recovery key
   const recoveryKey = await mnemonicToRecoveryKey(recoveryPhrase);
-  
+
   // Decrypt private key using recovery key
-  const privateKey = await decryptPrivateKeyWithRecoveryKey(encryptedPrivateKey, recoveryKey);
-  
+  const privateKey = await decryptPrivateKeyWithRecoveryKey(
+    encryptedPrivateKey,
+    recoveryKey,
+  );
+
   return privateKey;
 }
 
@@ -187,13 +208,16 @@ export async function generateRecoveryKeyPackage(privateKey: string): Promise<{
 }> {
   // Generate BIP39 mnemonic phrase
   const recoveryPhrase = generateRecoveryPhrase();
-  
+
   // Convert mnemonic to recovery key
   const recoveryKey = await mnemonicToRecoveryKey(recoveryPhrase);
-  
+
   // Encrypt private key with recovery key
-  const encryptedPrivateKey = await encryptPrivateKeyWithRecoveryKey(privateKey, recoveryKey);
-  
+  const encryptedPrivateKey = await encryptPrivateKeyWithRecoveryKey(
+    privateKey,
+    recoveryKey,
+  );
+
   return {
     recoveryKey,
     recoveryPhrase,

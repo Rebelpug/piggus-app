@@ -1,11 +1,19 @@
-import React, {createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef} from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
+import { PortfolioData, PortfolioWithDecryptedData } from "@/types/portfolio";
 import {
-  PortfolioData,
-  PortfolioWithDecryptedData,
-} from '@/types/portfolio';
-import { InvestmentData, InvestmentWithDecryptedData } from '@/types/investment';
-import { useAuth } from '@/context/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
+  InvestmentData,
+  InvestmentWithDecryptedData,
+} from "@/types/investment";
+import { useAuth } from "@/context/AuthContext";
+import { useProfile } from "@/context/ProfileContext";
 import {
   apiCreatePortfolio,
   apiFetchPortfolios,
@@ -17,55 +25,69 @@ import {
   apiUpdatePortfolio,
   apiRemoveUserFromPortfolio,
   apiLookupInvestmentBySymbol,
-} from '@/services/investmentService';
-import {formatStringWithoutSpacesAndSpecialChars} from "@/utils/stringUtils";
-import {useEncryption} from "@/context/EncryptionContext";
+} from "@/services/investmentService";
+import { formatStringWithoutSpacesAndSpecialChars } from "@/utils/stringUtils";
+import { useEncryption } from "@/context/EncryptionContext";
 
 interface InvestmentContextType {
   portfolios: PortfolioWithDecryptedData[];
   isLoading: boolean;
   isSyncing: boolean;
   error: string | null;
-  addInvestment: (portfolioId: string, investment: InvestmentData) => Promise<InvestmentWithDecryptedData | null>;
+  addInvestment: (
+    portfolioId: string,
+    investment: InvestmentData,
+  ) => Promise<InvestmentWithDecryptedData | null>;
   updateInvestment: (
-      portfolioId: string,
-      investment: {
-        created_at: string;
-        data: InvestmentData;
-        portfolio_id: string;
-        id: string;
-        updated_at: string;
-      }
+    portfolioId: string,
+    investment: {
+      created_at: string;
+      data: InvestmentData;
+      portfolio_id: string;
+      id: string;
+      updated_at: string;
+    },
   ) => Promise<InvestmentWithDecryptedData | null>;
   deleteInvestment: (portfolioId: string, id: string) => Promise<void>;
   createPortfolio: (portfolioData: PortfolioData) => Promise<void>;
   inviteUserToPortfolio: (
-      portfolioId: string,
-      username: string
+    portfolioId: string,
+    username: string,
   ) => Promise<{ success: boolean; error?: string }>;
   removeUserFromPortfolio: (
-      portfolioId: string,
-      userId: string
+    portfolioId: string,
+    userId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   updatePortfolio: (
-      portfolioId: string,
-      portfolioData: PortfolioData
+    portfolioId: string,
+    portfolioData: PortfolioData,
   ) => Promise<PortfolioWithDecryptedData | null>;
   handlePortfolioInvitation: (
-      portfolioId: string,
-      accept: boolean
+    portfolioId: string,
+    accept: boolean,
   ) => Promise<{ success: boolean; error?: string }>;
   getPendingInvitations: () => PortfolioWithDecryptedData[];
   fetchPortfolios: () => Promise<void>;
 }
 
-const InvestmentContext = createContext<InvestmentContextType | undefined>(undefined);
+const InvestmentContext = createContext<InvestmentContextType | undefined>(
+  undefined,
+);
 
 export function InvestmentProvider({ children }: { children: ReactNode }) {
   const { user, publicKey } = useAuth();
-  const { isEncryptionInitialized, createEncryptionKey ,decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
+  const {
+    isEncryptionInitialized,
+    createEncryptionKey,
+    decryptWithPrivateKey,
+    decryptWithExternalEncryptionKey,
+    encryptWithExternalPublicKey,
+    encryptWithExternalEncryptionKey,
+  } = useEncryption();
   const { userProfile } = useProfile();
-  const [portfolios, setPortfolios] = useState<PortfolioWithDecryptedData[]>([]);
+  const [portfolios, setPortfolios] = useState<PortfolioWithDecryptedData[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,132 +95,171 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
   const createPortfolio = async (portfolioData: PortfolioData) => {
     try {
       if (!user || !publicKey || !userProfile || !isEncryptionInitialized) {
-        setError('You must be logged in to create a portfolio');
-        console.error('You must be logged in to create a portfolio');
+        setError("You must be logged in to create a portfolio");
+        console.error("You must be logged in to create a portfolio");
         return;
       }
-      const result = await apiCreatePortfolio(user, userProfile.username, publicKey, createEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey, portfolioData);
+      const result = await apiCreatePortfolio(
+        user,
+        userProfile.username,
+        publicKey,
+        createEncryptionKey,
+        encryptWithExternalPublicKey,
+        encryptWithExternalEncryptionKey,
+        portfolioData,
+      );
       const newPortfolio = result.data;
       if (newPortfolio) {
-        setPortfolios(prev => [...prev, newPortfolio]);
+        setPortfolios((prev) => [...prev, newPortfolio]);
       } else {
-        setError(result.error || 'Failed to create portfolio');
+        setError(result.error || "Failed to create portfolio");
       }
     } catch (error: any) {
-      console.error('Failed to create portfolio:', error);
-      setError(error.message || 'Failed to create portfolio');
+      console.error("Failed to create portfolio:", error);
+      setError(error.message || "Failed to create portfolio");
     }
   };
 
-  const addInvestment = async (portfolioId: string, investment: InvestmentData) => {
+  const addInvestment = async (
+    portfolioId: string,
+    investment: InvestmentData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to add an investment');
-        setError('You must be logged in to add an investment');
+        console.error("You must be logged in to add an investment");
+        setError("You must be logged in to add an investment");
         return null;
       }
 
       // Find the portfolio
-      const portfolio = portfolios.find(p => p.id === portfolioId);
+      const portfolio = portfolios.find((p) => p.id === portfolioId);
       if (!portfolio) {
-        console.error('Portfolio not found');
-        setError('Portfolio not found');
+        console.error("Portfolio not found");
+        setError("Portfolio not found");
         return null;
       }
 
       // Get the portfolio key
       const portfolioKey = portfolio.encrypted_key;
       if (!portfolioKey) {
-        console.error('Could not access portfolio key');
-        setError('Could not access encryption key');
+        console.error("Could not access portfolio key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiAddInvestment(user, portfolioId, portfolioKey, investment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiAddInvestment(
+        user,
+        portfolioId,
+        portfolioKey,
+        investment,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
       const addedInvestment = result.data;
       if (addedInvestment) {
         // Add to local state
-        setPortfolios(prev =>
-            prev.map(portfolio => {
-              if (portfolio.id === portfolioId) {
-                return {
-                  ...portfolio,
-                  investments: [addedInvestment, ...portfolio.investments],
-                };
-              }
-              return portfolio;
-            })
+        setPortfolios((prev) =>
+          prev.map((portfolio) => {
+            if (portfolio.id === portfolioId) {
+              return {
+                ...portfolio,
+                investments: [addedInvestment, ...portfolio.investments],
+              };
+            }
+            return portfolio;
+          }),
         );
         return addedInvestment;
       } else {
-        setError(result.error || 'Failed to add investment');
+        setError(result.error || "Failed to add investment");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to add investment:', error);
-      setError(error.message || 'Failed to add investment');
+      console.error("Failed to add investment:", error);
+      setError(error.message || "Failed to add investment");
       return null;
     }
   };
 
-  const updateInvestment = useCallback(async (portfolioId: string, updatedInvestment: InvestmentWithDecryptedData) => {
-    try {
-      if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to update an investment');
-        setError('You must be logged in to update an investment');
-        return null;
-      }
+  const updateInvestment = useCallback(
+    async (
+      portfolioId: string,
+      updatedInvestment: InvestmentWithDecryptedData,
+    ) => {
+      try {
+        if (!user || !isEncryptionInitialized) {
+          console.error("You must be logged in to update an investment");
+          setError("You must be logged in to update an investment");
+          return null;
+        }
 
-      // Find the portfolio
-      const portfolio = portfolios.find(p => p.id === portfolioId);
-      if (!portfolio) {
-        console.error('Portfolio not found');
-        setError('Portfolio not found');
-        return null;
-      }
+        // Find the portfolio
+        const portfolio = portfolios.find((p) => p.id === portfolioId);
+        if (!portfolio) {
+          console.error("Portfolio not found");
+          setError("Portfolio not found");
+          return null;
+        }
 
-      // Get the portfolio key
-      const portfolioKey = portfolio.encrypted_key;
-      if (!portfolioKey) {
-        console.error('Could not access portfolio key');
-        setError('Could not access encryption key');
-        return null;
-      }
+        // Get the portfolio key
+        const portfolioKey = portfolio.encrypted_key;
+        if (!portfolioKey) {
+          console.error("Could not access portfolio key");
+          setError("Could not access encryption key");
+          return null;
+        }
 
-      const result = await apiUpdateInvestment(user, portfolioId, portfolioKey, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
-      const changedInvestment = result.data;
-      if (changedInvestment) {
-        // Update in local state
-        setPortfolios(prev =>
-            prev.map(portfolio => {
+        const result = await apiUpdateInvestment(
+          user,
+          portfolioId,
+          portfolioKey,
+          updatedInvestment,
+          decryptWithPrivateKey,
+          encryptWithExternalEncryptionKey,
+        );
+        const changedInvestment = result.data;
+        if (changedInvestment) {
+          // Update in local state
+          setPortfolios((prev) =>
+            prev.map((portfolio) => {
               if (portfolio.id === portfolioId) {
                 return {
                   ...portfolio,
-                  investments: portfolio.investments.map(investment =>
-                      investment.id === updatedInvestment.id ? changedInvestment : investment
+                  investments: portfolio.investments.map((investment) =>
+                    investment.id === updatedInvestment.id
+                      ? changedInvestment
+                      : investment,
                   ),
                 };
               }
               return portfolio;
-            })
-        );
-        return changedInvestment;
-      } else {
-        setError(result.error || 'Failed to update investment');
+            }),
+          );
+          return changedInvestment;
+        } else {
+          setError(result.error || "Failed to update investment");
+          return null;
+        }
+      } catch (error: any) {
+        console.error("Failed to update investment:", error);
+        setError(error.message || "Failed to update investment");
         return null;
       }
-    } catch (error: any) {
-      console.error('Failed to update investment:', error);
-      setError(error.message || 'Failed to update investment');
-      return null;
-    }
-  }, [user, isEncryptionInitialized, portfolios, decryptWithPrivateKey, encryptWithExternalEncryptionKey]);
+    },
+    [
+      user,
+      isEncryptionInitialized,
+      portfolios,
+      decryptWithPrivateKey,
+      encryptWithExternalEncryptionKey,
+    ],
+  );
 
   const deleteInvestment = async (portfolioId: string, id: string) => {
     try {
       if (!user) {
-        console.error('You must be logged in to delete an investment');
-        setError('You must be logged in to delete an investment');
+        console.error("You must be logged in to delete an investment");
+        setError("You must be logged in to delete an investment");
         return;
       }
 
@@ -206,94 +267,173 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       if (result) {
         // Remove from local state
-        setPortfolios(prev =>
-            prev.map(portfolio => {
-              if (portfolio.id === portfolioId) {
-                return {
-                  ...portfolio,
-                  investments: portfolio.investments.filter(investment => investment.id !== id),
-                };
-              }
-              return portfolio;
-            })
+        setPortfolios((prev) =>
+          prev.map((portfolio) => {
+            if (portfolio.id === portfolioId) {
+              return {
+                ...portfolio,
+                investments: portfolio.investments.filter(
+                  (investment) => investment.id !== id,
+                ),
+              };
+            }
+            return portfolio;
+          }),
         );
       } else {
-        setError(result || 'Failed to delete investment');
+        setError(result || "Failed to delete investment");
       }
     } catch (error: any) {
-      console.error('Failed to delete investment:', error);
-      setError(error.message || 'Failed to delete investment');
+      console.error("Failed to delete investment:", error);
+      setError(error.message || "Failed to delete investment");
     }
   };
 
-  const syncInvestmentPrices = useCallback(async (userPortfolios: PortfolioWithDecryptedData[]) => {
-    const portfolioUpdates: { [key: string]: PortfolioWithDecryptedData } = {};
-    try {
-      // Only sync for premium users
-      if (userProfile?.subscription?.subscription_tier !== 'premium') {
-        console.log('No premium user, skipping investment price sync');
-        return;
-      }
-
-      if (!userPortfolios || userPortfolios.length === 0) {
-        console.log('No portfolios found');
-        return;
-      }
-
-      if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to sync investment prices');
-        return;
-      }
-
-      console.log('Starting investment price sync for premium user');
-      setIsSyncing(true);
-
-      const today = new Date();
-      const todayString = today.toISOString().split('T')[0];
-
-      let syncCount = 0;
-      let errorCount = 0;
-
-      for (const portfolio of userPortfolios) {
-        if (!portfolio.investments || portfolio.investments.length === 0) {
-          continue;
+  const syncInvestmentPrices = useCallback(
+    async (userPortfolios: PortfolioWithDecryptedData[]) => {
+      const portfolioUpdates: { [key: string]: PortfolioWithDecryptedData } =
+        {};
+      try {
+        // Only sync for premium users
+        if (userProfile?.subscription?.subscription_tier !== "premium") {
+          console.log("No premium user, skipping investment price sync");
+          return;
         }
 
-        for (const investment of portfolio.investments) {
-          const investmentData = investment.data;
+        if (!userPortfolios || userPortfolios.length === 0) {
+          console.log("No portfolios found");
+          return;
+        }
 
-          // Check conditions for syncing
-          const hasSymbol = investmentData.symbol && investmentData.symbol.trim() !== '';
-          const hasExchange = investmentData.exchange_market && investmentData.exchange_market.trim() !== '';
-          const isEligibleType = ['etf', 'stock', 'mutualFund', 'certificate', 'cryptocurrency'].includes(investmentData.type);
+        if (!user || !isEncryptionInitialized) {
+          console.error("You must be logged in to sync investment prices");
+          return;
+        }
 
-          // Check if last update is older than today
-          const lastUpdated = investmentData.last_updated;
-          const lastTentativeUpdate = investmentData.last_tentative_update;
-          const isOlderThanToday = (!lastUpdated || lastUpdated.split('T')[0] < todayString) &&
-              (!lastTentativeUpdate || lastTentativeUpdate.split('T')[0] < todayString);
+        console.log("Starting investment price sync for premium user");
+        setIsSyncing(true);
 
-          if (hasSymbol && hasExchange && isEligibleType && isOlderThanToday) {
-            try {
-              console.log(`Syncing price for investment: ${investmentData.name} (${investmentData.isin})`);
+        const today = new Date();
+        const todayString = today.toISOString().split("T")[0];
 
-              const lookupResult = await apiLookupInvestmentBySymbol(
-                  formatStringWithoutSpacesAndSpecialChars(investmentData.symbol || ''),
-                  investmentData?.exchange_market?.trim().toUpperCase() || '',
+        let syncCount = 0;
+        let errorCount = 0;
+
+        for (const portfolio of userPortfolios) {
+          if (!portfolio.investments || portfolio.investments.length === 0) {
+            continue;
+          }
+
+          for (const investment of portfolio.investments) {
+            const investmentData = investment.data;
+
+            // Check conditions for syncing
+            const hasSymbol =
+              investmentData.symbol && investmentData.symbol.trim() !== "";
+            const hasExchange =
+              investmentData.exchange_market &&
+              investmentData.exchange_market.trim() !== "";
+            const isEligibleType = [
+              "etf",
+              "stock",
+              "mutualFund",
+              "certificate",
+              "cryptocurrency",
+            ].includes(investmentData.type);
+
+            // Check if last update is older than today
+            const lastUpdated = investmentData.last_updated;
+            const lastTentativeUpdate = investmentData.last_tentative_update;
+            const isOlderThanToday =
+              (!lastUpdated || lastUpdated.split("T")[0] < todayString) &&
+              (!lastTentativeUpdate ||
+                lastTentativeUpdate.split("T")[0] < todayString);
+
+            if (
+              hasSymbol &&
+              hasExchange &&
+              isEligibleType &&
+              isOlderThanToday
+            ) {
+              try {
+                console.log(
+                  `Syncing price for investment: ${investmentData.name} (${investmentData.isin})`,
+                );
+
+                const lookupResult = await apiLookupInvestmentBySymbol(
+                  formatStringWithoutSpacesAndSpecialChars(
+                    investmentData.symbol || "",
+                  ),
+                  investmentData?.exchange_market?.trim().toUpperCase() || "",
                   investmentData.type,
                   investmentData.currency,
-              );
+                );
 
-              if (lookupResult.success && lookupResult.data) {
-                const newPrice = Number(lookupResult.data.price);
+                if (lookupResult.success && lookupResult.data) {
+                  const newPrice = Number(lookupResult.data.price);
 
-                if (newPrice && newPrice !== investmentData.current_price) {
-                  // Update the investment with new price
+                  if (newPrice && newPrice !== investmentData.current_price) {
+                    // Update the investment with new price
+                    const updatedInvestmentData = {
+                      ...investmentData,
+                      current_price: newPrice,
+                      symbol: lookupResult.data.symbol,
+                      last_updated: new Date().toISOString(),
+                      last_tentative_update: new Date().toISOString(),
+                    };
+
+                    const updatedInvestment = {
+                      ...investment,
+                      data: updatedInvestmentData,
+                    };
+
+                    // Update in database
+                    const result = await apiUpdateInvestment(
+                      user,
+                      portfolio.id,
+                      portfolio.encrypted_key,
+                      updatedInvestment,
+                      decryptWithPrivateKey,
+                      encryptWithExternalEncryptionKey,
+                    );
+                    const changedInvestment = result.data;
+
+                    if (changedInvestment) {
+                      // Store updated investment
+                      portfolioUpdates[portfolio.id] = portfolioUpdates[
+                        portfolio.id
+                      ] || {
+                        ...portfolio,
+                        investments: [...portfolio.investments],
+                      };
+                      const investmentIndex = portfolioUpdates[
+                        portfolio.id
+                      ].investments.findIndex(
+                        (inv) => inv.id === updatedInvestment.id,
+                      );
+                      if (investmentIndex !== -1) {
+                        portfolioUpdates[portfolio.id].investments[
+                          investmentIndex
+                        ] = changedInvestment;
+                      }
+                      syncCount++;
+                      console.log(
+                        `Successfully synced price for ${investmentData.name}: ${newPrice}`,
+                      );
+                    } else {
+                      errorCount++;
+                      console.error(
+                        `Failed to update investment ${investmentData.name} in database`,
+                      );
+                    }
+                  }
+                } else {
+                  console.log(
+                    `No price data found for ${investmentData.name} (${investmentData.symbol})`,
+                  );
+                  // Update tentative update date to prevent multiple attempts on the same day
                   const updatedInvestmentData = {
                     ...investmentData,
-                    current_price: newPrice,
-                    symbol: lookupResult.data.symbol,
-                    last_updated: new Date().toISOString(),
                     last_tentative_update: new Date().toISOString(),
                   };
 
@@ -303,297 +443,350 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                   };
 
                   // Update in database
-                  const result = await apiUpdateInvestment(user, portfolio.id, portfolio.encrypted_key, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
-                  const changedInvestment = result.data;
-
-                  if (changedInvestment) {
-                    // Store updated investment
-                    portfolioUpdates[portfolio.id] = portfolioUpdates[portfolio.id] || {
-                      ...portfolio,
-                      investments: [...portfolio.investments]
-                    };
-                    const investmentIndex = portfolioUpdates[portfolio.id].investments.findIndex(inv => inv.id === updatedInvestment.id);
-                    if (investmentIndex !== -1) {
-                      portfolioUpdates[portfolio.id].investments[investmentIndex] = changedInvestment;
-                    }
-                    syncCount++;
-                    console.log(`Successfully synced price for ${investmentData.name}: ${newPrice}`);
-                  } else {
-                    errorCount++;
-                    console.error(`Failed to update investment ${investmentData.name} in database`);
-                  }
+                  await apiUpdateInvestment(
+                    user,
+                    portfolio.id,
+                    portfolio.encrypted_key,
+                    updatedInvestment,
+                    decryptWithPrivateKey,
+                    encryptWithExternalEncryptionKey,
+                  );
                 }
-              } else {
-                console.log(`No price data found for ${investmentData.name} (${investmentData.symbol})`);
-                // Update tentative update date to prevent multiple attempts on the same day
+              } catch (error) {
+                // Update tentative update date even on error to prevent multiple attempts on the same day
                 const updatedInvestmentData = {
                   ...investmentData,
                   last_tentative_update: new Date().toISOString(),
                 };
-
                 const updatedInvestment = {
                   ...investment,
                   data: updatedInvestmentData,
                 };
-
-                // Update in database
-                await apiUpdateInvestment(user, portfolio.id, portfolio.encrypted_key, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+                await apiUpdateInvestment(
+                  user,
+                  portfolio.id,
+                  portfolio.encrypted_key,
+                  updatedInvestment,
+                  decryptWithPrivateKey,
+                  encryptWithExternalEncryptionKey,
+                );
+                errorCount++;
+                console.error(
+                  `Error syncing price for ${investmentData.name}:`,
+                  error,
+                );
               }
-            } catch (error) {
-              // Update tentative update date even on error to prevent multiple attempts on the same day
-              const updatedInvestmentData = {
-                ...investmentData,
-                last_tentative_update: new Date().toISOString(),
-              };
-              const updatedInvestment = {
-                ...investment,
-                data: updatedInvestmentData,
-              };
-              await apiUpdateInvestment(user, portfolio.id, portfolio.encrypted_key, updatedInvestment, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
-              errorCount++;
-              console.error(`Error syncing price for ${investmentData.name}:`, error);
             }
           }
         }
-      }
 
-      console.log(`Price sync completed. Updated: ${syncCount}, Errors: ${errorCount}`);
-
-      // Update portfolios state with all changes
-      if (Object.keys(portfolioUpdates).length > 0) {
-        setPortfolios(prev =>
-            prev.map(portfolio =>
-                portfolioUpdates[portfolio.id] || portfolio
-            )
+        console.log(
+          `Price sync completed. Updated: ${syncCount}, Errors: ${errorCount}`,
         );
-      }
 
-    } catch (error) {
-      console.error('Error during investment price sync:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [updateInvestment, userProfile?.subscription?.subscription_tier]);
+        // Update portfolios state with all changes
+        if (Object.keys(portfolioUpdates).length > 0) {
+          setPortfolios((prev) =>
+            prev.map(
+              (portfolio) => portfolioUpdates[portfolio.id] || portfolio,
+            ),
+          );
+        }
+      } catch (error) {
+        console.error("Error during investment price sync:", error);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [updateInvestment, userProfile?.subscription?.subscription_tier],
+  );
 
   const fetchPortfolios = useCallback(async () => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
-        console.error('User or private key not found, or encryption not initialized');
+        console.error(
+          "User or private key not found, or encryption not initialized",
+        );
         setIsLoading(false);
-        setError('User or private key not found, or encryption not initialized');
+        setError(
+          "User or private key not found, or encryption not initialized",
+        );
         return;
       }
 
       setIsLoading(true);
       setError(null);
 
-      const result = await apiFetchPortfolios(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
+      const result = await apiFetchPortfolios(
+        user,
+        decryptWithPrivateKey,
+        decryptWithExternalEncryptionKey,
+      );
 
       if (result.data) {
         setPortfolios(result.data);
-        syncInvestmentPrices(result.data).catch(e => console.error('Failed to sync investment prices', e));
+        syncInvestmentPrices(result.data).catch((e) =>
+          console.error("Failed to sync investment prices", e),
+        );
       } else {
         setPortfolios([]);
-        setError(result.error || 'Failed to load portfolios');
+        setError(result.error || "Failed to load portfolios");
       }
 
       setIsLoading(false);
     } catch (e: any) {
-      console.error('Failed to fetch portfolios', e);
+      console.error("Failed to fetch portfolios", e);
       setIsLoading(false);
       setError(`Failed to fetch portfolios ${e.message || e?.toString()}`);
       return;
     }
-  }, [user, isEncryptionInitialized, userProfile, decryptWithPrivateKey, decryptWithExternalEncryptionKey, syncInvestmentPrices]);
+  }, [
+    user,
+    isEncryptionInitialized,
+    userProfile,
+    decryptWithPrivateKey,
+    decryptWithExternalEncryptionKey,
+    syncInvestmentPrices,
+  ]);
 
-  const inviteUserToPortfolio = async (portfolioId: string, username: string) => {
+  const inviteUserToPortfolio = async (
+    portfolioId: string,
+    username: string,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to invite a user');
-        setError('You must be logged in to invite a user');
-        return { success: false, error: 'Not authenticated' };
+        console.error("You must be logged in to invite a user");
+        setError("You must be logged in to invite a user");
+        return { success: false, error: "Not authenticated" };
       }
 
-      const result = await apiInviteUserToPortfolio(user, portfolioId, username, decryptWithPrivateKey, encryptWithExternalPublicKey);
+      const result = await apiInviteUserToPortfolio(
+        user,
+        portfolioId,
+        username,
+        decryptWithPrivateKey,
+        encryptWithExternalPublicKey,
+      );
 
       if (result) {
         // Refresh the portfolios list to get the updated members
         await fetchPortfolios();
       } else {
-        setError(result || 'Failed to invite user');
+        setError(result || "Failed to invite user");
       }
 
       return result;
     } catch (error: any) {
-      console.error('Failed to invite user to portfolio:', error);
-      setError(error.message || 'Failed to invite user');
-      return { success: false, error: error.message || 'Failed to invite user' };
+      console.error("Failed to invite user to portfolio:", error);
+      setError(error.message || "Failed to invite user");
+      return {
+        success: false,
+        error: error.message || "Failed to invite user",
+      };
     }
   };
 
-  const removeUserFromPortfolio = async (portfolioId: string, userId: string) => {
+  const removeUserFromPortfolio = async (
+    portfolioId: string,
+    userId: string,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to remove a user');
-        setError('You must be logged in to remove a user');
-        return { success: false, error: 'Not authenticated' };
+        console.error("You must be logged in to remove a user");
+        setError("You must be logged in to remove a user");
+        return { success: false, error: "Not authenticated" };
       }
 
-      const result = await apiRemoveUserFromPortfolio(user, portfolioId, userId);
+      const result = await apiRemoveUserFromPortfolio(
+        user,
+        portfolioId,
+        userId,
+      );
 
       if (result) {
         // Update local state to remove the user from the portfolio
-        setPortfolios(prev =>
-            prev.map(portfolio => {
-              if (portfolio.id === portfolioId) {
-                return {
-                  ...portfolio,
-                  members: portfolio.members.filter(member => member.user_id !== userId),
-                };
-              }
-              return portfolio;
-            })
+        setPortfolios((prev) =>
+          prev.map((portfolio) => {
+            if (portfolio.id === portfolioId) {
+              return {
+                ...portfolio,
+                members: portfolio.members.filter(
+                  (member) => member.user_id !== userId,
+                ),
+              };
+            }
+            return portfolio;
+          }),
         );
       } else {
-        setError(result || 'Failed to remove user');
+        setError(result || "Failed to remove user");
       }
 
       return result;
     } catch (error: any) {
-      console.error('Failed to remove user from portfolio:', error);
-      setError(error.message || 'Failed to remove user');
-      return { success: false, error: error.message || 'Failed to remove user' };
+      console.error("Failed to remove user from portfolio:", error);
+      setError(error.message || "Failed to remove user");
+      return {
+        success: false,
+        error: error.message || "Failed to remove user",
+      };
     }
   };
 
-  const handlePortfolioInvitation = async (portfolioId: string, accept: boolean) => {
+  const handlePortfolioInvitation = async (
+    portfolioId: string,
+    accept: boolean,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to handle an invitation');
-        setError('You must be logged in to handle an invitation');
-        return { success: false, error: 'Not authenticated' };
+        console.error("You must be logged in to handle an invitation");
+        setError("You must be logged in to handle an invitation");
+        return { success: false, error: "Not authenticated" };
       }
 
-      const result = await apiHandlePortfolioInvitation(user, portfolioId, accept);
+      const result = await apiHandlePortfolioInvitation(
+        user,
+        portfolioId,
+        accept,
+      );
 
       if (result) {
         // Update local state
-        setPortfolios(prev => {
+        setPortfolios((prev) => {
           if (accept) {
-            return prev.map(portfolio => {
+            return prev.map((portfolio) => {
               if (portfolio.id === portfolioId) {
                 return {
                   ...portfolio,
-                  membership_status: 'confirmed',
-                  members: portfolio.members.map(member =>
-                      member.user_id === user.id ? { ...member, status: 'confirmed' } : member
+                  membership_status: "confirmed",
+                  members: portfolio.members.map((member) =>
+                    member.user_id === user.id
+                      ? { ...member, status: "confirmed" }
+                      : member,
                   ),
                 };
               }
               return portfolio;
             });
           } else {
-            return prev.filter(portfolio => portfolio.id !== portfolioId);
+            return prev.filter((portfolio) => portfolio.id !== portfolioId);
           }
         });
       } else {
-        setError(result || 'Failed to handle invitation');
+        setError(result || "Failed to handle invitation");
       }
 
       return result;
     } catch (error: any) {
-      console.error('Failed to handle portfolio invitation:', error);
-      setError(error.message || 'Failed to handle invitation');
-      return { success: false, error: error.message || 'Failed to handle invitation' };
+      console.error("Failed to handle portfolio invitation:", error);
+      setError(error.message || "Failed to handle invitation");
+      return {
+        success: false,
+        error: error.message || "Failed to handle invitation",
+      };
     }
   };
 
-  const updatePortfolio = async (portfolioId: string, portfolioData: PortfolioData) => {
+  const updatePortfolio = async (
+    portfolioId: string,
+    portfolioData: PortfolioData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to update a portfolio');
-        setError('You must be logged in to update a portfolio');
+        console.error("You must be logged in to update a portfolio");
+        setError("You must be logged in to update a portfolio");
         return null;
       }
 
       // Find the portfolio
-      const portfolio = portfolios.find(p => p.id === portfolioId);
+      const portfolio = portfolios.find((p) => p.id === portfolioId);
       if (!portfolio) {
-        console.error('Portfolio not found');
-        setError('Portfolio not found');
+        console.error("Portfolio not found");
+        setError("Portfolio not found");
         return null;
       }
 
       // Get the portfolio key
       const encryptedKey = portfolio.encrypted_key;
       if (!encryptedKey) {
-        console.error('Could not access portfolio key');
-        setError('Could not access encryption key');
+        console.error("Could not access portfolio key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiUpdatePortfolio(user, portfolioId, encryptedKey, portfolioData, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiUpdatePortfolio(
+        user,
+        portfolioId,
+        encryptedKey,
+        portfolioData,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
 
       if (result.data) {
         // Update local state
-        setPortfolios(prev =>
-            prev.map(portfolio => {
-              if (portfolio.id === portfolioId) {
-                return result.data!;
-              }
-              return portfolio;
-            })
+        setPortfolios((prev) =>
+          prev.map((portfolio) => {
+            if (portfolio.id === portfolioId) {
+              return result.data!;
+            }
+            return portfolio;
+          }),
         );
         return result.data;
       } else {
-        setError(result.error || 'Failed to update portfolio');
+        setError(result.error || "Failed to update portfolio");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to update portfolio:', error);
-      setError(error.message || 'Failed to update portfolio');
+      console.error("Failed to update portfolio:", error);
+      setError(error.message || "Failed to update portfolio");
       return null;
     }
   };
 
   const getPendingInvitations = () => {
-    return portfolios.filter(portfolio => portfolio.membership_status === 'pending');
+    return portfolios.filter(
+      (portfolio) => portfolio.membership_status === "pending",
+    );
   };
 
   useEffect(() => {
     if (isEncryptionInitialized) {
-      fetchPortfolios().catch(error => console.error('Failed to fetch portfolios:', error));
+      fetchPortfolios().catch((error) =>
+        console.error("Failed to fetch portfolios:", error),
+      );
     }
   }, [user, userProfile, isEncryptionInitialized]);
 
   return (
-      <InvestmentContext.Provider
-          value={{
-            portfolios,
-            isLoading,
-            isSyncing,
-            error,
-            addInvestment,
-            updateInvestment,
-            deleteInvestment,
-            createPortfolio,
-            inviteUserToPortfolio,
-            removeUserFromPortfolio,
-            updatePortfolio,
-            handlePortfolioInvitation,
-            getPendingInvitations,
-            fetchPortfolios
-          }}
-      >
-        {children}
-      </InvestmentContext.Provider>
+    <InvestmentContext.Provider
+      value={{
+        portfolios,
+        isLoading,
+        isSyncing,
+        error,
+        addInvestment,
+        updateInvestment,
+        deleteInvestment,
+        createPortfolio,
+        inviteUserToPortfolio,
+        removeUserFromPortfolio,
+        updatePortfolio,
+        handlePortfolioInvitation,
+        getPendingInvitations,
+        fetchPortfolios,
+      }}
+    >
+      {children}
+    </InvestmentContext.Provider>
   );
 }
 
 export function useInvestment() {
   const context = useContext(InvestmentContext);
   if (context === undefined) {
-    throw new Error('useInvestment must be used within an InvestmentProvider');
+    throw new Error("useInvestment must be used within an InvestmentProvider");
   }
   return context;
 }

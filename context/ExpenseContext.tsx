@@ -1,4 +1,11 @@
-import React, {createContext, useContext, useState, ReactNode, useEffect, useCallback} from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   ExpenseData,
   ExpenseGroupData,
@@ -7,9 +14,9 @@ import {
   RecurringExpenseData,
   RecurringExpenseWithDecryptedData,
   GroupRefund,
-} from '@/types/expense';
-import { useAuth } from '@/context/AuthContext'; // Updated import path
-import { useProfile } from '@/context/ProfileContext';
+} from "@/types/expense";
+import { useAuth } from "@/context/AuthContext"; // Updated import path
+import { useProfile } from "@/context/ProfileContext";
 // Use services instead of direct client imports
 import {
   apiCreateExpensesGroup,
@@ -27,94 +34,133 @@ import {
   apiDeleteRefund,
   apiBulkInsertAndUpdateExpenses,
   apiMoveExpense,
-} from '@/services/expenseService';
+} from "@/services/expenseService";
 import {
   apiFetchRecurringExpenses,
   apiCreateRecurringExpense,
   apiUpdateRecurringExpense,
   apiDeleteRecurringExpense,
   apiProcessRecurringExpenses,
-} from '@/services/recurringExpenseService';
-import {useEncryption} from "@/context/EncryptionContext";
-import { piggusApi } from '@/client/piggusApi';
+} from "@/services/recurringExpenseService";
+import { useEncryption } from "@/context/EncryptionContext";
+import { piggusApi } from "@/client/piggusApi";
 
 interface ExpenseContextType {
   expensesGroups: ExpenseGroupWithDecryptedData[];
   recurringExpenses: RecurringExpenseWithDecryptedData[];
   isLoading: boolean;
   error: string | null;
-  fetchExpensesForMonth: (year: number, month: number, forceRefresh?: boolean) => Promise<void>;
+  fetchExpensesForMonth: (
+    year: number,
+    month: number,
+    forceRefresh?: boolean,
+  ) => Promise<void>;
   cachedMonths: Set<string>;
   clearMonthCache: (year?: number, month?: number) => void;
-  addExpense: (groupId: string, expense: ExpenseData) => Promise<ExpenseWithDecryptedData | null>;
+  addExpense: (
+    groupId: string,
+    expense: ExpenseData,
+  ) => Promise<ExpenseWithDecryptedData | null>;
   updateExpense: (
-      groupId: string,
-      expense: {
-        created_at: string;
-        data: ExpenseData;
-        group_id: string;
-        id: string;
-        updated_at: string;
-      }
+    groupId: string,
+    expense: {
+      created_at: string;
+      data: ExpenseData;
+      group_id: string;
+      id: string;
+      updated_at: string;
+    },
   ) => Promise<ExpenseWithDecryptedData | null>;
   deleteExpense: (groupId: string, id: string) => Promise<void>;
   createExpensesGroup: (groupData: ExpenseGroupData) => Promise<void>;
   inviteUserToGroup: (
-      groupId: string,
-      username: string
+    groupId: string,
+    username: string,
   ) => Promise<{ success: boolean; error?: string }>;
   removeUserFromGroup: (
-      groupId: string,
-      userId: string
+    groupId: string,
+    userId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   updateExpenseGroup: (
-      groupId: string,
-      groupData: ExpenseGroupData
+    groupId: string,
+    groupData: ExpenseGroupData,
   ) => Promise<ExpenseGroupWithDecryptedData | null>;
   handleGroupInvitation: (
-      groupId: string,
-      accept: boolean
+    groupId: string,
+    accept: boolean,
   ) => Promise<{ success: boolean; error?: string }>;
   getPendingInvitations: () => ExpenseGroupWithDecryptedData[];
-  addRecurringExpense: (groupId: string, recurringExpense: RecurringExpenseData) => Promise<RecurringExpenseWithDecryptedData | null>;
+  addRecurringExpense: (
+    groupId: string,
+    recurringExpense: RecurringExpenseData,
+  ) => Promise<RecurringExpenseWithDecryptedData | null>;
   updateRecurringExpense: (
-      groupId: string,
-      recurringExpense: RecurringExpenseWithDecryptedData
+    groupId: string,
+    recurringExpense: RecurringExpenseWithDecryptedData,
   ) => Promise<RecurringExpenseWithDecryptedData | null>;
   deleteRecurringExpense: (groupId: string, id: string) => Promise<void>;
   addRefund: (
-      groupId: string,
-      refundData: Omit<GroupRefund, 'id' | 'created_at' | 'updated_at'>
+    groupId: string,
+    refundData: Omit<GroupRefund, "id" | "created_at" | "updated_at">,
   ) => Promise<{ success: boolean; error?: string }>;
   updateRefund: (
-      groupId: string,
-      refundId: string,
-      refundData: Partial<Omit<GroupRefund, 'id' | 'created_at'>>
+    groupId: string,
+    refundId: string,
+    refundData: Partial<Omit<GroupRefund, "id" | "created_at">>,
   ) => Promise<{ success: boolean; error?: string }>;
   deleteRefund: (
-      groupId: string,
-      refundId: string
+    groupId: string,
+    refundId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   bulkUpdateExpenses: (
-      expenses: { id?: string; data: ExpenseData, group_id: string, group_key: string }[]
-  ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }>;
+    expenses: {
+      id?: string;
+      data: ExpenseData;
+      group_id: string;
+      group_key: string;
+    }[],
+  ) => Promise<{
+    success: boolean;
+    data?: ExpenseWithDecryptedData[];
+    error?: string;
+  }>;
   moveExpense: (
-      expenseId: string,
-      fromGroupId: string,
-      toGroupId: string,
-      updatedExpenseData: ExpenseData
-  ) => Promise<{ success: boolean; data?: ExpenseWithDecryptedData; error?: string }>;
-  syncBankTransactions: () => Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }>;
+    expenseId: string,
+    fromGroupId: string,
+    toGroupId: string,
+    updatedExpenseData: ExpenseData,
+  ) => Promise<{
+    success: boolean;
+    data?: ExpenseWithDecryptedData;
+    error?: string;
+  }>;
+  syncBankTransactions: () => Promise<{
+    success: boolean;
+    addedCount: number;
+    updatedCount: number;
+    error?: string;
+  }>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 export function ExpenseProvider({ children }: { children: ReactNode }) {
   const { user, publicKey } = useAuth(); // Added encryptionInitialized
-  const { isEncryptionInitialized, createEncryptionKey ,decryptWithPrivateKey, decryptWithExternalEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey } = useEncryption();
+  const {
+    isEncryptionInitialized,
+    createEncryptionKey,
+    decryptWithPrivateKey,
+    decryptWithExternalEncryptionKey,
+    encryptWithExternalPublicKey,
+    encryptWithExternalEncryptionKey,
+  } = useEncryption();
   const { userProfile } = useProfile();
-  const [expensesGroups, setExpensesGroups] = useState<ExpenseGroupWithDecryptedData[]>([]);
-  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpenseWithDecryptedData[]>([]);
+  const [expensesGroups, setExpensesGroups] = useState<
+    ExpenseGroupWithDecryptedData[]
+  >([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<
+    RecurringExpenseWithDecryptedData[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedMonths, setCachedMonths] = useState<Set<string>>(new Set());
@@ -122,9 +168,13 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const fetchExpensesForCurrentMonth = useCallback(async () => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
-        console.error('User or private key not found, or encryption not initialized');
+        console.error(
+          "User or private key not found, or encryption not initialized",
+        );
         setIsLoading(false);
-        setError('User or private key not found, or encryption not initialized');
+        setError(
+          "User or private key not found, or encryption not initialized",
+        );
         return;
       }
 
@@ -132,19 +182,23 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       // Fetch group structure first (without any expenses)
-      const result = await apiFetchExpenseGroupsOnly(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
+      const result = await apiFetchExpenseGroupsOnly(
+        user,
+        decryptWithPrivateKey,
+        decryptWithExternalEncryptionKey,
+      );
       if (result.success && result.data) {
         // Fetch current month expenses for each group
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
-        const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+        const monthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
 
         // Calculate start and end dates for current month
         const startDate = new Date(currentYear, currentMonth - 1, 1);
         const endDate = new Date(currentYear, currentMonth, 0);
-        const startDateString = startDate.toISOString().split('T')[0];
-        const endDateString = endDate.toISOString().split('T')[0];
+        const startDateString = startDate.toISOString().split("T")[0];
+        const endDateString = endDate.toISOString().split("T")[0];
 
         // Fetch current month expenses for each group
         const groupsWithCurrentMonthExpenses = await Promise.all(
@@ -158,44 +212,53 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                   page: 1,
                   limit: 1000,
                   startDate: startDateString,
-                  endDate: endDateString
+                  endDate: endDateString,
                 },
-                decryptWithExternalEncryptionKey
+                decryptWithExternalEncryptionKey,
               );
 
               if (paginatedResult.success && paginatedResult.data) {
                 return {
                   ...group,
                   expenses: paginatedResult.data.expenses.sort(
-                    (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
-                  )
+                    (a, b) =>
+                      new Date(b.data.date).getTime() -
+                      new Date(a.data.date).getTime(),
+                  ),
                 };
               }
               return {
                 ...group,
-                expenses: []
+                expenses: [],
               };
             } catch (error) {
-              console.error(`Error fetching current month expenses for group ${group.id}:`, error);
+              console.error(
+                `Error fetching current month expenses for group ${group.id}:`,
+                error,
+              );
               return {
                 ...group,
-                expenses: []
+                expenses: [],
               };
             }
-          })
+          }),
         );
 
         setExpensesGroups(groupsWithCurrentMonthExpenses);
-        setCachedMonths(prev => new Set(prev).add(monthKey));
+        setCachedMonths((prev) => new Set(prev).add(monthKey));
 
         // Fetch recurring expenses
-        const recurringResult = await apiFetchRecurringExpenses(user, decryptWithPrivateKey, decryptWithExternalEncryptionKey);
+        const recurringResult = await apiFetchRecurringExpenses(
+          user,
+          decryptWithPrivateKey,
+          decryptWithExternalEncryptionKey,
+        );
 
         if (recurringResult.success && recurringResult.data) {
           setRecurringExpenses(recurringResult.data);
 
           // Process recurring expenses to generate any due expenses
-          const groupMemberships = result.data.map(group => ({
+          const groupMemberships = result.data.map((group) => ({
             group_id: group.id,
             encrypted_group_key: group.encrypted_key,
           }));
@@ -205,14 +268,21 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             recurringResult.data,
             groupMemberships,
             decryptWithPrivateKey,
-            encryptWithExternalEncryptionKey
+            encryptWithExternalEncryptionKey,
           );
 
-          if (processResult.success && processResult.generatedExpenses && processResult.generatedExpenses.length > 0) {
+          if (
+            processResult.success &&
+            processResult.generatedExpenses &&
+            processResult.generatedExpenses.length > 0
+          ) {
             // Update groups with new generated expenses
-            setExpensesGroups(prev =>
-              prev.map(group => {
-                const newExpenses = processResult.generatedExpenses?.filter(exp => exp.group_id === group.id) || [];
+            setExpensesGroups((prev) =>
+              prev.map((group) => {
+                const newExpenses =
+                  processResult.generatedExpenses?.filter(
+                    (exp) => exp.group_id === group.id,
+                  ) || [];
                 if (newExpenses.length > 0) {
                   return {
                     ...group,
@@ -220,287 +290,376 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                   };
                 }
                 return group;
-              })
+              }),
             );
 
             // Update recurring expenses with new generation dates
             if (processResult.updatedRecurring) {
-              setRecurringExpenses(prev =>
-                prev.map(recurring => {
-                  const updated = processResult.updatedRecurring?.find(upd => upd.id === recurring.id);
+              setRecurringExpenses((prev) =>
+                prev.map((recurring) => {
+                  const updated = processResult.updatedRecurring?.find(
+                    (upd) => upd.id === recurring.id,
+                  );
                   return updated || recurring;
-                })
+                }),
               );
             }
           }
         } else {
           setRecurringExpenses([]);
-          console.error(recurringResult.error || 'Failed to load recurring expenses');
+          console.error(
+            recurringResult.error || "Failed to load recurring expenses",
+          );
         }
       } else {
         setExpensesGroups([]);
         setRecurringExpenses([]);
-        setError(result.error || 'Failed to load expense groups');
+        setError(result.error || "Failed to load expense groups");
       }
 
       setIsLoading(false);
     } catch (e: any) {
-      console.error('Failed to fetch expenses', e);
+      console.error("Failed to fetch expenses", e);
       setIsLoading(false);
       setError(`Failed to fetch expenses ${e.message || e?.toString()}`);
       return;
     }
-  }, [user, isEncryptionInitialized, userProfile, decryptWithPrivateKey, decryptWithExternalEncryptionKey]);
+  }, [
+    user,
+    isEncryptionInitialized,
+    userProfile,
+    decryptWithPrivateKey,
+    decryptWithExternalEncryptionKey,
+  ]);
 
   const clearMonthCache = useCallback((year?: number, month?: number) => {
-    setCachedMonths(prev => {
+    setCachedMonths((prev) => {
       const newSet = new Set(prev);
       if (year && month) {
-        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
         newSet.delete(monthKey);
-        console.log('🗑️ Cleared cache for month:', monthKey);
+        console.log("🗑️ Cleared cache for month:", monthKey);
       } else {
         newSet.clear();
-        console.log('🗑️ Cleared entire month cache');
+        console.log("🗑️ Cleared entire month cache");
       }
-      console.log('🗑️ Remaining cached months:', Array.from(newSet));
+      console.log("🗑️ Remaining cached months:", Array.from(newSet));
       return newSet;
     });
   }, []);
 
-  const fetchExpensesForMonth = useCallback(async (year: number, month: number, forceRefresh = false) => {
-    return new Promise<void>((resolve, reject) => {
-      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+  const fetchExpensesForMonth = useCallback(
+    async (year: number, month: number, forceRefresh = false) => {
+      return new Promise<void>((resolve, reject) => {
+        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
-      console.log('🔄 fetchExpensesForMonth called for:', year, month);
+        console.log("🔄 fetchExpensesForMonth called for:", year, month);
 
-      if (!user || !isEncryptionInitialized) {
-        console.log('❌ User or encryption not ready');
-        resolve();
-        return;
-      }
-
-      console.log('🔄 Month key:', monthKey);
-
-      // Check cached months using functional update
-      setCachedMonths(prevCached => {
-        if (!forceRefresh && prevCached.has(monthKey)) {
-          console.log('✅ Month already cached:', monthKey);
+        if (!user || !isEncryptionInitialized) {
+          console.log("❌ User or encryption not ready");
           resolve();
-          return prevCached;
+          return;
         }
 
-        if (forceRefresh) {
-          console.log('🔄 Force refreshing month:', monthKey);
-        }
+        console.log("🔄 Month key:", monthKey);
 
-        // Calculate start and end dates for the month
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0);
-        const startDateString = startDate.toISOString().split('T')[0];
-        const endDateString = endDate.toISOString().split('T')[0];
+        // Check cached months using functional update
+        setCachedMonths((prevCached) => {
+          if (!forceRefresh && prevCached.has(monthKey)) {
+            console.log("✅ Month already cached:", monthKey);
+            resolve();
+            return prevCached;
+          }
 
-        console.log('🔄 Fetching month date range:', startDateString, 'to', endDateString);
+          if (forceRefresh) {
+            console.log("🔄 Force refreshing month:", monthKey);
+          }
 
-        // Access current groups and fetch month data
-        setExpensesGroups(currentGroups => {
-          console.log('🔄 Current groups count:', currentGroups.length);
+          // Calculate start and end dates for the month
+          const startDate = new Date(year, month - 1, 1);
+          const endDate = new Date(year, month, 0);
+          const startDateString = startDate.toISOString().split("T")[0];
+          const endDateString = endDate.toISOString().split("T")[0];
 
-          // Perform async fetch and update groups
-          (async () => {
-            try {
-              const updatedGroups = await Promise.all(
-                currentGroups.map(async (group) => {
-                  try {
-                    console.log('🔄 Fetching for group:', group.id, group.data?.name);
+          console.log(
+            "🔄 Fetching month date range:",
+            startDateString,
+            "to",
+            endDateString,
+          );
 
-                    const paginatedResult = await apiFetchExpensesPaginated(
-                      user,
-                      group.id,
-                      group.encrypted_key,
-                      {
-                        page: 1,
-                        limit: 1000,
-                        startDate: startDateString,
-                        endDate: endDateString
-                      },
-                      decryptWithExternalEncryptionKey
-                    );
+          // Access current groups and fetch month data
+          setExpensesGroups((currentGroups) => {
+            console.log("🔄 Current groups count:", currentGroups.length);
 
-                    console.log('🔄 Paginated result for group', group.id, ':', paginatedResult?.success, paginatedResult?.data?.expenses?.length || 0, 'expenses');
-
-                    if (paginatedResult.success && paginatedResult.data) {
-                      // Add new month expenses to existing expenses, avoiding duplicates
-                      const existingExpenseIds = new Set(group.expenses.map(exp => exp.id));
-                      const newMonthExpenses = paginatedResult.data.expenses.filter(
-                        exp => !existingExpenseIds.has(exp.id)
+            // Perform async fetch and update groups
+            (async () => {
+              try {
+                const updatedGroups = await Promise.all(
+                  currentGroups.map(async (group) => {
+                    try {
+                      console.log(
+                        "🔄 Fetching for group:",
+                        group.id,
+                        group.data?.name,
                       );
 
-                      console.log('🔄 Group', group.id, '- Adding', newMonthExpenses.length, 'new expenses for month', monthKey);
+                      const paginatedResult = await apiFetchExpensesPaginated(
+                        user,
+                        group.id,
+                        group.encrypted_key,
+                        {
+                          page: 1,
+                          limit: 1000,
+                          startDate: startDateString,
+                          endDate: endDateString,
+                        },
+                        decryptWithExternalEncryptionKey,
+                      );
 
-                      return {
-                        ...group,
-                        expenses: [...group.expenses, ...newMonthExpenses].sort(
-                          (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
-                        )
-                      };
+                      console.log(
+                        "🔄 Paginated result for group",
+                        group.id,
+                        ":",
+                        paginatedResult?.success,
+                        paginatedResult?.data?.expenses?.length || 0,
+                        "expenses",
+                      );
+
+                      if (paginatedResult.success && paginatedResult.data) {
+                        // Add new month expenses to existing expenses, avoiding duplicates
+                        const existingExpenseIds = new Set(
+                          group.expenses.map((exp) => exp.id),
+                        );
+                        const newMonthExpenses =
+                          paginatedResult.data.expenses.filter(
+                            (exp) => !existingExpenseIds.has(exp.id),
+                          );
+
+                        console.log(
+                          "🔄 Group",
+                          group.id,
+                          "- Adding",
+                          newMonthExpenses.length,
+                          "new expenses for month",
+                          monthKey,
+                        );
+
+                        return {
+                          ...group,
+                          expenses: [
+                            ...group.expenses,
+                            ...newMonthExpenses,
+                          ].sort(
+                            (a, b) =>
+                              new Date(b.data.date).getTime() -
+                              new Date(a.data.date).getTime(),
+                          ),
+                        };
+                      }
+
+                      console.log(
+                        "🔄 No expenses found for group",
+                        group.id,
+                        "in month",
+                        monthKey,
+                      );
+                      return group;
+                    } catch (error) {
+                      console.error(
+                        `❌ Error fetching expenses for group ${group.id}:`,
+                        error,
+                      );
+                      return group;
                     }
+                  }),
+                );
 
-                    console.log('🔄 No expenses found for group', group.id, 'in month', monthKey);
-                    return group;
-                  } catch (error) {
-                    console.error(`❌ Error fetching expenses for group ${group.id}:`, error);
-                    return group;
-                  }
-                })
-              );
+                console.log(
+                  "🔄 Updated groups for month",
+                  monthKey,
+                  ". Total expenses per group:",
+                  updatedGroups.map((g) => ({
+                    id: g.id,
+                    name: g.data?.name,
+                    count: g.expenses.length,
+                  })),
+                );
 
-              console.log('🔄 Updated groups for month', monthKey, '. Total expenses per group:', updatedGroups.map(g => ({ id: g.id, name: g.data?.name, count: g.expenses.length })));
+                // Update groups state with fetched data
+                setExpensesGroups(updatedGroups);
 
-              // Update groups state with fetched data
-              setExpensesGroups(updatedGroups);
+                console.log(
+                  "✅ Successfully fetched expenses for month:",
+                  monthKey,
+                );
+                resolve();
+              } catch (error) {
+                console.error("❌ Error fetching expenses for month:", error);
+                reject(error);
+              }
+            })();
 
-              console.log('✅ Successfully fetched expenses for month:', monthKey);
-              resolve();
-            } catch (error) {
-              console.error('❌ Error fetching expenses for month:', error);
-              reject(error);
-            }
-          })();
+            // Return current groups for now (they'll be updated asynchronously)
+            return currentGroups;
+          });
 
-          // Return current groups for now (they'll be updated asynchronously)
-          return currentGroups;
+          // Add to cached months
+          const newSet = new Set(prevCached);
+          newSet.add(monthKey);
+          console.log("🔄 Updated cached months:", Array.from(newSet));
+          return newSet;
         });
-
-        // Add to cached months
-        const newSet = new Set(prevCached);
-        newSet.add(monthKey);
-        console.log('🔄 Updated cached months:', Array.from(newSet));
-        return newSet;
       });
-    });
-  }, [user, isEncryptionInitialized, decryptWithExternalEncryptionKey]);
+    },
+    [user, isEncryptionInitialized, decryptWithExternalEncryptionKey],
+  );
 
   const createExpensesGroup = async (groupData: ExpenseGroupData) => {
     try {
       if (!user || !publicKey || !userProfile || !isEncryptionInitialized) {
-        setError('You must be logged in to create an expense group');
-        console.error('You must be logged in to create an expense group');
+        setError("You must be logged in to create an expense group");
+        console.error("You must be logged in to create an expense group");
         return;
       }
-      const result = await apiCreateExpensesGroup(user, userProfile.username, publicKey, createEncryptionKey, encryptWithExternalPublicKey, encryptWithExternalEncryptionKey, groupData);
+      const result = await apiCreateExpensesGroup(
+        user,
+        userProfile.username,
+        publicKey,
+        createEncryptionKey,
+        encryptWithExternalPublicKey,
+        encryptWithExternalEncryptionKey,
+        groupData,
+      );
       const newGroup = result.data;
       if (result.success && newGroup) {
-        setExpensesGroups(prev => [...prev, newGroup]);
+        setExpensesGroups((prev) => [...prev, newGroup]);
       } else {
-        setError(result.error || 'Failed to create expense group');
+        setError(result.error || "Failed to create expense group");
       }
     } catch (error: any) {
-      console.error('Failed to create expense group:', error);
-      setError(error.message || 'Failed to create expense group');
+      console.error("Failed to create expense group:", error);
+      setError(error.message || "Failed to create expense group");
     }
   };
 
   const addExpense = async (groupId: string, expense: ExpenseData) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to add an expense');
-        setError('You must be logged in to add an expense');
+        console.error("You must be logged in to add an expense");
+        setError("You must be logged in to add an expense");
         return null;
       }
 
       // Find the group
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
-        console.error('Expense group not found');
-        setError('Expense group not found');
+        console.error("Expense group not found");
+        setError("Expense group not found");
         return null;
       }
 
       // Get the group key
       const groupKey = group.encrypted_key;
       if (!groupKey) {
-        console.error('Could not access group key');
-        setError('Could not access encryption key');
+        console.error("Could not access group key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiAddExpense(user, groupId, groupKey, expense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiAddExpense(
+        user,
+        groupId,
+        groupKey,
+        expense,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
       const addedExpense = result.data;
       if (result.success && addedExpense) {
         // Add to local state
-        setExpensesGroups(prev =>
-            prev.map(group => {
-              if (group.id === groupId) {
-                return {
-                  ...group,
-                  expenses: [addedExpense, ...group.expenses],
-                };
-              }
-              return group;
-            })
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            if (group.id === groupId) {
+              return {
+                ...group,
+                expenses: [addedExpense, ...group.expenses],
+              };
+            }
+            return group;
+          }),
         );
         return addedExpense;
       } else {
-        setError(result.error || 'Failed to add expense');
+        setError(result.error || "Failed to add expense");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to add expense:', error);
-      setError(error.message || 'Failed to add expense');
+      console.error("Failed to add expense:", error);
+      setError(error.message || "Failed to add expense");
       return null;
     }
   };
 
-  const updateExpense = async (groupId: string, updatedExpense: ExpenseWithDecryptedData) => {
+  const updateExpense = async (
+    groupId: string,
+    updatedExpense: ExpenseWithDecryptedData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to update an expense');
-        setError('You must be logged in to update an expense');
+        console.error("You must be logged in to update an expense");
+        setError("You must be logged in to update an expense");
         return null;
       }
 
       // Find the group
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
-        console.error('Expense group not found');
-        setError('Expense group not found');
+        console.error("Expense group not found");
+        setError("Expense group not found");
         return null;
       }
 
       // Get the group key
       const groupKey = group.encrypted_key;
       if (!groupKey) {
-        console.error('Could not access group key');
-        setError('Could not access encryption key');
+        console.error("Could not access group key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiUpdateExpense(user, groupId, groupKey, updatedExpense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiUpdateExpense(
+        user,
+        groupId,
+        groupKey,
+        updatedExpense,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
       const changedExpense = result.data;
       if (changedExpense) {
         // Update in local state
-        setExpensesGroups(prev =>
-            prev.map(group => {
-              if (group.id === groupId) {
-                return {
-                  ...group,
-                  expenses: group.expenses.map(expense =>
-                      expense.id === updatedExpense.id ? changedExpense : expense
-                  ),
-                };
-              }
-              return group;
-            })
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            if (group.id === groupId) {
+              return {
+                ...group,
+                expenses: group.expenses.map((expense) =>
+                  expense.id === updatedExpense.id ? changedExpense : expense,
+                ),
+              };
+            }
+            return group;
+          }),
         );
         return changedExpense;
       } else {
-        setError(result.error || 'Failed to update expense');
+        setError(result.error || "Failed to update expense");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to update expense:', error);
-      setError(error.message || 'Failed to update expense');
+      console.error("Failed to update expense:", error);
+      setError(error.message || "Failed to update expense");
       return null;
     }
   };
@@ -508,8 +667,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const deleteExpense = async (groupId: string, id: string) => {
     try {
       if (!user) {
-        console.error('You must be logged in to delete an expense');
-        setError('You must be logged in to delete an expense');
+        console.error("You must be logged in to delete an expense");
+        setError("You must be logged in to delete an expense");
         return;
       }
 
@@ -517,35 +676,41 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       if (result) {
         // Remove from local state
-        setExpensesGroups(prev =>
-            prev.map(group => {
-              if (group.id === groupId) {
-                return {
-                  ...group,
-                  expenses: group.expenses.filter(expense => expense.id !== id),
-                };
-              }
-              return group;
-            })
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            if (group.id === groupId) {
+              return {
+                ...group,
+                expenses: group.expenses.filter((expense) => expense.id !== id),
+              };
+            }
+            return group;
+          }),
         );
       } else {
-        setError(result || 'Failed to delete expense');
+        setError(result || "Failed to delete expense");
       }
     } catch (error: any) {
-      console.error('Failed to delete expense:', error);
-      setError(error.message || 'Failed to delete expense');
+      console.error("Failed to delete expense:", error);
+      setError(error.message || "Failed to delete expense");
     }
   };
 
   const inviteUserToGroup = async (groupId: string, username: string) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to invite a user');
-        setError('You must be logged in to invite a user');
-        return { success: false, error: 'Not authenticated' };
+        console.error("You must be logged in to invite a user");
+        setError("You must be logged in to invite a user");
+        return { success: false, error: "Not authenticated" };
       }
 
-      const result = await apiInviteUserToGroup(user, groupId, username, decryptWithPrivateKey, encryptWithExternalPublicKey);
+      const result = await apiInviteUserToGroup(
+        user,
+        groupId,
+        username,
+        decryptWithPrivateKey,
+        encryptWithExternalPublicKey,
+      );
 
       if (result.success) {
         // Refresh the groups list to get the updated members
@@ -554,223 +719,270 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       return result;
     } catch (error: any) {
-      console.error('Failed to invite user to group:', error);
-      setError(error.message || 'Failed to invite user');
-      return { success: false, error: error.message || 'Failed to invite user' };
+      console.error("Failed to invite user to group:", error);
+      setError(error.message || "Failed to invite user");
+      return {
+        success: false,
+        error: error.message || "Failed to invite user",
+      };
     }
   };
 
   const removeUserFromGroup = async (groupId: string, userId: string) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to remove a user');
-        setError('You must be logged in to remove a user');
-        return { success: false, error: 'Not authenticated' };
+        console.error("You must be logged in to remove a user");
+        setError("You must be logged in to remove a user");
+        return { success: false, error: "Not authenticated" };
       }
 
       const result = await apiRemoveUserFromGroup(user, groupId, userId);
 
       if (result.success) {
         // Update local state to remove the user from the group
-        setExpensesGroups(prev =>
-            prev.map(group => {
-              if (group.id === groupId) {
-                return {
-                  ...group,
-                  members: group.members.filter(member => member.user_id !== userId),
-                };
-              }
-              return group;
-            })
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            if (group.id === groupId) {
+              return {
+                ...group,
+                members: group.members.filter(
+                  (member) => member.user_id !== userId,
+                ),
+              };
+            }
+            return group;
+          }),
         );
       } else {
-        setError(result.error || 'Failed to remove user');
+        setError(result.error || "Failed to remove user");
       }
 
       return result;
     } catch (error: any) {
-      console.error('Failed to remove user from group:', error);
-      setError(error.message || 'Failed to remove user');
-      return { success: false, error: error.message || 'Failed to remove user' };
+      console.error("Failed to remove user from group:", error);
+      setError(error.message || "Failed to remove user");
+      return {
+        success: false,
+        error: error.message || "Failed to remove user",
+      };
     }
   };
 
   const handleGroupInvitation = async (groupId: string, accept: boolean) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to handle an invitation');
-        setError('You must be logged in to handle an invitation');
-        return { success: false, error: 'Not authenticated' };
+        console.error("You must be logged in to handle an invitation");
+        setError("You must be logged in to handle an invitation");
+        return { success: false, error: "Not authenticated" };
       }
 
       const result = await apiHandleGroupInvitation(user, groupId, accept);
 
       if (result.success) {
         // Update local state
-        setExpensesGroups(prev => {
+        setExpensesGroups((prev) => {
           if (accept) {
-            return prev.map(group => {
+            return prev.map((group) => {
               if (group.id === groupId) {
                 return {
                   ...group,
-                  membership_status: 'confirmed',
-                  members: group.members.map(member =>
-                      member.user_id === user.id ? { ...member, status: 'confirmed' } : member
+                  membership_status: "confirmed",
+                  members: group.members.map((member) =>
+                    member.user_id === user.id
+                      ? { ...member, status: "confirmed" }
+                      : member,
                   ),
                 };
               }
               return group;
             });
           } else {
-            return prev.filter(group => group.id !== groupId);
+            return prev.filter((group) => group.id !== groupId);
           }
         });
       } else {
-        setError(result.error || 'Failed to handle invitation');
+        setError(result.error || "Failed to handle invitation");
       }
 
       return result;
     } catch (error: any) {
-      console.error('Failed to handle group invitation:', error);
-      setError(error.message || 'Failed to handle invitation');
-      return { success: false, error: error.message || 'Failed to handle invitation' };
+      console.error("Failed to handle group invitation:", error);
+      setError(error.message || "Failed to handle invitation");
+      return {
+        success: false,
+        error: error.message || "Failed to handle invitation",
+      };
     }
   };
 
-  const updateExpenseGroup = async (groupId: string, groupData: ExpenseGroupData) => {
+  const updateExpenseGroup = async (
+    groupId: string,
+    groupData: ExpenseGroupData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to update a group');
-        setError('You must be logged in to update a group');
+        console.error("You must be logged in to update a group");
+        setError("You must be logged in to update a group");
         return null;
       }
 
       // Find the group
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
-        console.error('Expense group not found');
-        setError('Expense group not found');
+        console.error("Expense group not found");
+        setError("Expense group not found");
         return null;
       }
 
       // Get the group key
       const encryptedKey = group.encrypted_key;
       if (!encryptedKey) {
-        console.error('Could not access group key');
-        setError('Could not access encryption key');
+        console.error("Could not access group key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiUpdateExpenseGroup(user, groupId, encryptedKey, groupData, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiUpdateExpenseGroup(
+        user,
+        groupId,
+        encryptedKey,
+        groupData,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
 
       if (result.success && result.data) {
         // Update local state
-        setExpensesGroups(prev =>
-            prev.map(group => {
-              if (group.id === groupId) {
-                return result.data!;
-              }
-              return group;
-            })
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            if (group.id === groupId) {
+              return result.data!;
+            }
+            return group;
+          }),
         );
         return result.data;
       } else {
-        setError(result.error || 'Failed to update group');
+        setError(result.error || "Failed to update group");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to update group:', error);
-      setError(error.message || 'Failed to update group');
+      console.error("Failed to update group:", error);
+      setError(error.message || "Failed to update group");
       return null;
     }
   };
 
   const getPendingInvitations = () => {
-    return expensesGroups.filter(group => group.membership_status === 'pending');
+    return expensesGroups.filter(
+      (group) => group.membership_status === "pending",
+    );
   };
 
-  const addRecurringExpense = async (groupId: string, recurringExpense: RecurringExpenseData) => {
+  const addRecurringExpense = async (
+    groupId: string,
+    recurringExpense: RecurringExpenseData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to add a recurring expense');
-        setError('You must be logged in to add a recurring expense');
+        console.error("You must be logged in to add a recurring expense");
+        setError("You must be logged in to add a recurring expense");
         return null;
       }
 
       // Find the group
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
-        console.error('Expense group not found');
-        setError('Expense group not found');
+        console.error("Expense group not found");
+        setError("Expense group not found");
         return null;
       }
 
       // Get the group key
       const groupKey = group.encrypted_key;
       if (!groupKey) {
-        console.error('Could not access group key');
-        setError('Could not access encryption key');
+        console.error("Could not access group key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiCreateRecurringExpense(user, groupId, groupKey, recurringExpense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiCreateRecurringExpense(
+        user,
+        groupId,
+        groupKey,
+        recurringExpense,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
       const addedRecurringExpense = result.data;
       if (result.success && addedRecurringExpense) {
         // Add to local state
-        setRecurringExpenses(prev => [addedRecurringExpense, ...prev]);
+        setRecurringExpenses((prev) => [addedRecurringExpense, ...prev]);
         return addedRecurringExpense;
       } else {
-        setError(result.error || 'Failed to add recurring expense');
+        setError(result.error || "Failed to add recurring expense");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to add recurring expense:', error);
-      setError(error.message || 'Failed to add recurring expense');
+      console.error("Failed to add recurring expense:", error);
+      setError(error.message || "Failed to add recurring expense");
       return null;
     }
   };
 
-  const updateRecurringExpense = async (groupId: string, updatedRecurringExpense: RecurringExpenseWithDecryptedData) => {
+  const updateRecurringExpense = async (
+    groupId: string,
+    updatedRecurringExpense: RecurringExpenseWithDecryptedData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to update a recurring expense');
-        setError('You must be logged in to update a recurring expense');
+        console.error("You must be logged in to update a recurring expense");
+        setError("You must be logged in to update a recurring expense");
         return null;
       }
 
       // Find the group
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
-        console.error('Expense group not found');
-        setError('Expense group not found');
+        console.error("Expense group not found");
+        setError("Expense group not found");
         return null;
       }
 
       // Get the group key
       const groupKey = group.encrypted_key;
       if (!groupKey) {
-        console.error('Could not access group key');
-        setError('Could not access encryption key');
+        console.error("Could not access group key");
+        setError("Could not access encryption key");
         return null;
       }
 
-      const result = await apiUpdateRecurringExpense(user, groupId, groupKey, updatedRecurringExpense, decryptWithPrivateKey, encryptWithExternalEncryptionKey);
+      const result = await apiUpdateRecurringExpense(
+        user,
+        groupId,
+        groupKey,
+        updatedRecurringExpense,
+        decryptWithPrivateKey,
+        encryptWithExternalEncryptionKey,
+      );
       const changedRecurringExpense = result.data;
       if (result.success && changedRecurringExpense) {
         // Update in local state
-        setRecurringExpenses(prev =>
-          prev.map(recurringExpense =>
-            recurringExpense.id === updatedRecurringExpense.id ? changedRecurringExpense : recurringExpense
-          )
+        setRecurringExpenses((prev) =>
+          prev.map((recurringExpense) =>
+            recurringExpense.id === updatedRecurringExpense.id
+              ? changedRecurringExpense
+              : recurringExpense,
+          ),
         );
         return changedRecurringExpense;
       } else {
-        setError(result.error || 'Failed to update recurring expense');
+        setError(result.error || "Failed to update recurring expense");
         return null;
       }
     } catch (error: any) {
-      console.error('Failed to update recurring expense:', error);
-      setError(error.message || 'Failed to update recurring expense');
+      console.error("Failed to update recurring expense:", error);
+      setError(error.message || "Failed to update recurring expense");
       return null;
     }
   };
@@ -778,8 +990,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const deleteRecurringExpense = async (groupId: string, id: string) => {
     try {
       if (!user) {
-        console.error('You must be logged in to delete a recurring expense');
-        setError('You must be logged in to delete a recurring expense');
+        console.error("You must be logged in to delete a recurring expense");
+        setError("You must be logged in to delete a recurring expense");
         return;
       }
 
@@ -787,33 +999,35 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       if (result.success) {
         // Remove from local state
-        setRecurringExpenses(prev => prev.filter(recurringExpense => recurringExpense.id !== id));
+        setRecurringExpenses((prev) =>
+          prev.filter((recurringExpense) => recurringExpense.id !== id),
+        );
       } else {
-        setError(result.error || 'Failed to delete recurring expense');
+        setError(result.error || "Failed to delete recurring expense");
       }
     } catch (error: any) {
-      console.error('Failed to delete recurring expense:', error);
-      setError(error.message || 'Failed to delete recurring expense');
+      console.error("Failed to delete recurring expense:", error);
+      setError(error.message || "Failed to delete recurring expense");
     }
   };
 
   const addRefund = async (
     groupId: string,
-    refundData: Omit<GroupRefund, 'id' | 'created_at' | 'updated_at'>
+    refundData: Omit<GroupRefund, "id" | "created_at" | "updated_at">,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       if (!user) {
         return {
           success: false,
-          error: 'You must be logged in to add a refund',
+          error: "You must be logged in to add a refund",
         };
       }
 
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
         return {
           success: false,
-          error: 'Group not found',
+          error: "Group not found",
         };
       }
 
@@ -823,25 +1037,27 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         group.encrypted_key,
         refundData,
         encryptWithExternalEncryptionKey,
-        decryptWithExternalEncryptionKey
+        decryptWithExternalEncryptionKey,
       );
 
       if (result.success && result.data) {
         // Update local state
-        setExpensesGroups(prev =>
-          prev.map(g => g.id === groupId ? { ...g, data: result.data!.data } : g)
+        setExpensesGroups((prev) =>
+          prev.map((g) =>
+            g.id === groupId ? { ...g, data: result.data!.data } : g,
+          ),
         );
         return { success: true };
       } else {
-        setError(result.error || 'Failed to add refund');
+        setError(result.error || "Failed to add refund");
         return {
           success: false,
-          error: result.error || 'Failed to add refund',
+          error: result.error || "Failed to add refund",
         };
       }
     } catch (error: any) {
-      console.error('Failed to add refund:', error);
-      const errorMessage = error.message || 'Failed to add refund';
+      console.error("Failed to add refund:", error);
+      const errorMessage = error.message || "Failed to add refund";
       setError(errorMessage);
       return {
         success: false,
@@ -853,21 +1069,21 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const updateRefund = async (
     groupId: string,
     refundId: string,
-    refundData: Partial<Omit<GroupRefund, 'id' | 'created_at'>>
+    refundData: Partial<Omit<GroupRefund, "id" | "created_at">>,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       if (!user) {
         return {
           success: false,
-          error: 'You must be logged in to update a refund',
+          error: "You must be logged in to update a refund",
         };
       }
 
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
         return {
           success: false,
-          error: 'Group not found',
+          error: "Group not found",
         };
       }
 
@@ -878,25 +1094,27 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         refundId,
         refundData,
         encryptWithExternalEncryptionKey,
-        decryptWithExternalEncryptionKey
+        decryptWithExternalEncryptionKey,
       );
 
       if (result.success && result.data) {
         // Update local state
-        setExpensesGroups(prev =>
-          prev.map(g => g.id === groupId ? { ...g, data: result.data!.data } : g)
+        setExpensesGroups((prev) =>
+          prev.map((g) =>
+            g.id === groupId ? { ...g, data: result.data!.data } : g,
+          ),
         );
         return { success: true };
       } else {
-        setError(result.error || 'Failed to update refund');
+        setError(result.error || "Failed to update refund");
         return {
           success: false,
-          error: result.error || 'Failed to update refund',
+          error: result.error || "Failed to update refund",
         };
       }
     } catch (error: any) {
-      console.error('Failed to update refund:', error);
-      const errorMessage = error.message || 'Failed to update refund';
+      console.error("Failed to update refund:", error);
+      const errorMessage = error.message || "Failed to update refund";
       setError(errorMessage);
       return {
         success: false,
@@ -907,21 +1125,21 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
   const deleteRefund = async (
     groupId: string,
-    refundId: string
+    refundId: string,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       if (!user) {
         return {
           success: false,
-          error: 'You must be logged in to delete a refund',
+          error: "You must be logged in to delete a refund",
         };
       }
 
-      const group = expensesGroups.find(g => g.id === groupId);
+      const group = expensesGroups.find((g) => g.id === groupId);
       if (!group) {
         return {
           success: false,
-          error: 'Group not found',
+          error: "Group not found",
         };
       }
 
@@ -931,25 +1149,27 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         group.encrypted_key,
         refundId,
         encryptWithExternalEncryptionKey,
-        decryptWithExternalEncryptionKey
+        decryptWithExternalEncryptionKey,
       );
 
       if (result.success && result.data) {
         // Update local state
-        setExpensesGroups(prev =>
-          prev.map(g => g.id === groupId ? { ...g, data: result.data!.data } : g)
+        setExpensesGroups((prev) =>
+          prev.map((g) =>
+            g.id === groupId ? { ...g, data: result.data!.data } : g,
+          ),
         );
         return { success: true };
       } else {
-        setError(result.error || 'Failed to delete refund');
+        setError(result.error || "Failed to delete refund");
         return {
           success: false,
-          error: result.error || 'Failed to delete refund',
+          error: result.error || "Failed to delete refund",
         };
       }
     } catch (error: any) {
-      console.error('Failed to delete refund:', error);
-      const errorMessage = error.message || 'Failed to delete refund';
+      console.error("Failed to delete refund:", error);
+      const errorMessage = error.message || "Failed to delete refund";
       setError(errorMessage);
       return {
         success: false,
@@ -959,37 +1179,48 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   };
 
   const bulkUpdateExpenses = async (
-      expenses: { id?: string; data: ExpenseData; group_id: string; group_key: string }[]
-  ): Promise<{ success: boolean; data?: ExpenseWithDecryptedData[]; error?: string }> => {
+    expenses: {
+      id?: string;
+      data: ExpenseData;
+      group_id: string;
+      group_key: string;
+    }[],
+  ): Promise<{
+    success: boolean;
+    data?: ExpenseWithDecryptedData[];
+    error?: string;
+  }> => {
     try {
       if (!user || !isEncryptionInitialized) {
         return {
           success: false,
-          error: 'You must be logged in to bulk update expenses',
+          error: "You must be logged in to bulk update expenses",
         };
       }
 
       const result = await apiBulkInsertAndUpdateExpenses(
         user,
         expenses,
-        encryptWithExternalEncryptionKey
+        encryptWithExternalEncryptionKey,
       );
-
 
       if (result.success && result.data) {
         // Update local state
-        setExpensesGroups(prev =>
-          prev.map(group => {
-            const groupExpenses = result.data?.filter(exp => exp.group_id === group.id) || [];
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            const groupExpenses =
+              result.data?.filter((exp) => exp.group_id === group.id) || [];
             if (groupExpenses.length === 0) return group;
 
             const existingExpenses = [...group.expenses];
             const newExpenses: ExpenseWithDecryptedData[] = [];
 
             // Process the bulk update results
-            groupExpenses.forEach(updatedExpense => {
+            groupExpenses.forEach((updatedExpense) => {
               if (updatedExpense.id) {
-                const existingIndex = existingExpenses.findIndex(exp => exp.id === updatedExpense.id);
+                const existingIndex = existingExpenses.findIndex(
+                  (exp) => exp.id === updatedExpense.id,
+                );
                 if (existingIndex >= 0) {
                   // Update existing expense
                   existingExpenses[existingIndex] = updatedExpense;
@@ -1007,19 +1238,19 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               ...group,
               expenses: [...newExpenses, ...existingExpenses],
             };
-          })
+          }),
         );
         return { success: true, data: result.data };
       } else {
-        setError(result.error || 'Failed to bulk update expenses');
+        setError(result.error || "Failed to bulk update expenses");
         return {
           success: false,
-          error: result.error || 'Failed to bulk update expenses',
+          error: result.error || "Failed to bulk update expenses",
         };
       }
     } catch (error: any) {
-      console.error('Failed to bulk update expenses:', error);
-      const errorMessage = error.message || 'Failed to bulk update expenses';
+      console.error("Failed to bulk update expenses:", error);
+      const errorMessage = error.message || "Failed to bulk update expenses";
       setError(errorMessage);
       return {
         success: false,
@@ -1028,39 +1259,44 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const moveExpense = async (expenseId: string, fromGroupId: string, toGroupId: string, updatedExpenseData: ExpenseData) => {
+  const moveExpense = async (
+    expenseId: string,
+    fromGroupId: string,
+    toGroupId: string,
+    updatedExpenseData: ExpenseData,
+  ) => {
     try {
       if (!user || !isEncryptionInitialized) {
-        console.error('You must be logged in to move an expense');
-        setError('You must be logged in to move an expense');
-        return { success: false, error: 'Authentication required' };
+        console.error("You must be logged in to move an expense");
+        setError("You must be logged in to move an expense");
+        return { success: false, error: "Authentication required" };
       }
 
       // Find both groups
-      const fromGroup = expensesGroups.find(g => g.id === fromGroupId);
-      const toGroup = expensesGroups.find(g => g.id === toGroupId);
+      const fromGroup = expensesGroups.find((g) => g.id === fromGroupId);
+      const toGroup = expensesGroups.find((g) => g.id === toGroupId);
 
       if (!fromGroup || !toGroup) {
-        console.error('Source or destination group not found');
-        setError('Source or destination group not found');
-        return { success: false, error: 'Group not found' };
+        console.error("Source or destination group not found");
+        setError("Source or destination group not found");
+        return { success: false, error: "Group not found" };
       }
 
       // Get the expense to move
-      const expenseToMove = fromGroup.expenses.find(e => e.id === expenseId);
+      const expenseToMove = fromGroup.expenses.find((e) => e.id === expenseId);
       if (!expenseToMove) {
-        console.error('Expense not found in source group');
-        setError('Expense not found');
-        return { success: false, error: 'Expense not found' };
+        console.error("Expense not found in source group");
+        setError("Expense not found");
+        return { success: false, error: "Expense not found" };
       }
 
       // Get group keys
       const fromGroupKey = fromGroup.encrypted_key;
       const toGroupKey = toGroup.encrypted_key;
       if (!fromGroupKey || !toGroupKey) {
-        console.error('Could not access group encryption keys');
-        setError('Could not access encryption keys');
-        return { success: false, error: 'Encryption keys not available' };
+        console.error("Could not access group encryption keys");
+        setError("Could not access encryption keys");
+        return { success: false, error: "Encryption keys not available" };
       }
 
       const result = await apiMoveExpense(
@@ -1072,18 +1308,18 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         toGroupKey,
         updatedExpenseData,
         decryptWithExternalEncryptionKey,
-        encryptWithExternalEncryptionKey
+        encryptWithExternalEncryptionKey,
       );
 
       if (result.success && result.data) {
         // Update local state: remove from source group and add to destination group
-        setExpensesGroups(prev =>
-          prev.map(group => {
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
             if (group.id === fromGroupId) {
               // Remove expense from source group
               return {
                 ...group,
-                expenses: group.expenses.filter(e => e.id !== expenseId),
+                expenses: group.expenses.filter((e) => e.id !== expenseId),
               };
             } else if (group.id === toGroupId) {
               // Add expense to destination group
@@ -1093,35 +1329,43 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               };
             }
             return group;
-          })
+          }),
         );
         return { success: true, data: result.data };
       } else {
-        setError(result.error || 'Failed to move expense');
-        return { success: false, error: result.error || 'Failed to move expense' };
+        setError(result.error || "Failed to move expense");
+        return {
+          success: false,
+          error: result.error || "Failed to move expense",
+        };
       }
     } catch (error: any) {
-      console.error('Failed to move expense:', error);
-      const errorMessage = error.message || 'Failed to move expense';
+      console.error("Failed to move expense:", error);
+      const errorMessage = error.message || "Failed to move expense";
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
   };
 
-  const syncBankTransactions = async (): Promise<{ success: boolean; addedCount: number; updatedCount: number; error?: string }> => {
+  const syncBankTransactions = async (): Promise<{
+    success: boolean;
+    addedCount: number;
+    updatedCount: number;
+    error?: string;
+  }> => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
         return {
           success: false,
           addedCount: 0,
           updatedCount: 0,
-          error: 'User authentication or encryption not available',
+          error: "User authentication or encryption not available",
         };
       }
 
       // Fetch bank transactions
       const accountsTransactions = await piggusApi.getBankTransactions();
-      console.log('Bank transactions fetched:', accountsTransactions);
+      console.log("Bank transactions fetched:", accountsTransactions);
 
       // Check if we have any accounts
       if (!accountsTransactions || accountsTransactions.length === 0) {
@@ -1129,7 +1373,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           success: false,
           addedCount: 0,
           updatedCount: 0,
-          error: 'No bank accounts found',
+          error: "No bank accounts found",
         };
       }
 
@@ -1141,14 +1385,17 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       for (const accountData of accountsTransactions) {
         // Skip accounts that were skipped during fetching
         if (accountData.skipped) {
-          console.log(`Skipped account ${accountData.accountId}: ${accountData.reason || 'No reason provided'}`);
+          console.log(
+            `Skipped account ${accountData.accountId}: ${accountData.reason || "No reason provided"}`,
+          );
           continue;
         }
         allSkipped = false;
 
         // Extract transactions if available
         if (accountData.transactions && accountData.transactions.transactions) {
-          const accountBooked = accountData.transactions.transactions.booked || [];
+          const accountBooked =
+            accountData.transactions.transactions.booked || [];
           for (const transaction of accountBooked) {
             bookedTransactions.push({
               ...transaction,
@@ -1161,29 +1408,33 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       // Check if all accounts were skipped
       if (allSkipped) {
         const reasons = accountsTransactions
-          .filter(account => account.skipped && account.reason)
-          .map(account => account.reason)
-          .join(', ');
+          .filter((account) => account.skipped && account.reason)
+          .map((account) => account.reason)
+          .join(", ");
         return {
           success: false,
           addedCount: 0,
           updatedCount: 0,
-          error: `All accounts were skipped: ${reasons || 'No specific reasons provided'}`,
+          error: `All accounts were skipped: ${reasons || "No specific reasons provided"}`,
         };
       }
 
       // Convert Transaction objects to a format compatible with our app
-      const allTransactions = [...bookedTransactions].map(transaction => ({
-        id: transaction.transactionId || transaction.internalTransactionId || '',
+      const allTransactions = [...bookedTransactions].map((transaction) => ({
+        id:
+          transaction.transactionId || transaction.internalTransactionId || "",
         amount: parseFloat(transaction.transactionAmount.amount),
         currency: transaction.transactionAmount.currency,
-        description: transaction.additionalInformation ||
-            transaction.remittanceInformationUnstructured ||
-            transaction.remittanceInformationStructured ||
-            transaction.creditorName || transaction.debtorName || 'Unknown',
-        name: transaction.creditorName || transaction.debtorName || 'Unknown',
+        description:
+          transaction.additionalInformation ||
+          transaction.remittanceInformationUnstructured ||
+          transaction.remittanceInformationStructured ||
+          transaction.creditorName ||
+          transaction.debtorName ||
+          "Unknown",
+        name: transaction.creditorName || transaction.debtorName || "Unknown",
         date: transaction.bookingDate,
-        category: transaction.merchantCategoryCode || 'other',
+        category: transaction.merchantCategoryCode || "other",
         accountId: transaction.accountId,
       }));
 
@@ -1192,31 +1443,39 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           success: false,
           addedCount: 0,
           updatedCount: 0,
-          error: 'No bank transactions found',
+          error: "No bank transactions found",
         };
       }
 
       // Get the personal group
-      const personalGroup = expensesGroups.find(g => g.data.private);
+      const personalGroup = expensesGroups.find((g) => g.data.private);
       if (!personalGroup) {
         return {
           success: false,
           addedCount: 0,
           updatedCount: 0,
-          error: 'No personal group found',
+          error: "No personal group found",
         };
       }
 
       // Get all expenses from all groups for duplicate checking
-      const allExpenses = expensesGroups.flatMap(group => group.expenses);
+      const allExpenses = expensesGroups.flatMap((group) => group.expenses);
 
       // Prepare bulk operations
-      const groupKeyMap = expensesGroups.reduce((acc, group) => {
-        acc[group.id] = group.encrypted_key;
-        return acc;
-      }, {} as Record<string, string>);
+      const groupKeyMap = expensesGroups.reduce(
+        (acc, group) => {
+          acc[group.id] = group.encrypted_key;
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
 
-      const bulkOperations: { id?: string; data: ExpenseData, group_id: string, group_key: string }[] = [];
+      const bulkOperations: {
+        id?: string;
+        data: ExpenseData;
+        group_id: string;
+        group_key: string;
+      }[] = [];
 
       for (const transaction of allTransactions) {
         // Skip positive transactions, we only want expenses
@@ -1226,26 +1485,28 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         const expenseAmount = Math.abs(transaction.amount);
 
         // Check if this transaction already exists as an expense
-        const existingExpense = allExpenses.find(expense =>
-          expense.data.external_transaction_id === transaction.id
+        const existingExpense = allExpenses.find(
+          (expense) => expense.data.external_transaction_id === transaction.id,
         );
 
         if (existingExpense) {
           // Skip updating expenses that are marked as deleted
-          if (existingExpense.data.status === 'deleted') {
+          if (existingExpense.data.status === "deleted") {
             continue;
           }
 
           // Update existing expense - create updated participants
-          const updatedParticipants = existingExpense.data.participants.map(participant => {
-            if (participant.user_id === user.id) {
-              return {
-                ...participant,
-                share_amount: expenseAmount
-              };
-            }
-            return participant;
-          });
+          const updatedParticipants = existingExpense.data.participants.map(
+            (participant) => {
+              if (participant.user_id === user.id) {
+                return {
+                  ...participant,
+                  share_amount: expenseAmount,
+                };
+              }
+              return participant;
+            },
+          );
 
           bulkOperations.push({
             id: existingExpense.id,
@@ -1259,7 +1520,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               currency: transaction.currency || existingExpense.data.currency,
               participants: updatedParticipants,
               // Preserve the status field to maintain any existing status like 'deleted'
-              status: existingExpense.data.status
+              status: existingExpense.data.status,
             },
             group_id: existingExpense.group_id,
             group_key: groupKeyMap[existingExpense.group_id],
@@ -1272,7 +1533,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               description: transaction.description,
               amount: expenseAmount,
               date: transaction.date,
-              category: transaction.category || 'other',
+              category: transaction.category || "other",
               is_recurring: false,
               currency: transaction.currency,
               payer_user_id: user.id,
@@ -1281,10 +1542,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                 {
                   user_id: user.id,
                   username: userProfile.username,
-                  share_amount: expenseAmount
-                }
+                  share_amount: expenseAmount,
+                },
               ],
-              split_method: 'equal' as const,
+              split_method: "equal" as const,
               external_account_id: transaction.accountId,
               external_transaction_id: transaction.id,
             },
@@ -1303,16 +1564,18 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
         if (result.success) {
           // Count added and updated expenses
-          addedCount = bulkOperations.filter(op => !op.id).length;
-          updatedCount = bulkOperations.filter(op => op.id).length;
+          addedCount = bulkOperations.filter((op) => !op.id).length;
+          updatedCount = bulkOperations.filter((op) => op.id).length;
 
-          console.log(`Bulk operation completed: ${result.data?.length || 0} expenses processed`);
+          console.log(
+            `Bulk operation completed: ${result.data?.length || 0} expenses processed`,
+          );
         } else {
           return {
             success: false,
             addedCount: 0,
             updatedCount: 0,
-            error: result.error || 'Failed to process expenses in bulk',
+            error: result.error || "Failed to process expenses in bulk",
           };
         }
       }
@@ -1323,61 +1586,63 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         updatedCount,
       };
     } catch (error: any) {
-      console.error('Error syncing bank transactions:', error);
+      console.error("Error syncing bank transactions:", error);
       return {
         success: false,
         addedCount: 0,
         updatedCount: 0,
-        error: error.message || 'Failed to sync bank transactions',
+        error: error.message || "Failed to sync bank transactions",
       };
     }
   };
 
   useEffect(() => {
     if (isEncryptionInitialized && user && userProfile) {
-      fetchExpensesForCurrentMonth().catch(error => console.error('Failed to fetch expenses:', error));
+      fetchExpensesForCurrentMonth().catch((error) =>
+        console.error("Failed to fetch expenses:", error),
+      );
     }
   }, [user?.id, userProfile?.id, isEncryptionInitialized]); // Only re-run when user/profile/encryption changes, not when fetchExpensesForCurrentMonth changes
 
   return (
-      <ExpenseContext.Provider
-          value={{
-            expensesGroups,
-            recurringExpenses,
-            isLoading,
-            error,
-            addExpense,
-            updateExpense,
-            deleteExpense,
-            createExpensesGroup,
-            inviteUserToGroup,
-            removeUserFromGroup,
-            updateExpenseGroup,
-            handleGroupInvitation,
-            getPendingInvitations,
-            addRecurringExpense,
-            updateRecurringExpense,
-            deleteRecurringExpense,
-            addRefund,
-            updateRefund,
-            deleteRefund,
-            bulkUpdateExpenses,
-            moveExpense,
-            syncBankTransactions,
-            fetchExpensesForMonth,
-            cachedMonths,
-            clearMonthCache,
-          }}
-      >
-        {children}
-      </ExpenseContext.Provider>
+    <ExpenseContext.Provider
+      value={{
+        expensesGroups,
+        recurringExpenses,
+        isLoading,
+        error,
+        addExpense,
+        updateExpense,
+        deleteExpense,
+        createExpensesGroup,
+        inviteUserToGroup,
+        removeUserFromGroup,
+        updateExpenseGroup,
+        handleGroupInvitation,
+        getPendingInvitations,
+        addRecurringExpense,
+        updateRecurringExpense,
+        deleteRecurringExpense,
+        addRefund,
+        updateRefund,
+        deleteRefund,
+        bulkUpdateExpenses,
+        moveExpense,
+        syncBankTransactions,
+        fetchExpensesForMonth,
+        cachedMonths,
+        clearMonthCache,
+      }}
+    >
+      {children}
+    </ExpenseContext.Provider>
   );
 }
 
 export function useExpense() {
   const context = useContext(ExpenseContext);
   if (context === undefined) {
-    throw new Error('useExpense must be used within an ExpenseProvider');
+    throw new Error("useExpense must be used within an ExpenseProvider");
   }
   return context;
 }

@@ -2,17 +2,22 @@
  * AuthContext.tsx
  * Authentication and encryption management for React Native
  */
-import React, {createContext, useContext, useEffect, useState, useCallback, useRef, useMemo} from 'react';
-import type { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
-import { StyleSheet } from 'react-native';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { StyleSheet } from "react-native";
 
 // Import the encryption context and provider
-import {
-  useEncryption,
-  EncryptionProvider
-} from '@/context/EncryptionContext';
-import { SecureKeyManager } from '@/lib/secureKeyManager';
+import { useEncryption, EncryptionProvider } from "@/context/EncryptionContext";
+import { SecureKeyManager } from "@/lib/secureKeyManager";
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import { resetHttpClient } from "@/client/http";
 
@@ -24,7 +29,11 @@ type AuthContextType = {
   needsPasswordPrompt: boolean;
   needsRecoveryKey: boolean;
   publicKey: string | null;
-  signIn: (email: string, password: string, progress: (progress: any, step: string) => void) => Promise<void>;
+  signIn: (
+    email: string,
+    password: string,
+    progress: (progress: any, step: string) => void,
+  ) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   encryptData: (data: any) => Promise<string | null>;
@@ -44,10 +53,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authInitialized, setAuthInitialized] = useState<boolean>(false);
-  const [newEncryptionKeyGenerated, setNewEncryptionKeyGenerated] = useState<boolean>(false);
-  const [needsPasswordPrompt, setNeedsPasswordPrompt] = useState<boolean>(false);
+  const [newEncryptionKeyGenerated, setNewEncryptionKeyGenerated] =
+    useState<boolean>(false);
+  const [needsPasswordPrompt, setNeedsPasswordPrompt] =
+    useState<boolean>(false);
   const [needsRecoveryKey, setNeedsRecoveryKey] = useState<boolean>(false);
-  const [encryptionInitialized, setEncryptionInitialized] = useState<boolean>(false);
+  const [encryptionInitialized, setEncryptionInitialized] =
+    useState<boolean>(false);
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false);
 
   const authCheckComplete = useRef(false);
@@ -59,41 +71,41 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Helper function to encrypt data using the encryption context
   const encryptData = useCallback(
-      async (data: any): Promise<string | null> => {
-        if (!encryption.isEncryptionInitialized) {
-          console.error('Encryption not initialized when trying to encrypt data');
-          throw new Error('Encryption not initialized. Please sign in again.');
-        }
+    async (data: any): Promise<string | null> => {
+      if (!encryption.isEncryptionInitialized) {
+        console.error("Encryption not initialized when trying to encrypt data");
+        throw new Error("Encryption not initialized. Please sign in again.");
+      }
 
-        return await encryption.encrypt(data);
-      },
-      [encryption]
+      return await encryption.encrypt(data);
+    },
+    [encryption],
   );
 
   // Helper function to decrypt data using the encryption context
   const decryptData = useCallback(
-      async (encryptedData: string): Promise<any> => {
-        if (!encryption.isEncryptionInitialized) {
-          console.error('Encryption not initialized when trying to decrypt data');
-          throw new Error('Encryption not initialized. Please sign in again.');
-        }
+    async (encryptedData: string): Promise<any> => {
+      if (!encryption.isEncryptionInitialized) {
+        console.error("Encryption not initialized when trying to decrypt data");
+        throw new Error("Encryption not initialized. Please sign in again.");
+      }
 
-        return await encryption.decryptWithEncryptionKey(encryptedData);
-      },
-      [encryption]
+      return await encryption.decryptWithEncryptionKey(encryptedData);
+    },
+    [encryption],
   );
 
   // Store keys in user metadata
   const storeKeysInUserMetadata = async (
-      encryptedPrivateKeyData: string,
-      publicKey: string,
-      encryptedRecoveryPrivateKey?: string
+    encryptedPrivateKeyData: string,
+    publicKey: string,
+    encryptedRecoveryPrivateKey?: string,
   ): Promise<boolean> => {
     try {
       // Update user metadata with the keys
       const updateData: any = {
         public_key: publicKey,
-        encrypted_private_key: encryptedPrivateKeyData
+        encrypted_private_key: encryptedPrivateKeyData,
       };
 
       // Add recovery key if provided
@@ -106,191 +118,221 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('Error storing keys in user metadata:', error);
+        console.error("Error storing keys in user metadata:", error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in storeKeysInUserMetadata:', error);
+      console.error("Error in storeKeysInUserMetadata:", error);
       return false;
     }
   };
 
   // Retrieve keys from user metadata
-  const retrieveKeysFromUserMetadata = useCallback(async (
-      user: User
-  ): Promise<{ publicKey: string | null; encryptedPrivateKey: string | null; encryptedRecoveryPrivateKey: string | null }> => {
-    try {
-      // Check if public and private keys exist in user metadata
-      const publicKey = user.user_metadata?.public_key;
-      const encryptedPrivateKey = user.user_metadata?.encrypted_private_key;
-      const encryptedRecoveryPrivateKey = user.user_metadata?.encrypted_recovery_private_key;
+  const retrieveKeysFromUserMetadata = useCallback(
+    async (
+      user: User,
+    ): Promise<{
+      publicKey: string | null;
+      encryptedPrivateKey: string | null;
+      encryptedRecoveryPrivateKey: string | null;
+    }> => {
+      try {
+        // Check if public and private keys exist in user metadata
+        const publicKey = user.user_metadata?.public_key;
+        const encryptedPrivateKey = user.user_metadata?.encrypted_private_key;
+        const encryptedRecoveryPrivateKey =
+          user.user_metadata?.encrypted_recovery_private_key;
 
-      if (publicKey && encryptedPrivateKey) {
-        console.log('Retrieved public and private keys from user metadata');
-        return { publicKey, encryptedPrivateKey, encryptedRecoveryPrivateKey: encryptedRecoveryPrivateKey || null };
+        if (publicKey && encryptedPrivateKey) {
+          console.log("Retrieved public and private keys from user metadata");
+          return {
+            publicKey,
+            encryptedPrivateKey,
+            encryptedRecoveryPrivateKey: encryptedRecoveryPrivateKey || null,
+          };
+        }
+
+        console.log("No keys found in user metadata");
+      } catch (error) {
+        console.error("Error retrieving keys from user metadata:", error);
       }
-
-      console.log('No keys found in user metadata');
-    } catch (error) {
-      console.error('Error retrieving keys from user metadata:', error);
-    }
-    return { publicKey: null, encryptedPrivateKey: null, encryptedRecoveryPrivateKey: null };
-  }, []);
+      return {
+        publicKey: null,
+        encryptedPrivateKey: null,
+        encryptedRecoveryPrivateKey: null,
+      };
+    },
+    [],
+  );
 
   // Initialize encryption key from password
   const initializeEncryptionKey = useCallback(
-      async (
-          user: User,
-          password: string,
-          onProgress?: (progress: number) => void
-      ): Promise<{
-        publicKey: string;
-        privateKey: string;
-        encryptionKey: Uint8Array<ArrayBufferLike>;
-        salt: string;
-      }> => {
-        try {
-          console.log('=== STARTING ENCRYPTION INITIALIZATION ===');
-          onProgress?.(0.05);
+    async (
+      user: User,
+      password: string,
+      onProgress?: (progress: number) => void,
+    ): Promise<{
+      publicKey: string;
+      privateKey: string;
+      encryptionKey: Uint8Array<ArrayBufferLike>;
+      salt: string;
+    }> => {
+      try {
+        console.log("=== STARTING ENCRYPTION INITIALIZATION ===");
+        onProgress?.(0.05);
 
-          // Retrieve keys from user metadata
-          const { publicKey, encryptedPrivateKey, encryptedRecoveryPrivateKey } = await retrieveKeysFromUserMetadata(user);
-          console.log('Keys from metadata:', { hasPublic: !!publicKey, hasPrivate: !!encryptedPrivateKey, hasRecovery: !!encryptedRecoveryPrivateKey });
-          onProgress?.(0.1);
+        // Retrieve keys from user metadata
+        const { publicKey, encryptedPrivateKey, encryptedRecoveryPrivateKey } =
+          await retrieveKeysFromUserMetadata(user);
+        console.log("Keys from metadata:", {
+          hasPublic: !!publicKey,
+          hasPrivate: !!encryptedPrivateKey,
+          hasRecovery: !!encryptedRecoveryPrivateKey,
+        });
+        onProgress?.(0.1);
 
-          if (publicKey && encryptedPrivateKey) {
-            console.log('Found existing keys, importing with async PBKDF2...');
+        if (publicKey && encryptedPrivateKey) {
+          console.log("Found existing keys, importing with async PBKDF2...");
 
-            const data = await encryption.importExistingKeys(
-                publicKey,
-                encryptedPrivateKey,
-                password,
-                (importProgress) => {
-                  // Map import progress to overall progress
-                  const overallProgress = 0.1 + (importProgress * 0.8);
-                  onProgress?.(overallProgress);
-                },
-            );
+          const data = await encryption.importExistingKeys(
+            publicKey,
+            encryptedPrivateKey,
+            password,
+            (importProgress) => {
+              // Map import progress to overall progress
+              const overallProgress = 0.1 + importProgress * 0.8;
+              onProgress?.(overallProgress);
+            },
+          );
 
-            if (!data) {
-              throw new Error('Failed to decrypt keys with provided password.');
-            }
-
-            console.log('Successfully imported existing keys');
-            setEncryptionInitialized(true);
-            
-            // Check if user has recovery key after importing existing keys
-            if (!encryptedRecoveryPrivateKey) {
-              console.log('User missing recovery key after importing existing keys, will show recovery key form');
-              setNeedsRecoveryKey(true);
-            } else {
-              console.log('User has recovery key, no need to show recovery key form');
-              setNeedsRecoveryKey(false);
-            }
-            
-            onProgress?.(1.0);
-            return data;
-          } else {
-            console.log('No existing keys, generating new ones...');
-
-            // For new key generation, show progress differently
-            onProgress?.(0.3);
-            setIsGeneratingKeys(true);
-
-            const encryptionData = await encryption.initializeFromPassword(
-                password,
-                (genProgress) => {
-                  const overallProgress = 0.3 + (genProgress * 0.6);
-                  onProgress?.(overallProgress);
-                },
-            );
-            setIsGeneratingKeys(false);
-            onProgress?.(0.95);
-
-            // Export and store keys
-            const encryptedPrivateKey = await encryption.exportEncryptedPrivateKey(
-                encryptionData.privateKey,
-                encryptionData.encryptionKey,
-                encryptionData.salt
-            );
-
-            if (!encryptedPrivateKey) {
-              throw new Error('Failed to export encrypted private key');
-            }
-
-            const success = await storeKeysInUserMetadata(
-                encryptedPrivateKey,
-                encryptionData.publicKey
-            );
-
-            if (!success) {
-              console.warn('Failed to store keys in user metadata');
-            }
-
-            setNewEncryptionKeyGenerated(true);
-            setEncryptionInitialized(true);
-            onProgress?.(1.0);
-            console.log('Created new encryption keys for user:', user.id);
-            return encryptionData;
+          if (!data) {
+            throw new Error("Failed to decrypt keys with provided password.");
           }
-        } catch (error) {
-          console.error('Error initializing encryption key:', error);
-          onProgress?.(0);
-          throw error;
+
+          console.log("Successfully imported existing keys");
+          setEncryptionInitialized(true);
+
+          // Check if user has recovery key after importing existing keys
+          if (!encryptedRecoveryPrivateKey) {
+            console.log(
+              "User missing recovery key after importing existing keys, will show recovery key form",
+            );
+            setNeedsRecoveryKey(true);
+          } else {
+            console.log(
+              "User has recovery key, no need to show recovery key form",
+            );
+            setNeedsRecoveryKey(false);
+          }
+
+          onProgress?.(1.0);
+          return data;
+        } else {
+          console.log("No existing keys, generating new ones...");
+
+          // For new key generation, show progress differently
+          onProgress?.(0.3);
+          setIsGeneratingKeys(true);
+
+          const encryptionData = await encryption.initializeFromPassword(
+            password,
+            (genProgress) => {
+              const overallProgress = 0.3 + genProgress * 0.6;
+              onProgress?.(overallProgress);
+            },
+          );
+          setIsGeneratingKeys(false);
+          onProgress?.(0.95);
+
+          // Export and store keys
+          const encryptedPrivateKey =
+            await encryption.exportEncryptedPrivateKey(
+              encryptionData.privateKey,
+              encryptionData.encryptionKey,
+              encryptionData.salt,
+            );
+
+          if (!encryptedPrivateKey) {
+            throw new Error("Failed to export encrypted private key");
+          }
+
+          const success = await storeKeysInUserMetadata(
+            encryptedPrivateKey,
+            encryptionData.publicKey,
+          );
+
+          if (!success) {
+            console.warn("Failed to store keys in user metadata");
+          }
+
+          setNewEncryptionKeyGenerated(true);
+          setEncryptionInitialized(true);
+          onProgress?.(1.0);
+          console.log("Created new encryption keys for user:", user.id);
+          return encryptionData;
         }
-      },
-      [encryption, retrieveKeysFromUserMetadata]
+      } catch (error) {
+        console.error("Error initializing encryption key:", error);
+        onProgress?.(0);
+        throw error;
+      }
+    },
+    [encryption, retrieveKeysFromUserMetadata],
   );
 
   // Public method to initialize encryption with password
   const initializeEncryptionWithPassword = useCallback(
-      async (password: string) => {
-        if (!user) {
-          throw new Error('Cannot initialize encryption: No user is logged in');
-        }
+    async (password: string) => {
+      if (!user) {
+        throw new Error("Cannot initialize encryption: No user is logged in");
+      }
 
-        try {
-          await initializeEncryptionKey(user, password);
-          setNeedsPasswordPrompt(false);
-          
-          // Check if user has recovery key after successful encryption initialization
-          const { encryptedRecoveryPrivateKey } = await retrieveKeysFromUserMetadata(user);
-          if (!encryptedRecoveryPrivateKey) {
-            console.log('User missing recovery key after password auth, will show recovery key form');
-            setNeedsRecoveryKey(true);
-          }
-        } catch (error) {
-          console.error('Failed to initialize encryption with password:', error);
-          throw error;
+      try {
+        await initializeEncryptionKey(user, password);
+        setNeedsPasswordPrompt(false);
+
+        // Check if user has recovery key after successful encryption initialization
+        const { encryptedRecoveryPrivateKey } =
+          await retrieveKeysFromUserMetadata(user);
+        if (!encryptedRecoveryPrivateKey) {
+          console.log(
+            "User missing recovery key after password auth, will show recovery key form",
+          );
+          setNeedsRecoveryKey(true);
         }
-      },
-      [user, initializeEncryptionKey, retrieveKeysFromUserMetadata]
+      } catch (error) {
+        console.error("Failed to initialize encryption with password:", error);
+        throw error;
+      }
+    },
+    [user, initializeEncryptionKey, retrieveKeysFromUserMetadata],
   );
 
   // Try biometric login (simplified for single user)
   const tryBiometricLogin = useCallback(async (): Promise<boolean> => {
     try {
-      console.log('Attempting biometric login...');
+      console.log("Attempting biometric login...");
 
       // First get the stored session to extract user data
       const encryptionKey = await SecureKeyManager.getEncryptionKey();
       if (!encryptionKey) {
-        console.log('No encryption key found in secure storage');
+        console.log("No encryption key found in secure storage");
         return false;
       }
 
-      const storedSession = await SecureKeyManager.getSupabaseSession(encryptionKey);
+      const storedSession =
+        await SecureKeyManager.getSupabaseSession(encryptionKey);
       if (!storedSession) {
-        console.log('No stored session found for biometric login');
+        console.log("No stored session found for biometric login");
         return false;
       }
 
       // Initialize encryption from secure storage using the public key
       const result = await encryption.initializeFromSecureStorage();
       if (!result) {
-        console.log('Failed to initialize encryption from secure storage');
+        console.log("Failed to initialize encryption from secure storage");
         return false;
       }
 
@@ -301,57 +343,60 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('Failed to restore session:', error);
+        console.error("Failed to restore session:", error);
         encryption.resetEncryption(); // Reset encryption state on failure
         return false;
       }
 
       if (!data?.session) {
-        console.error('No session data returned from restore session');
+        console.error("No session data returned from restore session");
         return false;
       }
       await SecureKeyManager.storeSupabaseSession(data.session, encryptionKey);
 
       setNeedsPasswordPrompt(false);
       setEncryptionInitialized(true);
-      console.log('Biometric login successful');
+      console.log("Biometric login successful");
       return true;
     } catch (error) {
-      console.error('Biometric login error:', error);
+      console.error("Biometric login error:", error);
       return false;
     }
   }, [encryption]);
 
   // Store recovery key in user metadata
-  const storeRecoveryKey = useCallback(async (encryptedRecoveryPrivateKey: string): Promise<void> => {
-    if (!user) {
-      throw new Error('Cannot store recovery key: No user is logged in');
-    }
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          encrypted_recovery_private_key: encryptedRecoveryPrivateKey
-        },
-      });
-
-      if (error) {
-        console.error('Error storing recovery key:', error);
-        throw new Error('Failed to store recovery key');
+  const storeRecoveryKey = useCallback(
+    async (encryptedRecoveryPrivateKey: string): Promise<void> => {
+      if (!user) {
+        throw new Error("Cannot store recovery key: No user is logged in");
       }
 
-      // Update needsRecoveryKey state
-      setNeedsRecoveryKey(false);
-      console.log('Recovery key stored successfully');
-    } catch (error) {
-      console.error('Error in storeRecoveryKey:', error);
-      throw error;
-    }
-  }, [user]);
+      try {
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            encrypted_recovery_private_key: encryptedRecoveryPrivateKey,
+          },
+        });
+
+        if (error) {
+          console.error("Error storing recovery key:", error);
+          throw new Error("Failed to store recovery key");
+        }
+
+        // Update needsRecoveryKey state
+        setNeedsRecoveryKey(false);
+        console.log("Recovery key stored successfully");
+      } catch (error) {
+        console.error("Error in storeRecoveryKey:", error);
+        throw error;
+      }
+    },
+    [user],
+  );
 
   // Check if user has recovery key
   const hasRecoveryKey = useCallback((): boolean => {
-    return !!(user?.user_metadata?.encrypted_recovery_private_key);
+    return !!user?.user_metadata?.encrypted_recovery_private_key;
   }, [user]);
 
   // Check for active session on mount
@@ -360,56 +405,73 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     const checkSession = async () => {
       try {
-        console.log('Starting session check...');
+        console.log("Starting session check...");
         const { data } = await supabase.auth.getSession();
         const currentUser = data.session?.user || null;
 
         if (currentUser) {
           setUser(currentUser);
-          console.log('User session found:', currentUser.email);
+          console.log("User session found:", currentUser.email);
           // If secure storage fails, check if we have a saved password from signup
           if (signupPassword.current) {
-            console.log('Using saved signup password');
+            console.log("Using saved signup password");
             try {
-              await initializeEncryptionKey(currentUser, signupPassword.current);
+              await initializeEncryptionKey(
+                currentUser,
+                signupPassword.current,
+              );
               signupPassword.current = null;
               setNeedsPasswordPrompt(false);
             } catch (error) {
-              console.error('Failed to initialize encryption key from signup password:', error);
+              console.error(
+                "Failed to initialize encryption key from signup password:",
+                error,
+              );
               setNeedsPasswordPrompt(true);
             }
             return;
           }
 
           // Check for keys in user metadata and prompt for password if needed
-          const { publicKey, encryptedPrivateKey, encryptedRecoveryPrivateKey } = await retrieveKeysFromUserMetadata(currentUser);
+          const {
+            publicKey,
+            encryptedPrivateKey,
+            encryptedRecoveryPrivateKey,
+          } = await retrieveKeysFromUserMetadata(currentUser);
 
           if (publicKey && encryptedPrivateKey) {
-            console.log('Found keys in metadata, need password');
+            console.log("Found keys in metadata, need password");
             setNeedsPasswordPrompt(true);
             // Check if recovery key is missing
             if (!encryptedRecoveryPrivateKey) {
-              console.log('Recovery key missing, will need to generate');
+              console.log("Recovery key missing, will need to generate");
               setNeedsRecoveryKey(true);
             }
             // Don't sign out - keep the user signed in but require password for encryption
           } else {
-            console.log('No keys found anywhere, signing out');
+            console.log("No keys found anywhere, signing out");
             await supabase.auth.signOut();
           }
         } else {
-          console.log('No active session found, checking for stored sessions...');
+          console.log(
+            "No active session found, checking for stored sessions...",
+          );
           // Check if we have any stored session data and biometric is available
-          const hasStoredData = await SecureKeyManager.hasAnyStoredSessionData();
+          const hasStoredData =
+            await SecureKeyManager.hasAnyStoredSessionData();
           if (hasStoredData) {
-            console.log('Found stored session data, showing auto biometric prompt...');
+            console.log(
+              "Found stored session data, showing auto biometric prompt...",
+            );
             return; // Don't complete auth initialization yet
           } else {
-            console.log('No biometric login available - no stored sessions or biometric not available');
+            console.log(
+              "No biometric login available - no stored sessions or biometric not available",
+            );
           }
         }
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.error("Error checking session:", error);
       } finally {
         authCheckComplete.current = true;
         setAuthInitialized(true);
@@ -417,81 +479,110 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     };
 
     checkSession();
-  }, [initializeEncryptionKey, retrieveKeysFromUserMetadata, encryption, tryBiometricLogin]);
+  }, [
+    initializeEncryptionKey,
+    retrieveKeysFromUserMetadata,
+    encryption,
+    tryBiometricLogin,
+  ]);
 
   // Set up auth state change listener
   useEffect(() => {
     if (authListenerSetup.current) return;
 
     const setupAuthListener = () => {
-      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', event);
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log("Auth state changed:", event);
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user);
+          if (event === "SIGNED_IN" && session?.user) {
+            setUser(session.user);
 
-          // If we have a saved password from signup, use it to initialize encryption
-          if (signupPassword.current) {
-            initializeEncryptionKey(session.user, signupPassword.current)
+            // If we have a saved password from signup, use it to initialize encryption
+            if (signupPassword.current) {
+              initializeEncryptionKey(session.user, signupPassword.current)
                 .then(async () => {
                   // Clear the password
                   signupPassword.current = null;
                   setNeedsPasswordPrompt(false);
-                  
+
                   // Check if user has recovery key after successful encryption initialization
-                  const { encryptedRecoveryPrivateKey } = await retrieveKeysFromUserMetadata(session.user);
+                  const { encryptedRecoveryPrivateKey } =
+                    await retrieveKeysFromUserMetadata(session.user);
                   if (!encryptedRecoveryPrivateKey) {
-                    console.log('User missing recovery key after auth state change, will show recovery key form');
+                    console.log(
+                      "User missing recovery key after auth state change, will show recovery key form",
+                    );
                     setNeedsRecoveryKey(true);
                   }
                 })
-                .catch(error => {
-                  console.error('Failed to initialize encryption key from auth state change:', error);
+                .catch((error) => {
+                  console.error(
+                    "Failed to initialize encryption key from auth state change:",
+                    error,
+                  );
                   // If we can't initialize with the saved password, prompt the user
                   setNeedsPasswordPrompt(true);
                 });
-          } else {
-            // No saved password, check if we have keys in metadata first
-            const { publicKey, encryptedPrivateKey, encryptedRecoveryPrivateKey } = await retrieveKeysFromUserMetadata(session.user);
+            } else {
+              // No saved password, check if we have keys in metadata first
+              const {
+                publicKey,
+                encryptedPrivateKey,
+                encryptedRecoveryPrivateKey,
+              } = await retrieveKeysFromUserMetadata(session.user);
 
-            if (publicKey && encryptedPrivateKey) {
-              console.log('No saved password after sign in, but found keys in metadata - need password prompt');
-              setNeedsPasswordPrompt(true);
-              // Check if recovery key is missing
-              if (!encryptedRecoveryPrivateKey) {
-                console.log('Recovery key missing, will need to generate');
-                setNeedsRecoveryKey(true);
+              if (publicKey && encryptedPrivateKey) {
+                console.log(
+                  "No saved password after sign in, but found keys in metadata - need password prompt",
+                );
+                setNeedsPasswordPrompt(true);
+                // Check if recovery key is missing
+                if (!encryptedRecoveryPrivateKey) {
+                  console.log("Recovery key missing, will need to generate");
+                  setNeedsRecoveryKey(true);
+                }
+              } else {
+                console.log(
+                  "No saved password and no keys found, user needs to go through setup again",
+                );
+                await supabase.auth.signOut();
               }
-            } else {
-              console.log('No saved password and no keys found, user needs to go through setup again');
-              await supabase.auth.signOut();
+            }
+          } else if (event === "SIGNED_OUT") {
+            setUser(null);
+            encryption.resetEncryption();
+            setEncryptionInitialized(false);
+            signupPassword.current = null;
+            setNeedsPasswordPrompt(false);
+            setNeedsRecoveryKey(false);
+            resetHttpClient();
+          } else if (event === "USER_UPDATED" && session?.user) {
+            setUser(session.user);
+          } else if (event === "TOKEN_REFRESHED" && session?.user && session) {
+            // Update stored session when token is refreshed (without requiring biometric)
+            try {
+              // Get encryption key for storing session
+              if (encryption.encryptionKey) {
+                console.log("Token refresh, session: ", session);
+                await SecureKeyManager.storeSupabaseSession(
+                  session,
+                  encryption.encryptionKey,
+                );
+              } else {
+                console.error(
+                  "Encryption key not found when trying to store session after token refresh",
+                );
+              }
+            } catch (error) {
+              console.error(
+                "Failed to update stored session after token refresh:",
+                error,
+              );
             }
           }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          encryption.resetEncryption();
-          setEncryptionInitialized(false);
-          signupPassword.current = null;
-          setNeedsPasswordPrompt(false);
-          setNeedsRecoveryKey(false);
-          resetHttpClient();
-        } else if (event === 'USER_UPDATED' && session?.user) {
-          setUser(session.user);
-        } else if (event === 'TOKEN_REFRESHED' && session?.user && session) {
-          // Update stored session when token is refreshed (without requiring biometric)
-          try {
-            // Get encryption key for storing session
-            if (encryption.encryptionKey) {
-              console.log("Token refresh, session: ", session);
-              await SecureKeyManager.storeSupabaseSession(session, encryption.encryptionKey);
-            } else {
-              console.error('Encryption key not found when trying to store session after token refresh');
-            }
-          } catch (error) {
-            console.error('Failed to update stored session after token refresh:', error);
-          }
-        }
-      });
+        },
+      );
 
       authListenerSetup.current = true;
 
@@ -507,13 +598,13 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   }, [initializeEncryptionKey, encryption, retrieveKeysFromUserMetadata]);
 
   const signIn = async (
-      email: string,
-      password: string,
-      onProgress?: (progress: number, step: string) => void
+    email: string,
+    password: string,
+    onProgress?: (progress: number, step: string) => void,
   ) => {
     try {
-      console.log('Starting sign in process...');
-      onProgress?.(0.1, 'Authenticating...');
+      console.log("Starting sign in process...");
+      onProgress?.(0.1, "Authenticating...");
 
       const { error, data } = await supabase.auth.signInWithPassword({
         email,
@@ -521,59 +612,74 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('Supabase auth error:', error);
+        console.error("Supabase auth error:", error);
         throw error;
       }
 
       // User is now authenticated, initialize encryption
       if (data.user && data.session) {
-        console.log('User authenticated, initializing encryption...');
-        onProgress?.(0.2, 'Setting up encryption...');
+        console.log("User authenticated, initializing encryption...");
+        onProgress?.(0.2, "Setting up encryption...");
 
         try {
           // Save the password temporarily for auth listener to use
           signupPassword.current = password;
 
           // Initialize encryption with progress tracking
-          const encryptionData = await initializeEncryptionKey(data.user, password, (encryptionProgress) => {
-            // Map encryption progress to overall progress (20% to 85%)
-            const overallProgress = 0.2 + (encryptionProgress * 0.65);
-            const step = encryptionProgress < 0.5
-                ? 'Deriving encryption keys...'
-                : 'Finalizing setup...';
-            onProgress?.(overallProgress, step);
-          });
+          const encryptionData = await initializeEncryptionKey(
+            data.user,
+            password,
+            (encryptionProgress) => {
+              // Map encryption progress to overall progress (20% to 85%)
+              const overallProgress = 0.2 + encryptionProgress * 0.65;
+              const step =
+                encryptionProgress < 0.5
+                  ? "Deriving encryption keys..."
+                  : "Finalizing setup...";
+              onProgress?.(overallProgress, step);
+            },
+          );
 
           // Store Supabase session securely (without requiring biometric during login)
-          onProgress?.(0.9, 'Securing session...');
+          onProgress?.(0.9, "Securing session...");
           if (encryptionData.encryptionKey) {
             console.log("Storing session: ", data.session);
-            await SecureKeyManager.storeSupabaseSession(data.session, encryptionData.encryptionKey);
+            await SecureKeyManager.storeSupabaseSession(
+              data.session,
+              encryptionData.encryptionKey,
+            );
           } else {
-            console.error('Encryption key not found when trying to store session after sign in');
+            console.error(
+              "Encryption key not found when trying to store session after sign in",
+            );
           }
 
           setUser(data.user);
           setNeedsPasswordPrompt(false);
-          
+
           // Check if user has recovery key after successful sign in
-          const { encryptedRecoveryPrivateKey } = await retrieveKeysFromUserMetadata(data.user);
+          const { encryptedRecoveryPrivateKey } =
+            await retrieveKeysFromUserMetadata(data.user);
           if (!encryptedRecoveryPrivateKey) {
-            console.log('User missing recovery key after sign in, will show recovery key form');
+            console.log(
+              "User missing recovery key after sign in, will show recovery key form",
+            );
             setNeedsRecoveryKey(true);
           }
-          
-          onProgress?.(1.0, 'Complete!');
-          console.log('Encryption initialized and session stored successfully');
 
+          onProgress?.(1.0, "Complete!");
+          console.log("Encryption initialized and session stored successfully");
         } catch (encryptionError) {
-          console.error('Failed to initialize encryption key after sign in:', encryptionError);
+          console.error(
+            "Failed to initialize encryption key after sign in:",
+            encryptionError,
+          );
           setNeedsPasswordPrompt(true);
-          throw new Error('Failed to initialize encryption. Please try again.');
+          throw new Error("Failed to initialize encryption. Please try again.");
         }
       }
     } catch (error: any) {
-      console.error('Sign in error:', error);
+      console.error("Sign in error:", error);
       signupPassword.current = null;
       throw error;
     }
@@ -587,10 +693,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       setIsGeneratingKeys(false);
 
       // Export the encrypted private key
-      const encryptedPrivateKey = await encryption.exportEncryptedPrivateKey(encryptionData.privateKey, encryptionData.encryptionKey, encryptionData.salt);
+      const encryptedPrivateKey = await encryption.exportEncryptedPrivateKey(
+        encryptionData.privateKey,
+        encryptionData.encryptionKey,
+        encryptionData.salt,
+      );
 
       if (!encryptedPrivateKey) {
-        throw new Error('Failed to export encrypted private key');
+        throw new Error("Failed to export encrypted private key");
       }
 
       // Include the keys in the user metadata during sign-up
@@ -600,7 +710,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             public_key: encryptionData.publicKey,
-            encrypted_private_key: encryptedPrivateKey
+            encrypted_private_key: encryptedPrivateKey,
           },
         },
       });
@@ -612,7 +722,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       setEncryptionInitialized(true);
       setNeedsPasswordPrompt(false);
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error("Sign up error:", error);
       setIsGeneratingKeys(false);
       throw error;
     }
@@ -631,7 +741,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error("Sign out error:", error);
       throw error;
     }
   };
@@ -640,15 +750,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const renderContent = () => {
     // If auth check is not complete, show loading
     if (!authInitialized) {
-      return (
-        <AuthSetupLoader />
-      );
+      return <AuthSetupLoader />;
     }
 
     if (isGeneratingKeys) {
-      return (
-          <AuthSetupLoader />
-      );
+      return <AuthSetupLoader />;
     }
 
     return children;
@@ -657,44 +763,57 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useMemo(() => {
     // User is authenticated if they're logged in, encryption is ready, and they don't need password prompt
     // Recovery key requirement doesn't block authentication - it's handled in the app flow
-    return !!(user && authInitialized && encryptionInitialized && encryption.isEncryptionInitialized && encryption.getPublicKey() && !isGeneratingKeys && !needsPasswordPrompt);
-  }, [authInitialized, encryption, encryptionInitialized, isGeneratingKeys, user, needsPasswordPrompt])
+    return !!(
+      user &&
+      authInitialized &&
+      encryptionInitialized &&
+      encryption.isEncryptionInitialized &&
+      encryption.getPublicKey() &&
+      !isGeneratingKeys &&
+      !needsPasswordPrompt
+    );
+  }, [
+    authInitialized,
+    encryption,
+    encryptionInitialized,
+    isGeneratingKeys,
+    user,
+    needsPasswordPrompt,
+  ]);
 
   return (
-      <AuthContext.Provider
-          value={{
-            user,
-            authInitialized,
-            encryptionInitialized,
-            needsPasswordPrompt,
-            needsRecoveryKey,
-            publicKey: encryption.getPublicKey(),
-            signIn,
-            signUp,
-            signOut,
-            encryptData,
-            decryptData,
-            newEncryptionKeyGenerated,
-            initializeEncryptionWithPassword,
-            isAuthenticated,
-            tryBiometricLogin,
-            storeRecoveryKey,
-            hasRecoveryKey,
-          }}
-      >
-        {renderContent()}
-      </AuthContext.Provider>
+    <AuthContext.Provider
+      value={{
+        user,
+        authInitialized,
+        encryptionInitialized,
+        needsPasswordPrompt,
+        needsRecoveryKey,
+        publicKey: encryption.getPublicKey(),
+        signIn,
+        signUp,
+        signOut,
+        encryptData,
+        decryptData,
+        newEncryptionKeyGenerated,
+        initializeEncryptionWithPassword,
+        isAuthenticated,
+        tryBiometricLogin,
+        storeRecoveryKey,
+        hasRecoveryKey,
+      }}
+    >
+      {renderContent()}
+    </AuthContext.Provider>
   );
 }
 
 // Export the combined provider that includes both EncryptionProvider and AuthProvider
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
-      <EncryptionProvider>
-        <AuthProviderInner>
-          {children}
-        </AuthProviderInner>
-      </EncryptionProvider>
+    <EncryptionProvider>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </EncryptionProvider>
   );
 }
 
@@ -702,7 +821,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -711,7 +830,7 @@ export function useAuth() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   keyboardView: {
     flex: 1,
@@ -719,17 +838,17 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
     marginBottom: 30,
   },
 });

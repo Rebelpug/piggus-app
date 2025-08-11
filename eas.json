@@ -34,7 +34,7 @@
         "SENTRY_ORG": "rebelpug",
         "SENTRY_PROJECT": "piggus"
       }
-    },
+    }
   },
   "submit": {
     "production": {

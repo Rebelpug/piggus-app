@@ -1,13 +1,13 @@
 export const formatDate = (dateString: string) => {
-    try {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    } catch {
-        return dateString;
-    }
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return dateString;
+  }
 };
 
 /**
@@ -17,7 +17,9 @@ export const formatDate = (dateString: string) => {
  * @param expenseDate - The date string from the expense (e.g., "2024-01-15")
  * @returns ISO string with the expense date and current time, or undefined if no date provided
  */
-export function createExpenseTimestamp(expenseDate: string | null | undefined): string | undefined {
+export function createExpenseTimestamp(
+  expenseDate: string | null | undefined,
+): string | undefined {
   if (!expenseDate) return undefined;
 
   const expenseDateObj = new Date(expenseDate);
@@ -31,7 +33,7 @@ export function createExpenseTimestamp(expenseDate: string | null | undefined): 
     now.getHours(),
     now.getMinutes(),
     now.getSeconds(),
-    now.getMilliseconds()
+    now.getMilliseconds(),
   );
 
   return dateWithCurrentTime.toISOString();
