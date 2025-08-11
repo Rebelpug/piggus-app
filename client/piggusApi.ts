@@ -207,7 +207,9 @@ export interface PiggusApi {
 
   // Expense Group Methods
   getExpenseGroups: () => Promise<
-    (ExpenseGroupMembership & { expenses_groups: ExpenseGroup })[]
+    (ExpenseGroupMembership & { expenses_groups: ExpenseGroup } & {
+      members: ExpenseGroupMembership[];
+    })[]
   >;
   createExpenseGroup: (data: {
     groupId: string;

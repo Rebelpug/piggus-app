@@ -110,6 +110,7 @@ export const apiFetchExpenseGroupsOnly = async (
     }
 
     const memberships = await piggusApi.getExpenseGroups();
+    console.log(memberships);
 
     if (!memberships) {
       return {
@@ -149,13 +150,8 @@ export const apiFetchExpenseGroupsOnly = async (
           return {
             id: group.id,
             data: decryptedExpenseGroupData,
-            expenses: [], // Start with empty expenses array - will be filled by pagination
-            members: [
-              {
-                ...membership,
-                username: membership.username || "",
-              },
-            ], // Start with just the current user's membership, full members can be loaded later if needed
+            expenses: [],
+            members: membership.members,
             membership_status: membership.status,
             encrypted_key: groupKeyString,
             created_at: group.created_at,

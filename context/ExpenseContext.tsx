@@ -1402,6 +1402,14 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               accountId: accountData.accountId,
             });
           }
+          const accountPending =
+            accountData.transactions.transactions.pending || [];
+          for (const transaction of accountPending) {
+            bookedTransactions.push({
+              ...transaction,
+              accountId: accountData.accountId,
+            });
+          }
         }
       }
 
