@@ -1,310 +1,375 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    ActivityIndicator,
-    ScrollView
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
-import { CURRENCIES } from '@/types/expense';
-import { useProfile } from '@/context/ProfileContext';
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Colors } from "@/constants/Colors";
+import { CURRENCIES } from "@/types/expense";
+import { useProfile } from "@/context/ProfileContext";
 
 interface OnboardingFormProps {
-    onComplete: () => void;
-    currency: string;
-    onCreateCheckingAccount?: (amount: number) => Promise<void>;
+  onComplete: () => void;
+  currency: string;
+  onCreateCheckingAccount?: (amount: number) => Promise<void>;
 }
 
-export default function OnboardingForm({ onComplete, currency, onCreateCheckingAccount }: OnboardingFormProps) {
-    const colorScheme = useColorScheme();
-    const colors = Colors[colorScheme ?? 'light'];
-    const router = useRouter();
-    const { updateProfile, userProfile } = useProfile();
+export default function OnboardingForm({
+  onComplete,
+  currency,
+  onCreateCheckingAccount,
+}: OnboardingFormProps) {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
+  const router = useRouter();
+  const { updateProfile, userProfile } = useProfile();
 
-    const [salary, setSalary] = useState('');
-    const [bankAmount, setBankAmount] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [salary, setSalary] = useState("");
+  const [bankAmount, setBankAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const handleContinue = async (goToTutorial: boolean) => {
-        setIsSubmitting(true);
-        setError(null);
+  const handleContinue = async (goToTutorial: boolean) => {
+    setIsSubmitting(true);
+    setError(null);
 
-        try {
-            // Validate inputs
-            const salaryNumber = parseFloat(salary);
-            const bankAmountNumber = parseFloat(bankAmount);
+    try {
+      // Validate inputs
+      const salaryNumber = parseFloat(salary);
+      const bankAmountNumber = parseFloat(bankAmount);
 
-            if (isNaN(salaryNumber) || salaryNumber < 0) {
-                setError('Please enter a valid salary amount');
-                setIsSubmitting(false);
-                return;
-            }
+      if (isNaN(salaryNumber) || salaryNumber < 0) {
+        setError("Please enter a valid salary amount");
+        setIsSubmitting(false);
+        return;
+      }
 
-            if (isNaN(bankAmountNumber) || bankAmountNumber < 0) {
-                setError('Please enter a valid bank account amount');
-                setIsSubmitting(false);
-                return;
-            }
+      if (isNaN(bankAmountNumber) || bankAmountNumber < 0) {
+        setError("Please enter a valid bank account amount");
+        setIsSubmitting(false);
+        return;
+      }
 
-            // Update profile with monthly budget (salary)
-            if (userProfile) {
-                await updateProfile({
-                    ...userProfile.profile,
-                    budgeting: {
-                        budget: {
-                            amount: salaryNumber,
-                            period: 'monthly'
-                        }
-                    }
-                });
-            }
+      // Update profile with monthly budget (salary)
+      if (userProfile) {
+        await updateProfile({
+          ...userProfile.profile,
+          budgeting: {
+            budget: {
+              amount: salaryNumber,
+              period: "monthly",
+            },
+          },
+        });
+      }
 
-            // Create checking account investment if bank amount > 0
-            if (bankAmountNumber > 0 && onCreateCheckingAccount) {
-                await onCreateCheckingAccount(bankAmountNumber);
-            }
+      // Create checking account investment if bank amount > 0
+      if (bankAmountNumber > 0 && onCreateCheckingAccount) {
+        await onCreateCheckingAccount(bankAmountNumber);
+      }
 
-            // Navigate based on user choice
-            if (goToTutorial) {
-                router.push('/guides' as any);
-            } else {
-                router.push('/' as any);
-            }
+      // Navigate based on user choice
+      if (goToTutorial) {
+        router.push("/guides" as any);
+      } else {
+        router.push("/" as any);
+      }
 
-            onComplete();
-        } catch (err) {
-            setError(`An error occurred: ${err instanceof Error ? err.message : String(err)}`);
-            console.error('Onboarding error:', err);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+      onComplete();
+    } catch (err) {
+      setError(
+        `An error occurred: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      console.error("Onboarding error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const formatCurrency = (amount: string) => {
-        const currencyInfo = CURRENCIES.find(c => c.value === currency);
-        // CURRENCIES only has value and label, no symbol property, so we'll use the value
-        return `${currency} ${amount}`;
-    };
+  const formatCurrency = (amount: string) => {
+    const currencyInfo = CURRENCIES.find((c) => c.value === currency);
+    // CURRENCIES only has value and label, no symbol property, so we'll use the value
+    return `${currency} ${amount}`;
+  };
 
-    return (
-        <ScrollView contentContainerStyle={[styles.scrollContainer, { backgroundColor: colors.background }]}>
-            <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-                <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]}>Let's Get You Started</Text>
-                    <Text style={[styles.cardDescription, { color: colors.icon }]}>
-                        Help us personalize your financial journey by sharing a few details.
-                    </Text>
-                </View>
+  return (
+    <ScrollView
+      contentContainerStyle={[
+        styles.scrollContainer,
+        { backgroundColor: colors.background },
+      ]}
+    >
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.card, shadowColor: colors.text },
+        ]}
+      >
+        <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Let's Get You Started
+          </Text>
+          <Text style={[styles.cardDescription, { color: colors.icon }]}>
+            Help us personalize your financial journey by sharing a few details.
+          </Text>
+        </View>
 
-                <View style={styles.cardContent}>
-                    {error && (
-                        <View style={[styles.errorContainer, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
-                            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-                        </View>
-                    )}
-
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>What is your current monthly salary?</Text>
-                        <TextInput
-                            style={[styles.input, {
-                                borderColor: colors.border,
-                                backgroundColor: colors.background,
-                                color: colors.text
-                            }]}
-                            placeholder="0.00"
-                            placeholderTextColor={colors.icon}
-                            value={salary}
-                            onChangeText={setSalary}
-                            keyboardType="numeric"
-                        />
-                        <Text style={[styles.helperText, { color: colors.icon }]}>
-                            This will be used as your monthly budget to track your spending
-                        </Text>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>How much money do you currently have in your bank account (not invested)?</Text>
-                        <TextInput
-                            style={[styles.input, {
-                                borderColor: colors.border,
-                                backgroundColor: colors.background,
-                                color: colors.text
-                            }]}
-                            placeholder="0.00"
-                            placeholderTextColor={colors.icon}
-                            value={bankAmount}
-                            onChangeText={setBankAmount}
-                            keyboardType="numeric"
-                        />
-                        <Text style={[styles.helperText, { color: colors.icon }]}>
-                            This will be added as a checking account investment to track your cash
-                        </Text>
-                    </View>
-
-                    {(salary || bankAmount) && (
-                        <View style={[styles.summaryContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                            <Text style={[styles.summaryTitle, { color: colors.text }]}>Summary</Text>
-                            {salary && (
-                                <Text style={[styles.summaryItem, { color: colors.icon }]}>
-                                    Monthly Budget: {formatCurrency(salary)}
-                                </Text>
-                            )}
-                            {bankAmount && (
-                                <Text style={[styles.summaryItem, { color: colors.icon }]}>
-                                    Initial Cash: {formatCurrency(bankAmount)}
-                                </Text>
-                            )}
-                        </View>
-                    )}
-
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity
-                            style={[
-                                styles.button,
-                                styles.tutorialButton,
-                                { backgroundColor: colors.primary },
-                                isSubmitting && [styles.buttonDisabled, { backgroundColor: colors.icon }]
-                            ]}
-                            onPress={() => handleContinue(true)}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? (
-                                <View style={styles.buttonContent}>
-                                    <ActivityIndicator size="small" color="white" style={styles.spinner} />
-                                    <Text style={styles.buttonText}>Setting up...</Text>
-                                </View>
-                            ) : (
-                                <Text style={styles.buttonText}>Look into tutorial</Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.button,
-                                styles.skipButton,
-                                { borderColor: colors.border, backgroundColor: colors.background },
-                                isSubmitting && [styles.buttonDisabled, { backgroundColor: colors.icon }]
-                            ]}
-                            onPress={() => handleContinue(false)}
-                            disabled={isSubmitting}
-                        >
-                            <Text style={[styles.skipButtonText, { color: colors.text }]}>Skip and manage on my own</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+        <View style={styles.cardContent}>
+          {error && (
+            <View
+              style={[
+                styles.errorContainer,
+                {
+                  backgroundColor: colors.error + "20",
+                  borderColor: colors.error,
+                },
+              ]}
+            >
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {error}
+              </Text>
             </View>
-        </ScrollView>
-    );
+          )}
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>
+              What is your current monthly salary?
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="0.00"
+              placeholderTextColor={colors.icon}
+              value={salary}
+              onChangeText={setSalary}
+              keyboardType="numeric"
+            />
+            <Text style={[styles.helperText, { color: colors.icon }]}>
+              This will be used as your monthly budget to track your spending
+            </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.text }]}>
+              How much money do you currently have in your bank account (not
+              invested)?
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="0.00"
+              placeholderTextColor={colors.icon}
+              value={bankAmount}
+              onChangeText={setBankAmount}
+              keyboardType="numeric"
+            />
+            <Text style={[styles.helperText, { color: colors.icon }]}>
+              This will be added as a checking account investment to track your
+              cash
+            </Text>
+          </View>
+
+          {(salary || bankAmount) && (
+            <View
+              style={[
+                styles.summaryContainer,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.summaryTitle, { color: colors.text }]}>
+                Summary
+              </Text>
+              {salary && (
+                <Text style={[styles.summaryItem, { color: colors.icon }]}>
+                  Monthly Budget: {formatCurrency(salary)}
+                </Text>
+              )}
+              {bankAmount && (
+                <Text style={[styles.summaryItem, { color: colors.icon }]}>
+                  Initial Cash: {formatCurrency(bankAmount)}
+                </Text>
+              )}
+            </View>
+          )}
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.tutorialButton,
+                { backgroundColor: colors.primary },
+                isSubmitting && [
+                  styles.buttonDisabled,
+                  { backgroundColor: colors.icon },
+                ],
+              ]}
+              onPress={() => handleContinue(true)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator
+                    size="small"
+                    color="white"
+                    style={styles.spinner}
+                  />
+                  <Text style={styles.buttonText}>Setting up...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Look into tutorial</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.skipButton,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+                isSubmitting && [
+                  styles.buttonDisabled,
+                  { backgroundColor: colors.icon },
+                ],
+              ]}
+              onPress={() => handleContinue(false)}
+              disabled={isSubmitting}
+            >
+              <Text style={[styles.skipButtonText, { color: colors.text }]}>
+                Skip and manage on my own
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    scrollContainer: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        padding: 20,
-    },
-    card: {
-        borderRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        width: '100%',
-        maxWidth: 400,
-        alignSelf: 'center',
-    },
-    cardHeader: {
-        padding: 16,
-        borderBottomWidth: 1,
-    },
-    cardTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    cardDescription: {
-        fontSize: 14,
-    },
-    cardContent: {
-        padding: 16,
-    },
-    errorContainer: {
-        marginBottom: 16,
-        padding: 12,
-        borderWidth: 1,
-        borderRadius: 4,
-    },
-    errorText: {},
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 8,
-        lineHeight: 20,
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 4,
-        padding: 12,
-        fontSize: 16,
-    },
-    helperText: {
-        fontSize: 12,
-        marginTop: 4,
-        lineHeight: 16,
-    },
-    summaryContainer: {
-        borderWidth: 1,
-        borderRadius: 4,
-        padding: 12,
-        marginBottom: 20,
-    },
-    summaryTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    summaryItem: {
-        fontSize: 14,
-        marginBottom: 4,
-    },
-    buttonContainer: {
-        gap: 12,
-    },
-    button: {
-        borderRadius: 4,
-        padding: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tutorialButton: {},
-    skipButton: {
-        borderWidth: 1,
-    },
-    buttonDisabled: {},
-    buttonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        fontWeight: '500',
-        fontSize: 16,
-    },
-    skipButtonText: {
-        fontWeight: '500',
-        fontSize: 16,
-    },
-    spinner: {
-        marginRight: 8,
-    }
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
+  card: {
+    borderRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    width: "100%",
+    maxWidth: 400,
+    alignSelf: "center",
+  },
+  cardHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  cardDescription: {
+    fontSize: 14,
+  },
+  cardContent: {
+    padding: 16,
+  },
+  errorContainer: {
+    marginBottom: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 4,
+  },
+  errorText: {},
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 12,
+    fontSize: 16,
+  },
+  helperText: {
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  summaryContainer: {
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 12,
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  summaryItem: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  buttonContainer: {
+    gap: 12,
+  },
+  button: {
+    borderRadius: 4,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tutorialButton: {},
+  skipButton: {
+    borderWidth: 1,
+  },
+  buttonDisabled: {},
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontWeight: "500",
+    fontSize: 16,
+  },
+  skipButtonText: {
+    fontWeight: "500",
+    fontSize: 16,
+  },
+  spinner: {
+    marginRight: 8,
+  },
 });

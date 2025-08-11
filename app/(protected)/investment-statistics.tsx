@@ -1,20 +1,44 @@
-import * as React from 'react';
-import { useMemo, useState } from 'react';
-import { StyleSheet, ScrollView, View, Dimensions, TouchableOpacity } from 'react-native';
-import { Text, TopNavigation, TopNavigationAction, Modal, Card, Layout, Button } from '@ui-kitten/components';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useInvestment } from '@/context/InvestmentContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useLocalization } from '@/context/LocalizationContext';
-import { Colors } from '@/constants/Colors';
-import Svg, { Path, Circle, Polyline, Line, Text as SvgText } from 'react-native-svg';
+import * as React from "react";
+import { useMemo, useState } from "react";
+import {
+  StyleSheet,
+  ScrollView,
+  View,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
+import {
+  Text,
+  TopNavigation,
+  TopNavigationAction,
+  Modal,
+  Card,
+  Layout,
+  Button,
+} from "@ui-kitten/components";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useInvestment } from "@/context/InvestmentContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useLocalization } from "@/context/LocalizationContext";
+import { Colors } from "@/constants/Colors";
+import Svg, {
+  Path,
+  Circle,
+  Polyline,
+  Line,
+  Text as SvgText,
+} from "react-native-svg";
 import { useProfile } from "@/context/ProfileContext";
 import { formatCurrency } from "@/utils/currencyUtils";
-import { calculateInvestmentStatistics, InvestmentStats, generateProjectionData } from "@/utils/financeUtils";
+import {
+  calculateInvestmentStatistics,
+  InvestmentStats,
+  generateProjectionData,
+} from "@/utils/financeUtils";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 // Custom SVG Pie Chart Component
 interface PieChartProps {
@@ -32,21 +56,23 @@ interface LineChartProps {
 
 const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
   const padding = 40;
-  const chartWidth = size.width - (padding * 2);
-  const chartHeight = size.height - (padding * 2);
+  const chartWidth = size.width - padding * 2;
+  const chartHeight = size.height - padding * 2;
 
   // Filter out invalid data points
-  const validData = data.filter(point => {
-    return point &&
-           typeof point.year === 'number' &&
-           typeof point.value === 'number' &&
-           isFinite(point.value) &&
-           !isNaN(point.value);
+  const validData = data.filter((point) => {
+    return (
+      point &&
+      typeof point.year === "number" &&
+      typeof point.value === "number" &&
+      isFinite(point.value) &&
+      !isNaN(point.value)
+    );
   });
 
   if (validData.length === 0) return null;
 
-  const values = validData.map(d => d.value).filter(v => isFinite(v));
+  const values = validData.map((d) => d.value).filter((v) => isFinite(v));
   if (values.length === 0) return null;
 
   const maxValue = Math.max(...values);
@@ -59,23 +85,8 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
   }
 
   // Create points for the line with defensive checks
-  const points = validData.map((point, index) => {
-    const x = padding + (index / (validData.length - 1)) * chartWidth;
-    const normalizedValue = (point.value - minValue) / valueRange;
-    const y = padding + chartHeight - normalizedValue * chartHeight;
-
-    // Validate coordinates
-    if (!isFinite(x) || !isFinite(y)) {
-      return null;
-    }
-
-    return `${x},${y}`;
-  }).filter(Boolean).join(' ');
-
-  // Create area under the curve with defensive checks
-  const areaPoints = [
-    `${padding},${padding + chartHeight}`, // Start from bottom left
-    ...validData.map((point, index) => {
+  const points = validData
+    .map((point, index) => {
       const x = padding + (index / (validData.length - 1)) * chartWidth;
       const normalizedValue = (point.value - minValue) / valueRange;
       const y = padding + chartHeight - normalizedValue * chartHeight;
@@ -86,9 +97,29 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       }
 
       return `${x},${y}`;
-    }).filter(Boolean),
-    `${padding + chartWidth},${padding + chartHeight}` // End at bottom right
-  ].join(' ');
+    })
+    .filter(Boolean)
+    .join(" ");
+
+  // Create area under the curve with defensive checks
+  const areaPoints = [
+    `${padding},${padding + chartHeight}`, // Start from bottom left
+    ...validData
+      .map((point, index) => {
+        const x = padding + (index / (validData.length - 1)) * chartWidth;
+        const normalizedValue = (point.value - minValue) / valueRange;
+        const y = padding + chartHeight - normalizedValue * chartHeight;
+
+        // Validate coordinates
+        if (!isFinite(x) || !isFinite(y)) {
+          return null;
+        }
+
+        return `${x},${y}`;
+      })
+      .filter(Boolean),
+    `${padding + chartWidth},${padding + chartHeight}`, // End at bottom right
+  ].join(" ");
 
   return (
     <Svg width={size.width} height={size.height}>
@@ -107,11 +138,7 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       ))}
 
       {/* Area under curve */}
-      <Path
-        d={`M ${areaPoints} Z`}
-        fill={colors.primary}
-        fillOpacity={0.1}
-      />
+      <Path d={`M ${areaPoints} Z`} fill={colors.primary} fillOpacity={0.1} />
 
       {/* Main line */}
       <Polyline
@@ -149,7 +176,8 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
 
       {/* Year labels */}
       {validData.map((point, index) => {
-        if (index % 2 === 0 || index === validData.length - 1) { // Show every other year + last year
+        if (index % 2 === 0 || index === validData.length - 1) {
+          // Show every other year + last year
           const x = padding + (index / (validData.length - 1)) * chartWidth;
 
           // Validate coordinate and year value
@@ -182,7 +210,7 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
   const centerY = size / 2;
 
   // Filter out invalid data
-  const validData = data.filter(item => {
+  const validData = data.filter((item) => {
     const value = Number(item.value);
     return !isNaN(value) && isFinite(value) && value > 0;
   });
@@ -204,72 +232,79 @@ const CustomPieChart: React.FC<PieChartProps> = ({ data, size, colors }) => {
     // If only one item then draw the full circle
     slices = [
       <Circle
-          key="full"
-          cx={centerX}
-          cy={centerY}
-          r={radius}
-          fill={validData[0].color}
-          stroke={colors.background}
-          strokeWidth={2}
-      />
+        key="full"
+        cx={centerX}
+        cy={centerY}
+        r={radius}
+        fill={validData[0].color}
+        stroke={colors.background}
+        strokeWidth={2}
+      />,
     ];
   } else {
     let cumulativePercentage = 0;
-    slices = validData.map((item, index) => {
-      const percentage = Number(item.value);
+    slices = validData
+      .map((item, index) => {
+        const percentage = Number(item.value);
 
-      // Defensive checks for all calculations
-      if (!isFinite(percentage) || isNaN(percentage) || percentage <= 0) {
-        return null;
-      }
+        // Defensive checks for all calculations
+        if (!isFinite(percentage) || isNaN(percentage) || percentage <= 0) {
+          return null;
+        }
 
-      const startAngle = (cumulativePercentage / 100) * 360;
-      const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
+        const startAngle = (cumulativePercentage / 100) * 360;
+        const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
 
-      cumulativePercentage += percentage;
+        cumulativePercentage += percentage;
 
-      const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
-      const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
+        const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
+        const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
 
-      // Calculate arc path with defensive checks
-      const cosStart = Math.cos(startAngleRad);
-      const sinStart = Math.sin(startAngleRad);
-      const cosEnd = Math.cos(endAngleRad);
-      const sinEnd = Math.sin(endAngleRad);
+        // Calculate arc path with defensive checks
+        const cosStart = Math.cos(startAngleRad);
+        const sinStart = Math.sin(startAngleRad);
+        const cosEnd = Math.cos(endAngleRad);
+        const sinEnd = Math.sin(endAngleRad);
 
-      if (!isFinite(cosStart) || !isFinite(sinStart) || !isFinite(cosEnd) || !isFinite(sinEnd)) {
-        return null;
-      }
+        if (
+          !isFinite(cosStart) ||
+          !isFinite(sinStart) ||
+          !isFinite(cosEnd) ||
+          !isFinite(sinEnd)
+        ) {
+          return null;
+        }
 
-      const x1 = centerX + radius * cosStart;
-      const y1 = centerY + radius * sinStart;
-      const x2 = centerX + radius * cosEnd;
-      const y2 = centerY + radius * sinEnd;
+        const x1 = centerX + radius * cosStart;
+        const y1 = centerY + radius * sinStart;
+        const x2 = centerX + radius * cosEnd;
+        const y2 = centerY + radius * sinEnd;
 
-      // Final validation of coordinates
-      if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
-        return null;
-      }
+        // Final validation of coordinates
+        if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) {
+          return null;
+        }
 
-      const largeArcFlag = percentage > 50 ? 1 : 0;
+        const largeArcFlag = percentage > 50 ? 1 : 0;
 
-      const pathData = [
-        `M ${centerX} ${centerY}`,
-        `L ${x1} ${y1}`,
-        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-        'Z'
-      ].join(' ');
+        const pathData = [
+          `M ${centerX} ${centerY}`,
+          `L ${x1} ${y1}`,
+          `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+          "Z",
+        ].join(" ");
 
-      return (
+        return (
           <Path
-              key={index}
-              d={pathData}
-              fill={item.color}
-              stroke={colors.background}
-              strokeWidth={2}
+            key={index}
+            d={pathData}
+            fill={item.color}
+            stroke={colors.background}
+            strokeWidth={2}
           />
-      );
-    }).filter(Boolean);
+        );
+      })
+      .filter(Boolean);
   }
 
   return (
@@ -291,49 +326,51 @@ interface PieChartData {
   color: string;
 }
 
-
 const investmentTypes = [
-  { id: 'stock', name: 'Stock', icon: '📈' },
-  { id: 'bond', name: 'Bond', icon: '🏛️' },
-  { id: 'crypto', name: 'Cryptocurrency', icon: '₿' },
-  { id: 'etf', name: 'ETF', icon: '📊' },
-  { id: 'mutual_fund', name: 'Mutual Fund', icon: '🏦' },
-  { id: 'real_estate', name: 'Real Estate', icon: '🏠' },
-  { id: 'commodity', name: 'Commodity', icon: '🥇' },
-  { id: 'checkingAccount', name: 'Checking Account', icon: '💳' },
-  { id: 'savingsAccount', name: 'Savings Account', icon: '💰' },
-  { id: 'other', name: 'Other', icon: '📦' },
+  { id: "stock", name: "Stock", icon: "📈" },
+  { id: "bond", name: "Bond", icon: "🏛️" },
+  { id: "crypto", name: "Cryptocurrency", icon: "₿" },
+  { id: "etf", name: "ETF", icon: "📊" },
+  { id: "mutual_fund", name: "Mutual Fund", icon: "🏦" },
+  { id: "real_estate", name: "Real Estate", icon: "🏠" },
+  { id: "commodity", name: "Commodity", icon: "🥇" },
+  { id: "checkingAccount", name: "Checking Account", icon: "💳" },
+  { id: "savingsAccount", name: "Savings Account", icon: "💰" },
+  { id: "other", name: "Other", icon: "📦" },
 ];
-
 
 export default function InvestmentStatisticsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme || 'light'];
+  const colors = Colors[colorScheme || "light"];
   const { userProfile } = useProfile();
   const { t } = useLocalization();
   const { portfolioId } = useLocalSearchParams<{ portfolioId?: string }>();
   const { portfolios } = useInvestment();
 
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | null>(portfolioId || null);
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | null>(
+    portfolioId || null,
+  );
   const [portfolioModalVisible, setPortfolioModalVisible] = useState(false);
 
   // Get available portfolios
   const availablePortfolios = useMemo(() => {
-    return portfolios.filter(p => p.membership_status === 'confirmed');
+    return portfolios.filter((p) => p.membership_status === "confirmed");
   }, [portfolios]);
 
   // Get selected portfolio or all portfolios data
   const selectedPortfolio = useMemo(() => {
     if (selectedPortfolioId) {
-      return portfolios.find(p => p.id === selectedPortfolioId);
+      return portfolios.find((p) => p.id === selectedPortfolioId);
     }
     return null;
   }, [portfolios, selectedPortfolioId]);
 
   const renderBackAction = () => (
     <TopNavigationAction
-      icon={(props) => <Ionicons name="chevron-back" size={24} color={colors.text} />}
+      icon={(props) => (
+        <Ionicons name="chevron-back" size={24} color={colors.text} />
+      )}
       onPress={() => router.back()}
     />
   );
@@ -351,7 +388,7 @@ export default function InvestmentStatisticsScreen() {
     } else {
       // Aggregate all investments from all portfolios
       investments = portfolios.reduce((acc, portfolio) => {
-        if (portfolio.membership_status === 'confirmed') {
+        if (portfolio.membership_status === "confirmed") {
           return [...acc, ...(portfolio.investments || [])];
         }
         return acc;
@@ -363,8 +400,16 @@ export default function InvestmentStatisticsScreen() {
 
   // Define colors for consistency across pie chart and legend
   const typeColors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#96CEB4",
+    "#FFEAA7",
+    "#DDA0DD",
+    "#98D8C8",
+    "#F7DC6F",
+    "#BB8FCE",
+    "#85C1E9",
   ];
 
   // Create pie chart data for investment types
@@ -375,16 +420,19 @@ export default function InvestmentStatisticsScreen() {
 
     return Object.entries(investmentStats.typeBreakdown)
       .map(([type, data], index) => {
-        const percentage = investmentStats.totalValue > 0 ? (data.value / investmentStats.totalValue) * 100 : 0;
-        const typeInfo = investmentTypes.find(t => t.id === type);
+        const percentage =
+          investmentStats.totalValue > 0
+            ? (data.value / investmentStats.totalValue) * 100
+            : 0;
+        const typeInfo = investmentTypes.find((t) => t.id === type);
 
         return {
-          label: `${typeInfo?.icon || '📦'} ${typeInfo?.name || type}`,
+          label: `${typeInfo?.icon || "📦"} ${typeInfo?.name || type}`,
           value: percentage,
-          color: typeColors[index % typeColors.length]
+          color: typeColors[index % typeColors.length],
         };
       })
-      .filter(item => item.value > 0)
+      .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
   }, [investmentStats]);
 
@@ -397,12 +445,18 @@ export default function InvestmentStatisticsScreen() {
     return generateProjectionData(
       investmentStats.totalValue,
       investmentStats.estimatedYearlyGainLossPercentage / 100,
-      10
+      10,
     );
   }, [investmentStats]);
 
   const getProgressWidth = (amount: number, maxAmount: number) => {
-    if (!isFinite(amount) || !isFinite(maxAmount) || maxAmount === 0 || isNaN(amount) || isNaN(maxAmount)) {
+    if (
+      !isFinite(amount) ||
+      !isFinite(maxAmount) ||
+      maxAmount === 0 ||
+      isNaN(amount) ||
+      isNaN(maxAmount)
+    ) {
       return 0;
     }
     const percentage = (amount / maxAmount) * 100;
@@ -412,14 +466,21 @@ export default function InvestmentStatisticsScreen() {
     return Math.min(percentage, 100);
   };
 
-  const maxTypeValue = Object.values(investmentStats.typeBreakdown || {}).length > 0
-    ? Math.max(...Object.values(investmentStats.typeBreakdown).map(t => isFinite(t.value) ? t.value : 0))
-    : 0;
+  const maxTypeValue =
+    Object.values(investmentStats.typeBreakdown || {}).length > 0
+      ? Math.max(
+          ...Object.values(investmentStats.typeBreakdown).map((t) =>
+            isFinite(t.value) ? t.value : 0,
+          ),
+        )
+      : 0;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <TopNavigation
-        title={t('investmentStatistics.title')}
+        title={t("investmentStatistics.title")}
         alignment="center"
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
@@ -430,11 +491,16 @@ export default function InvestmentStatisticsScreen() {
         {availablePortfolios.length > 1 && (
           <View style={styles.filterSection}>
             <TouchableOpacity
-              style={[styles.filterButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.filterButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
               onPress={() => setPortfolioModalVisible(true)}
             >
               <Text style={[styles.filterButtonText, { color: colors.text }]}>
-                {selectedPortfolio ? selectedPortfolio.data?.name : t('investmentStatistics.allPortfolios')}
+                {selectedPortfolio
+                  ? selectedPortfolio.data?.name
+                  : t("investmentStatistics.allPortfolios")}
               </Text>
               <Ionicons name="chevron-down" size={16} color={colors.icon} />
             </TouchableOpacity>
@@ -443,138 +509,337 @@ export default function InvestmentStatisticsScreen() {
 
         {/* Section 1: Overview - 4 Key Metrics */}
         <View style={styles.summarySection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Overview</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Overview
+          </Text>
 
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                {formatCurrency(investmentStats.totalInvested, userProfile?.profile.defaultCurrency)}
+                {formatCurrency(
+                  investmentStats.totalInvested,
+                  userProfile?.profile.defaultCurrency,
+                )}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Invested Value</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>
+                Invested Value
+              </Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                {formatCurrency(investmentStats.totalValue, userProfile?.profile.defaultCurrency)}
+                {formatCurrency(
+                  investmentStats.totalValue,
+                  userProfile?.profile.defaultCurrency,
+                )}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Current Value</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>
+                Current Value
+              </Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statValue, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalGainLoss, userProfile?.profile.defaultCurrency)}
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color:
+                      investmentStats.totalGainLoss >= 0
+                        ? colors.success
+                        : colors.error,
+                  },
+                ]}
+              >
+                {investmentStats.totalGainLoss >= 0 ? "+" : ""}
+                {formatCurrency(
+                  investmentStats.totalGainLoss,
+                  userProfile?.profile.defaultCurrency,
+                )}
               </Text>
-              <Text style={[styles.statPercentage, { color: investmentStats.totalGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.totalGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.totalGainLossPercentage) ? investmentStats.totalGainLossPercentage.toFixed(2) : '0.00'}%
+              <Text
+                style={[
+                  styles.statPercentage,
+                  {
+                    color:
+                      investmentStats.totalGainLoss >= 0
+                        ? colors.success
+                        : colors.error,
+                  },
+                ]}
+              >
+                {investmentStats.totalGainLoss >= 0 ? "+" : ""}
+                {isFinite(investmentStats.totalGainLossPercentage)
+                  ? investmentStats.totalGainLossPercentage.toFixed(2)
+                  : "0.00"}
+                %
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Total Return</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>
+                Total Return
+              </Text>
             </View>
 
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statValue, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.estimatedYearlyGainLoss, userProfile?.profile?.defaultCurrency)}
+              <Text
+                style={[
+                  styles.statValue,
+                  {
+                    color:
+                      investmentStats.estimatedYearlyGainLoss >= 0
+                        ? colors.success
+                        : colors.error,
+                  },
+                ]}
+              >
+                {investmentStats.estimatedYearlyGainLoss >= 0 ? "+" : ""}
+                {formatCurrency(
+                  investmentStats.estimatedYearlyGainLoss,
+                  userProfile?.profile?.defaultCurrency,
+                )}
               </Text>
-              <Text style={[styles.statPercentage, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.estimatedYearlyGainLossPercentage) ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
+              <Text
+                style={[
+                  styles.statPercentage,
+                  {
+                    color:
+                      investmentStats.estimatedYearlyGainLoss >= 0
+                        ? colors.success
+                        : colors.error,
+                  },
+                ]}
+              >
+                {investmentStats.estimatedYearlyGainLoss >= 0 ? "+" : ""}
+                {isFinite(investmentStats.estimatedYearlyGainLossPercentage)
+                  ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(2)
+                  : "0.00"}
+                %
               </Text>
-              <Text style={[styles.statLabel, { color: colors.icon }]}>Estimated Yearly Return</Text>
+              <Text style={[styles.statLabel, { color: colors.icon }]}>
+                Estimated Yearly Return
+              </Text>
             </View>
           </View>
         </View>
 
         {/* Section 2: 10-Year Projection */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>10-Year Projection</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            10-Year Projection
+          </Text>
 
-          <View style={[styles.projectionCard, { backgroundColor: colors.card }]}>
+          <View
+            style={[styles.projectionCard, { backgroundColor: colors.card }]}
+          >
             <View style={styles.projectionHeader}>
               <Text style={[styles.projectionValue, { color: colors.primary }]}>
-                {formatCurrency(investmentStats.projectedValue10Years, userProfile?.profile.defaultCurrency)}
+                {formatCurrency(
+                  investmentStats.projectedValue10Years,
+                  userProfile?.profile.defaultCurrency,
+                )}
               </Text>
               <Text style={[styles.projectionLabel, { color: colors.icon }]}>
-                {t('investmentStatistics.projectedValueTenYears')}
+                {t("investmentStatistics.projectedValueTenYears")}
               </Text>
             </View>
 
             {projectionLineData.length > 0 && (
-                <View style={styles.projectionChartSection}>
-                  <CustomLineChart
-                      data={projectionLineData}
-                      size={{ width: width - 80, height: 200 }}
-                      colors={colors}
-                  />
+              <View style={styles.projectionChartSection}>
+                <CustomLineChart
+                  data={projectionLineData}
+                  size={{ width: width - 80, height: 200 }}
+                  colors={colors}
+                />
 
-                  <View style={styles.projectionStats}>
-                    <View style={styles.projectionStatItem}>
-                      <Text style={[styles.projectionStatValue, { color: colors.success }]}>
-                        {formatCurrency(projectionLineData[0]?.value || 0, userProfile?.profile.defaultCurrency)}
-                      </Text>
-                      <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                        {t('investmentStatistics.currentValue')}
-                      </Text>
-                    </View>
-                    <View style={styles.projectionStatItem}>
-                      <Text style={[styles.projectionStatValue, { color: colors.primary }]}>
-                        {formatCurrency(projectionLineData[projectionLineData.length - 1]?.value || 0, userProfile?.profile.defaultCurrency)}
-                      </Text>
-                      <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                        {t('investmentStatistics.projectedTenYears')}
-                      </Text>
-                    </View>
-                    <View style={styles.projectionStatItem}>
-                      <Text style={[styles.projectionStatValue, { color: colors.warning }]}>
-                        {formatCurrency((projectionLineData[projectionLineData.length - 1]?.value || 0) - (projectionLineData[0]?.value || 0), userProfile?.profile.defaultCurrency)}
-                      </Text>
-                      <Text style={[styles.projectionStatLabel, { color: colors.icon }]}>
-                        {t('investmentStatistics.potentialGains')}
-                      </Text>
-                    </View>
+                <View style={styles.projectionStats}>
+                  <View style={styles.projectionStatItem}>
+                    <Text
+                      style={[
+                        styles.projectionStatValue,
+                        { color: colors.success },
+                      ]}
+                    >
+                      {formatCurrency(
+                        projectionLineData[0]?.value || 0,
+                        userProfile?.profile.defaultCurrency,
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.projectionStatLabel,
+                        { color: colors.icon },
+                      ]}
+                    >
+                      {t("investmentStatistics.currentValue")}
+                    </Text>
+                  </View>
+                  <View style={styles.projectionStatItem}>
+                    <Text
+                      style={[
+                        styles.projectionStatValue,
+                        { color: colors.primary },
+                      ]}
+                    >
+                      {formatCurrency(
+                        projectionLineData[projectionLineData.length - 1]
+                          ?.value || 0,
+                        userProfile?.profile.defaultCurrency,
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.projectionStatLabel,
+                        { color: colors.icon },
+                      ]}
+                    >
+                      {t("investmentStatistics.projectedTenYears")}
+                    </Text>
+                  </View>
+                  <View style={styles.projectionStatItem}>
+                    <Text
+                      style={[
+                        styles.projectionStatValue,
+                        { color: colors.warning },
+                      ]}
+                    >
+                      {formatCurrency(
+                        (projectionLineData[projectionLineData.length - 1]
+                          ?.value || 0) - (projectionLineData[0]?.value || 0),
+                        userProfile?.profile.defaultCurrency,
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.projectionStatLabel,
+                        { color: colors.icon },
+                      ]}
+                    >
+                      {t("investmentStatistics.potentialGains")}
+                    </Text>
                   </View>
                 </View>
+              </View>
             )}
 
             <Text style={[styles.projectionDisclaimer, { color: colors.icon }]}>
-              {t('investmentStatistics.projectionDisclaimer')}
+              {t("investmentStatistics.projectionDisclaimer")}
             </Text>
           </View>
         </View>
 
         {/* Section 5: Advanced Metrics */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Earnings</Text>
-          <View style={[styles.advancedContainer, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Earnings
+          </Text>
+          <View
+            style={[styles.advancedContainer, { backgroundColor: colors.card }]}
+          >
             <View style={styles.advancedRow}>
-              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Yearly Estimated Return</Text>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>
+                Yearly Estimated Return
+              </Text>
               <View style={styles.advancedValueContainer}>
-                <Text style={[styles.advancedValue, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
-                  {investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{formatCurrency(investmentStats.estimatedYearlyGainLoss, userProfile?.profile?.defaultCurrency)}
+                <Text
+                  style={[
+                    styles.advancedValue,
+                    {
+                      color:
+                        investmentStats.estimatedYearlyGainLoss >= 0
+                          ? colors.success
+                          : colors.error,
+                    },
+                  ]}
+                >
+                  {investmentStats.estimatedYearlyGainLoss >= 0 ? "+" : ""}
+                  {formatCurrency(
+                    investmentStats.estimatedYearlyGainLoss,
+                    userProfile?.profile?.defaultCurrency,
+                  )}
                 </Text>
-                <Text style={[styles.statPercentage, { color: investmentStats.estimatedYearlyGainLoss >= 0 ? colors.success : colors.error }]}>
-                  ({investmentStats.estimatedYearlyGainLoss >= 0 ? '+' : ''}{isFinite(investmentStats.estimatedYearlyGainLossPercentage) ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%)
+                <Text
+                  style={[
+                    styles.statPercentage,
+                    {
+                      color:
+                        investmentStats.estimatedYearlyGainLoss >= 0
+                          ? colors.success
+                          : colors.error,
+                    },
+                  ]}
+                >
+                  ({investmentStats.estimatedYearlyGainLoss >= 0 ? "+" : ""}
+                  {isFinite(investmentStats.estimatedYearlyGainLossPercentage)
+                    ? investmentStats.estimatedYearlyGainLossPercentage.toFixed(
+                        2,
+                      )
+                    : "0.00"}
+                  %)
                 </Text>
               </View>
             </View>
 
             <View style={styles.advancedRow}>
-              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Est. Yearly Dividend/Interest</Text>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>
+                Est. Yearly Dividend/Interest
+              </Text>
               <View style={styles.advancedValueContainer}>
                 <Text style={[styles.advancedValue, { color: colors.success }]}>
-                  {formatCurrency(investmentStats.yearlyDividendInterest, userProfile?.profile?.defaultCurrency)}
+                  {formatCurrency(
+                    investmentStats.yearlyDividendInterest,
+                    userProfile?.profile?.defaultCurrency,
+                  )}
                 </Text>
-                <Text style={[styles.advancedPercentage, { color: colors.success }]}>
-                  ({isFinite(investmentStats.yearlyDividendInterestPercentage) ? investmentStats.yearlyDividendInterestPercentage.toFixed(2) : '0.00'}%)
+                <Text
+                  style={[styles.advancedPercentage, { color: colors.success }]}
+                >
+                  (
+                  {isFinite(investmentStats.yearlyDividendInterestPercentage)
+                    ? investmentStats.yearlyDividendInterestPercentage.toFixed(
+                        2,
+                      )
+                    : "0.00"}
+                  %)
                 </Text>
               </View>
             </View>
 
             <View style={styles.advancedRow}>
-              <Text style={[styles.advancedLabel, { color: colors.icon }]}>Est. Yearly Capital Gain</Text>
+              <Text style={[styles.advancedLabel, { color: colors.icon }]}>
+                Est. Yearly Capital Gain
+              </Text>
               <View style={styles.advancedValueContainer}>
-                <Text style={[styles.advancedValue, { color: investmentStats.yearlyCapitalGains >= 0 ? colors.success : colors.error }]}>
-                  {investmentStats.yearlyCapitalGains >= 0 ? '+' : ''}{formatCurrency(investmentStats.yearlyCapitalGains, userProfile?.profile?.defaultCurrency)}
+                <Text
+                  style={[
+                    styles.advancedValue,
+                    {
+                      color:
+                        investmentStats.yearlyCapitalGains >= 0
+                          ? colors.success
+                          : colors.error,
+                    },
+                  ]}
+                >
+                  {investmentStats.yearlyCapitalGains >= 0 ? "+" : ""}
+                  {formatCurrency(
+                    investmentStats.yearlyCapitalGains,
+                    userProfile?.profile?.defaultCurrency,
+                  )}
                 </Text>
-                <Text style={[styles.advancedPercentage, { color: investmentStats.yearlyCapitalGains >= 0 ? colors.success : colors.error }]}>
-                  ({isFinite(investmentStats.yearlyCapitalGainsPercentage) ? investmentStats.yearlyCapitalGainsPercentage.toFixed(2) : '0.00'}%)
+                <Text
+                  style={[
+                    styles.advancedPercentage,
+                    {
+                      color:
+                        investmentStats.yearlyCapitalGains >= 0
+                          ? colors.success
+                          : colors.error,
+                    },
+                  ]}
+                >
+                  (
+                  {isFinite(investmentStats.yearlyCapitalGainsPercentage)
+                    ? investmentStats.yearlyCapitalGainsPercentage.toFixed(2)
+                    : "0.00"}
+                  %)
                 </Text>
               </View>
             </View>
@@ -583,39 +848,49 @@ export default function InvestmentStatisticsScreen() {
 
         {/* Section 3: Investment Distribution */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Investment Distribution</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Investment Distribution
+          </Text>
 
           {typesPieData.length > 0 && (
             <View style={styles.pieChartSection}>
-              <CustomPieChart
-                data={typesPieData}
-                size={280}
-                colors={colors}
-              />
+              <CustomPieChart data={typesPieData} size={280} colors={colors} />
 
               {/* Custom Legend with Absolute Values */}
               <View style={styles.pieChartLegend}>
-                {Object.entries(investmentStats.typeBreakdown).map(([type, data], index) => {
-                  const typeInfo = investmentTypes.find(t => t.id === type);
-                  const percentage = investmentStats.totalValue > 0 ? (data.value / investmentStats.totalValue) * 100 : 0;
-                  const colorIndex = index % typeColors.length;
+                {Object.entries(investmentStats.typeBreakdown).map(
+                  ([type, data], index) => {
+                    const typeInfo = investmentTypes.find((t) => t.id === type);
+                    const percentage =
+                      investmentStats.totalValue > 0
+                        ? (data.value / investmentStats.totalValue) * 100
+                        : 0;
+                    const colorIndex = index % typeColors.length;
 
-                  if (percentage <= 0) return null;
+                    if (percentage <= 0) return null;
 
-                  return (
-                    <View key={type} style={styles.legendItem}>
-                      <View
-                        style={[
-                          styles.legendColorBox,
-                          { backgroundColor: typeColors[colorIndex] }
-                        ]}
-                      />
-                      <Text style={[styles.legendText, { color: colors.text }]}>
-                        {typeInfo?.icon || '📦'} {typeInfo?.name || type} {formatCurrency(data.value, userProfile?.profile.defaultCurrency)} ({percentage.toFixed(1)}%)
-                      </Text>
-                    </View>
-                  );
-                })}
+                    return (
+                      <View key={type} style={styles.legendItem}>
+                        <View
+                          style={[
+                            styles.legendColorBox,
+                            { backgroundColor: typeColors[colorIndex] },
+                          ]}
+                        />
+                        <Text
+                          style={[styles.legendText, { color: colors.text }]}
+                        >
+                          {typeInfo?.icon || "📦"} {typeInfo?.name || type}{" "}
+                          {formatCurrency(
+                            data.value,
+                            userProfile?.profile.defaultCurrency,
+                          )}{" "}
+                          ({percentage.toFixed(1)}%)
+                        </Text>
+                      </View>
+                    );
+                  },
+                )}
               </View>
             </View>
           )}
@@ -623,69 +898,138 @@ export default function InvestmentStatisticsScreen() {
 
         {/* Section 4: Distribution Breakdown */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Distribution Breakdown</Text>
-          <View style={[styles.typeContainer, { backgroundColor: colors.card }]}>
-          {Object.entries(investmentStats.typeBreakdown).map(([type, data]) => {
-              const typeInfo = investmentTypes.find(t => t.id === type);
-              const investedPercentage = investmentStats.totalInvested > 0 ? (data.investedValue || 0) / investmentStats.totalInvested * 100 : 0;
-              const estimatedEarning = data.estimatedYearlyGainLoss || 0;
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Distribution Breakdown
+          </Text>
+          <View
+            style={[styles.typeContainer, { backgroundColor: colors.card }]}
+          >
+            {Object.entries(investmentStats.typeBreakdown).map(
+              ([type, data]) => {
+                const typeInfo = investmentTypes.find((t) => t.id === type);
+                const investedPercentage =
+                  investmentStats.totalInvested > 0
+                    ? ((data.investedValue || 0) /
+                        investmentStats.totalInvested) *
+                      100
+                    : 0;
+                const estimatedEarning = data.estimatedYearlyGainLoss || 0;
 
-              return (
-                <View key={type} style={styles.typeItem}>
-                  <View style={styles.typeHeader}>
-                    <View style={styles.typeInfo}>
-                      <Text style={styles.typeIcon}>{typeInfo?.icon || '📦'}</Text>
-                      <Text style={[styles.typeName, { color: colors.text }]}>
-                        {typeInfo?.name || type}
-                      </Text>
+                return (
+                  <View key={type} style={styles.typeItem}>
+                    <View style={styles.typeHeader}>
+                      <View style={styles.typeInfo}>
+                        <Text style={styles.typeIcon}>
+                          {typeInfo?.icon || "📦"}
+                        </Text>
+                        <Text style={[styles.typeName, { color: colors.text }]}>
+                          {typeInfo?.name || type}
+                        </Text>
+                      </View>
+                      <View style={styles.typeAmounts}>
+                        <Text
+                          style={[styles.typeAmount, { color: colors.text }]}
+                        >
+                          {formatCurrency(
+                            data.value,
+                            userProfile?.profile.defaultCurrency,
+                          )}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.typePercentage,
+                            { color: colors.icon },
+                          ]}
+                        >
+                          {isFinite(investedPercentage)
+                            ? investedPercentage.toFixed(1)
+                            : "0.0"}
+                          %
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.typeAmounts}>
-                      <Text style={[styles.typeAmount, { color: colors.text }]}>
-                        {formatCurrency(data.value, userProfile?.profile.defaultCurrency)}
-                      </Text>
-                      <Text style={[styles.typePercentage, { color: colors.icon }]}>
-                        {isFinite(investedPercentage) ? investedPercentage.toFixed(1) : '0.0'}%
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={styles.typeProgress}>
-                    <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                    <View style={styles.typeProgress}>
                       <View
                         style={[
-                          styles.progressFill,
-                          {
-                            width: `${getProgressWidth(data.investedValue || 0, investmentStats.totalInvested)}%`,
-                            backgroundColor: colors.primary
-                          }
+                          styles.progressTrack,
+                          { backgroundColor: colors.border },
                         ]}
-                      />
+                      >
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${getProgressWidth(data.investedValue || 0, investmentStats.totalInvested)}%`,
+                              backgroundColor: colors.primary,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.typeCount, { color: colors.icon }]}>
+                        Est. earning: {estimatedEarning >= 0 ? "+" : ""}
+                        {formatCurrency(
+                          estimatedEarning,
+                          userProfile?.profile.defaultCurrency,
+                        )}{" "}
+                        •{" "}
+                        {data.estimatedYearlyGainLossPercentage >= 0 ? "+" : ""}
+                        {isFinite(data.estimatedYearlyGainLossPercentage)
+                          ? data.estimatedYearlyGainLossPercentage.toFixed(2)
+                          : "0.00"}
+                        %
+                      </Text>
                     </View>
-                    <Text style={[styles.typeCount, { color: colors.icon }]}>
-                      Est. earning: {estimatedEarning >= 0 ? '+' : ''}{formatCurrency(estimatedEarning, userProfile?.profile.defaultCurrency)} • {data.estimatedYearlyGainLossPercentage >= 0 ? '+' : ''}{isFinite(data.estimatedYearlyGainLossPercentage) ? data.estimatedYearlyGainLossPercentage.toFixed(2) : '0.00'}%
-                    </Text>
                   </View>
-                </View>
-              );
-            })}
+                );
+              },
+            )}
           </View>
         </View>
 
         {/* Section 6: Performance Metrics */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance Metrics</Text>
-          <View style={[styles.performanceContainer, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Performance Metrics
+          </Text>
+          <View
+            style={[
+              styles.performanceContainer,
+              { backgroundColor: colors.card },
+            ]}
+          >
             <View style={styles.performanceRow}>
-              <Text style={[styles.performanceLabel, { color: colors.icon }]}>Annualized Return (CAGR)</Text>
-              <Text style={[styles.performanceValue, { color: investmentStats.cagr >= 0 ? colors.success : colors.error }]}>
-                {investmentStats.cagr >= 0 ? '+' : ''}{isFinite(investmentStats.cagr) ? (investmentStats.cagr * 100).toFixed(2) : '0.00'}%
+              <Text style={[styles.performanceLabel, { color: colors.icon }]}>
+                Annualized Return (CAGR)
+              </Text>
+              <Text
+                style={[
+                  styles.performanceValue,
+                  {
+                    color:
+                      investmentStats.cagr >= 0 ? colors.success : colors.error,
+                  },
+                ]}
+              >
+                {investmentStats.cagr >= 0 ? "+" : ""}
+                {isFinite(investmentStats.cagr)
+                  ? (investmentStats.cagr * 100).toFixed(2)
+                  : "0.00"}
+                %
               </Text>
             </View>
 
             <View style={styles.performanceRow}>
-              <Text style={[styles.performanceLabel, { color: colors.icon }]}>Estimated Tax Rate</Text>
-              <Text style={[styles.performanceValue, { color: colors.warning }]}>
-                {isFinite(investmentStats.estimatedTaxRate) ? investmentStats.estimatedTaxRate.toFixed(2) : '0.00'}%
+              <Text style={[styles.performanceLabel, { color: colors.icon }]}>
+                Estimated Tax Rate
+              </Text>
+              <Text
+                style={[styles.performanceValue, { color: colors.warning }]}
+              >
+                {isFinite(investmentStats.estimatedTaxRate)
+                  ? investmentStats.estimatedTaxRate.toFixed(2)
+                  : "0.00"}
+                %
               </Text>
             </View>
           </View>
@@ -701,38 +1045,59 @@ export default function InvestmentStatisticsScreen() {
         onBackdropPress={() => setPortfolioModalVisible(false)}
       >
         <Card disabled={true} style={styles.modalCard}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>{t('investmentStatistics.selectPortfolio')}</Text>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>
+            {t("investmentStatistics.selectPortfolio")}
+          </Text>
 
           <View style={styles.portfolioOptions}>
             <TouchableOpacity
               style={[
                 styles.portfolioOption,
-                { backgroundColor: colors.background, borderColor: colors.border },
-                !selectedPortfolioId && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+                !selectedPortfolioId && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primary + "20",
+                },
               ]}
               onPress={() => {
                 setSelectedPortfolioId(null);
                 setPortfolioModalVisible(false);
               }}
             >
-              <Text style={[styles.portfolioOptionText, { color: colors.text }]}>{t('investmentStatistics.allPortfolios')}</Text>
+              <Text
+                style={[styles.portfolioOptionText, { color: colors.text }]}
+              >
+                {t("investmentStatistics.allPortfolios")}
+              </Text>
             </TouchableOpacity>
 
-            {availablePortfolios.map(portfolio => (
+            {availablePortfolios.map((portfolio) => (
               <TouchableOpacity
                 key={portfolio.id}
                 style={[
                   styles.portfolioOption,
-                  { backgroundColor: colors.background, borderColor: colors.border },
-                  selectedPortfolioId === portfolio.id && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                  selectedPortfolioId === portfolio.id && {
+                    borderColor: colors.primary,
+                    backgroundColor: colors.primary + "20",
+                  },
                 ]}
                 onPress={() => {
                   setSelectedPortfolioId(portfolio.id);
                   setPortfolioModalVisible(false);
                 }}
               >
-                <Text style={[styles.portfolioOptionText, { color: colors.text }]}>
-                  {portfolio.data?.name || t('investmentStatistics.unnamedPortfolio')}
+                <Text
+                  style={[styles.portfolioOptionText, { color: colors.text }]}
+                >
+                  {portfolio.data?.name ||
+                    t("investmentStatistics.unnamedPortfolio")}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -744,7 +1109,7 @@ export default function InvestmentStatisticsScreen() {
               appearance="outline"
               onPress={() => setPortfolioModalVisible(false)}
             >
-              {t('investmentStatistics.cancel')}
+              {t("investmentStatistics.cancel")}
             </Button>
           </Layout>
         </Card>
@@ -765,9 +1130,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -775,7 +1140,7 @@ const styles = StyleSheet.create({
   },
   filterButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   summarySection: {
     marginBottom: 32,
@@ -785,51 +1150,51 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 16,
   },
   statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
   },
   statCard: {
     width: (width - 52) / 2,
     padding: 16,
     borderRadius: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 2,
   },
   statPercentage: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   pieChartSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
     paddingHorizontal: 5,
   },
   pieChartLegend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     marginTop: 16,
     paddingHorizontal: 10,
     gap: 8,
   },
   legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -842,53 +1207,53 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   projectionCard: {
     borderRadius: 16,
     padding: 20,
   },
   projectionHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   projectionValue: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
   },
   projectionLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   projectionChartSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   projectionStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 16,
     paddingHorizontal: 10,
   },
   projectionStatItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   projectionStatValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
   },
   projectionStatLabel: {
     fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   projectionDisclaimer: {
     fontSize: 12,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
   },
   typeContainer: {
     borderRadius: 16,
@@ -898,14 +1263,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   typeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   typeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   typeIcon: {
@@ -914,23 +1279,23 @@ const styles = StyleSheet.create({
   },
   typeName: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     flex: 1,
   },
   typeAmounts: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   typeAmount: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   typePercentage: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   typeProgress: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   progressTrack: {
@@ -939,17 +1304,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 2,
   },
   typeCount: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: "500",
     minWidth: 120,
-    textAlign: 'right',
+    textAlign: "right",
   },
   backdrop: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalCard: {
     minWidth: 320,
@@ -958,9 +1323,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   portfolioOptions: {
     gap: 12,
@@ -974,12 +1339,12 @@ const styles = StyleSheet.create({
   },
   portfolioOptionText: {
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 12,
   },
   modalButton: {
@@ -991,45 +1356,45 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   advancedRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   advancedLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     flex: 1,
   },
   advancedValueContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   advancedValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 2,
   },
   advancedPercentage: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   performanceContainer: {
     borderRadius: 16,
     padding: 16,
   },
   performanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   performanceLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     flex: 1,
   },
   performanceValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

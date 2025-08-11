@@ -1,54 +1,64 @@
-import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { TopNavigation, Text } from '@ui-kitten/components';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
-import { useGuides } from '@/context/GuideContext';
-import { useLocalization } from '@/context/LocalizationContext';
-import { Guide } from '@/client/piggusApi';
-import ProfileHeader from '@/components/ProfileHeader';
-
+import React from "react";
+import {
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { TopNavigation, Text } from "@ui-kitten/components";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Colors } from "@/constants/Colors";
+import { useGuides } from "@/context/GuideContext";
+import { useLocalization } from "@/context/LocalizationContext";
+import { Guide } from "@/client/piggusApi";
+import ProfileHeader from "@/components/ProfileHeader";
 
 export default function GuidesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
   const { guides, loading, error } = useGuides();
 
   const handleGuidePress = (guide: Guide) => {
     router.push({
-      pathname: '/(protected)/guide-detail',
+      pathname: "/(protected)/guide-detail",
       params: {
         id: guide.id,
         title: guide.title,
-        content: guide.content
-      }
+        content: guide.content,
+      },
     });
   };
 
   const getDifficultyLabel = (level: number) => {
     switch (level) {
       case 0:
-        return t('guides.beginner');
+        return t("guides.beginner");
       case 1:
-        return t('guides.intermediate');
+        return t("guides.intermediate");
       case 2:
-        return t('guides.advanced');
+        return t("guides.advanced");
       default:
-        return t('guides.missing');
+        return t("guides.missing");
     }
   };
 
   const organizeGuidesByDifficulty = () => {
     const organized = {
-      beginner: guides.filter(guide => guide.difficulty_level === 0),
-      intermediate: guides.filter(guide => guide.difficulty_level === 1),
-      advanced: guides.filter(guide => guide.difficulty_level === 2),
-      missing: guides.filter(guide => guide.difficulty_level === -1 || guide.difficulty_level === undefined || guide.difficulty_level === null)
+      beginner: guides.filter((guide) => guide.difficulty_level === 0),
+      intermediate: guides.filter((guide) => guide.difficulty_level === 1),
+      advanced: guides.filter((guide) => guide.difficulty_level === 2),
+      missing: guides.filter(
+        (guide) =>
+          guide.difficulty_level === -1 ||
+          guide.difficulty_level === undefined ||
+          guide.difficulty_level === null,
+      ),
     };
     return organized;
   };
@@ -56,10 +66,15 @@ export default function GuidesScreen() {
   const renderGuideItem = (guide: Guide) => (
     <TouchableOpacity
       key={guide.id}
-      style={[styles.guideItem, { backgroundColor: colors.card, shadowColor: colors.text }]}
+      style={[
+        styles.guideItem,
+        { backgroundColor: colors.card, shadowColor: colors.text },
+      ]}
       onPress={() => handleGuidePress(guide)}
     >
-      <View style={[styles.guideIcon, { backgroundColor: colors.primary + '20' }]}>
+      <View
+        style={[styles.guideIcon, { backgroundColor: colors.primary + "20" }]}
+      >
         <Ionicons name={guide.icon} size={24} color={colors.primary} />
       </View>
       <View style={styles.guideContent}>
@@ -81,7 +96,7 @@ export default function GuidesScreen() {
 
   const renderDifficultySection = (title: string, guidesList: Guide[]) => {
     if (guidesList.length === 0) return null;
-    
+
     return (
       <View style={styles.difficultySection}>
         <Text style={[styles.difficultyTitle, { color: colors.text }]}>
@@ -94,29 +109,26 @@ export default function GuidesScreen() {
     );
   };
 
-  const renderLeftActions = () => (
-    <ProfileHeader />
-  );
+  const renderLeftActions = () => <ProfileHeader />;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <TopNavigation
-        title={t('guides.title')}
-        alignment='center'
+        title={t("guides.title")}
+        alignment="center"
         accessoryLeft={renderLeftActions}
         style={{ backgroundColor: colors.background }}
       />
 
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {t('guides.learnAndGrow')}
+            {t("guides.learnAndGrow")}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.icon }]}>
-            {t('guides.masterYourFinances')}
+            {t("guides.masterYourFinances")}
           </Text>
         </View>
 
@@ -124,7 +136,7 @@ export default function GuidesScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
-              {t('guides.loadingGuides')}
+              {t("guides.loadingGuides")}
             </Text>
           </View>
         ) : error ? (
@@ -135,19 +147,39 @@ export default function GuidesScreen() {
           </View>
         ) : (
           <View>
-            <View style={[styles.disclaimer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.disclaimer,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
               <Text style={[styles.disclaimerText, { color: colors.icon }]}>
-                This content is for educational purposes only and does not constitute financial, investment, or legal advice. Consult with qualified professionals before making financial decisions. All investments carry risk of loss.
+                This content is for educational purposes only and does not
+                constitute financial, investment, or legal advice. Consult with
+                qualified professionals before making financial decisions. All
+                investments carry risk of loss.
               </Text>
             </View>
             {(() => {
               const organizedGuides = organizeGuidesByDifficulty();
               return (
                 <>
-                  {renderDifficultySection(t('guides.beginner'), organizedGuides.beginner)}
-                  {renderDifficultySection(t('guides.intermediate'), organizedGuides.intermediate)}
-                  {renderDifficultySection(t('guides.advanced'), organizedGuides.advanced)}
-                  {renderDifficultySection(t('guides.missing'), organizedGuides.missing)}
+                  {renderDifficultySection(
+                    t("guides.beginner"),
+                    organizedGuides.beginner,
+                  )}
+                  {renderDifficultySection(
+                    t("guides.intermediate"),
+                    organizedGuides.intermediate,
+                  )}
+                  {renderDifficultySection(
+                    t("guides.advanced"),
+                    organizedGuides.advanced,
+                  )}
+                  {renderDifficultySection(
+                    t("guides.missing"),
+                    organizedGuides.missing,
+                  )}
                 </>
               );
             })()}
@@ -173,12 +205,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   guidesContainer: {
     gap: 16,
@@ -188,12 +220,12 @@ const styles = StyleSheet.create({
   },
   difficultyTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 16,
     paddingLeft: 4,
   },
   guideItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 20,
     borderRadius: 16,
     shadowOffset: { width: 0, height: 2 },
@@ -205,27 +237,27 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   guideContent: {
     flex: 1,
   },
   guideHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   guideCategory: {
     fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
   guideTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   guideSubtitle: {
@@ -234,25 +266,25 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 40,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 40,
   },
   errorText: {
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   disclaimer: {
     padding: 16,
@@ -263,7 +295,7 @@ const styles = StyleSheet.create({
   disclaimerText: {
     fontSize: 13,
     lineHeight: 18,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });

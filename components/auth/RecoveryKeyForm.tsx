@@ -2,7 +2,7 @@
  * RecoveryKeyForm.tsx
  * Component for displaying and handling recovery key generation during first login
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,17 +13,17 @@ import {
   Alert,
   Share,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
-import { useLocalization } from '@/context/LocalizationContext';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import {
   generateRecoveryKeyPackage,
-  formatRecoveryPhraseForExport
-} from '@/lib/recoveryKey';
+  formatRecoveryPhraseForExport,
+} from "@/lib/recoveryKey";
 import Clipboard from "@react-native-clipboard/clipboard";
 
 interface RecoveryKeyFormProps {
@@ -32,15 +32,21 @@ interface RecoveryKeyFormProps {
   onSkip?: () => void;
 }
 
-export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: RecoveryKeyFormProps) {
+export default function RecoveryKeyForm({
+  privateKey,
+  onComplete,
+  onSkip,
+}: RecoveryKeyFormProps) {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [recoveryPhrase, setRecoveryPhrase] = useState<string[]>([]);
-  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState<string>('');
-  const [step, setStep] = useState<'generating' | 'display' | 'confirm'>('generating');
+  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState<string>("");
+  const [step, setStep] = useState<"generating" | "display" | "confirm">(
+    "generating",
+  );
   const [isDownloading, setIsDownloading] = useState(false);
   const [hasAcknowledged, setHasAcknowledged] = useState(false);
 
@@ -55,13 +61,14 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
 
       setRecoveryPhrase(recoveryData.recoveryPhrase);
       setEncryptedPrivateKey(recoveryData.encryptedPrivateKey);
-      setStep('display');
+      setStep("display");
     } catch (error) {
-      console.error('Error generating recovery key:', error);
+      console.error("Error generating recovery key:", error);
       Alert.alert(
-        t('auth.recoveryKeyError') || 'Recovery Key Error',
-        t('auth.recoveryKeyGenerationFailed') || 'Failed to generate recovery key. Please try again.',
-        [{ text: t('common.ok') || 'OK', onPress: () => onSkip?.() }]
+        t("auth.recoveryKeyError") || "Recovery Key Error",
+        t("auth.recoveryKeyGenerationFailed") ||
+          "Failed to generate recovery key. Please try again.",
+        [{ text: t("common.ok") || "OK", onPress: () => onSkip?.() }],
       );
     } finally {
       setIsGenerating(false);
@@ -73,11 +80,11 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
       setIsDownloading(true);
       const content = formatRecoveryPhraseForExport(recoveryPhrase);
 
-      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      if (Platform.OS === "ios" || Platform.OS === "android") {
         // For mobile, use the Share API
         await Share.share({
           message: content,
-          title: 'Piggus Recovery Phrase',
+          title: "Piggus Recovery Phrase",
         });
       } else {
         // For other platforms, create a file and share it
@@ -90,16 +97,17 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
           await Sharing.shareAsync(fileUri);
         } else {
           Alert.alert(
-            t('auth.downloadUnavailable') || 'Download Unavailable',
-            t('auth.downloadUnavailableMessage') || 'File sharing is not available on this device.'
+            t("auth.downloadUnavailable") || "Download Unavailable",
+            t("auth.downloadUnavailableMessage") ||
+              "File sharing is not available on this device.",
           );
         }
       }
     } catch (error) {
-      console.error('Error downloading recovery phrase:', error);
+      console.error("Error downloading recovery phrase:", error);
       Alert.alert(
-        t('auth.downloadError') || 'Download Error',
-        t('auth.downloadErrorMessage') || 'Failed to download recovery phrase.'
+        t("auth.downloadError") || "Download Error",
+        t("auth.downloadErrorMessage") || "Failed to download recovery phrase.",
       );
     } finally {
       setIsDownloading(false);
@@ -108,18 +116,19 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
 
   const handleCopyToClipboard = async () => {
     try {
-      const content = recoveryPhrase.join(' ');
+      const content = recoveryPhrase.join(" ");
       Clipboard.setString(content);
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
+      console.error("Error copying to clipboard:", error);
     }
   };
 
   const handleDone = () => {
     if (!hasAcknowledged) {
       Alert.alert(
-        t('auth.acknowledgmentRequired') || 'Acknowledgment Required',
-        t('auth.mustAcknowledgeRecoveryKey') || 'Please acknowledge that you have saved your recovery key before continuing.'
+        t("auth.acknowledgmentRequired") || "Acknowledgment Required",
+        t("auth.mustAcknowledgeRecoveryKey") ||
+          "Please acknowledge that you have saved your recovery key before continuing.",
       );
       return;
     }
@@ -131,48 +140,91 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
     <View style={styles.centerContent}>
       <ActivityIndicator size="large" color={colors.primary} />
       <Text style={[styles.loadingText, { color: colors.text }]}>
-        {t('auth.generatingRecoveryKey') || 'Generating your recovery key...'}
+        {t("auth.generatingRecoveryKey") || "Generating your recovery key..."}
       </Text>
       <Text style={[styles.loadingSubtext, { color: colors.icon }]}>
-        {t('auth.generatingRecoveryKeySubtext') || 'This may take a few moments'}
+        {t("auth.generatingRecoveryKeySubtext") ||
+          "This may take a few moments"}
       </Text>
     </View>
   );
 
   const renderDisplayState = () => (
-    <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: colors.primary + "20" },
+            ]}
+          >
+            <Ionicons
+              name="shield-checkmark"
+              size={32}
+              color={colors.primary}
+            />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>
-            {t('auth.recoveryKeyTitle') || 'Your Recovery Key'}
+            {t("auth.recoveryKeyTitle") || "Your Recovery Key"}
           </Text>
           <Text style={[styles.subtitle, { color: colors.icon }]}>
-            {t('auth.recoveryKeySubtitle') || 'Save this recovery key to restore your account if you forget your password'}
+            {t("auth.recoveryKeySubtitle") ||
+              "Save this recovery key to restore your account if you forget your password"}
           </Text>
         </View>
 
         {/* Warning Alert */}
-        <View style={[styles.warningAlert, { backgroundColor: '#fef3cd', borderColor: '#ffeaa7' }]}>
-          <Ionicons name="warning" size={20} color="#e17055" style={styles.warningIcon} />
-          <Text style={[styles.warningText, { color: '#2d3436' }]}>
-            {t('auth.recoveryKeyWarning') || 'This is the ONLY way to recover your account. Store it safely and never share it with anyone.'}
+        <View
+          style={[
+            styles.warningAlert,
+            { backgroundColor: "#fef3cd", borderColor: "#ffeaa7" },
+          ]}
+        >
+          <Ionicons
+            name="warning"
+            size={20}
+            color="#e17055"
+            style={styles.warningIcon}
+          />
+          <Text style={[styles.warningText, { color: "#2d3436" }]}>
+            {t("auth.recoveryKeyWarning") ||
+              "This is the ONLY way to recover your account. Store it safely and never share it with anyone."}
           </Text>
         </View>
 
         {/* Recovery Phrase Display */}
-        <View style={[styles.phraseContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.phraseContainer,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <Text style={[styles.phraseTitle, { color: colors.text }]}>
-            {t('auth.recoveryPhrase') || 'Recovery Phrase'}
+            {t("auth.recoveryPhrase") || "Recovery Phrase"}
           </Text>
           <View style={styles.phraseGrid}>
             {recoveryPhrase.map((word, index) => (
-              <View key={index} style={[styles.wordContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.wordNumber, { color: colors.icon }]}>{index + 1}</Text>
-                <Text style={[styles.wordText, { color: colors.text }]}>{word}</Text>
+              <View
+                key={index}
+                style={[
+                  styles.wordContainer,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.wordNumber, { color: colors.icon }]}>
+                  {index + 1}
+                </Text>
+                <Text style={[styles.wordText, { color: colors.text }]}>
+                  {word}
+                </Text>
               </View>
             ))}
           </View>
@@ -181,51 +233,76 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
             onPress={handleDownload}
             disabled={isDownloading}
           >
             {isDownloading ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Ionicons name="download-outline" size={20} color={colors.primary} />
+              <Ionicons
+                name="download-outline"
+                size={20}
+                color={colors.primary}
+              />
             )}
             <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-              {t('auth.downloadRecoveryKey') || 'Download'}
+              {t("auth.downloadRecoveryKey") || "Download"}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
             onPress={handleCopyToClipboard}
           >
             <Ionicons name="copy-outline" size={20} color={colors.primary} />
             <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-              {t('auth.copyRecoveryKey') || 'Copy'}
+              {t("auth.copyRecoveryKey") || "Copy"}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Instructions */}
-        <View style={[styles.instructionsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.instructionsContainer,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <Text style={[styles.instructionsTitle, { color: colors.text }]}>
-            {t('auth.recoveryKeyInstructions') || 'How to store your recovery key safely:'}
+            {t("auth.recoveryKeyInstructions") ||
+              "How to store your recovery key safely:"}
           </Text>
           <View style={styles.instructionsList}>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • {t('auth.recoveryKeyInstruction1') || 'Write it down on paper and store in a safe place'}
+              •{" "}
+              {t("auth.recoveryKeyInstruction1") ||
+                "Write it down on paper and store in a safe place"}
             </Text>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • {t('auth.recoveryKeyInstruction2') || 'Never store it digitally (no screenshots or cloud storage)'}
+              •{" "}
+              {t("auth.recoveryKeyInstruction2") ||
+                "Never store it digitally (no screenshots or cloud storage)"}
             </Text>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • {t('auth.recoveryKeyInstruction3') || 'Never share it with anyone'}
+              •{" "}
+              {t("auth.recoveryKeyInstruction3") ||
+                "Never share it with anyone"}
             </Text>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • {t('auth.recoveryKeyInstruction4') || 'Keep multiple copies in different secure locations'}
+              •{" "}
+              {t("auth.recoveryKeyInstruction4") ||
+                "Keep multiple copies in different secure locations"}
             </Text>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • This uses the BIP39 standard compatible with major security systems
+              • This uses the BIP39 standard compatible with major security
+              systems
             </Text>
           </View>
         </View>
@@ -235,17 +312,23 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
           style={styles.acknowledgmentContainer}
           onPress={() => setHasAcknowledged(!hasAcknowledged)}
         >
-          <View style={[
-            styles.checkbox,
-            { borderColor: colors.border },
-            hasAcknowledged && { backgroundColor: colors.primary, borderColor: colors.primary }
-          ]}>
+          <View
+            style={[
+              styles.checkbox,
+              { borderColor: colors.border },
+              hasAcknowledged && {
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+              },
+            ]}
+          >
             {hasAcknowledged && (
               <Ionicons name="checkmark" size={16} color="#FFF" />
             )}
           </View>
           <Text style={[styles.acknowledgmentText, { color: colors.text }]}>
-            {t('auth.recoveryKeyAcknowledgment') || 'I have safely stored my recovery key and understand I will lose access to my data if I lose both my password and recovery key.'}
+            {t("auth.recoveryKeyAcknowledgment") ||
+              "I have safely stored my recovery key and understand I will lose access to my data if I lose both my password and recovery key."}
           </Text>
         </TouchableOpacity>
 
@@ -259,7 +342,7 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
           disabled={!hasAcknowledged}
         >
           <Text style={styles.doneButtonText}>
-            {t('auth.continueToApp') || 'Continue to App'}
+            {t("auth.continueToApp") || "Continue to App"}
           </Text>
         </TouchableOpacity>
 
@@ -267,7 +350,7 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
         {onSkip && (
           <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
             <Text style={[styles.skipButtonText, { color: colors.icon }]}>
-              {t('auth.skipRecoveryKey') || 'Skip for now (not recommended)'}
+              {t("auth.skipRecoveryKey") || "Skip for now (not recommended)"}
             </Text>
           </TouchableOpacity>
         )}
@@ -277,8 +360,8 @@ export default function RecoveryKeyForm({ privateKey, onComplete, onSkip }: Reco
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {step === 'generating' && renderGeneratingState()}
-      {step === 'display' && renderDisplayState()}
+      {step === "generating" && renderGeneratingState()}
+      {step === "display" && renderDisplayState()}
     </View>
   );
 }
@@ -289,20 +372,20 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   loadingText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loadingSubtext: {
     fontSize: 14,
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   scrollContent: {
     flex: 1,
@@ -312,30 +395,30 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
   warningAlert: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -349,7 +432,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   phraseContainer: {
     borderWidth: 1,
@@ -359,19 +442,19 @@ const styles = StyleSheet.create({
   },
   phraseTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   phraseGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   wordContainer: {
-    width: '48%',
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: "48%",
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
@@ -379,26 +462,26 @@ const styles = StyleSheet.create({
   },
   wordNumber: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     marginRight: 8,
     minWidth: 20,
   },
   wordText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 24,
     gap: 12,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -406,7 +489,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   instructionsContainer: {
     borderWidth: 1,
@@ -416,7 +499,7 @@ const styles = StyleSheet.create({
   },
   instructionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   instructionsList: {
@@ -427,8 +510,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   acknowledgmentContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 24,
     gap: 12,
   },
@@ -437,8 +520,8 @@ const styles = StyleSheet.create({
     height: 20,
     borderWidth: 2,
     borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 2,
   },
   acknowledgmentText: {
@@ -449,21 +532,21 @@ const styles = StyleSheet.create({
   doneButton: {
     borderRadius: 16,
     padding: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   doneButtonText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   skipButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 12,
   },
   skipButtonText: {
     fontSize: 14,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
 });

@@ -1,9 +1,9 @@
-import React from 'react';
-import { useAppVersion } from '@/context/AppVersionContext';
-import { SuggestedUpdateModal } from './SuggestedUpdateModal';
-import { RequiredUpdateModal } from './RequiredUpdateModal';
-import { VersionErrorBoundary } from './VersionErrorBoundary';
-import { APP_VERSION } from '@/config/version';
+import React from "react";
+import { useAppVersion } from "@/context/AppVersionContext";
+import { SuggestedUpdateModal } from "./SuggestedUpdateModal";
+import { RequiredUpdateModal } from "./RequiredUpdateModal";
+import { VersionErrorBoundary } from "./VersionErrorBoundary";
+import { APP_VERSION } from "@/config/version";
 
 /**
  * VersionGuard component that displays update modals based on version check results
@@ -32,14 +32,13 @@ export const VersionGuard: React.FC = () => {
         onUpdatePress={openAppStore}
         onLaterPress={dismissSuggestedModal}
       />
-      
+
       <RequiredUpdateModal
         visible={showRequiredModal}
         currentVersion={APP_VERSION}
         mandatoryVersion={versionInfo.mandatory_version}
         onUpdatePress={openAppStore}
       />
-
     </VersionErrorBoundary>
   );
 };
