@@ -11,8 +11,8 @@ import {
 import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import { CURRENCIES } from "@/types/expense";
 import { useProfile } from "@/context/ProfileContext";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 interface OnboardingFormProps {
   onComplete: () => void;
@@ -92,12 +92,6 @@ export default function OnboardingForm({
     }
   };
 
-  const formatCurrency = (amount: string) => {
-    const currencyInfo = CURRENCIES.find((c) => c.value === currency);
-    // CURRENCIES only has value and label, no symbol property, so we'll use the value
-    return `${currency} ${amount}`;
-  };
-
   return (
     <ScrollView
       contentContainerStyle={[
@@ -113,10 +107,12 @@ export default function OnboardingForm({
       >
         <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Let's Get You Started
+            {"Let's Get You Started"}
           </Text>
           <Text style={[styles.cardDescription, { color: colors.icon }]}>
-            Help us personalize your financial journey by sharing a few details.
+            {
+              "Help us personalize your financial journey by sharing a few details."
+            }
           </Text>
         </View>
 
@@ -202,12 +198,12 @@ export default function OnboardingForm({
               </Text>
               {salary && (
                 <Text style={[styles.summaryItem, { color: colors.icon }]}>
-                  Monthly Budget: {formatCurrency(salary)}
+                  Monthly Budget: {formatCurrency(Number(salary), currency)}
                 </Text>
               )}
               {bankAmount && (
                 <Text style={[styles.summaryItem, { color: colors.icon }]}>
-                  Initial Cash: {formatCurrency(bankAmount)}
+                  Initial Cash: {formatCurrency(Number(bankAmount), currency)}
                 </Text>
               )}
             </View>

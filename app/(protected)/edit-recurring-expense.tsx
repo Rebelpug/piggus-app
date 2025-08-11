@@ -5,14 +5,12 @@ import {
   Alert,
   TouchableOpacity,
   View,
-  TextInput,
   StatusBar,
 } from "react-native";
 import {
   Layout,
   Text,
   Input,
-  Button,
   Select,
   SelectItem,
   IndexPath,
@@ -102,7 +100,6 @@ export default function EditRecurringExpenseScreen() {
   const [loading, setLoading] = useState(false);
   const [recurringExpense, setRecurringExpense] =
     useState<RecurringExpenseWithDecryptedData | null>(null);
-  const [groupName, setGroupName] = useState<string>("");
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
 
   // Form state
@@ -158,7 +155,6 @@ export default function EditRecurringExpenseScreen() {
     if (!group) return;
 
     setRecurringExpense(foundRecurringExpense);
-    setGroupName(group.data?.name || "Unknown Group");
     setGroupMembers(group.members || []);
 
     // Populate form with existing recurring expense data

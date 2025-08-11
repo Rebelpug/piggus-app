@@ -8,7 +8,6 @@ import {
   Select,
   SelectItem,
   IndexPath,
-  Toggle,
   TopNavigation,
   Card,
   Spinner,

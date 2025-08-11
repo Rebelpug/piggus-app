@@ -11,6 +11,7 @@ import {
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 
 interface ExpenseItemProps {
   item: ExpenseWithDecryptedData & { groupName?: string };
@@ -22,6 +23,7 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
   const colors = Colors[colorScheme ?? "light"];
   const { user } = useAuth();
   const { userProfile } = useProfile();
+  const { t } = useLocalization();
 
   if (!item || !item.data) {
     return null;
@@ -116,7 +118,7 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
                 {item.data.name || "Unnamed Expense"}
               </Text>
               <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
-                {item.groupName || "Unknown Group"} •{" "}
+                {item.groupName || t("expenses.unknownGroup")} •{" "}
                 {formatDate(item.data.date)}
               </Text>
             </View>

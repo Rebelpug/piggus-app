@@ -41,7 +41,6 @@ export default function RecoveryKeyForm({
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
 
-  const [isGenerating, setIsGenerating] = useState(false);
   const [recoveryPhrase, setRecoveryPhrase] = useState<string[]>([]);
   const [encryptedPrivateKey, setEncryptedPrivateKey] = useState<string>("");
   const [step, setStep] = useState<"generating" | "display" | "confirm">(
@@ -51,12 +50,11 @@ export default function RecoveryKeyForm({
   const [hasAcknowledged, setHasAcknowledged] = useState(false);
 
   useEffect(() => {
-    generateRecoveryData();
+    generateRecoveryData().catch(console.error);
   }, []);
 
   const generateRecoveryData = async () => {
     try {
-      setIsGenerating(true);
       const recoveryData = await generateRecoveryKeyPackage(privateKey);
 
       setRecoveryPhrase(recoveryData.recoveryPhrase);
@@ -70,8 +68,6 @@ export default function RecoveryKeyForm({
           "Failed to generate recovery key. Please try again.",
         [{ text: t("common.ok") || "OK", onPress: () => onSkip?.() }],
       );
-    } finally {
-      setIsGenerating(false);
     }
   };
 

@@ -3,7 +3,6 @@ import { View, StyleSheet } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import { useLocalization } from "@/context/LocalizationContext";
 
 interface Props {
   children: ReactNode;
@@ -57,7 +56,6 @@ interface FallbackProps {
 const VersionErrorFallback: React.FC<FallbackProps> = ({ onRetry }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { t } = useLocalization();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

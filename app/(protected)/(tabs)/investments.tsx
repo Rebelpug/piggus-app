@@ -115,8 +115,7 @@ export default function InvestmentsScreen() {
 
           return portfolio.investments.map((investment) => ({
             ...investment,
-            portfolioName:
-              portfolio.data?.name || t("investments.unknownPortfolio"),
+            portfolioName: portfolio.data?.name,
           }));
         })
         .sort((a, b) => {

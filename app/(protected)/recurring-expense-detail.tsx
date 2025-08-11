@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  View,
-} from "react-native";
+import { StyleSheet, ScrollView, Alert, View } from "react-native";
 import {
   Layout,
   Text,
@@ -21,7 +15,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useExpense } from "@/context/ExpenseContext";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
-import { useLocalization } from "@/context/LocalizationContext";
 import {
   RecurringExpenseWithDecryptedData,
   getCategoryDisplayInfo,

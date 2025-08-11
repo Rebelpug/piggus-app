@@ -2,24 +2,11 @@ import React, { useState } from "react";
 import {
   StyleSheet,
   RefreshControl,
-  Alert,
   TouchableOpacity,
   View,
-  FlatList,
-  StatusBar,
   ScrollView,
 } from "react-native";
-import {
-  Layout,
-  Text,
-  Card,
-  Button,
-  Spinner,
-  TopNavigation,
-  List,
-  ListItem,
-  Divider,
-} from "@ui-kitten/components";
+import { Layout, Text, Button, TopNavigation } from "@ui-kitten/components";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useExpense } from "@/context/ExpenseContext";
@@ -52,18 +39,6 @@ export default function GroupsScreen() {
 
   const handleGroupPress = (group: ExpenseGroupWithDecryptedData) => {
     router.push(`/(protected)/group-detail?id=${group.id}`);
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
   };
 
   const getGroupStatusColor = (status: string) => {

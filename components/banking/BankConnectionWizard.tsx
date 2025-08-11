@@ -7,20 +7,16 @@ import {
   Alert,
   Image,
 } from "react-native";
-import Constants from "expo-constants";
 import {
   Layout,
   Text,
   Button,
   Card,
   TopNavigation,
-  TopNavigationAction,
   Select,
   SelectItem,
   IndexPath,
   Spinner,
-  List,
-  ListItem,
   Input,
 } from "@ui-kitten/components";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,12 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { useLocalization } from "@/context/LocalizationContext";
-import {
-  piggusApi,
-  Institution,
-  BankAgreement,
-  BankRequisition,
-} from "@/client/piggusApi";
+import { piggusApi, Institution } from "@/client/piggusApi";
 import { WebView } from "react-native-webview";
 import { useProfile } from "@/context/ProfileContext";
 
@@ -92,8 +83,6 @@ export default function BankConnectionWizard({
   const [selectedInstitution, setSelectedInstitution] = useState<
     Institution | undefined
   >();
-  const [agreement, setAgreement] = useState<BankAgreement | undefined>();
-  const [requisition, setRequisition] = useState<BankRequisition | undefined>();
   const [authUrl, setAuthUrl] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -142,7 +131,6 @@ export default function BankConnectionWizard({
           : selectedInstitution.id;
       const agreementData =
         await piggusApi.createBankAgreement(selectedInstitute);
-      setAgreement(agreementData);
 
       // Step 2: Create requisition
       const redirectUrl = "piggus://expenses";
@@ -152,7 +140,6 @@ export default function BankConnectionWizard({
         agreementData.id,
         `bank-connection-${Date.now()}`,
       );
-      setRequisition(requisitionData);
       setAuthUrl(requisitionData.link);
       setCurrentStep(3); // Move to WebView step
     } catch (error: any) {

@@ -399,18 +399,21 @@ export default function InvestmentStatisticsScreen() {
   }, [portfolios, selectedPortfolio]);
 
   // Define colors for consistency across pie chart and legend
-  const typeColors = [
-    "#FF6B6B",
-    "#4ECDC4",
-    "#45B7D1",
-    "#96CEB4",
-    "#FFEAA7",
-    "#DDA0DD",
-    "#98D8C8",
-    "#F7DC6F",
-    "#BB8FCE",
-    "#85C1E9",
-  ];
+  const typeColors = useMemo(
+    () => [
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#96CEB4",
+      "#FFEAA7",
+      "#DDA0DD",
+      "#98D8C8",
+      "#F7DC6F",
+      "#BB8FCE",
+      "#85C1E9",
+    ],
+    [],
+  );
 
   // Create pie chart data for investment types
   const typesPieData: PieChartData[] = useMemo(() => {
@@ -434,7 +437,7 @@ export default function InvestmentStatisticsScreen() {
       })
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [investmentStats]);
+  }, [investmentStats.totalValue, investmentStats.typeBreakdown, typeColors]);
 
   // Create line chart data for 10-year projection using yearly return composition
   const projectionLineData: { year: number; value: number }[] = useMemo(() => {
@@ -465,15 +468,6 @@ export default function InvestmentStatisticsScreen() {
     }
     return Math.min(percentage, 100);
   };
-
-  const maxTypeValue =
-    Object.values(investmentStats.typeBreakdown || {}).length > 0
-      ? Math.max(
-          ...Object.values(investmentStats.typeBreakdown).map((t) =>
-            isFinite(t.value) ? t.value : 0,
-          ),
-        )
-      : 0;
 
   return (
     <SafeAreaView

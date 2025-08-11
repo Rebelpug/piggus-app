@@ -27,9 +27,6 @@ import {
   calculateUserShare,
   getCategoryDisplayInfo,
   computeExpenseCategories,
-  getMainCategories,
-  getSubcategories,
-  ExpenseCategory,
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -291,10 +288,6 @@ export default function ExpenseStatisticsScreen() {
   );
 
   const expenseStats = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
-
-    // Helper function to check if expense matches the filter
     const matchesFilter = (expenseDate: Date) => {
       const expenseYear = expenseDate.getFullYear();
       const expenseMonth = expenseDate.getMonth();
@@ -312,12 +305,6 @@ export default function ExpenseStatisticsScreen() {
       }
     };
 
-    // Helper function to get parent category ID
-    const getParentCategoryId = (categoryId: string): string => {
-      const category = allCategories.find((cat) => cat.id === categoryId);
-      return category?.parent || categoryId;
-    };
-
     // Generate period data based on filter
     const generatePeriodData = () => {
       if (periodFilter.type === "month") {
@@ -328,7 +315,6 @@ export default function ExpenseStatisticsScreen() {
         const periodData = [];
 
         for (let day = 1; day <= daysInMonth; day++) {
-          const date = new Date(year, month, day);
           periodData.push({
             period: day.toString(),
             periodKey: `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,

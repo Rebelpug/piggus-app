@@ -4,8 +4,6 @@ import {
   ScrollView,
   Alert,
   View,
-  KeyboardAvoidingView,
-  Platform,
   TouchableOpacity,
   StatusBar,
 } from "react-native";
@@ -15,7 +13,6 @@ import {
   Input,
   Button,
   TopNavigation,
-  TopNavigationAction,
   Select,
   SelectItem,
   IndexPath,
@@ -29,10 +26,6 @@ import { useInvestment } from "@/context/InvestmentContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useLocalization } from "@/context/LocalizationContext";
 import {
-  calculateCurrentValue,
-  calculateCAGR,
-  calculateExpectedYearlyYield,
-  calculateDividendsInterestEarned,
   calculateIndividualInvestmentReturns,
   InvestmentStats,
 } from "@/utils/financeUtils";
@@ -44,35 +37,6 @@ import { ThemedView } from "@/components/ThemedView";
 import { formatStringWithoutSpacesAndSpecialChars } from "@/utils/stringUtils";
 import { apiSearchSymbolsWithQuotes } from "@/services/investmentService";
 import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
-
-const getInvestmentTypes = (t: (key: string) => string) => [
-  { id: "stock", name: t("investmentTypes.stock"), icon: "trending-up" },
-  { id: "bond", name: t("investmentTypes.bond"), icon: "shield-checkmark" },
-  { id: "crypto", name: t("investmentTypes.cryptocurrency"), icon: "flash" },
-  { id: "etf", name: t("investmentTypes.etf"), icon: "bar-chart" },
-  {
-    id: "mutual_fund",
-    name: t("investmentTypes.mutualFund"),
-    icon: "pie-chart",
-  },
-  { id: "real_estate", name: t("investmentTypes.realEstate"), icon: "home" },
-  { id: "commodity", name: t("investmentTypes.commodity"), icon: "diamond" },
-  {
-    id: "checkingAccount",
-    name: t("investmentTypes.checkingAccount"),
-    icon: "card",
-  },
-  {
-    id: "savingsAccount",
-    name: t("investmentTypes.savingsAccount"),
-    icon: "wallet",
-  },
-  {
-    id: "other",
-    name: t("investmentTypes.other"),
-    icon: "ellipsis-horizontal",
-  },
-];
 
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
 
@@ -98,7 +62,6 @@ export default function EditInvestmentScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [investment, setInvestment] = useState<any>(null);
-  const [portfolio, setPortfolio] = useState<any>(null);
 
   // Search functionality
   const [isSearching, setIsSearching] = useState(false);
@@ -160,7 +123,6 @@ export default function EditInvestmentScreen() {
         );
         if (foundInvestment) {
           setInvestment(foundInvestment);
-          setPortfolio(foundPortfolio);
 
           // Pre-fill form data
           setFormData({

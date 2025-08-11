@@ -2,11 +2,7 @@ import React from "react";
 import { StyleSheet, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import {
-  TopNavigation,
-  TopNavigationAction,
-  Text,
-} from "@ui-kitten/components";
+import { TopNavigation, TopNavigationAction } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";

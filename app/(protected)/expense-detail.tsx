@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  View,
-  Modal,
-} from "react-native";
+import { StyleSheet, ScrollView, Alert, View, Modal } from "react-native";
 import {
   Layout,
   Text,
@@ -27,7 +20,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
 import {
   ExpenseWithDecryptedData,
-  calculateUserShare,
   getCategoryDisplayInfo,
   ExpenseParticipant,
   calculateEqualSplit,
@@ -65,7 +57,7 @@ export default function ExpenseDetailScreen() {
     const group = expensesGroups.find((g) => g.id === groupId);
     if (!group) return;
 
-    setGroupName(group.data?.name || t("common.unknown"));
+    setGroupName(group.data?.name);
     setGroupMembers(group.members || []);
 
     const foundExpense = group.expenses.find((e) => e.id === expenseId);
@@ -141,7 +133,7 @@ export default function ExpenseDetailScreen() {
         Alert.alert(
           t("expenseDetail.moveSuccess"),
           t("expenseDetail.expenseMovedSuccessfully", {
-            groupName: targetGroup.data.name,
+            groupName: targetGroup.data.name || t("common.unknown"),
           }),
           [{ text: "OK", onPress: () => router.back() }],
         );

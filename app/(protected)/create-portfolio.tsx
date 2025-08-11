@@ -8,7 +8,6 @@ import {
   StatusBar,
 } from "react-native";
 import {
-  Layout,
   Text,
   Input,
   Button,

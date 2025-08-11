@@ -101,9 +101,18 @@ export default function ProfileCreationForm({
         .eq("username", username)
         .single();
 
+      if (error) {
+        console.error("Error checking if username is taken:", error.message);
+        return true;
+      }
+
       return !!data; // Return true if a profile with this username exists
     } catch (error) {
-      return false;
+      console.error(
+        "Error checking if username is taken:",
+        (error as Error).message,
+      );
+      return true;
     }
   };
 

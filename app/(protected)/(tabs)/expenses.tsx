@@ -55,8 +55,6 @@ export default function ExpensesScreen() {
     isLoading,
     error,
     fetchExpensesForMonth,
-    clearMonthCache,
-    cachedMonths,
   } = useExpense();
   const { userProfile } = useProfile();
   const insets = useSafeAreaInsets();
@@ -123,7 +121,7 @@ export default function ExpensesScreen() {
               })
               .map((expense) => ({
                 ...expense,
-                groupName: group.data?.name || t("expenses.unknownGroup"),
+                groupName: group.data?.name,
               }));
           })
           .sort((a, b) => {
@@ -194,7 +192,7 @@ export default function ExpensesScreen() {
           );
           return {
             ...recurringExpense,
-            groupName: group?.data?.name || t("expenses.unknownGroup"),
+            groupName: group?.data?.name,
           };
         })
         .sort((a, b) => {
@@ -228,29 +226,29 @@ export default function ExpensesScreen() {
     );
   };
 
-  const getMonthYear = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const isThisMonth =
-        date.getMonth() === now.getMonth() &&
-        date.getFullYear() === now.getFullYear();
-
-      if (isThisMonth) {
-        return t("expenses.thisMonth");
-      }
-
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return t("common.unknown");
-    }
-  };
-
   // Group expenses by month
   const groupedExpenses = React.useMemo(() => {
+    const getMonthYear = (dateString: string) => {
+      try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const isThisMonth =
+          date.getMonth() === now.getMonth() &&
+          date.getFullYear() === now.getFullYear();
+
+        if (isThisMonth) {
+          return t("expenses.thisMonth");
+        }
+
+        return date.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+      } catch {
+        return t("common.unknown");
+      }
+    };
+
     const groups: {
       [key: string]: (ExpenseWithDecryptedData & { groupName?: string })[];
     } = {};
@@ -778,11 +776,7 @@ export default function ExpensesScreen() {
             count: filteredExpenses.length,
           })}
           icon={(props) => (
-            <Ionicons
-              name="card-outline"
-              size={20}
-              color={props?.focused ? colors.primary : colors.icon}
-            />
+            <Ionicons name="card-outline" size={20} color={colors.icon} />
           )}
         >
           {renderExpensesTab()}
@@ -792,11 +786,7 @@ export default function ExpensesScreen() {
             count: allRecurringExpenses.length,
           })}
           icon={(props) => (
-            <Ionicons
-              name="repeat-outline"
-              size={20}
-              color={props?.focused ? colors.primary : colors.icon}
-            />
+            <Ionicons name="repeat-outline" size={20} color={colors.icon} />
           )}
         >
           {renderRecurringTab()}

@@ -92,6 +92,7 @@ export default function ProfileScreen() {
             await signOut();
             router.replace("/login");
           } catch (error) {
+            console.error("Failed to sign out: ", (error as Error).message);
             Alert.alert(t("alerts.error"), t("alerts.signOutError"));
           } finally {
             setLoading(false);
@@ -116,12 +117,17 @@ export default function ProfileScreen() {
               await apiDeleteProfile();
               router.replace("/login");
             } catch (error) {
+              console.error(
+                "Failed to delete account: ",
+                (error as Error).message,
+              );
               Alert.alert("Error", "Failed to delete account");
             }
             try {
               await signOut();
             } catch (e) {
               // This is needed but at the same time it fails so we don't want to show errors here.
+              console.error("Failed to sign out: ", (e as Error).message);
             } finally {
               setLoading(false);
             }
@@ -140,6 +146,7 @@ export default function ProfileScreen() {
       });
       setCurrencyModalVisible(false);
     } catch (error) {
+      console.error("Failed to update currency: ", (error as Error).message);
       Alert.alert(t("alerts.error"), t("alerts.currencyUpdateError"));
     } finally {
       setLoading(false);
@@ -154,6 +161,7 @@ export default function ProfileScreen() {
       await changeLanguage(selectedLanguage.code);
       setLanguageModalVisible(false);
     } catch (error) {
+      console.error("Failed to update language: ", (error as Error).message);
       Alert.alert(t("alerts.error"), t("alerts.languageUpdateError"));
     } finally {
       setLoading(false);
@@ -179,6 +187,7 @@ export default function ProfileScreen() {
       setFeedbackText("");
       Alert.alert(t("alerts.thankYou"), t("alerts.feedbackSent"));
     } catch (error) {
+      console.error("Failed to send feedback: ", (error as Error).message);
       Alert.alert(t("alerts.error"), t("alerts.feedbackError"));
     } finally {
       setSendingFeedback(false);

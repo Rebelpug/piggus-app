@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  View,
-  StatusBar,
-} from "react-native";
+import { StyleSheet, ScrollView, Alert, View, StatusBar } from "react-native";
 import {
   Layout,
   Text,
@@ -24,13 +17,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { useLocalization } from "@/context/LocalizationContext";
-import {
-  calculateCurrentValue,
-  calculateCAGR,
-  calculateExpectedYearlyYield,
-  calculateDividendsInterestEarned,
-  calculateIndividualInvestmentReturns,
-} from "@/utils/financeUtils";
+import { calculateIndividualInvestmentReturns } from "@/utils/financeUtils";
 
 const getInvestmentTypes = (t: (key: string) => string) => [
   { id: "stock", name: t("investmentTypes.stock"), icon: "trending-up" },
@@ -305,18 +292,8 @@ export default function InvestmentDetailScreen() {
     "savingsAccount",
   ].includes(investment.data.type);
   const isBond = investment.data.type === "bond";
-  const interestEarned = calculateBondInterestReturn();
-  const marketValue =
-    investment.data.quantity *
-    (investment.data.current_price || investment.data.purchase_price);
-  const currentValue = supportsInterest
-    ? marketValue + interestEarned
-    : marketValue;
   const totalInvestment =
     investment.data.quantity * investment.data.purchase_price;
-  const gainLoss = currentValue - totalInvestment;
-  const gainLossPercentage =
-    totalInvestment > 0 ? (gainLoss / totalInvestment) * 100 : 0;
 
   // Calculate new return metrics
   const returns = calculateIndividualInvestmentReturns(investment);

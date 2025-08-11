@@ -109,7 +109,7 @@ export default function SubscriptionScreen() {
   const hasActiveSubscription = customerInfo?.entitlements.active.premium;
 
   useEffect(() => {
-    initializePurchases();
+    initializePurchases().catch(console.error);
   }, []);
 
   // Silent retry mechanism
@@ -139,7 +139,11 @@ export default function SubscriptionScreen() {
       // Only configure if not already configured (to avoid multiple configurations)
       try {
         Purchases.configure({ apiKey });
-      } catch (configError) {
+      } catch (error) {
+        console.error(
+          "RevenueCat configuration error, could be already configured:",
+          (error as Error).message,
+        );
         // Already configured, ignore
       }
 
@@ -241,7 +245,7 @@ export default function SubscriptionScreen() {
         minimumFractionDigits: 2,
       }).format(price);
     } catch (error) {
-      // Fallback for unsupported currencies
+      console.error("Error formatting price:", (error as Error).message);
       return `${currencyCode} ${price.toFixed(2)}`;
     }
   };

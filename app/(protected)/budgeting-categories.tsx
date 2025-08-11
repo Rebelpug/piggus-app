@@ -6,16 +6,12 @@ import {
   TouchableOpacity,
   View,
   Modal,
-  TextInput,
 } from "react-native";
 import {
-  Layout,
   Text,
-  Card,
   Button,
   Input,
   TopNavigation,
-  Divider,
   Spinner,
   Select,
   SelectItem,
@@ -33,7 +29,6 @@ import {
   getMainCategories,
   getSubcategories,
   validateCategoryHierarchy,
-  ExpenseCategory,
 } from "@/types/expense";
 
 const EMOJI_SUGGESTIONS = [
@@ -89,12 +84,15 @@ export default function BudgetingCategoriesScreen() {
   const [categoryIcon, setCategoryIcon] = useState("📋");
   const [selectedParent, setSelectedParent] = useState<string | null>(null);
 
-  const currentOverrides = userProfile?.profile?.budgeting
-    ?.categoryOverrides || {
-    edited: {},
-    deleted: [],
-    added: [],
-  };
+  const currentOverrides = useMemo(
+    () =>
+      userProfile?.profile?.budgeting?.categoryOverrides || {
+        edited: {},
+        deleted: [],
+        added: [],
+      },
+    [userProfile?.profile?.budgeting?.categoryOverrides],
+  );
 
   const computedCategories = useMemo(
     () => computeExpenseCategories(currentOverrides),
@@ -181,6 +179,7 @@ export default function BudgetingCategoriesScreen() {
       setCategoryIcon("📋");
       setSelectedParent(null);
     } catch (error) {
+      console.error("Failed to update category:", (error as Error).message);
       Alert.alert("Error", "Failed to update category. Please try again.");
     } finally {
       setLoading(false);
@@ -229,6 +228,7 @@ export default function BudgetingCategoriesScreen() {
       setCategoryIcon("📋");
       setSelectedParent(null);
     } catch (error) {
+      console.error("Failed to add category:", (error as Error).message);
       Alert.alert("Error", "Failed to add category. Please try again.");
     } finally {
       setLoading(false);
@@ -273,6 +273,10 @@ export default function BudgetingCategoriesScreen() {
                 },
               });
             } catch (error) {
+              console.error(
+                "Failed to delete category:",
+                (error as Error).message,
+              );
               Alert.alert(
                 "Error",
                 "Failed to delete category. Please try again.",
@@ -303,6 +307,7 @@ export default function BudgetingCategoriesScreen() {
         },
       });
     } catch (error) {
+      console.error("Failed to restore category:", (error as Error).message);
       Alert.alert("Error", "Failed to restore category. Please try again.");
     } finally {
       setLoading(false);

@@ -5,7 +5,6 @@ import {
   Alert,
   TouchableOpacity,
   View,
-  TextInput,
   StatusBar,
 } from "react-native";
 import {
@@ -19,7 +18,6 @@ import {
   Datepicker,
   Toggle,
   TopNavigation,
-  Card,
   Spinner,
   CheckBox,
 } from "@ui-kitten/components";
@@ -34,15 +32,12 @@ import { useLocalization } from "@/context/LocalizationContext";
 import {
   ExpenseData,
   RecurringExpenseData,
-  EXPENSE_CATEGORIES,
-  PAYMENT_METHODS,
   CURRENCIES,
   SPLIT_METHODS,
   ExpenseParticipant,
   calculateEqualSplit,
   calculateNextDueDate,
   computeExpenseCategories,
-  getCategoryDisplayInfo,
   getMainCategories,
   getSubcategories,
   ExpenseCategory,
@@ -256,7 +251,7 @@ export default function AddExpenseScreen() {
         );
       }
     }
-  }, [amount, selectedSplitMethodIndex, participants.length]);
+  }, [amount, selectedSplitMethodIndex, participants.length, participants]);
 
   const navigateBack = () => {
     router.back();

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, TouchableOpacity, View, Alert } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "@ui-kitten/components";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";

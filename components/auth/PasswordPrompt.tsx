@@ -17,9 +17,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { useAuth } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import { useRouter } from "expo-router";
 import { SecureKeyManager } from "@/lib/secureKeyManager";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface PasswordPromptProps {
   onSuccess?: () => void;
@@ -39,7 +37,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
     useAuth();
 
   useEffect(() => {
-    handleBiometricLogin();
+    handleBiometricLogin().catch(console.error);
   }, []);
 
   // Centralized cleanup function for authentication failures

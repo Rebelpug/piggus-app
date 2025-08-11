@@ -11,7 +11,6 @@ import {
   Layout,
   Text,
   Input,
-  Button,
   Select,
   SelectItem,
   IndexPath,
@@ -89,7 +88,6 @@ export default function EditExpenseScreen() {
   }, [allCategories]);
   const [loading, setLoading] = useState(false);
   const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
-  const [groupName, setGroupName] = useState<string>("");
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
 
   // Form state
@@ -126,7 +124,6 @@ export default function EditExpenseScreen() {
     const group = expensesGroups.find((g) => g.id === groupId);
     if (!group) return;
 
-    setGroupName(group.data?.name || "Unknown Group");
     setGroupMembers(group.members || []);
 
     const foundExpense = group.expenses.find((e) => e.id === expenseId);

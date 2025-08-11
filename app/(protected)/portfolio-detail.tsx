@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import {
   StyleSheet,
-  RefreshControl,
   Alert,
   TouchableOpacity,
   View,
@@ -65,7 +64,6 @@ export default function PortfolioDetailScreen() {
     handlePortfolioInvitation,
     removeUserFromPortfolio,
   } = useInvestment();
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
@@ -74,11 +72,6 @@ export default function PortfolioDetailScreen() {
   const portfolio = useMemo(() => {
     return portfolios.find((p) => p.id === id);
   }, [portfolios, id]);
-
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 2000);
-  }, []);
 
   const navigateBack = () => {
     router.back();
@@ -117,6 +110,10 @@ export default function PortfolioDetailScreen() {
         );
       }
     } catch (error) {
+      console.error(
+        "Failed to invite user to portfolio",
+        (error as Error).message,
+      );
       Alert.alert(
         t("portfolioDetail.error"),
         t("portfolioDetail.inviteUserFailed"),
@@ -150,6 +147,10 @@ export default function PortfolioDetailScreen() {
                 );
               }
             } catch (error) {
+              console.error(
+                "Failed to remove user from portfolio",
+                (error as Error).message,
+              );
               Alert.alert(
                 t("portfolioDetail.error"),
                 t("portfolioDetail.removeMemberFailed"),
@@ -176,6 +177,7 @@ export default function PortfolioDetailScreen() {
         );
       }
     } catch (error) {
+      console.log("Failed to handle invitation", (error as Error).message);
       Alert.alert(
         t("portfolioDetail.error"),
         t("portfolioDetail.handleInvitationFailed"),
@@ -464,8 +466,9 @@ export default function PortfolioDetailScreen() {
                   appearance="hint"
                   style={styles.pendingDescription}
                 >
-                  {t("portfolioDetail.invitedToJoin")} "{portfolio.data?.name}".{" "}
-                  {t("portfolioDetail.acceptInvitation")}
+                  {t("portfolioDetail.invitedToJoin") +
+                    portfolio.data?.name +
+                    t("portfolioDetail.acceptInvitation")}
                 </Text>
               </Layout>
               <Layout style={styles.pendingActions}>

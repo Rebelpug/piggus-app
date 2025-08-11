@@ -2,16 +2,13 @@ import React, { useState } from "react";
 import {
   StyleSheet,
   RefreshControl,
-  Alert,
   TouchableOpacity,
   View,
-  FlatList,
   ScrollView,
 } from "react-native";
 import {
   Layout,
   Text,
-  Card,
   Button,
   TopNavigation,
   Tab,
@@ -67,18 +64,6 @@ export default function SharesScreen() {
 
   const handlePortfolioPress = (portfolio: PortfolioWithDecryptedData) => {
     router.push(`/(protected)/portfolio-detail?id=${portfolio.id}`);
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
   };
 
   const getGroupStatusColor = (status: string) => {
@@ -506,11 +491,7 @@ export default function SharesScreen() {
             count: expensesGroups.length,
           })}
           icon={(props) => (
-            <Ionicons
-              name="people-outline"
-              size={20}
-              color={props?.focused ? colors.primary : colors.icon}
-            />
+            <Ionicons name="people-outline" size={20} color={colors.icon} />
           )}
         >
           {renderExpenseGroupsTab()}
@@ -518,11 +499,7 @@ export default function SharesScreen() {
         <Tab
           title={t("shares.portfolioGroups")}
           icon={(props) => (
-            <Ionicons
-              name="briefcase-outline"
-              size={20}
-              color={props?.focused ? colors.primary : colors.icon}
-            />
+            <Ionicons name="briefcase-outline" size={20} color={colors.icon} />
           )}
         >
           {renderPortfoliosTab()}

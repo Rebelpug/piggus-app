@@ -1,14 +1,14 @@
 import React from "react";
 import {
-  StyleSheet,
+  ActivityIndicator,
   ScrollView,
+  StyleSheet,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { TopNavigation, Text } from "@ui-kitten/components";
+import { Text, TopNavigation } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -35,21 +35,8 @@ export default function GuidesScreen() {
     });
   };
 
-  const getDifficultyLabel = (level: number) => {
-    switch (level) {
-      case 0:
-        return t("guides.beginner");
-      case 1:
-        return t("guides.intermediate");
-      case 2:
-        return t("guides.advanced");
-      default:
-        return t("guides.missing");
-    }
-  };
-
   const organizeGuidesByDifficulty = () => {
-    const organized = {
+    return {
       beginner: guides.filter((guide) => guide.difficulty_level === 0),
       intermediate: guides.filter((guide) => guide.difficulty_level === 1),
       advanced: guides.filter((guide) => guide.difficulty_level === 2),
@@ -60,7 +47,6 @@ export default function GuidesScreen() {
           guide.difficulty_level === null,
       ),
     };
-    return organized;
   };
 
   const renderGuideItem = (guide: Guide) => (

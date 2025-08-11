@@ -119,6 +119,7 @@ export default function GroupDetailScreen() {
         );
       }
     } catch (error) {
+      console.error("Failed to invite user to group", (error as Error).message);
       Alert.alert(t("groupDetail.error"), t("groupDetail.inviteUserFailed"));
     } finally {
       setInviteLoading(false);
@@ -148,6 +149,10 @@ export default function GroupDetailScreen() {
                 );
               }
             } catch (error) {
+              console.error(
+                "Failed to remove user from group",
+                (error as Error).message,
+              );
               Alert.alert(
                 t("groupDetail.error"),
                 t("groupDetail.removeMemberFailed"),
@@ -172,6 +177,10 @@ export default function GroupDetailScreen() {
         );
       }
     } catch (error) {
+      console.error(
+        "Failed to handle group invitation",
+        (error as Error).message,
+      );
       Alert.alert(t("groupDetail.error"), t("groupDetail.inviteUserFailed"));
     }
   };
@@ -233,6 +242,7 @@ export default function GroupDetailScreen() {
         Alert.alert("Error", result.error || t("groupDetail.saveRefundFailed"));
       }
     } catch (error) {
+      console.error("Failed to save refund", (error as Error).message);
       Alert.alert(t("groupDetail.error"), t("groupDetail.saveRefundFailed"));
     } finally {
       setRefundLoading(false);
@@ -271,6 +281,7 @@ export default function GroupDetailScreen() {
                 );
               }
             } catch (error) {
+              console.log("Failed to delete refund", (error as Error).message);
               Alert.alert(
                 t("groupDetail.error"),
                 t("groupDetail.deleteRefundFailed"),
