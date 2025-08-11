@@ -15,6 +15,7 @@
 - 🏦 **Multi-Currency Support** - Handle expenses in different currencies
 - 🌍 **Internationalization** - Available in multiple languages
 - 📱 **Cross-Platform** - Works on Web
+- 🎮 **Education** - Gamify the tutorials and guides with interactive lessons and rewards
 
 ## 🚀 Quick Start
 
