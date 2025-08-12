@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.7.4](https://github.com/Rebelpug/piggus-app/compare/v1.7.3...v1.7.4) (2025-08-12)
 
-
 ### Bug Fixes
 
-* Fixed inability to register ([47ccdcd](https://github.com/Rebelpug/piggus-app/commit/47ccdcdfedd671b7244293ded7fbf49c3de93fdc))
+- Fixed inability to register ([47ccdcd](https://github.com/Rebelpug/piggus-app/commit/47ccdcdfedd671b7244293ded7fbf49c3de93fdc))
 
 ### [1.7.3](https://github.com/Rebelpug/piggus-app/compare/v1.7.2...v1.7.3) (2025-08-11)
 
