@@ -10,10 +10,10 @@ import {
   ScrollView,
 } from "react-native";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
 import { CURRENCIES } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { checkUsernameAvailability } from "@/services/profileService";
 
 interface ProfileCreationProps {
   onComplete: () => void;
@@ -93,20 +93,16 @@ export default function ProfileCreationForm({
   };
 
   // Check if a username is already taken
-  const isUsernameTaken = async (username: string) => {
+  const isUsernameTaken = async (username: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", username)
-        .single();
+      const result = await checkUsernameAvailability(username);
 
-      if (error) {
-        console.error("Error checking if username is taken:", error.message);
+      if (!result.success) {
+        console.error("Error checking username availability:", result.error);
         return true;
       }
 
-      return !!data; // Return true if a profile with this username exists
+      return !result.isAvailable;
     } catch (error) {
       console.error(
         "Error checking if username is taken:",

@@ -216,3 +216,27 @@ export const apiDeleteProfile = async (): Promise<{
     };
   }
 };
+
+export const checkUsernameAvailability = async (
+  username: string,
+): Promise<{ success: boolean; isAvailable: boolean; error?: string }> => {
+  try {
+    const profiles = await piggusApi.searchProfiles(username, 1);
+
+    const isAvailable = !profiles.some(
+      (profile) => profile.username.toLowerCase() === username.toLowerCase(),
+    );
+
+    return {
+      success: true,
+      isAvailable,
+    };
+  } catch (error: any) {
+    console.error("Failed to check username availability:", error);
+    return {
+      success: false,
+      isAvailable: true,
+      error: error.message || "Failed to check username availability",
+    };
+  }
+};
