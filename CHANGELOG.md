@@ -4,11 +4,10 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.7.5](https://github.com/Rebelpug/piggus-app/compare/v1.7.4...v1.7.5) (2025-08-13)
 
-
 ### Bug Fixes
 
-* Added note when it fails to sync an investment ([78a5d67](https://github.com/Rebelpug/piggus-app/commit/78a5d67710ecc963dfd93f45ddb4d241f7ec86ad))
-* Synced bank transaction was changing split amount ([b16cdf6](https://github.com/Rebelpug/piggus-app/commit/b16cdf6fc484829eea97415bbefc1372abff2f56))
+- Added note when it fails to sync an investment ([78a5d67](https://github.com/Rebelpug/piggus-app/commit/78a5d67710ecc963dfd93f45ddb4d241f7ec86ad))
+- Synced bank transaction was changing split amount ([b16cdf6](https://github.com/Rebelpug/piggus-app/commit/b16cdf6fc484829eea97415bbefc1372abff2f56))
 
 ### [1.7.4](https://github.com/Rebelpug/piggus-app/compare/v1.7.3...v1.7.4) (2025-08-12)
 
