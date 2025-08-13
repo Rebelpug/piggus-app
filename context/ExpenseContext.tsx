@@ -1503,16 +1503,29 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             continue;
           }
 
-          // Update existing expense - create updated participants
+          // Update existing expense - preserve split ratios when amount changes
+          let totalAllocated = 0;
           const updatedParticipants = existingExpense.data.participants.map(
-            (participant) => {
-              if (participant.user_id === user.id) {
-                return {
-                  ...participant,
-                  share_amount: expenseAmount,
-                };
+            (participant, index, array) => {
+              let newShareAmount;
+
+              // For the last participant, give them the remainder to avoid rounding errors
+              if (index === array.length - 1) {
+                newShareAmount =
+                  Math.round((expenseAmount - totalAllocated) * 100) / 100;
+              } else {
+                // Calculate proportional share and round
+                const shareRatio =
+                  participant.share_amount / existingExpense.data.amount;
+                newShareAmount =
+                  Math.round(expenseAmount * shareRatio * 100) / 100;
+                totalAllocated += newShareAmount;
               }
-              return participant;
+
+              return {
+                ...participant,
+                share_amount: newShareAmount,
+              };
             },
           );
 
