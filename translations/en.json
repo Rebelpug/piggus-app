@@ -278,6 +278,9 @@
     "addInvestment": "Add Investment",
     "errorLoadingInvestments": "Error loading investments"
   },
+  "investmentItem": {
+    "priceUpdateFailed": "Price update failed today"
+  },
   "shares": {
     "title": "Shares",
     "active": "Active",
@@ -492,7 +495,9 @@
     "error": "Error",
     "updateInvestmentFailed": "Failed to update investment. Please try again.",
     "unexpectedError": "An unexpected error occurred. Please try again.",
-    "exchangeMarketInstruction": "If you are not sure: If you are in the EU → XETRA (EUR). If you are in the UK → LSE (GBX or USD). If you are in Switzerland → SW (CHF). If you are in the US → Use USD. If you are in Canada → Use CAD."
+    "exchangeMarketInstruction": "If you are not sure: If you are in the EU → XETRA (EUR). If you are in the UK → LSE (GBX or USD). If you are in Switzerland → SW (CHF). If you are in the US → Use USD. If you are in Canada → Use CAD.",
+    "priceUpdateFailed": "Automatic price update failed",
+    "priceUpdateFailedDescription": "The automatic price update failed today. Please search for the symbol again to verify it's correct and get the latest price."
   },
   "investmentDetail": {
     "title": "Investment Details",
@@ -538,7 +543,9 @@
     "error": "Error",
     "deleteInvestmentFailed": "Failed to delete investment. Please try again.",
     "unknownPortfolio": "Unknown Portfolio",
-    "units": "units"
+    "units": "units",
+    "priceUpdateFailed": "Automatic price update failed",
+    "priceUpdateFailedDescription": "The automatic price update failed today. Please edit this investment and search for the symbol again to verify it's correct and get the latest price."
   },
   "investmentTypes": {
     "stock": "Stock",

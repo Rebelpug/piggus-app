@@ -37,6 +37,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { formatStringWithoutSpacesAndSpecialChars } from "@/utils/stringUtils";
 import { apiSearchSymbolsWithQuotes } from "@/services/investmentService";
 import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
+import { isPriceUpdateFailed } from "@/utils/investmentUtils";
 
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
 
@@ -179,6 +180,12 @@ export default function EditInvestmentScreen() {
     ? t(`investmentTypes.${selectedType.id}`)
     : "";
   const selectedCurrency = currencies[selectedCurrencyIndex.row];
+
+  // Check if price update failed using shared utility
+  const priceUpdateFailed = isPriceUpdateFailed(
+    investment?.data?.last_tentative_update,
+    investment?.data?.last_updated,
+  );
 
   const handleSymbolSearch = async () => {
     if (!formData.symbol.trim()) {
@@ -578,6 +585,35 @@ export default function EditInvestmentScreen() {
             { backgroundColor: colors.background },
           ]}
         >
+          {/* Price Update Failed Warning */}
+          {priceUpdateFailed && (
+            <View
+              style={[
+                styles.warningAlert,
+                {
+                  backgroundColor: colors.warning + "15",
+                  borderColor: colors.warning + "30",
+                },
+              ]}
+            >
+              <Ionicons name="warning" size={16} color={colors.warning} />
+              <View style={styles.warningContent}>
+                <Text style={[styles.warningTitle, { color: colors.warning }]}>
+                  {t(
+                    "editInvestment.priceUpdateFailed",
+                    "Automatic price update failed",
+                  )}
+                </Text>
+                <Text style={[styles.warningText, { color: colors.text }]}>
+                  {t(
+                    "editInvestment.priceUpdateFailedDescription",
+                    "The automatic price update failed today. Please search for the symbol again to verify it's correct and get the latest price.",
+                  )}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Basic Information */}
           <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -1257,6 +1293,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 8,
     flex: 1,
+  },
+  // Warning alert styles
+  warningAlert: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  warningContent: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   searchResultsContainer: {
     marginTop: -10,

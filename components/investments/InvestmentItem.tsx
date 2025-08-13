@@ -14,6 +14,7 @@ import {
   calculateIndividualInvestmentReturns,
   calculateCurrentValue,
 } from "@/utils/financeUtils";
+import { isPriceUpdateFailed } from "@/utils/investmentUtils";
 
 interface InvestmentItemProps {
   item: InvestmentWithDecryptedData & { portfolioName?: string };
@@ -28,6 +29,12 @@ export default function InvestmentItem({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
+
+  // Check if price update failed using shared utility (before early return to satisfy hooks rules)
+  const priceUpdateFailed = isPriceUpdateFailed(
+    item?.data?.last_tentative_update,
+    item?.data?.last_updated,
+  );
 
   if (!item || !item.data) {
     return null;
@@ -167,6 +174,19 @@ export default function InvestmentItem({
             )}
           </View>
         </View>
+
+        {/* Price Update Failed Warning */}
+        {priceUpdateFailed && (
+          <View style={styles.warningLine}>
+            <Ionicons name="warning" size={14} color={colors.warning} />
+            <Text style={[styles.warningText, { color: colors.warning }]}>
+              {t(
+                "investmentItem.priceUpdateFailed",
+                "Price update failed today",
+              )}
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -237,5 +257,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     marginTop: 2,
+  },
+  warningLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F59E0B20",
+  },
+  warningText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 6,
+    flex: 1,
   },
 });

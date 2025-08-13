@@ -18,6 +18,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { useLocalization } from "@/context/LocalizationContext";
 import { calculateIndividualInvestmentReturns } from "@/utils/financeUtils";
+import { isPriceUpdateFailed } from "@/utils/investmentUtils";
 
 const getInvestmentTypes = (t: (key: string) => string) => [
   { id: "stock", name: t("investmentTypes.stock"), icon: "trending-up" },
@@ -240,6 +241,12 @@ export default function InvestmentDetailScreen() {
   // Calculate new return metrics
   const returns = calculateIndividualInvestmentReturns(investment);
 
+  // Check if price update failed using shared utility
+  const priceUpdateFailed = isPriceUpdateFailed(
+    investment?.data?.last_tentative_update,
+    investment?.data?.last_updated,
+  );
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -266,6 +273,34 @@ export default function InvestmentDetailScreen() {
             { backgroundColor: colors.background },
           ]}
         >
+          {priceUpdateFailed && (
+            <View
+              style={[
+                styles.warningAlert,
+                {
+                  backgroundColor: colors.warning + "15",
+                  borderColor: colors.warning + "30",
+                },
+              ]}
+            >
+              <Ionicons name="warning" size={16} color={colors.warning} />
+              <View style={styles.warningContent}>
+                <Text style={[styles.warningTitle, { color: colors.warning }]}>
+                  {t(
+                    "investmentDetail.priceUpdateFailed",
+                    "Automatic price update failed",
+                  )}
+                </Text>
+                <Text style={[styles.warningText, { color: colors.text }]}>
+                  {t(
+                    "investmentDetail.priceUpdateFailedDescription",
+                    "The automatic price update failed today. Please edit this investment and search for the symbol again to verify it's correct and get the latest price.",
+                  )}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Header Card */}
           <Card style={[styles.headerCard, { backgroundColor: colors.card }]}>
             <View style={styles.headerContent}>
@@ -771,4 +806,26 @@ const styles = StyleSheet.create({
   },
   editButton: {},
   deleteButton: {},
+  // Warning alert styles
+  warningAlert: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  warningContent: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
 });
