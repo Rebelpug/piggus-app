@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.7.6](https://github.com/Rebelpug/piggus-app/compare/v1.7.5...v1.7.6) (2025-08-14)
 
-
 ### Bug Fixes
 
-* Financial statistics showing wrong total amount and fixed automatic updates on user investments ([30b4920](https://github.com/Rebelpug/piggus-app/commit/30b492012589d31589bc2085a217b9a261998e40))
+- Financial statistics showing wrong total amount and fixed automatic updates on user investments ([30b4920](https://github.com/Rebelpug/piggus-app/commit/30b492012589d31589bc2085a217b9a261998e40))
 
 ### [1.7.5](https://github.com/Rebelpug/piggus-app/compare/v1.7.4...v1.7.5) (2025-08-13)
 
