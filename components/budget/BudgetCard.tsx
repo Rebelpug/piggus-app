@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { calculateUserShare } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 interface BudgetCardProps {
   selectedMonth?: string; // 'current' for default behavior, or specific month like '2025-05'
@@ -60,7 +61,7 @@ export default function BudgetCard({
           if (expense.data.status === "deleted") return;
 
           const expenseDate = new Date(expense.data.date);
-          let includeExpense = false;
+          let includeExpense: boolean;
 
           if (selectedMonth === "current") {
             // Show only current month for budget calculations
@@ -182,20 +183,6 @@ export default function BudgetCard({
     }
   };
 
-  const formatCurrency = (
-    amount: number,
-    currency: string = defaultCurrency,
-  ) => {
-    try {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-      }).format(amount);
-    } catch {
-      return `${amount.toFixed(2)}`;
-    }
-  };
-
   const getBudgetStatus = () => {
     if (budgetPercentUsed <= 50)
       return { color: "#4CAF50", status: "On Track" };
@@ -233,7 +220,7 @@ export default function BudgetCard({
                 <Text
                   style={[styles.budgetSpentAmount, { color: colors.error }]}
                 >
-                  {formatCurrency(currentMonthData.totalSpent)}
+                  {formatCurrency(currentMonthData.totalSpent, defaultCurrency)}
                 </Text>
                 <Text style={[styles.budgetSpentLabel, { color: colors.icon }]}>
                   {selectedMonth === "current"
@@ -251,7 +238,7 @@ export default function BudgetCard({
                     },
                   ]}
                 >
-                  {formatCurrency(Math.abs(budgetRemaining))}
+                  {formatCurrency(Math.abs(budgetRemaining), defaultCurrency)}
                 </Text>
                 <Text
                   style={[styles.budgetRemainingLabel, { color: colors.icon }]}
@@ -349,6 +336,7 @@ export default function BudgetCard({
       </View>
 
       {/* Budget Modal */}
+
       <Modal
         visible={budgetModalVisible}
         backdropStyle={styles.backdrop}
@@ -369,6 +357,11 @@ export default function BudgetCard({
             value={budgetAmount}
             onChangeText={setBudgetAmount}
             keyboardType="decimal-pad"
+            accessoryLeft={() => (
+              <Text style={{ color: colors.text, paddingHorizontal: 8 }}>
+                {defaultCurrency}
+              </Text>
+            )}
           />
           <Layout style={styles.modalActions}>
             <Button

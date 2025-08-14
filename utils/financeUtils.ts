@@ -798,7 +798,7 @@ export const calculateIndividualInvestmentReturns = (
   const estimatedYearlyGain = calculateEstimatedYearlyGainLoss(investment);
 
   return {
-    totalValue: totalInvested + totalGainLoss,
+    totalValue: currentValue,
     totalInvested,
     totalGainLoss,
     totalGainLossPercentage,

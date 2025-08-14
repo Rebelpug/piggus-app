@@ -31,25 +31,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-
-const getInvestmentTypes = (t: (key: string) => string) => [
-  { id: "stock", name: t("investmentTypes.stock"), icon: "trending-up" },
-  { id: "bond", name: t("investmentTypes.bond"), icon: "shield-checkmark" },
-  { id: "crypto", name: t("investmentTypes.cryptocurrency"), icon: "flash" },
-  { id: "etf", name: t("investmentTypes.etf"), icon: "bar-chart" },
-  {
-    id: "mutual_fund",
-    name: t("investmentTypes.mutualFund"),
-    icon: "pie-chart",
-  },
-  { id: "real_estate", name: t("investmentTypes.realEstate"), icon: "home" },
-  { id: "commodity", name: t("investmentTypes.commodity"), icon: "diamond" },
-  {
-    id: "other",
-    name: t("investmentTypes.other"),
-    icon: "ellipsis-horizontal",
-  },
-];
+import InvestmentItem from "@/components/investments/InvestmentItem";
 
 export default function PortfolioDetailScreen() {
   const router = useRouter();
@@ -185,133 +167,15 @@ export default function PortfolioDetailScreen() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = "USD") => {
-    try {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-      }).format(amount);
-    } catch {
-      return `${amount.toFixed(2)}`;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const getInvestmentTypeColor = (type: string) => {
-    const colors: { [key: string]: string } = {
-      stock: "#4CAF50",
-      bond: "#2196F3",
-      crypto: "#FF9800",
-      etf: "#9C27B0",
-      mutual_fund: "#3F51B5",
-      real_estate: "#795548",
-      commodity: "#FFC107",
-      other: "#9E9E9E",
-    };
-    return colors[type] || colors.other;
-  };
-
-  const getInvestmentTypeIcon = (type: string) => {
-    const typeInfo = getInvestmentTypes(t).find(
-      (typeItem) => typeItem.id === type,
-    );
-    return typeInfo?.icon || "ellipsis-horizontal";
-  };
-
   const renderInvestmentItem = ({
     item,
   }: {
-    item: InvestmentWithDecryptedData;
+    item: InvestmentWithDecryptedData & { portfolioName?: string };
   }) => {
-    if (!item || !item.data) {
-      return null;
-    }
-
-    const currentValue =
-      item.data.quantity *
-      (item.data.current_price || item.data.purchase_price);
-    const initialValue = item.data.quantity * item.data.purchase_price;
-    const gainLoss = currentValue - initialValue;
-    const gainLossPercentage =
-      initialValue > 0 ? (gainLoss / initialValue) * 100 : 0;
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.investmentCard,
-          { backgroundColor: colors.card, shadowColor: colors.text },
-        ]}
-        onPress={() => {
-          router.push({
-            pathname: "/(protected)/investment-detail",
-            params: {
-              investmentId: item.id,
-              portfolioId: item.portfolio_id,
-            },
-          });
-        }}
-      >
-        <View style={styles.investmentCardContent}>
-          <View style={styles.investmentHeader}>
-            <View style={styles.investmentMainInfo}>
-              <View
-                style={[
-                  styles.typeIcon,
-                  {
-                    backgroundColor:
-                      getInvestmentTypeColor(item.data.type) + "20",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={getInvestmentTypeIcon(item.data.type) as any}
-                  size={20}
-                  color={getInvestmentTypeColor(item.data.type)}
-                />
-              </View>
-              <View style={styles.investmentDetails}>
-                <Text style={[styles.investmentTitle, { color: colors.text }]}>
-                  {item.data.symbol || item.data.name || "Unknown Investment"}
-                </Text>
-                <Text
-                  style={[styles.investmentSubtitle, { color: colors.icon }]}
-                >
-                  {item.data.quantity} {t("portfolioDetail.shares")} •{" "}
-                  {formatDate(item.data.purchase_date)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.investmentAmount}>
-              <Text style={[styles.currentValueText, { color: colors.text }]}>
-                {formatCurrency(currentValue, item.data.currency)}
-              </Text>
-              <Text
-                style={[
-                  styles.gainLossText,
-                  { color: gainLoss >= 0 ? "#4CAF50" : "#F44336" },
-                ]}
-              >
-                {gainLoss >= 0 ? "+" : ""}
-                {formatCurrency(gainLoss, item.data.currency)} (
-                {gainLoss >= 0 ? "+" : ""}
-                {gainLossPercentage.toFixed(2)}%)
-              </Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
+    const portfolioId = portfolios.find((p) =>
+      p.investments.some((inv) => inv.id === item.id),
+    )?.id;
+    return <InvestmentItem item={item} portfolioId={portfolioId} />;
   };
 
   const renderMemberItem = ({ item }: { item: any }) => {
@@ -412,29 +276,6 @@ export default function PortfolioDetailScreen() {
     );
   }
 
-  const totalValue =
-    portfolio.investments?.reduce((sum, investment) => {
-      try {
-        const currentValue =
-          investment.data.quantity *
-          (investment.data.current_price || investment.data.purchase_price);
-        return sum + currentValue;
-      } catch {
-        return sum;
-      }
-    }, 0) || 0;
-
-  const totalInvestment =
-    portfolio.investments?.reduce((sum, investment) => {
-      try {
-        return sum + investment.data.quantity * investment.data.purchase_price;
-      } catch {
-        return sum;
-      }
-    }, 0) || 0;
-
-  const totalGainLoss = totalValue - totalInvestment;
-
   const isPending = portfolio.membership_status === "pending";
 
   return (
@@ -511,44 +352,6 @@ export default function PortfolioDetailScreen() {
                     {portfolio.data.description}
                   </Text>
                 )}
-                <View style={styles.summaryRow}>
-                  <View style={styles.summaryItem}>
-                    <Text
-                      style={[styles.summaryNumber, { color: colors.primary }]}
-                    >
-                      {formatCurrency(totalValue)}
-                    </Text>
-                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                      {t("portfolioDetail.totalValue")}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Text
-                      style={[
-                        styles.summaryNumber,
-                        { color: totalGainLoss >= 0 ? "#4CAF50" : "#F44336" },
-                      ]}
-                    >
-                      {totalGainLoss >= 0 ? "+" : ""}
-                      {formatCurrency(totalGainLoss)}
-                    </Text>
-                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                      {t("portfolioDetail.gainLoss")}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Text
-                      style={[styles.summaryNumber, { color: colors.primary }]}
-                    >
-                      {portfolio.investments?.length || 0}
-                    </Text>
-                    <Text style={[styles.summaryLabel, { color: colors.icon }]}>
-                      {t("portfolioDetail.investments")}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* See more stats button */}
                 <TouchableOpacity
                   style={[
                     styles.statsButton,
@@ -778,10 +581,10 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingBottom: 0,
+    paddingBottom: 16,
   },
   summaryCard: {
-    padding: 24,
+    padding: 16,
     borderRadius: 20,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -796,34 +599,15 @@ const styles = StyleSheet.create({
   },
   portfolioDescription: {
     fontSize: 14,
-    marginBottom: 16,
     textAlign: "center",
     lineHeight: 20,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 16,
-  },
-  summaryItem: {
-    alignItems: "center",
-  },
-  summaryNumber: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    textTransform: "uppercase",
   },
   tabView: {
     flex: 1,
   },
   tabContent: {
     flex: 1,
-    padding: 16,
+    padding: 4,
   },
   investmentsList: {
     flex: 1,

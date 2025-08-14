@@ -18,3 +18,13 @@ export const formatStringWithoutSpacesAndSpecialChars = (
   // Then remove spaces and special characters (keeping only alphanumeric)
   return upperTrimmed.replace(/[^A-Za-z0-9]/g, "");
 };
+
+/**
+ * Formats a string by trimming it and encoding it for URL usage
+ * @param input The string to format
+ * @returns The URL-safe encoded string
+ */
+export const encodeStringForUrl = (input: string): string => {
+  if (!input) return "";
+  return encodeURIComponent(input.trim());
+};

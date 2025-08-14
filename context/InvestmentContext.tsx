@@ -26,7 +26,9 @@ import {
   apiRemoveUserFromPortfolio,
   apiLookupInvestmentBySymbol,
 } from "@/services/investmentService";
-import { formatStringWithoutSpacesAndSpecialChars } from "@/utils/stringUtils";
+import {
+  encodeStringForUrl,
+} from "@/utils/stringUtils";
 import { useEncryption } from "@/context/EncryptionContext";
 
 interface InvestmentContextType {
@@ -291,8 +293,6 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
   const syncInvestmentPrices = useCallback(
     async (userPortfolios: PortfolioWithDecryptedData[]) => {
-      const portfolioUpdates: { [key: string]: PortfolioWithDecryptedData } =
-        {};
       try {
         // Only sync for premium users
         if (userProfile?.subscription?.subscription_tier !== "premium") {
@@ -319,150 +319,66 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
         let syncCount = 0;
         let errorCount = 0;
 
-        for (const portfolio of userPortfolios) {
-          if (!portfolio.investments || portfolio.investments.length === 0) {
-            continue;
+        const processInvestment = async (
+          portfolio: PortfolioWithDecryptedData,
+          investment: InvestmentWithDecryptedData,
+        ) => {
+          const investmentData = investment.data;
+
+          const hasSymbol =
+            investmentData.symbol && investmentData.symbol.trim() !== "";
+          const hasExchange =
+            investmentData.exchange_market &&
+            investmentData.exchange_market.trim() !== "";
+          const isEligibleType = [
+            "etf",
+            "stock",
+            "mutualFund",
+            "certificate",
+            "cryptocurrency",
+          ].includes(investmentData.type);
+
+          const lastUpdated = investmentData.last_updated;
+          const lastTentativeUpdate = investmentData.last_tentative_update;
+          const isOlderThanToday =
+            (!lastUpdated || lastUpdated.split("T")[0] < todayString) &&
+            (!lastTentativeUpdate ||
+              lastTentativeUpdate.split("T")[0] < todayString);
+
+          if (
+            !(hasSymbol && hasExchange && isEligibleType && isOlderThanToday)
+          ) {
+            return null;
           }
 
-          for (const investment of portfolio.investments) {
-            const investmentData = investment.data;
+          try {
+            console.log(
+              `Syncing price for investment: ${investmentData.name} (${investmentData.isin})`,
+            );
 
-            // Check conditions for syncing
-            const hasSymbol =
-              investmentData.symbol && investmentData.symbol.trim() !== "";
-            const hasExchange =
-              investmentData.exchange_market &&
-              investmentData.exchange_market.trim() !== "";
-            const isEligibleType = [
-              "etf",
-              "stock",
-              "mutualFund",
-              "certificate",
-              "cryptocurrency",
-            ].includes(investmentData.type);
+            const lookupResult = await apiLookupInvestmentBySymbol(
+              encodeStringForUrl(investmentData.symbol || ""),
+              investmentData?.exchange_market?.trim().toUpperCase() || "",
+              investmentData.type,
+              investmentData.currency,
+            );
 
-            // Check if last update is older than today
-            const lastUpdated = investmentData.last_updated;
-            const lastTentativeUpdate = investmentData.last_tentative_update;
-            const isOlderThanToday =
-              (!lastUpdated || lastUpdated.split("T")[0] < todayString) &&
-              (!lastTentativeUpdate ||
-                lastTentativeUpdate.split("T")[0] < todayString);
+            if (lookupResult.success && lookupResult.data) {
+              const newPrice = Number(lookupResult.data.price);
 
-            if (
-              hasSymbol &&
-              hasExchange &&
-              isEligibleType &&
-              isOlderThanToday
-            ) {
-              try {
-                console.log(
-                  `Syncing price for investment: ${investmentData.name} (${investmentData.isin})`,
-                );
-
-                const lookupResult = await apiLookupInvestmentBySymbol(
-                  formatStringWithoutSpacesAndSpecialChars(
-                    investmentData.symbol || "",
-                  ),
-                  investmentData?.exchange_market?.trim().toUpperCase() || "",
-                  investmentData.type,
-                  investmentData.currency,
-                );
-
-                if (lookupResult.success && lookupResult.data) {
-                  const newPrice = Number(lookupResult.data.price);
-
-                  if (newPrice && newPrice !== investmentData.current_price) {
-                    // Update the investment with new price
-                    const updatedInvestmentData = {
-                      ...investmentData,
-                      current_price: newPrice,
-                      symbol: lookupResult.data.symbol,
-                      last_updated: new Date().toISOString(),
-                      last_tentative_update: new Date().toISOString(),
-                    };
-
-                    const updatedInvestment = {
-                      ...investment,
-                      data: updatedInvestmentData,
-                    };
-
-                    // Update in database
-                    const result = await apiUpdateInvestment(
-                      user,
-                      portfolio.id,
-                      portfolio.encrypted_key,
-                      updatedInvestment,
-                      decryptWithPrivateKey,
-                      encryptWithExternalEncryptionKey,
-                    );
-                    const changedInvestment = result.data;
-
-                    if (changedInvestment) {
-                      // Store updated investment
-                      portfolioUpdates[portfolio.id] = portfolioUpdates[
-                        portfolio.id
-                      ] || {
-                        ...portfolio,
-                        investments: [...portfolio.investments],
-                      };
-                      const investmentIndex = portfolioUpdates[
-                        portfolio.id
-                      ].investments.findIndex(
-                        (inv) => inv.id === updatedInvestment.id,
-                      );
-                      if (investmentIndex !== -1) {
-                        portfolioUpdates[portfolio.id].investments[
-                          investmentIndex
-                        ] = changedInvestment;
-                      }
-                      syncCount++;
-                      console.log(
-                        `Successfully synced price for ${investmentData.name}: ${newPrice}`,
-                      );
-                    } else {
-                      errorCount++;
-                      console.error(
-                        `Failed to update investment ${investmentData.name} in database`,
-                      );
-                    }
-                  }
-                } else {
-                  console.log(
-                    `No price data found for ${investmentData.name} (${investmentData.symbol})`,
-                  );
-                  // Update tentative update date to prevent multiple attempts on the same day
-                  const updatedInvestmentData = {
-                    ...investmentData,
-                    last_tentative_update: new Date().toISOString(),
-                  };
-
-                  const updatedInvestment = {
-                    ...investment,
-                    data: updatedInvestmentData,
-                  };
-
-                  // Update in database
-                  await apiUpdateInvestment(
-                    user,
-                    portfolio.id,
-                    portfolio.encrypted_key,
-                    updatedInvestment,
-                    decryptWithPrivateKey,
-                    encryptWithExternalEncryptionKey,
-                  );
-                }
-              } catch (error) {
-                // Update tentative update date even on error to prevent multiple attempts on the same day
-                const updatedInvestmentData = {
-                  ...investmentData,
-                  last_tentative_update: new Date().toISOString(),
-                };
+              if (newPrice && newPrice !== investmentData.current_price) {
                 const updatedInvestment = {
                   ...investment,
-                  data: updatedInvestmentData,
+                  data: {
+                    ...investmentData,
+                    current_price: newPrice,
+                    symbol: lookupResult.data.symbol,
+                    last_updated: new Date().toISOString(),
+                    last_tentative_update: new Date().toISOString(),
+                  },
                 };
-                await apiUpdateInvestment(
+
+                const result = await apiUpdateInvestment(
                   user,
                   portfolio.id,
                   portfolio.encrypted_key,
@@ -470,15 +386,88 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                   decryptWithPrivateKey,
                   encryptWithExternalEncryptionKey,
                 );
-                errorCount++;
-                console.error(
-                  `Error syncing price for ${investmentData.name}:`,
-                  error,
-                );
+
+                if (result.data) {
+                  console.log(
+                    `Successfully synced price for ${investmentData.name}: ${newPrice}`,
+                  );
+                  return { portfolio, investment: result.data };
+                }
               }
+            } else {
+              const updatedInvestment = {
+                ...investment,
+                data: {
+                  ...investmentData,
+                  last_tentative_update: new Date().toISOString(),
+                },
+              };
+              await apiUpdateInvestment(
+                user,
+                portfolio.id,
+                portfolio.encrypted_key,
+                updatedInvestment,
+                decryptWithPrivateKey,
+                encryptWithExternalEncryptionKey,
+              );
+            }
+          } catch (error) {
+            const updatedInvestment = {
+              ...investment,
+              data: {
+                ...investmentData,
+                last_tentative_update: new Date().toISOString(),
+              },
+            };
+            await apiUpdateInvestment(
+              user,
+              portfolio.id,
+              portfolio.encrypted_key,
+              updatedInvestment,
+              decryptWithPrivateKey,
+              encryptWithExternalEncryptionKey,
+            );
+            console.error(
+              `Error syncing price for ${investmentData.name}:`,
+              error,
+            );
+          }
+          return null;
+        };
+
+        const results = await Promise.all(
+          userPortfolios.map(async (portfolio) => {
+            if (!portfolio.investments || portfolio.investments.length === 0) {
+              return [];
+            }
+            return Promise.all(
+              portfolio.investments.map((investment) =>
+                processInvestment(portfolio, investment),
+              ),
+            );
+          }),
+        );
+
+        const updatedInvestments = results.flat().filter(Boolean);
+        const portfolioUpdates: { [key: string]: PortfolioWithDecryptedData } =
+          {};
+
+        updatedInvestments.forEach((update) => {
+          if (update) {
+            const { portfolio, investment } = update;
+            portfolioUpdates[portfolio.id] = portfolioUpdates[portfolio.id] || {
+              ...portfolio,
+              investments: [...portfolio.investments],
+            };
+            const investmentIndex = portfolioUpdates[
+              portfolio.id
+            ].investments.findIndex((inv) => inv.id === investment.id);
+            if (investmentIndex !== -1) {
+              portfolioUpdates[portfolio.id].investments[investmentIndex] =
+                investment;
             }
           }
-        }
+        });
 
         console.log(
           `Price sync completed. Updated: ${syncCount}, Errors: ${errorCount}`,
@@ -498,7 +487,13 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
         setIsSyncing(false);
       }
     },
-    [updateInvestment, userProfile?.subscription?.subscription_tier],
+    [
+      decryptWithPrivateKey,
+      encryptWithExternalEncryptionKey,
+      isEncryptionInitialized,
+      user,
+      userProfile?.subscription?.subscription_tier,
+    ],
   );
 
   const fetchPortfolios = useCallback(async () => {

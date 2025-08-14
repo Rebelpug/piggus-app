@@ -216,9 +216,8 @@ export default function SharesScreen() {
       item.investments?.reduce((sum, investment) => {
         try {
           const currentValue =
-            investment.data.current_price ||
             investment.data.quantity *
-              (investment.data.current_price || investment.data.purchase_price);
+            (investment.data.current_price || investment.data.purchase_price);
           return sum + currentValue;
         } catch {
           return sum;
@@ -229,9 +228,8 @@ export default function SharesScreen() {
       item.investments?.reduce((sum, investment) => {
         try {
           const currentValue =
-            investment.data.current_price ||
             investment.data.quantity *
-              (investment.data.current_price || investment.data.purchase_price);
+            (investment.data.current_price || investment.data.purchase_price);
           const initialValue =
             investment.data.quantity * investment.data.purchase_price;
           return sum + (currentValue - initialValue);
