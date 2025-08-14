@@ -26,9 +26,7 @@ import {
   apiRemoveUserFromPortfolio,
   apiLookupInvestmentBySymbol,
 } from "@/services/investmentService";
-import {
-  encodeStringForUrl,
-} from "@/utils/stringUtils";
+import { encodeStringForUrl } from "@/utils/stringUtils";
 import { useEncryption } from "@/context/EncryptionContext";
 
 interface InvestmentContextType {
