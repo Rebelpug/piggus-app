@@ -4,14 +4,13 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.7.7](https://github.com/Rebelpug/piggus-app/compare/v1.7.6...v1.7.7) (2025-08-18)
 
-
 ### Bug Fixes
 
-* Accept comma in numerical inputs and fixed split not allowing deselection ([c4338ea](https://github.com/Rebelpug/piggus-app/commit/c4338ead420bd46bed9d9d9641d052e4f26c843a))
-* Hidden profile username from top header since it overlapped with screen title ([0cb9e9e](https://github.com/Rebelpug/piggus-app/commit/0cb9e9e2cb445f84ed88e3d8f2d060a1b27bbd7a))
-* Onboarding details should be optional and set defaults if not added ([04a18a2](https://github.com/Rebelpug/piggus-app/commit/04a18a2c12b798dfa844ede0250491a0dfa58737))
-* Syncing and searching investment by symbol now use the new api ([9e50f10](https://github.com/Rebelpug/piggus-app/commit/9e50f1036583c0f2dc5122d796c351a1c9c88004))
-* When adding an investment as premium also allow searching by isin ([869165e](https://github.com/Rebelpug/piggus-app/commit/869165e44c3a920d3078439d2f171f50f5e9d17a))
+- Accept comma in numerical inputs and fixed split not allowing deselection ([c4338ea](https://github.com/Rebelpug/piggus-app/commit/c4338ead420bd46bed9d9d9641d052e4f26c843a))
+- Hidden profile username from top header since it overlapped with screen title ([0cb9e9e](https://github.com/Rebelpug/piggus-app/commit/0cb9e9e2cb445f84ed88e3d8f2d060a1b27bbd7a))
+- Onboarding details should be optional and set defaults if not added ([04a18a2](https://github.com/Rebelpug/piggus-app/commit/04a18a2c12b798dfa844ede0250491a0dfa58737))
+- Syncing and searching investment by symbol now use the new api ([9e50f10](https://github.com/Rebelpug/piggus-app/commit/9e50f1036583c0f2dc5122d796c351a1c9c88004))
+- When adding an investment as premium also allow searching by isin ([869165e](https://github.com/Rebelpug/piggus-app/commit/869165e44c3a920d3078439d2f171f50f5e9d17a))
 
 ### [1.7.6](https://github.com/Rebelpug/piggus-app/compare/v1.7.5...v1.7.6) (2025-08-14)
 
