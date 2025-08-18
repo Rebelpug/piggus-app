@@ -40,23 +40,9 @@ export default function OnboardingForm({
     setError(null);
 
     try {
-      // Validate inputs
-      const salaryNumber = parseFloat(salary);
-      const bankAmountNumber = parseFloat(bankAmount);
+      const salaryNumber = parseFloat(salary) || 0;
+      const bankAmountNumber = parseFloat(bankAmount) || 0;
 
-      if (isNaN(salaryNumber) || salaryNumber < 0) {
-        setError("Please enter a valid salary amount");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (isNaN(bankAmountNumber) || bankAmountNumber < 0) {
-        setError("Please enter a valid bank account amount");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Update profile with monthly budget (salary)
       if (userProfile) {
         await updateProfile({
           ...userProfile.profile,
