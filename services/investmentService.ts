@@ -533,38 +533,30 @@ export const apiRemoveUserFromPortfolio = async (
   }
 };
 
-export const apiLookupInvestmentByIsin = async (
-  isin: string,
-  exchange: string,
-  type: string,
-  currency: string,
+export const apiSearchSymbolsWithQuotes = async (
+  symbol: string,
 ): Promise<{
   success: boolean;
-  data?: LookupSearchResult[];
+  data?: InvestmentLookupResultV2[];
   error?: string;
 }> => {
   try {
-    if (!isin || !exchange || !type || !currency) {
+    if (!symbol) {
       return {
         success: false,
-        error: "Missing required parameters: isin, exchange, type, currency",
+        error: "Missing required parameter: symbol",
       };
     }
-    const result = await piggusApi.lookupInvestmentByIsin(
-      isin,
-      exchange,
-      type,
-      currency,
-    );
+    const result = await piggusApi.searchSymbolsWithQuotes(symbol);
     return {
       success: true,
       data: result,
     };
   } catch (error: any) {
-    console.error("Error looking up investment by ISIN:", error);
+    console.error("Error searching symbols with quotes:", error);
     return {
       success: false,
-      error: error.message || "Failed to lookup investment",
+      error: error.message || "Failed to search symbols with quotes",
     };
   }
 };
@@ -601,34 +593,6 @@ export const apiLookupInvestmentBySymbol = async (
     return {
       success: false,
       error: error.message || "Failed to lookup investment by symbol",
-    };
-  }
-};
-
-export const apiSearchSymbolsWithQuotes = async (
-  symbol: string,
-): Promise<{
-  success: boolean;
-  data?: SymbolSearchWithQuoteResult[];
-  error?: string;
-}> => {
-  try {
-    if (!symbol) {
-      return {
-        success: false,
-        error: "Missing required parameter: symbol",
-      };
-    }
-    const result = await piggusApi.searchSymbolsWithQuotes(symbol);
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error: any) {
-    console.error("Error searching symbols with quotes:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to search symbols with quotes",
     };
   }
 };

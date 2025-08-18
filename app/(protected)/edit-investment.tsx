@@ -29,7 +29,11 @@ import {
   calculateIndividualInvestmentReturns,
   InvestmentStats,
 } from "@/utils/financeUtils";
-import { INVESTMENT_TYPES, InvestmentData } from "@/types/investment";
+import {
+  INVESTMENT_TYPES,
+  InvestmentData,
+  InvestmentLookupResultV2,
+} from "@/types/investment";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -39,7 +43,6 @@ import {
   normalizeDecimalForParsing,
 } from "@/utils/stringUtils";
 import { apiSearchSymbolsWithQuotes } from "@/services/investmentService";
-import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
 import { isPriceUpdateFailed } from "@/utils/investmentUtils";
 
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
@@ -71,7 +74,7 @@ export default function EditInvestmentScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [lookupError, setLookupError] = useState<string>("");
   const [searchResults, setSearchResults] = useState<
-    SymbolSearchWithQuoteResult[]
+    InvestmentLookupResultV2[]
   >([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
@@ -244,23 +247,18 @@ export default function EditInvestmentScreen() {
     }
   };
 
-  const handleSelectSearchResult = (result: SymbolSearchWithQuoteResult) => {
-    const symbolData = result.symbolSearch;
-    const quoteData = result.quote;
-
+  const handleSelectSearchResult = (result: InvestmentLookupResultV2) => {
     setFormData((prev) => ({
       ...prev,
-      name: symbolData.name,
-      symbol: symbolData.symbol,
-      exchange_market: symbolData.region,
-      current_price: quoteData?.price || "",
+      name: result.name,
+      symbol: result.symbol,
+      exchange_market: result.exchange,
+      current_price: result?.price || "",
       // Note: We don't update purchase_price here as per requirements
     }));
 
     // Update currency selection if it exists in our list
-    const currencyIndex = currencies.findIndex(
-      (c) => c === symbolData.currency,
-    );
+    const currencyIndex = currencies.findIndex((c) => c === result.currency);
     if (currencyIndex >= 0) {
       setSelectedCurrencyIndex(new IndexPath(currencyIndex));
     }
@@ -764,7 +762,7 @@ export default function EditInvestmentScreen() {
                             { color: colors.text },
                           ]}
                         >
-                          {result.symbolSearch.symbol}
+                          {result.symbol}
                         </Text>
                         <Text
                           style={[
@@ -772,7 +770,7 @@ export default function EditInvestmentScreen() {
                             { color: colors.text },
                           ]}
                         >
-                          {result.symbolSearch.name}
+                          {result.name}
                         </Text>
                         <View style={styles.searchResultDetails}>
                           <Text
@@ -781,20 +779,16 @@ export default function EditInvestmentScreen() {
                               { color: colors.icon },
                             ]}
                           >
-                            {result.symbolSearch.region} |{" "}
-                            {result.symbolSearch.currency}
+                            {result.exchange} | {result.currency}
                           </Text>
-                          {result.quote && (
-                            <Text
-                              style={[
-                                styles.searchResultPrice,
-                                { color: colors.text },
-                              ]}
-                            >
-                              {result.quote.price}{" "}
-                              {result.symbolSearch.currency}
-                            </Text>
-                          )}
+                          <Text
+                            style={[
+                              styles.searchResultPrice,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {result.price} {result.currency}
+                          </Text>
                         </View>
                         <Text
                           style={[

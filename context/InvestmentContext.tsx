@@ -5,7 +5,6 @@ import React, {
   ReactNode,
   useEffect,
   useCallback,
-  useRef,
 } from "react";
 import { PortfolioData, PortfolioWithDecryptedData } from "@/types/portfolio";
 import {

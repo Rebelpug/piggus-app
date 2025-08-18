@@ -311,12 +311,6 @@ export interface PiggusApi {
     portfolioId: string,
     userId: string,
   ) => Promise<{ success: boolean }>;
-  lookupInvestmentByIsin: (
-    isin: string,
-    exchange: string,
-    type: string,
-    currency: string,
-  ) => Promise<LookupSearchResult[]>;
   lookupInvestmentBySymbol: (
     symbol: string,
     exchangeMarket: string,
@@ -325,7 +319,7 @@ export interface PiggusApi {
   ) => Promise<InvestmentLookupResultV2 | null>;
   searchSymbolsWithQuotes: (
     symbol: string,
-  ) => Promise<SymbolSearchWithQuoteResult[]>;
+  ) => Promise<InvestmentLookupResultV2[]>;
 
   // Profile Methods
   getProfile: () => Promise<Profile>;
@@ -652,15 +646,11 @@ export const piggusApi: PiggusApi = {
     return response.data;
   },
 
-  lookupInvestmentByIsin: async (
-    isin: string,
-    exchange: string,
-    type: string,
-    currency: string,
-  ) => {
+  searchSymbolsWithQuotes: async (symbol: string) => {
     const httpClient = getHttpClient();
-    const url = `${BASE_URL}/api/v1/portfolios/lookup/isin/${isin}?exchange=${exchange}&type=${type}&currency=${currency}`;
-    const response = await httpClient.get(url);
+    const response = await httpClient.get(
+      `${BASE_URL}/api/v1/portfolios/search/${symbol}`,
+    );
     return response.data;
   },
 
@@ -673,14 +663,6 @@ export const piggusApi: PiggusApi = {
     const httpClient = getHttpClient();
     const url = `${BASE_URL}/api/v1/portfolios/lookup/symbol/${symbol}?exchangeMarket=${exchangeMarket}&type=${type}&currency=${currency}`;
     const response = await httpClient.get(url);
-    return response.data;
-  },
-
-  searchSymbolsWithQuotes: async (symbol: string) => {
-    const httpClient = getHttpClient();
-    const response = await httpClient.get(
-      `${BASE_URL}/api/v1/portfolios/search/${symbol}`,
-    );
     return response.data;
   },
 

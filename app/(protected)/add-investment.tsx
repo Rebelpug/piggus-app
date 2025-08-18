@@ -22,7 +22,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useInvestment } from "@/context/InvestmentContext";
 import { useProfile } from "@/context/ProfileContext";
-import { INVESTMENT_TYPES, InvestmentData } from "@/types/investment";
+import {
+  INVESTMENT_TYPES,
+  InvestmentData,
+  InvestmentLookupResultV2,
+} from "@/types/investment";
 import { apiSearchSymbolsWithQuotes } from "@/services/investmentService";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -37,7 +41,6 @@ import {
   formatStringWithoutSpacesAndSpecialChars,
   normalizeDecimalForParsing,
 } from "@/utils/stringUtils";
-import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
 
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
 
@@ -54,7 +57,7 @@ export default function AddInvestmentScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [lookupError, setLookupError] = useState<string>("");
   const [searchResults, setSearchResults] = useState<
-    SymbolSearchWithQuoteResult[]
+    InvestmentLookupResultV2[]
   >([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
@@ -231,24 +234,19 @@ export default function AddInvestmentScreen() {
     }
   };
 
-  const handleSelectSearchResult = (result: SymbolSearchWithQuoteResult) => {
-    const symbolData = result.symbolSearch;
-    const quoteData = result.quote;
-
+  const handleSelectSearchResult = (result: InvestmentLookupResultV2) => {
     setFormData((prev) => ({
       ...prev,
-      name: symbolData.name,
-      symbol: symbolData.symbol,
-      exchange_market: symbolData.region,
-      current_price: quoteData?.price || "",
-      purchase_price: quoteData?.price || "",
-      currency: symbolData.currency,
+      name: result.name,
+      symbol: result.symbol,
+      exchange_market: result.exchange,
+      current_price: result.price || "",
+      purchase_price: result.price || "",
+      currency: result.currency,
     }));
 
     // Update currency selection if it exists in our list
-    const currencyIndex = currencies.findIndex(
-      (c) => c === symbolData.currency,
-    );
+    const currencyIndex = currencies.findIndex((c) => c === result.currency);
     if (currencyIndex >= 0) {
       setSelectedCurrencyIndex(new IndexPath(currencyIndex));
     }
@@ -556,7 +554,7 @@ export default function AddInvestmentScreen() {
                             { color: colors.text },
                           ]}
                         >
-                          {result.symbolSearch.symbol}
+                          {result.symbol}
                         </Text>
                         <Text
                           style={[
@@ -564,7 +562,7 @@ export default function AddInvestmentScreen() {
                             { color: colors.text },
                           ]}
                         >
-                          {result.symbolSearch.name}
+                          {result.name}
                         </Text>
                         <View style={styles.searchResultDetails}>
                           <Text
@@ -573,20 +571,16 @@ export default function AddInvestmentScreen() {
                               { color: colors.icon },
                             ]}
                           >
-                            {result.symbolSearch.region} |{" "}
-                            {result.symbolSearch.currency}
+                            {result.exchange} | {result.currency}
                           </Text>
-                          {result.quote && (
-                            <Text
-                              style={[
-                                styles.searchResultPrice,
-                                { color: colors.text },
-                              ]}
-                            >
-                              {result.quote.price}{" "}
-                              {result.symbolSearch.currency}
-                            </Text>
-                          )}
+                          <Text
+                            style={[
+                              styles.searchResultPrice,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {result.price} {result.currency}
+                          </Text>
                         </View>
                         <Text
                           style={[
