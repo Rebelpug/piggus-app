@@ -105,6 +105,8 @@ export default function AddInvestmentScreen() {
     maturity_date: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000), // 5 years from now
   });
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const selectedPortfolio = portfolios[selectedPortfolioIndex.row];
@@ -180,12 +182,12 @@ export default function AddInvestmentScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSymbolSearch = async () => {
-    if (!formData.symbol.trim()) {
+  const handleInvestmentSearch = async () => {
+    if (!searchQuery.trim()) {
       setLookupError(
         t(
-          "addInvestment.enterSymbolToSearch",
-          "Please enter a symbol to search",
+          "addInvestment.enterSymbolOrIsinToSearch",
+          "Please enter a symbol or ISIN to search",
         ),
       );
       return;
@@ -197,7 +199,7 @@ export default function AddInvestmentScreen() {
 
     try {
       const response = await apiSearchSymbolsWithQuotes(
-        formData.symbol.trim().toUpperCase(),
+        searchQuery.trim().toUpperCase(),
       );
 
       if (response.success && response.data) {
@@ -205,7 +207,7 @@ export default function AddInvestmentScreen() {
           setLookupError(
             t(
               "addInvestment.noInvestmentsFound",
-              "No investments found for the given symbol",
+              "No investments found for the given symbol or ISIN",
             ),
           );
         } else {
@@ -222,7 +224,7 @@ export default function AddInvestmentScreen() {
         );
       }
     } catch (error) {
-      console.error("Symbol search error:", error);
+      console.error("Investment search error:", error);
       setLookupError(
         t(
           "addInvestment.unexpectedSearchError",
@@ -239,6 +241,7 @@ export default function AddInvestmentScreen() {
       ...prev,
       name: result.name,
       symbol: result.symbol,
+      isin: result.isin,
       exchange_market: result.exchange,
       current_price: result.price || "",
       purchase_price: result.price || "",
@@ -251,6 +254,7 @@ export default function AddInvestmentScreen() {
       setSelectedCurrencyIndex(new IndexPath(currencyIndex));
     }
 
+    setSearchQuery(""); // Clear search query
     setShowSearchResults(false);
   };
 
@@ -461,14 +465,11 @@ export default function AddInvestmentScreen() {
 
             <Input
               style={styles.input}
-              label={t("addInvestment.symbol")}
-              placeholder="e.g., AAPL"
-              value={formData.symbol}
+              label={t("addInvestment.symbolOrIsin", "Symbol or ISIN")}
+              placeholder="e.g., AAPL or US0378331005"
+              value={searchQuery}
               onChangeText={(text) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  symbol: text.toUpperCase(),
-                }));
+                setSearchQuery(text);
                 setLookupError("");
               }}
             />
@@ -476,10 +477,10 @@ export default function AddInvestmentScreen() {
               style={[styles.input, styles.findButton]}
               size="medium"
               appearance="outline"
-              onPress={handleSymbolSearch}
+              onPress={handleInvestmentSearch}
               disabled={
                 isSearching ||
-                !formData.symbol.trim() ||
+                !searchQuery.trim() ||
                 userProfile?.subscription?.subscription_tier !== "premium"
               }
               accessoryLeft={
@@ -502,7 +503,10 @@ export default function AddInvestmentScreen() {
             </Button>
 
             <Text style={[styles.instructionText, { color: colors.icon }]}>
-              {t("addInvestment.symbolLookupInstruction")}
+              {t(
+                "addInvestment.symbolOrIsinLookupInstruction",
+                "Enter a stock symbol (e.g., AAPL) or ISIN code (e.g., US0378331005) to search for investment data.",
+              )}
             </Text>
 
             {lookupError && (
@@ -571,7 +575,8 @@ export default function AddInvestmentScreen() {
                               { color: colors.icon },
                             ]}
                           >
-                            {result.exchange} | {result.currency}
+                            {result.exchange} | {result.currency} |{" "}
+                            {result.isin}
                           </Text>
                           <Text
                             style={[
@@ -609,6 +614,29 @@ export default function AddInvestmentScreen() {
                 </TouchableOpacity>
               </View>
             )}
+
+            <Input
+              style={styles.input}
+              label={t("addInvestment.symbol")}
+              placeholder="e.g., AAPL"
+              value={formData.symbol}
+              onChangeText={(text) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  symbol: text.toUpperCase(),
+                }));
+              }}
+            />
+
+            <Input
+              style={styles.input}
+              label={t("addInvestment.isinCode")}
+              placeholder={t("addInvestment.enterIsinCode")}
+              value={formData.isin}
+              onChangeText={(text) => {
+                setFormData((prev) => ({ ...prev, isin: text.toUpperCase() }));
+              }}
+            />
 
             <Input
               style={styles.input}
@@ -652,16 +680,6 @@ export default function AddInvestmentScreen() {
                 <SelectItem key={index} title={currency} />
               ))}
             </Select>
-
-            <Input
-              style={styles.input}
-              label={t("addInvestment.isinCode")}
-              placeholder={t("addInvestment.enterIsinCode")}
-              value={formData.isin}
-              onChangeText={(text) => {
-                setFormData((prev) => ({ ...prev, isin: text }));
-              }}
-            />
 
             <Select
               style={styles.input}

@@ -95,6 +95,7 @@ export interface InvestmentLookupResultV2 {
   price: string;
   previousClose: number;
   previousCloseDate: string;
+  isin: string;
 }
 
 export const SECTORS = [
