@@ -83,7 +83,7 @@ export type ExpenseData = {
   payer_user_id: string; // Who actually paid for this expense
   payer_username?: string; // Username of the payer (for display)
   participants: ExpenseParticipant[]; // Who shares this expense and their amounts
-  split_method: "equal" | "custom" | "percentage"; // How the expense is split
+  split_method: "equal" | "custom"; // How the expense is split
   external_account_id?: string;
   external_transaction_id?: string;
 };
@@ -112,7 +112,7 @@ export type ExpenseFormData = {
   payer_user_id: string;
   payer_username?: string;
   participants: ExpenseParticipant[];
-  split_method: "equal" | "custom" | "percentage";
+  split_method: "equal" | "custom";
 };
 
 // Recurring expense types
@@ -133,7 +133,7 @@ export type RecurringExpenseData = {
   payer_user_id: string;
   payer_username?: string;
   participants: ExpenseParticipant[];
-  split_method: "equal" | "custom" | "percentage";
+  split_method: "equal" | "custom";
   interval: "daily" | "weekly" | "monthly" | "yearly";
   start_date: string;
   end_date?: string;
@@ -160,7 +160,7 @@ export type RecurringExpenseFormData = {
   payer_user_id: string;
   payer_username?: string;
   participants: ExpenseParticipant[];
-  split_method: "equal" | "custom" | "percentage";
+  split_method: "equal" | "custom";
   interval: "daily" | "weekly" | "monthly" | "yearly";
   start_date: string;
   end_date?: string;
@@ -366,7 +366,6 @@ export const CURRENCIES = [
 export const SPLIT_METHODS = [
   { value: "equal", label: "Split Equally" },
   { value: "custom", label: "Custom Amounts" },
-  { value: "percentage", label: "By Percentage" },
 ];
 
 // Utility functions for expense calculations

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -44,11 +44,14 @@ import {
 } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
+import { normalizeDecimalForParsing } from "@/utils/stringUtils";
 
 export default function AddExpenseScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
+  const { groupId, isRecurring: isRecurringParam } = useLocalSearchParams<{
+    groupId?: string;
+    isRecurring?: string;
+  }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { user } = useAuth();
@@ -105,7 +108,7 @@ export default function AddExpenseScreen() {
   const [selectedGroupIndex, setSelectedGroupIndex] = useState<
     IndexPath | undefined
   >();
-  const [isRecurring, setIsRecurring] = useState(params.isRecurring === "true");
+  const [isRecurring, setIsRecurring] = useState(isRecurringParam === "true");
   const [recurringInterval, setRecurringInterval] = useState("");
   // Sharing state
   const [selectedPayerIndex, setSelectedPayerIndex] = useState<
@@ -207,16 +210,16 @@ export default function AddExpenseScreen() {
           currentGroupMembers.map((member) => ({
             user_id: member.user_id,
             username: member.username,
-            share_amount: 0,
+            share_amount: 1, // Set to 1 to make them active by default
           }));
         setParticipants(initialParticipants);
       } else {
-        // For single-member groups, only include that member
+        // For single-member groups, only include that member and make them active
         const singleParticipant: ExpenseParticipant[] = [
           {
             user_id: currentGroupMembers[0].user_id,
             username: currentGroupMembers[0].username,
-            share_amount: 0,
+            share_amount: 1, // Set to 1 to make them active by default
           },
         ];
         setParticipants(singleParticipant);
@@ -224,34 +227,51 @@ export default function AddExpenseScreen() {
     }
   }, [currentGroupMembers, user?.id]);
 
-  // Recalculate shares when amount or split method changes
-  useEffect(() => {
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return;
+  const recalculateShares = useCallback(
+    (newAmount?: string) => {
+      const amountToUse = newAmount ?? amount;
+      const totalAmount = Number(normalizeDecimalForParsing(amountToUse));
+      if (!amountToUse || isNaN(totalAmount) || totalAmount <= 0) return;
+      const splitMethod =
+        SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || "equal";
 
-    const totalAmount = Number(amount);
-    const splitMethod =
-      SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || "equal";
-
-    if (splitMethod === "equal") {
-      const activeParticipants = participants.filter(
-        (p) => p.share_amount >= 0 || participants.length === 1,
-      );
-      if (activeParticipants.length > 0) {
-        const sharePerPerson = calculateEqualSplit(
-          totalAmount,
-          activeParticipants.length,
-        );
-        setParticipants((prev) =>
-          prev.map((p) => {
-            if (activeParticipants.find((ap) => ap.user_id === p.user_id)) {
-              return { ...p, share_amount: sharePerPerson };
-            }
-            return { ...p, share_amount: 0 };
-          }),
-        );
+      if (splitMethod === "equal") {
+        setParticipants((prev) => {
+          const activeParticipants = prev.filter((p) => p.share_amount > 0);
+          if (activeParticipants.length > 0) {
+            const sharePerPerson = calculateEqualSplit(
+              totalAmount,
+              activeParticipants.length,
+            );
+            return prev.map((p) => {
+              if (p.share_amount > 0) {
+                return { ...p, share_amount: sharePerPerson };
+              }
+              return p; // Keep deselected participants at 0
+            });
+          }
+          return prev; // No active participants, keep current state
+        });
       }
+    },
+    [amount, selectedSplitMethodIndex.row],
+  );
+
+  useEffect(() => {
+    if (participants.length > 0 && amount) {
+      recalculateShares();
     }
-  }, [amount, selectedSplitMethodIndex, participants.length, participants]);
+  }, [amount, participants.length, recalculateShares]);
+
+  const handleAmountChange = (newAmount: string) => {
+    setAmount(newAmount);
+    recalculateShares(newAmount);
+  };
+
+  const handleSplitMethodChange = (index: IndexPath) => {
+    setSelectedSplitMethodIndex(index);
+    recalculateShares();
+  };
 
   const navigateBack = () => {
     router.back();
@@ -262,12 +282,12 @@ export default function AddExpenseScreen() {
       Alert.alert(t("validation.error"), t("validation.expenseNameRequired"));
       return false;
     }
-    if (!amount.trim() || isNaN(Number(amount)) || Number(amount) <= 0) {
+    if (
+      !amount.trim() ||
+      isNaN(Number(normalizeDecimalForParsing(amount))) ||
+      Number(normalizeDecimalForParsing(amount)) <= 0
+    ) {
       Alert.alert(t("validation.error"), t("validation.validAmountRequired"));
-      return false;
-    }
-    if (!selectedCategoryIndex) {
-      Alert.alert(t("validation.error"), t("validation.categoryRequired"));
       return false;
     }
     if (!selectedGroupIndex) {
@@ -297,7 +317,7 @@ export default function AddExpenseScreen() {
       (sum, p) => sum + p.share_amount,
       0,
     );
-    const totalAmount = Number(amount);
+    const totalAmount = Number(normalizeDecimalForParsing(amount));
     if (Math.abs(totalShares - totalAmount) > 1) {
       Alert.alert(
         t("validation.error"),
@@ -318,7 +338,9 @@ export default function AddExpenseScreen() {
     setLoading(true);
     try {
       const selectedGroup = availableGroups[selectedGroupIndex!.row];
-      const selectedCategory = availableCategories[selectedCategoryIndex!.row];
+      const selectedCategory = selectedCategoryIndex
+        ? availableCategories[selectedCategoryIndex.row]
+        : { id: "other" };
       const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
       const selectedPayer = currentGroupMembers[selectedPayerIndex!.row];
       const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
@@ -333,16 +355,13 @@ export default function AddExpenseScreen() {
         const recurringExpenseData: RecurringExpenseData = {
           name: name.trim(),
           description: description.trim(),
-          amount: Number(amount),
+          amount: Number(normalizeDecimalForParsing(amount)),
           category: selectedCategory.id,
           currency: selectedCurrency.value,
           payer_user_id: selectedPayer.user_id,
           payer_username: selectedPayer.username,
           participants: activeParticipants,
-          split_method: selectedSplitMethod.value as
-            | "equal"
-            | "custom"
-            | "percentage",
+          split_method: selectedSplitMethod.value as "equal" | "custom",
           interval: recurringInterval as
             | "daily"
             | "weekly"
@@ -372,7 +391,7 @@ export default function AddExpenseScreen() {
         const expenseData: ExpenseData = {
           name: name.trim(),
           description: description.trim(),
-          amount: Number(amount),
+          amount: Number(normalizeDecimalForParsing(amount)),
           date: today,
           category: selectedCategory.id,
           is_recurring: false,
@@ -382,10 +401,7 @@ export default function AddExpenseScreen() {
           payer_user_id: selectedPayer.user_id,
           payer_username: selectedPayer.username,
           participants: activeParticipants,
-          split_method: selectedSplitMethod.value as
-            | "equal"
-            | "custom"
-            | "percentage",
+          split_method: selectedSplitMethod.value as "equal" | "custom",
         };
 
         const expenseResult = await addExpense(selectedGroup.id, expenseData);
@@ -402,7 +418,7 @@ export default function AddExpenseScreen() {
         const expenseData: ExpenseData = {
           name: name.trim(),
           description: description.trim(),
-          amount: Number(amount),
+          amount: Number(normalizeDecimalForParsing(amount)),
           date: date.toISOString().split("T")[0],
           category: selectedCategory.id,
           is_recurring: false,
@@ -411,10 +427,7 @@ export default function AddExpenseScreen() {
           payer_user_id: selectedPayer.user_id,
           payer_username: selectedPayer.username,
           participants: activeParticipants,
-          split_method: selectedSplitMethod.value as
-            | "equal"
-            | "custom"
-            | "percentage",
+          split_method: selectedSplitMethod.value as "equal" | "custom",
         };
 
         const result = await addExpense(selectedGroup.id, expenseData);
@@ -434,6 +447,7 @@ export default function AddExpenseScreen() {
   };
 
   const toggleParticipant = (userId: string) => {
+    const totalAmount = Number(normalizeDecimalForParsing(amount)) || 0;
     const splitMethod =
       SPLIT_METHODS[selectedSplitMethodIndex.row]?.value || "equal";
 
@@ -441,40 +455,24 @@ export default function AddExpenseScreen() {
       const updated = prev.map((p) => {
         if (p.user_id === userId) {
           const isCurrentlyActive = p.share_amount > 0;
-          if (isCurrentlyActive) {
-            return { ...p, share_amount: 0 };
-          } else {
-            // When activating, calculate share based on split method
-            if (splitMethod === "equal") {
-              const totalAmount = Number(amount) || 0;
-              const activeCount = prev.filter(
-                (participant) =>
-                  participant.share_amount > 0 ||
-                  participant.user_id === userId,
-              ).length;
-              return {
-                ...p,
-                share_amount: calculateEqualSplit(totalAmount, activeCount),
-              };
-            }
-            return { ...p, share_amount: 0 };
-          }
+          return { ...p, share_amount: isCurrentlyActive ? 0 : 1 }; // Set to 1 when activating
         }
         return p;
       });
 
-      // Recalculate equal split for all active participants
-      if (splitMethod === "equal" && amount) {
-        const totalAmount = Number(amount);
+      if (splitMethod === "equal" && totalAmount > 0) {
         const activeParticipants = updated.filter((p) => p.share_amount > 0);
         if (activeParticipants.length > 0) {
           const sharePerPerson = calculateEqualSplit(
             totalAmount,
             activeParticipants.length,
           );
-          return updated.map((p) =>
-            p.share_amount > 0 ? { ...p, share_amount: sharePerPerson } : p,
-          );
+          return updated.map((p) => {
+            if (p.share_amount > 0) {
+              return { ...p, share_amount: sharePerPerson };
+            }
+            return p;
+          });
         }
       }
 
@@ -549,7 +547,7 @@ export default function AddExpenseScreen() {
               : ""
           }
           selectedIndex={selectedSplitMethodIndex}
-          onSelect={(index) => setSelectedSplitMethodIndex(index as IndexPath)}
+          onSelect={(index) => handleSplitMethodChange(index as IndexPath)}
         >
           {SPLIT_METHODS.map((method) => (
             <SelectItem
@@ -723,10 +721,12 @@ export default function AddExpenseScreen() {
               label={t("addExpense.amountLabel")}
               placeholder={t("addExpense.amountPlaceholder")}
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={handleAmountChange}
               keyboardType="decimal-pad"
               status={
-                amount.trim() && !isNaN(Number(amount)) && Number(amount) > 0
+                amount.trim() &&
+                !isNaN(Number(normalizeDecimalForParsing(amount))) &&
+                Number(normalizeDecimalForParsing(amount)) > 0
                   ? "basic"
                   : "danger"
               }
@@ -799,7 +799,7 @@ export default function AddExpenseScreen() {
               }
               selectedIndex={selectedCategoryIndex}
               onSelect={(index) => setSelectedCategoryIndex(index as IndexPath)}
-              status={selectedCategoryIndex ? "basic" : "danger"}
+              status="basic"
             >
               {availableCategories.map((category) => (
                 <SelectItem key={category.id} title={category.displayName} />

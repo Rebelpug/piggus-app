@@ -268,8 +268,8 @@ export default function EditRecurringExpenseScreen() {
       return;
     }
 
-    if (!selectedCategoryIndex || !selectedPayerIndex) {
-      Alert.alert("Error", "Please select a category and payer");
+    if (!selectedPayerIndex) {
+      Alert.alert("Error", "Please select a payer");
       return;
     }
 
@@ -295,7 +295,16 @@ export default function EditRecurringExpenseScreen() {
     setLoading(true);
 
     try {
-      const selectedCategory = displayCategories[selectedCategoryIndex.row];
+      // Handle category selection - default to "other" if none selected or category not found
+      let selectedCategory;
+      if (
+        selectedCategoryIndex &&
+        displayCategories[selectedCategoryIndex.row]
+      ) {
+        selectedCategory = displayCategories[selectedCategoryIndex.row];
+      } else {
+        selectedCategory = { id: "other" };
+      }
       const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
       const selectedInterval = RECURRING_INTERVALS[selectedIntervalIndex.row];
       const selectedPayer = groupMembers[selectedPayerIndex.row];
@@ -327,10 +336,7 @@ export default function EditRecurringExpenseScreen() {
         payer_user_id: selectedPayer.user_id,
         payer_username: selectedPayer.username,
         participants: finalParticipants,
-        split_method: selectedSplitMethod.value as
-          | "equal"
-          | "custom"
-          | "percentage",
+        split_method: selectedSplitMethod.value as "equal" | "custom",
         interval: selectedInterval.value as
           | "daily"
           | "weekly"
@@ -374,36 +380,47 @@ export default function EditRecurringExpenseScreen() {
   };
 
   const handleParticipantToggle = (member: any) => {
-    const isParticipant = participants.some(
+    setParticipants((prev) => {
+      const existingParticipant = prev.find(
+        (p) => p.user_id === member.user_id,
+      );
+
+      if (existingParticipant) {
+        // Toggle between active (share_amount > 0) and inactive (share_amount = 0)
+        const isCurrentlyActive = existingParticipant.share_amount > 0;
+        return prev.map((p) =>
+          p.user_id === member.user_id
+            ? { ...p, share_amount: isCurrentlyActive ? 0 : 1 }
+            : p,
+        );
+      } else {
+        // Add new participant as active
+        const newParticipant: ExpenseParticipant = {
+          user_id: member.user_id,
+          username: member.username,
+          share_amount: 1, // Start as active
+        };
+        return [...prev, newParticipant];
+      }
+    });
+
+    // Handle custom amounts
+    const existingParticipant = participants.find(
       (p) => p.user_id === member.user_id,
     );
-
-    if (isParticipant) {
-      setParticipants((prev) =>
-        prev.filter((p) => p.user_id !== member.user_id),
-      );
-      // Remove from custom amounts
+    if (existingParticipant && existingParticipant.share_amount > 0) {
+      // Deactivating - remove from custom amounts
       setCustomAmounts((prev) => {
         const newAmounts = { ...prev };
         delete newAmounts[member.user_id];
         return newAmounts;
       });
-    } else {
-      const newParticipant: ExpenseParticipant = {
-        user_id: member.user_id,
-        username: member.username,
-        share_amount: 0, // Will be calculated based on split method
-      };
-      setParticipants((prev) => [...prev, newParticipant]);
-
-      // Initialize custom amount
-      if (selectedSplitMethodIndex.row === 1) {
-        // Custom split
-        setCustomAmounts((prev) => ({
-          ...prev,
-          [member.user_id]: "0",
-        }));
-      }
+    } else if (selectedSplitMethodIndex.row === 1) {
+      // Activating and custom split - initialize custom amount
+      setCustomAmounts((prev) => ({
+        ...prev,
+        [member.user_id]: "0",
+      }));
     }
   };
 
@@ -682,16 +699,17 @@ export default function EditRecurringExpenseScreen() {
               </Text>
 
               {groupMembers.map((member, index) => {
-                const isParticipant = participants.some(
+                const participant = participants.find(
                   (p) => p.user_id === member.user_id,
                 );
+                const isActive = participant && participant.share_amount > 0;
                 const isCurrentUser = member.user_id === user?.id;
 
                 return (
                   <View key={member.user_id} style={styles.participantRow}>
                     <View style={styles.participantInfo}>
                       <CheckBox
-                        checked={isParticipant}
+                        checked={!!isActive}
                         onChange={() => handleParticipantToggle(member)}
                       />
                       <Text
@@ -702,7 +720,7 @@ export default function EditRecurringExpenseScreen() {
                       </Text>
                     </View>
 
-                    {isParticipant && selectedSplitMethodIndex.row === 1 && (
+                    {isActive && selectedSplitMethodIndex.row === 1 && (
                       <Input
                         placeholder="0.00"
                         value={customAmounts[member.user_id] || ""}
@@ -714,13 +732,11 @@ export default function EditRecurringExpenseScreen() {
                       />
                     )}
 
-                    {isParticipant && selectedSplitMethodIndex.row === 0 && (
+                    {isActive && selectedSplitMethodIndex.row === 0 && (
                       <Text
                         style={[styles.shareAmount, { color: colors.text }]}
                       >
-                        {participants
-                          .find((p) => p.user_id === member.user_id)
-                          ?.share_amount.toFixed(2) || "0.00"}
+                        {participant?.share_amount.toFixed(2) || "0.00"}
                       </Text>
                     )}
                   </View>

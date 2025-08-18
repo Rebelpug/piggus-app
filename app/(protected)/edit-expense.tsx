@@ -43,6 +43,7 @@ import {
 } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
+import { normalizeDecimalForParsing } from "@/utils/stringUtils";
 
 export default function EditExpenseScreen() {
   const router = useRouter();
@@ -208,16 +209,17 @@ export default function EditExpenseScreen() {
       return;
     }
 
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    if (
+      !amount ||
+      isNaN(parseFloat(normalizeDecimalForParsing(amount))) ||
+      parseFloat(normalizeDecimalForParsing(amount)) <= 0
+    ) {
       Alert.alert(t("editExpense.error"), t("editExpense.enterValidAmount"));
       return;
     }
 
-    if (!selectedCategoryIndex || !selectedPayerIndex) {
-      Alert.alert(
-        t("editExpense.error"),
-        t("editExpense.selectCategoryAndPayer"),
-      );
+    if (!selectedPayerIndex) {
+      Alert.alert(t("editExpense.error"), t("editExpense.selectPayer"));
       return;
     }
 
@@ -237,7 +239,11 @@ export default function EditExpenseScreen() {
         return sum + (isNaN(customAmount) ? 0 : customAmount);
       }, 0);
 
-      if (Math.abs(totalCustomAmount - parseFloat(amount)) > 0.01) {
+      if (
+        Math.abs(
+          totalCustomAmount - parseFloat(normalizeDecimalForParsing(amount)),
+        ) > 0.01
+      ) {
         Alert.alert(
           t("editExpense.error"),
           t("editExpense.customAmountsMustMatch"),
@@ -249,14 +255,23 @@ export default function EditExpenseScreen() {
     setLoading(true);
 
     try {
-      const selectedCategory = availableCategories[selectedCategoryIndex.row];
+      // Handle category selection - default to "other" if none selected or category not found
+      let selectedCategory;
+      if (
+        selectedCategoryIndex &&
+        availableCategories[selectedCategoryIndex.row]
+      ) {
+        selectedCategory = availableCategories[selectedCategoryIndex.row];
+      } else {
+        selectedCategory = { id: "other" };
+      }
       const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
       const selectedPayer = groupMembers[selectedPayerIndex.row];
       const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
 
       // Calculate participant shares
       let finalParticipants: ExpenseParticipant[] = [];
-      const amountNum = parseFloat(amount);
+      const amountNum = parseFloat(normalizeDecimalForParsing(amount));
 
       if (selectedSplitMethod.value === "equal") {
         const shareAmount = calculateEqualSplit(amountNum, participants.length);
@@ -287,10 +302,7 @@ export default function EditExpenseScreen() {
         payer_user_id: selectedPayer.user_id,
         payer_username: selectedPayer.username,
         participants: finalParticipants,
-        split_method: selectedSplitMethod.value as
-          | "equal"
-          | "custom"
-          | "percentage",
+        split_method: selectedSplitMethod.value as "equal" | "custom",
         external_account_id: expense.data.external_account_id,
         external_transaction_id: expense.data.external_transaction_id,
       };
@@ -322,36 +334,47 @@ export default function EditExpenseScreen() {
   };
 
   const handleParticipantToggle = (member: any) => {
-    const isParticipant = participants.some(
+    setParticipants((prev) => {
+      const existingParticipant = prev.find(
+        (p) => p.user_id === member.user_id,
+      );
+
+      if (existingParticipant) {
+        // Toggle between active (share_amount > 0) and inactive (share_amount = 0)
+        const isCurrentlyActive = existingParticipant.share_amount > 0;
+        return prev.map((p) =>
+          p.user_id === member.user_id
+            ? { ...p, share_amount: isCurrentlyActive ? 0 : 1 }
+            : p,
+        );
+      } else {
+        // Add new participant as active
+        const newParticipant: ExpenseParticipant = {
+          user_id: member.user_id,
+          username: member.username,
+          share_amount: 1, // Start as active
+        };
+        return [...prev, newParticipant];
+      }
+    });
+
+    // Handle custom amounts
+    const existingParticipant = participants.find(
       (p) => p.user_id === member.user_id,
     );
-
-    if (isParticipant) {
-      setParticipants((prev) =>
-        prev.filter((p) => p.user_id !== member.user_id),
-      );
-      // Remove from custom amounts
+    if (existingParticipant && existingParticipant.share_amount > 0) {
+      // Deactivating - remove from custom amounts
       setCustomAmounts((prev) => {
         const newAmounts = { ...prev };
         delete newAmounts[member.user_id];
         return newAmounts;
       });
-    } else {
-      const newParticipant: ExpenseParticipant = {
-        user_id: member.user_id,
-        username: member.username,
-        share_amount: 0, // Will be calculated based on split method
-      };
-      setParticipants((prev) => [...prev, newParticipant]);
-
-      // Initialize custom amount
-      if (selectedSplitMethodIndex.row === 1) {
-        // Custom split
-        setCustomAmounts((prev) => ({
-          ...prev,
-          [member.user_id]: "0",
-        }));
-      }
+    } else if (selectedSplitMethodIndex.row === 1) {
+      // Activating and custom split - initialize custom amount
+      setCustomAmounts((prev) => ({
+        ...prev,
+        [member.user_id]: "0",
+      }));
     }
   };
 
@@ -366,7 +389,7 @@ export default function EditExpenseScreen() {
   useEffect(() => {
     if (!amount || participants.length === 0) return;
 
-    const amountNum = parseFloat(amount);
+    const amountNum = parseFloat(normalizeDecimalForParsing(amount));
     if (isNaN(amountNum)) return;
 
     if (selectedSplitMethodIndex.row === 0) {
@@ -567,16 +590,17 @@ export default function EditExpenseScreen() {
               </Text>
 
               {groupMembers.map((member, index) => {
-                const isParticipant = participants.some(
+                const participant = participants.find(
                   (p) => p.user_id === member.user_id,
                 );
+                const isActive = participant && participant.share_amount > 0;
                 const isCurrentUser = member.user_id === user?.id;
 
                 return (
                   <View key={member.user_id} style={styles.participantRow}>
                     <View style={styles.participantInfo}>
                       <CheckBox
-                        checked={isParticipant}
+                        checked={!!isActive}
                         onChange={() => handleParticipantToggle(member)}
                       />
                       <Text
@@ -587,7 +611,7 @@ export default function EditExpenseScreen() {
                       </Text>
                     </View>
 
-                    {isParticipant && selectedSplitMethodIndex.row === 1 && (
+                    {isActive && selectedSplitMethodIndex.row === 1 && (
                       <Input
                         placeholder="0.00"
                         value={customAmounts[member.user_id] || ""}
@@ -599,13 +623,11 @@ export default function EditExpenseScreen() {
                       />
                     )}
 
-                    {isParticipant && selectedSplitMethodIndex.row === 0 && (
+                    {isActive && selectedSplitMethodIndex.row === 0 && (
                       <Text
                         style={[styles.shareAmount, { color: colors.text }]}
                       >
-                        {participants
-                          .find((p) => p.user_id === member.user_id)
-                          ?.share_amount.toFixed(2) || "0.00"}
+                        {participant?.share_amount.toFixed(2) || "0.00"}
                       </Text>
                     )}
                   </View>

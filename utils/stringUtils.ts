@@ -28,3 +28,18 @@ export const encodeStringForUrl = (input: string): string => {
   if (!input) return "";
   return encodeURIComponent(input.trim());
 };
+
+/**
+ * Normalizes decimal input by converting commas to dots for consistent decimal parsing
+ * This handles iOS keyboards that show comma for decimal separator in some locales
+ * Use this function when parsing/validating numbers, not on every input change
+ * @param input The decimal string input that may contain comma as decimal separator
+ * @returns The normalized string with dot as decimal separator
+ */
+export const normalizeDecimalForParsing = (input: string): string => {
+  if (!input) return "";
+
+  // Replace comma with dot for decimal separation
+  // This ensures consistent parsing regardless of locale-specific keyboard behavior
+  return input.replace(/,/g, ".");
+};

@@ -33,7 +33,10 @@ import {
   calculateIndividualInvestmentReturns,
   InvestmentStats,
 } from "@/utils/financeUtils";
-import { formatStringWithoutSpacesAndSpecialChars } from "@/utils/stringUtils";
+import {
+  formatStringWithoutSpacesAndSpecialChars,
+  normalizeDecimalForParsing,
+} from "@/utils/stringUtils";
 import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
 
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
@@ -118,8 +121,8 @@ export default function AddInvestmentScreen() {
     if (!formData.quantity.trim()) {
       newErrors.quantity = t("addInvestment.quantityRequired");
     } else if (
-      isNaN(Number(formData.quantity)) ||
-      Number(formData.quantity) <= 0
+      isNaN(Number(normalizeDecimalForParsing(formData.quantity))) ||
+      Number(normalizeDecimalForParsing(formData.quantity)) <= 0
     ) {
       newErrors.quantity = t("addInvestment.quantityPositive");
     }
@@ -127,33 +130,33 @@ export default function AddInvestmentScreen() {
     if (!formData.purchase_price.trim()) {
       newErrors.purchase_price = t("addInvestment.purchasePriceRequired");
     } else if (
-      isNaN(Number(formData.purchase_price)) ||
-      Number(formData.purchase_price) <= 0
+      isNaN(Number(normalizeDecimalForParsing(formData.purchase_price))) ||
+      Number(normalizeDecimalForParsing(formData.purchase_price)) <= 0
     ) {
       newErrors.purchase_price = t("addInvestment.purchasePricePositive");
     }
 
     if (
       formData.current_price &&
-      (isNaN(Number(formData.current_price)) ||
-        Number(formData.current_price) <= 0)
+      (isNaN(Number(normalizeDecimalForParsing(formData.current_price))) ||
+        Number(normalizeDecimalForParsing(formData.current_price)) <= 0)
     ) {
       newErrors.current_price = t("addInvestment.currentPricePositive");
     }
 
     if (
       formData.taxation &&
-      (isNaN(Number(formData.taxation)) ||
-        Number(formData.taxation) < 0 ||
-        Number(formData.taxation) > 100)
+      (isNaN(Number(normalizeDecimalForParsing(formData.taxation))) ||
+        Number(normalizeDecimalForParsing(formData.taxation)) < 0 ||
+        Number(normalizeDecimalForParsing(formData.taxation)) > 100)
     ) {
       newErrors.taxation = t("addInvestment.taxationValidRange");
     }
 
     if (
       formData.interest_rate &&
-      (isNaN(Number(formData.interest_rate)) ||
-        Number(formData.interest_rate) < 0)
+      (isNaN(Number(normalizeDecimalForParsing(formData.interest_rate))) ||
+        Number(normalizeDecimalForParsing(formData.interest_rate)) < 0)
     ) {
       newErrors.interest_rate = t("addInvestment.interestRateValidRange");
     }
@@ -269,24 +272,28 @@ export default function AddInvestmentScreen() {
           formData.isin,
         ).toUpperCase(),
         exchange_market: formData.exchange_market.trim() || undefined,
-        quantity: Number(formData.quantity),
-        purchase_price: Number(formData.purchase_price),
+        quantity: Number(normalizeDecimalForParsing(formData.quantity)),
+        purchase_price: Number(
+          normalizeDecimalForParsing(formData.purchase_price),
+        ),
         current_price: formData.current_price
-          ? Number(formData.current_price)
-          : Number(formData.purchase_price),
+          ? Number(normalizeDecimalForParsing(formData.current_price))
+          : Number(normalizeDecimalForParsing(formData.purchase_price)),
         purchase_date: formData.purchase_date.toISOString(),
         currency: selectedCurrency,
         notes: formData.notes.trim() || null,
         last_updated: new Date().toISOString(),
         last_tentative_update: new Date().toISOString(),
         interest_rate: formData.interest_rate
-          ? Number(formData.interest_rate)
+          ? Number(normalizeDecimalForParsing(formData.interest_rate))
           : null,
         maturity_date:
           selectedType.id === "bond" && formData.maturity_date
             ? formData.maturity_date.toISOString()
             : null,
-        taxation: formData.taxation ? Number(formData.taxation) : 0,
+        taxation: formData.taxation
+          ? Number(normalizeDecimalForParsing(formData.taxation))
+          : 0,
       };
 
       const result = await addInvestment(selectedPortfolio.id, investmentData);
@@ -342,9 +349,13 @@ export default function AddInvestmentScreen() {
       } as InvestmentStats;
     }
 
-    const quantity = Number(formData.quantity);
-    const purchasePrice = Number(formData.purchase_price);
-    const currentPrice = Number(formData.current_price) || purchasePrice;
+    const quantity = Number(normalizeDecimalForParsing(formData.quantity));
+    const purchasePrice = Number(
+      normalizeDecimalForParsing(formData.purchase_price),
+    );
+    const currentPrice =
+      Number(normalizeDecimalForParsing(formData.current_price)) ||
+      purchasePrice;
 
     const investmentData = {
       id: "temp",
@@ -361,14 +372,17 @@ export default function AddInvestmentScreen() {
         last_updated: new Date().toISOString(),
         last_tentative_update: new Date().toISOString(),
         currency: selectedCurrency,
-        interest_rate: Number(formData.interest_rate) || 0,
+        interest_rate:
+          Number(normalizeDecimalForParsing(formData.interest_rate)) || 0,
         maturity_date: formData.maturity_date
           ? formData.maturity_date.toISOString().split("T")[0]
           : null,
         notes: formData.notes,
         symbol: formData.symbol,
         exchange_market: formData.exchange_market,
-        taxation: formData.taxation ? Number(formData.taxation) : 0,
+        taxation: formData.taxation
+          ? Number(normalizeDecimalForParsing(formData.taxation))
+          : 0,
       },
     };
 
@@ -696,8 +710,8 @@ export default function AddInvestmentScreen() {
               keyboardType="decimal-pad"
               status={
                 formData.quantity.trim() &&
-                !isNaN(Number(formData.quantity)) &&
-                Number(formData.quantity) > 0
+                !isNaN(Number(normalizeDecimalForParsing(formData.quantity))) &&
+                Number(normalizeDecimalForParsing(formData.quantity)) > 0
                   ? "basic"
                   : "danger"
               }
@@ -720,8 +734,10 @@ export default function AddInvestmentScreen() {
               keyboardType="decimal-pad"
               status={
                 formData.purchase_price.trim() &&
-                !isNaN(Number(formData.purchase_price)) &&
-                Number(formData.purchase_price) > 0
+                !isNaN(
+                  Number(normalizeDecimalForParsing(formData.purchase_price)),
+                ) &&
+                Number(normalizeDecimalForParsing(formData.purchase_price)) > 0
                   ? "basic"
                   : "danger"
               }
@@ -847,7 +863,10 @@ export default function AddInvestmentScreen() {
                 </Text>
                 <Text style={[styles.summaryValue, { color: colors.text }]}>
                   {formatCurrency(
-                    Number(formData.quantity) * Number(formData.purchase_price),
+                    Number(normalizeDecimalForParsing(formData.quantity)) *
+                      Number(
+                        normalizeDecimalForParsing(formData.purchase_price),
+                      ),
                   )}
                 </Text>
               </View>
