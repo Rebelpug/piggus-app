@@ -52,12 +52,12 @@ export default function ProfileHeader({ style }: ProfileHeaderProps) {
           style={styles.avatar}
         />
       </View>
-      <View style={styles.userInfo}>
+      {/*<View style={styles.userInfo}>
         <Text style={[styles.greeting, { color: colors.icon }]}>Hello,</Text>
         <Text style={[styles.username, { color: colors.text }]}>
           {userProfile.username}
         </Text>
-      </View>
+      </View>*/}
     </TouchableOpacity>
   );
 }
