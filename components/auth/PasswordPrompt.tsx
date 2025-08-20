@@ -42,8 +42,6 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
 
   // Centralized cleanup function for authentication failures
   const cleanupAndRedirect = async (reason: string) => {
-    console.log(`Authentication failed: ${reason}. Cleaning up stored data...`);
-
     try {
       await SecureKeyManager.clearAllData();
       await signOut();
@@ -64,37 +62,33 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
     try {
       // Check if biometric authentication is available
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      console.log("PasswordPrompt: hasHardware =", hasHardware);
 
       if (!hasHardware) {
-        console.log(
+        console.warn(
           "PasswordPrompt: No biometric hardware available - skipping biometric login",
         );
         return;
       }
 
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      console.log("PasswordPrompt: isEnrolled =", isEnrolled);
 
       if (!isEnrolled) {
-        console.log(
+        console.warn(
           "PasswordPrompt: No biometric credentials enrolled - skipping biometric login",
         );
         return;
       }
 
       const hasStoredKeys = await SecureKeyManager.hasStoredKey();
-      console.log("PasswordPrompt: hasStoredKeys =", hasStoredKeys);
 
       // Only attempt biometric login if we have stored keys
       if (!hasStoredKeys) {
-        console.log(
+        console.warn(
           "PasswordPrompt: No stored keys - skipping biometric login",
         );
         return;
       }
 
-      console.log("PasswordPrompt: Attempting biometric authentication...");
       const biometricResult = await LocalAuthentication.authenticateAsync({
         promptMessage: "Authenticate to unlock your encrypted data",
         cancelLabel: "Cancel",
@@ -104,18 +98,12 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
 
       if (biometricResult.success) {
         setLoading(true);
-        console.log(
-          "PasswordPrompt: Biometric authentication successful, initializing encryption...",
-        );
         // Try to initialize encryption using stored keys
         const success = await tryBiometricLogin();
         if (success) {
-          console.log(
-            "PasswordPrompt: Biometric login successful, user is now authenticated",
-          );
           onSuccess?.();
         } else {
-          console.log(
+          console.error(
             "PasswordPrompt: Biometric authentication succeeded but encryption initialization failed",
           );
           await cleanupAndRedirect(
@@ -123,9 +111,6 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
           );
         }
       } else {
-        console.log(
-          "PasswordPrompt: Biometric authentication failed or was canceled",
-        );
         await cleanupAndRedirect(
           "Biometric authentication failed or was canceled",
         );
@@ -147,9 +132,6 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
     setLoading(true);
     try {
       await initializeEncryptionWithPassword(password);
-      console.log(
-        "Password authentication successful, user is now authenticated",
-      );
       // Don't redirect - let the auth system handle the navigation
       onSuccess?.();
     } catch (error: any) {

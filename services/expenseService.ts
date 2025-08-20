@@ -110,8 +110,6 @@ export const apiFetchExpenseGroupsOnly = async (
     }
 
     const memberships = await piggusApi.getExpenseGroups();
-    console.log(memberships);
-
     if (!memberships) {
       return {
         success: true,

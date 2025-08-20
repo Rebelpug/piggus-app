@@ -49,7 +49,6 @@ const LoginScreen = () => {
   // Redirect to main app when user becomes fully authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("User is fully authenticated, redirecting to main app");
       router.replace("/");
     }
   }, [isAuthenticated, router]);
@@ -101,15 +100,7 @@ const LoginScreen = () => {
 
   // If user is logged in but needs to enter password for encryption
   if (user && needsPasswordPrompt && !encryptionInitialized) {
-    return (
-      <PasswordPrompt
-        onSuccess={() => {
-          console.log(
-            "Password prompt success, authentication should be complete",
-          );
-        }}
-      />
-    );
+    return <PasswordPrompt onSuccess={() => {}} />;
   }
 
   return (

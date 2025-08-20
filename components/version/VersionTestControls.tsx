@@ -24,13 +24,11 @@ export const VersionTestControls: React.FC = () => {
   }
 
   const handleUpdatePress = () => {
-    console.log("Update button pressed - would open app store");
     setShowSuggestedTest(false);
     setShowRequiredTest(false);
   };
 
   const handleLaterPress = () => {
-    console.log("Later button pressed");
     setShowSuggestedTest(false);
   };
 

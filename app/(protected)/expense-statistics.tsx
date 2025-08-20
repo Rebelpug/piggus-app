@@ -220,15 +220,6 @@ export default function ExpenseStatisticsScreen() {
 
   const defaultCurrency = userProfile?.profile?.defaultCurrency || "EUR";
 
-  // Get computed categories with user customizations
-  const allCategories = useMemo(
-    () =>
-      computeExpenseCategories(
-        userProfile?.profile?.budgeting?.categoryOverrides,
-      ),
-    [userProfile?.profile?.budgeting?.categoryOverrides],
-  );
-
   // Period filter state - Default to current month
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>(() => {
     const now = new Date();
@@ -1210,15 +1201,9 @@ export default function ExpenseStatisticsScreen() {
                         setFilterModalVisible(false);
                         setFilterStep("type");
 
-                        console.log("🔄 Fetching all months for year:", year);
-                        // Fetch all months for this year
                         for (let month = 1; month <= 12; month++) {
                           await fetchExpensesForMonth(year, month);
                         }
-                        console.log(
-                          "✅ Finished fetching all months for year:",
-                          year,
-                        );
                       } catch (error) {
                         console.error("❌ Error fetching year data:", error);
                       } finally {
@@ -1275,21 +1260,10 @@ export default function ExpenseStatisticsScreen() {
                       setFilterStep("type");
                       setSelectedYear(null);
 
-                      console.log(
-                        "🔄 Fetching specific month:",
-                        selectedYear,
-                        month.value + 1,
-                      );
-                      // Fetch the specific month
                       await fetchExpensesForMonth(
                         selectedYear,
                         month.value + 1,
                       ); // month.value is 0-indexed
-                      console.log(
-                        "✅ Finished fetching specific month:",
-                        selectedYear,
-                        month.value + 1,
-                      );
                     } catch (error) {
                       console.error("❌ Error fetching month data:", error);
                     } finally {

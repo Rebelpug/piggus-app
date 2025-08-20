@@ -410,10 +410,8 @@ export interface PiggusApi {
 export const piggusApi: PiggusApi = {
   healthCheck: async (): Promise<HealthCheckResponse> => {
     try {
-      console.log("Performing health check...");
       const httpClient = getHttpClient();
       const response = await httpClient.get(`${BASE_URL}/health`);
-      console.log("Health check response:", response.data);
 
       return { success: true, status: "healthy" };
     } catch (error: any) {

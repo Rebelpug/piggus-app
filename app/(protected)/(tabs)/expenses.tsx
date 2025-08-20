@@ -346,9 +346,6 @@ export default function ExpensesScreen() {
             ]}
             disabled={loadingMonth !== null}
             onPress={async () => {
-              console.log("🔄 Month selector clicked:", month.value);
-
-              // Show loading state and switch month immediately
               setSelectedMonth(month.value);
               setLoadingMonth(month.value);
 
@@ -356,18 +353,7 @@ export default function ExpensesScreen() {
                 // If not current month, fetch the specific month
                 if (month.value !== "current") {
                   const [year, monthNum] = month.value.split("-").map(Number);
-                  console.log(
-                    "🔄 Fetching expenses for month:",
-                    year,
-                    monthNum,
-                  );
-
                   await fetchExpensesForMonth(year, monthNum);
-                  console.log(
-                    "✅ Finished fetching expenses for month:",
-                    year,
-                    monthNum,
-                  );
                 }
               } catch (error) {
                 console.error("❌ Error fetching month expenses:", error);

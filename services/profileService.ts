@@ -18,8 +18,6 @@ export const apiFetchProfile = async (
       };
     }
 
-    console.log("Fetching profile for user:", user.id);
-
     const profile = await piggusApi.getProfile();
 
     if (!profile) {

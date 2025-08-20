@@ -116,19 +116,17 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
     privateKey: string;
   } | null> => {
     try {
-      console.log("Attempting to initialize from secure storage...");
-
       // Check if we have stored keys
       const hasKeys = await SecureKeyManager.hasStoredKey();
       if (!hasKeys) {
-        console.log("No keys found in secure storage");
+        console.error("No keys found in secure storage");
         return null;
       }
 
       // Retrieve encryption key from secure storage
       const storedEncryptionKey = await SecureKeyManager.getEncryptionKey();
       if (!storedEncryptionKey) {
-        console.log("Failed to retrieve encryption key from secure storage");
+        console.warn("Failed to retrieve encryption key from secure storage");
         return null;
       }
 
@@ -136,13 +134,13 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
       const storedPrivateKey =
         await SecureKeyManager.getPrivateKey(storedEncryptionKey);
       if (!storedPrivateKey) {
-        console.log("Failed to retrieve private key from AsyncStorage");
+        console.warn("Failed to retrieve private key from AsyncStorage");
         return null;
       }
 
       const publicKey = await SecureKeyManager.getPublicKey();
       if (!publicKey) {
-        console.log("Failed to retrieve public key from AsyncStorage");
+        console.warn("Failed to retrieve public key from AsyncStorage");
         return null;
       }
 
@@ -156,7 +154,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
       setPublicKey(publicKey); // You'll need to get this
       setIsInitialized(true);
 
-      console.log("Successfully initialized from secure storage");
       return {
         encryptionKey: storedEncryptionKey,
         privateKey: storedPrivateKey,
@@ -170,11 +167,9 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
   const initializeFromPassword = useCallback(
     async (password: string, onProgress?: (progress: number) => void) => {
       try {
-        console.log("Initializing encryption from password...");
         onProgress?.(0.1);
 
         // 1. Derive encryption key from password for encrypting the private key
-        console.log("Deriving encryption key from password...");
         const { key, salt: newSalt } = await deriveKeyFromPassword(
           password,
           undefined,
@@ -185,7 +180,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
           },
         );
 
-        console.log("PBKDF2 completed, generating RSA key pair...");
         onProgress?.(0.65);
 
         // 2. Generate a new RSA key pair
@@ -193,7 +187,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
           await generateKeyPair();
         onProgress?.(0.8);
 
-        console.log("RSA keys generated, updating state...");
         onProgress?.(0.9);
 
         // 3. Update the state
@@ -202,13 +195,11 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
         setPrivateKey(newPrivateKey);
         setIsInitialized(true);
 
-        console.log("Storing keys in secure storage...");
         await SecureKeyManager.storeEncryptionKey(key);
         await SecureKeyManager.storePrivateKey(newPrivateKey, key);
         await SecureKeyManager.storePublicKey(newPublicKey);
 
         onProgress?.(1.0);
-        console.log("Encryption initialization completed successfully");
 
         return {
           publicKey: newPublicKey,
@@ -238,7 +229,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
       salt: string;
     } | null> => {
       try {
-        console.log("Importing existing keys with progress tracking...");
         onProgress?.(0.1);
 
         const encryptedData = JSON.parse(encryptedPrivateKeyData);
@@ -249,7 +239,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
           return null;
         }
 
-        console.log("Starting async PBKDF2 with progress updates...");
         onProgress?.(0.2);
 
         // Use async PBKDF2 with progress tracking
@@ -263,7 +252,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
           },
         );
 
-        console.log("PBKDF2 completed, decrypting private key...");
         onProgress?.(0.85);
 
         const decryptedPrivateKey = decryptPrivateKey(
@@ -271,7 +259,6 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
           key,
         );
 
-        console.log("Updating encryption state...");
         onProgress?.(0.9);
 
         // Update state with the imported keys
@@ -281,13 +268,11 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
         setIsInitialized(true);
 
         // Store keys securely for future fast access
-        console.log("Storing keys in secure storage...");
         await SecureKeyManager.storeEncryptionKey(key);
         await SecureKeyManager.storePrivateKey(decryptedPrivateKey, key);
         await SecureKeyManager.storePublicKey(importedPublicKey);
 
         onProgress?.(1.0);
-        console.log("Key import completed successfully");
 
         return {
           publicKey: importedPublicKey,

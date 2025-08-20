@@ -268,12 +268,6 @@ export default function SubscriptionScreen() {
     try {
       setPurchasing(true);
 
-      console.log("Purchasing:", {
-        identifier: pricingTier.package.identifier,
-        localizedPrice: pricingTier.localizedPrice,
-        currency: pricingTier.currencyCode,
-      });
-
       const { customerInfo } = await Purchases.purchasePackage(
         pricingTier.package,
       );
@@ -281,7 +275,6 @@ export default function SubscriptionScreen() {
 
       // Update backend subscription to premium after successful purchase
       try {
-        console.log("Updating backend subscription to premium after purchase");
         await piggusApi.updateSubscription(
           "premium",
           customerInfo.originalAppUserId,
@@ -300,7 +293,7 @@ export default function SubscriptionScreen() {
             "No active subscription found in RevenueCat",
           )
         ) {
-          console.log(
+          console.error(
             "Backend validation failed due to RevenueCat API issues - purchase was successful locally",
           );
         } else {
@@ -346,9 +339,6 @@ export default function SubscriptionScreen() {
         const subscriptionTier = customerInfo.entitlements.active.premium
           ? "premium"
           : "free";
-        console.log(
-          `Updating backend subscription to ${subscriptionTier} after restore`,
-        );
 
         // Add timeout for backend call as well
         await Promise.race([
@@ -378,9 +368,6 @@ export default function SubscriptionScreen() {
           ) ||
           backendError.message === "Backend update timeout"
         ) {
-          console.log(
-            "Backend validation failed due to RevenueCat API issues or timeout - restore was successful locally",
-          );
         } else {
           console.error(
             "Unexpected backend error after restore:",

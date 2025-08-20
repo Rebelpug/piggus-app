@@ -281,7 +281,6 @@ export default function GroupDetailScreen() {
                 );
               }
             } catch (error) {
-              console.log("Failed to delete refund", (error as Error).message);
               Alert.alert(
                 t("groupDetail.error"),
                 t("groupDetail.deleteRefundFailed"),

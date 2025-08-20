@@ -90,7 +90,6 @@ export class VersionService {
         lastError = error as Error;
 
         if (attempt < maxRetries) {
-          console.log(`Version check attempt ${attempt} failed, retrying...`);
           await this.delay(VERSION_CONFIG.RETRY_DELAY * attempt);
         }
       }

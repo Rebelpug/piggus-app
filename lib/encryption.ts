@@ -69,9 +69,6 @@ export async function deriveKeyFromPassword(
   return new Promise((resolve, reject) => {
     InteractionManager.runAfterInteractions(async () => {
       try {
-        console.info("🔑 Starting PBKDF2 derivation...");
-        const startTime = Date.now();
-
         const salt = saltInput
           ? base64ToArrayBuffer(saltInput)
           : randomBytes(16);
@@ -83,9 +80,6 @@ export async function deriveKeyFromPassword(
           c: PBKDF2_ITERATIONS,
           dkLen: AES_KEY_LENGTH,
         });
-
-        const endTime = Date.now();
-        console.info(`✅ Key derived in ${endTime - startTime}ms`);
 
         onProgress?.(1); // mark 100% progress
 

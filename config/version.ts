@@ -31,5 +31,4 @@ export const VERSION_CONFIG = {
 if (__DEV__) {
   // In development, you might want to test version checking
   // VERSION_CONFIG.ENABLED = true;
-  console.log(`App version: ${APP_VERSION}`);
 }

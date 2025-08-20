@@ -48,7 +48,6 @@ const getSystemLanguage = (): string => {
     ];
 
     if (!systemLocale) {
-      console.log("No system locale detected, falling back to English");
       return "en";
     }
 
@@ -58,13 +57,7 @@ const getSystemLanguage = (): string => {
       : systemLocale;
 
     // Return the language code if supported, otherwise default to English
-    const selectedLanguage = supportedLanguages.includes(languageCode)
-      ? languageCode
-      : "en";
-    console.log(
-      `Detected system language: ${systemLocale}, using: ${selectedLanguage}`,
-    );
-    return selectedLanguage;
+    return supportedLanguages.includes(languageCode) ? languageCode : "en";
   } catch (error) {
     console.warn("Error detecting system language:", error);
     return "en";

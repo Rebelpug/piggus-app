@@ -159,7 +159,7 @@ export default function PortfolioDetailScreen() {
         );
       }
     } catch (error) {
-      console.log("Failed to handle invitation", (error as Error).message);
+      console.error("Failed to handle invitation", (error as Error).message);
       Alert.alert(
         t("portfolioDetail.error"),
         t("portfolioDetail.handleInvitationFailed"),

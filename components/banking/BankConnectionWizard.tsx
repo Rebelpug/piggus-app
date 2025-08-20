@@ -489,8 +489,7 @@ export default function BankConnectionWizard({
             // Check if we're being redirected back to our app
             if (navState.url.startsWith("piggus://bank-auth-complete")) {
               // Parse the URL to get any parameters
-              console.log("Bank authentication completed:", navState.url);
-              refreshProfile();
+              refreshProfile().catch(console.error);
 
               // Show success and close
               Alert.alert(

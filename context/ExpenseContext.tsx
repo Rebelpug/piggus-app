@@ -338,12 +338,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       if (year && month) {
         const monthKey = `${year}-${String(month).padStart(2, "0")}`;
         newSet.delete(monthKey);
-        console.log("🗑️ Cleared cache for month:", monthKey);
       } else {
         newSet.clear();
-        console.log("🗑️ Cleared entire month cache");
       }
-      console.log("🗑️ Remaining cached months:", Array.from(newSet));
       return newSet;
     });
   }, []);
@@ -353,26 +350,17 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       return new Promise<void>((resolve, reject) => {
         const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
-        console.log("🔄 fetchExpensesForMonth called for:", year, month);
-
         if (!user || !isEncryptionInitialized) {
-          console.log("❌ User or encryption not ready");
+          console.error("❌ User or encryption not ready");
           resolve();
           return;
         }
 
-        console.log("🔄 Month key:", monthKey);
-
         // Check cached months using functional update
         setCachedMonths((prevCached) => {
           if (!forceRefresh && prevCached.has(monthKey)) {
-            console.log("✅ Month already cached:", monthKey);
             resolve();
             return prevCached;
-          }
-
-          if (forceRefresh) {
-            console.log("🔄 Force refreshing month:", monthKey);
           }
 
           // Calculate start and end dates for the month
@@ -381,29 +369,14 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           const startDateString = startDate.toISOString().split("T")[0];
           const endDateString = endDate.toISOString().split("T")[0];
 
-          console.log(
-            "🔄 Fetching month date range:",
-            startDateString,
-            "to",
-            endDateString,
-          );
-
           // Access current groups and fetch month data
           setExpensesGroups((currentGroups) => {
-            console.log("🔄 Current groups count:", currentGroups.length);
-
             // Perform async fetch and update groups
             (async () => {
               try {
                 const updatedGroups = await Promise.all(
                   currentGroups.map(async (group) => {
                     try {
-                      console.log(
-                        "🔄 Fetching for group:",
-                        group.id,
-                        group.data?.name,
-                      );
-
                       const paginatedResult = await apiFetchExpensesPaginated(
                         user,
                         group.id,
@@ -416,16 +389,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                         },
                         decryptWithExternalEncryptionKey,
                       );
-
-                      console.log(
-                        "🔄 Paginated result for group",
-                        group.id,
-                        ":",
-                        paginatedResult?.success,
-                        paginatedResult?.data?.expenses?.length || 0,
-                        "expenses",
-                      );
-
                       if (paginatedResult.success && paginatedResult.data) {
                         // Add new month expenses to existing expenses, avoiding duplicates
                         const existingExpenseIds = new Set(
@@ -435,15 +398,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                           paginatedResult.data.expenses.filter(
                             (exp) => !existingExpenseIds.has(exp.id),
                           );
-
-                        console.log(
-                          "🔄 Group",
-                          group.id,
-                          "- Adding",
-                          newMonthExpenses.length,
-                          "new expenses for month",
-                          monthKey,
-                        );
 
                         return {
                           ...group,
@@ -457,13 +411,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                           ),
                         };
                       }
-
-                      console.log(
-                        "🔄 No expenses found for group",
-                        group.id,
-                        "in month",
-                        monthKey,
-                      );
                       return group;
                     } catch (error) {
                       console.error(
@@ -474,25 +421,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
                     }
                   }),
                 );
-
-                console.log(
-                  "🔄 Updated groups for month",
-                  monthKey,
-                  ". Total expenses per group:",
-                  updatedGroups.map((g) => ({
-                    id: g.id,
-                    name: g.data?.name,
-                    count: g.expenses.length,
-                  })),
-                );
-
-                // Update groups state with fetched data
                 setExpensesGroups(updatedGroups);
-
-                console.log(
-                  "✅ Successfully fetched expenses for month:",
-                  monthKey,
-                );
                 resolve();
               } catch (error) {
                 console.error("❌ Error fetching expenses for month:", error);
@@ -507,7 +436,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           // Add to cached months
           const newSet = new Set(prevCached);
           newSet.add(monthKey);
-          console.log("🔄 Updated cached months:", Array.from(newSet));
           return newSet;
         });
       });
@@ -1365,7 +1293,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
       // Fetch bank transactions
       const accountsTransactions = await piggusApi.getBankTransactions();
-      console.log("Bank transactions fetched:", accountsTransactions);
 
       // Check if we have any accounts
       if (!accountsTransactions || accountsTransactions.length === 0) {
@@ -1385,9 +1312,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       for (const accountData of accountsTransactions) {
         // Skip accounts that were skipped during fetching
         if (accountData.skipped) {
-          console.log(
-            `Skipped account ${accountData.accountId}: ${accountData.reason || "No reason provided"}`,
-          );
           continue;
         }
         allSkipped = false;
@@ -1587,10 +1511,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           // Count added and updated expenses
           addedCount = bulkOperations.filter((op) => !op.id).length;
           updatedCount = bulkOperations.filter((op) => op.id).length;
-
-          console.log(
-            `Bulk operation completed: ${result.data?.length || 0} expenses processed`,
-          );
         } else {
           return {
             success: false,

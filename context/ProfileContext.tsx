@@ -86,9 +86,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     defaultCurrency: string = "EUR",
   ) => {
     if (!user || !publicKey || !username) {
-      console.log("User", user);
-      console.log("publicKey", publicKey);
-      console.log("username", username);
       console.error("User is not authenticated, cannot create personal group");
       return;
     }
@@ -178,10 +175,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           // Only sync if there's a mismatch
           if (hasRevenueCatPremium !== hasBackendPremium) {
             const targetTier = hasRevenueCatPremium ? "premium" : "free";
-            console.log(
-              `Syncing subscription: RevenueCat has ${hasRevenueCatPremium ? "premium" : "free"}, updating backend to ${targetTier}`,
-            );
-
             try {
               await piggusApi.updateSubscription(
                 targetTier,
@@ -195,7 +188,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                 decryptData!,
               );
               if (updatedResult.data) {
-                console.log("Subscription sync completed successfully");
                 return updatedResult.data;
               }
             } catch (backendError: any) {
@@ -223,7 +215,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       !encryptData ||
       !decryptData
     ) {
-      console.log(
+      console.warn(
         "Cannot fetch profile: Auth/Encryption not fully initialized or missing dependencies",
       );
       return;
@@ -237,15 +229,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const result = await apiFetchProfile(user, encryptData, decryptData);
 
       if (result.data) {
-        console.log("Profile found and loaded");
-
-        // Sync RevenueCat subscription status
         const syncedProfile = await syncRevenueCatSubscription(result.data);
 
         setUserProfile(syncedProfile);
         setOnboardingCompleted(!!syncedProfile.profile.budgeting?.budget);
       } else {
-        console.log(
+        console.warn(
           "No profile found for user, will need to create one",
           result.error,
         );
@@ -286,7 +275,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         );
         return null;
       }
-      console.log("Creating user with currency:", defaultCurrency);
 
       if (!username) {
         setError("Cannot create profile: No name provided");

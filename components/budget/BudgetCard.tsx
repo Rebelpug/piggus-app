@@ -176,7 +176,7 @@ export default function BudgetCard({
 
       setBudgetModalVisible(false);
     } catch (error) {
-      console.log("Failed to set budget: ", (error as Error).message || "");
+      console.error("Failed to set budget: ", (error as Error).message || "");
       Alert.alert("Error", "Failed to set budget. Please try again.");
     } finally {
       setSavingBudget(false);

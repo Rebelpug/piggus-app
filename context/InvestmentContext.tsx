@@ -293,12 +293,11 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       try {
         // Only sync for premium users
         if (userProfile?.subscription?.subscription_tier !== "premium") {
-          console.log("No premium user, skipping investment price sync");
+          console.error("No premium user, skipping investment price sync");
           return;
         }
 
         if (!userPortfolios || userPortfolios.length === 0) {
-          console.log("No portfolios found");
           return;
         }
 
@@ -307,7 +306,6 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        console.log("Starting investment price sync for premium user");
         setIsSyncing(true);
 
         const today = new Date();
@@ -349,10 +347,6 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
           }
 
           try {
-            console.log(
-              `Syncing price for investment: ${investmentData.name} (${investmentData.isin})`,
-            );
-
             const lookupResult = await apiLookupInvestmentBySymbol(
               encodeStringForUrl(investmentData.symbol || ""),
               investmentData?.exchange_market?.trim().toUpperCase() || "",
@@ -385,9 +379,6 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
                 );
 
                 if (result.data) {
-                  console.log(
-                    `Successfully synced price for ${investmentData.name}: ${newPrice}`,
-                  );
                   return { portfolio, investment: result.data };
                 }
               }
@@ -465,10 +456,6 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
             }
           }
         });
-
-        console.log(
-          `Price sync completed. Updated: ${syncCount}, Errors: ${errorCount}`,
-        );
 
         // Update portfolios state with all changes
         if (Object.keys(portfolioUpdates).length > 0) {

@@ -87,9 +87,6 @@ export default function GroupsScreen() {
         }
       }, 0) || 0;
 
-    console.log("Rendering group");
-    console.log(item);
-
     return (
       <TouchableOpacity
         style={[
