@@ -407,10 +407,64 @@ export default function GroupDetailScreen() {
     );
   };
 
+  // Calculate settlement suggestions
+  const calculateSettlements = () => {
+    const allMembers = group?.members || [];
+    const balances = allMembers
+      .map((member) => ({
+        ...member,
+        balance: groupBalances[member.user_id] || 0,
+      }))
+      .filter((member) => Math.abs(member.balance) > 0.01); // Only include non-zero balances
+
+    const creditors = balances
+      .filter((member) => member.balance > 0)
+      .sort((a, b) => b.balance - a.balance);
+
+    const debtors = balances
+      .filter((member) => member.balance < 0)
+      .sort((a, b) => a.balance - b.balance);
+
+    const settlements = [];
+    let creditorIndex = 0;
+    let debtorIndex = 0;
+
+    while (creditorIndex < creditors.length && debtorIndex < debtors.length) {
+      const creditor = creditors[creditorIndex];
+      const debtor = debtors[debtorIndex];
+
+      const amountOwed = Math.abs(debtor.balance);
+      const amountToReceive = creditor.balance;
+      const settlementAmount = Math.min(amountOwed, amountToReceive);
+
+      if (settlementAmount > 0.01) {
+        settlements.push({
+          from: debtor,
+          to: creditor,
+          amount: settlementAmount,
+        });
+
+        // Update balances
+        creditor.balance -= settlementAmount;
+        debtor.balance += settlementAmount;
+      }
+
+      // Move to next creditor/debtor if current one is settled
+      if (Math.abs(creditor.balance) < 0.01) {
+        creditorIndex++;
+      }
+      if (Math.abs(debtor.balance) < 0.01) {
+        debtorIndex++;
+      }
+    }
+
+    return settlements;
+  };
+
   const renderBalancesTab = () => {
-    const confirmedMembers =
-      group?.members?.filter((m) => m.status === "confirmed") || [];
-    const sortedBalances = confirmedMembers
+    const settlements = calculateSettlements();
+    const allMembers = group?.members || [];
+    const sortedBalances = allMembers
       .map((member) => ({
         ...member,
         balance: groupBalances[member.user_id] || 0,
@@ -418,78 +472,214 @@ export default function GroupDetailScreen() {
       .sort((a, b) => b.balance - a.balance);
 
     return (
-      <Layout style={styles.tabContent}>
-        <Layout style={styles.balancesHeader}>
-          <Text category="h6" style={styles.balancesTitle}>
-            Group Balances
-          </Text>
-          <Text category="c1" appearance="hint" style={styles.balancesSubtitle}>
-            {t("groupDetail.whoOwesWhat")}
-          </Text>
-        </Layout>
-
-        {sortedBalances.length > 0 ? (
-          <List
-            style={styles.balancesList}
-            data={sortedBalances}
-            renderItem={({ item }) => {
-              const isCurrentUser = item.user_id === user?.id;
-              const isPositive = item.balance > 0;
-              const isZero = Math.abs(item.balance) < 0.01;
-
-              return (
-                <ListItem
-                  title={item.username + (isCurrentUser ? " (You)" : "")}
-                  accessoryRight={() => (
-                    <Layout style={styles.balanceItemRight}>
-                      <Text
-                        category="h6"
-                        style={[
-                          styles.balanceAmountLarge,
-                          {
-                            color: isZero
-                              ? "#666"
-                              : isPositive
-                                ? "#4CAF50"
-                                : "#F44336",
-                          },
-                        ]}
-                      >
-                        {isPositive ? "+" : ""}
-                        {formatCurrency(item.balance, group?.data?.currency)}
-                      </Text>
-                      <Text
-                        category="c1"
-                        appearance="hint"
-                        style={styles.balanceStatusLarge}
-                      >
-                        {isZero
-                          ? t("groupDetail.settled")
-                          : isPositive
-                            ? t("groupDetail.getsBack")
-                            : t("groupDetail.owesAmount")}
-                      </Text>
-                    </Layout>
-                  )}
-                />
-              );
-            }}
-            ItemSeparatorComponent={Divider}
-          />
-        ) : (
-          <Layout style={styles.emptyBalances}>
-            <Ionicons
-              name="calculator-outline"
-              size={48}
-              color="#8F9BB3"
-              style={styles.emptyIcon}
-            />
-            <Text category="s1" appearance="hint" style={styles.emptyText}>
-              {t("groupDetail.noBalancesToShow")}
+      <View style={styles.tabContent}>
+        <ScrollView
+          style={styles.balancesScrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          <Layout style={styles.balancesHeader}>
+            <Text category="h6" style={styles.balancesTitle}>
+              Settlement Suggestions
+            </Text>
+            <Text
+              category="c1"
+              appearance="hint"
+              style={styles.balancesSubtitle}
+            >
+              Who should pay whom to settle all balances
             </Text>
           </Layout>
-        )}
-      </Layout>
+
+          {settlements.length > 0 && (
+            <Layout style={styles.settlementsSection}>
+              <List
+                style={styles.settlementsList}
+                data={settlements}
+                renderItem={({ item }) => {
+                  const isCurrentUserPaying = item.from.user_id === user?.id;
+                  const isCurrentUserReceiving = item.to.user_id === user?.id;
+
+                  return (
+                    <ListItem
+                      title={`${item.from.username} → ${item.to.username}`}
+                      description={
+                        isCurrentUserPaying
+                          ? `You need to pay ${item.to.username}`
+                          : isCurrentUserReceiving
+                            ? `${item.from.username} should pay you`
+                            : "Settlement between members"
+                      }
+                      accessoryLeft={() => (
+                        <Layout
+                          style={[
+                            styles.settlementIcon,
+                            {
+                              backgroundColor: isCurrentUserPaying
+                                ? "#FF6B6B20"
+                                : isCurrentUserReceiving
+                                  ? "#4CAF5020"
+                                  : "#8F9BB320",
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name="arrow-forward-outline"
+                            size={20}
+                            color={
+                              isCurrentUserPaying
+                                ? "#FF6B6B"
+                                : isCurrentUserReceiving
+                                  ? "#4CAF50"
+                                  : "#8F9BB3"
+                            }
+                          />
+                        </Layout>
+                      )}
+                      accessoryRight={() => (
+                        <Layout style={styles.settlementAmount}>
+                          <Text
+                            category="h6"
+                            style={[
+                              styles.settlementAmountText,
+                              {
+                                color: isCurrentUserPaying
+                                  ? "#FF6B6B"
+                                  : isCurrentUserReceiving
+                                    ? "#4CAF50"
+                                    : colors.text,
+                              },
+                            ]}
+                          >
+                            {formatCurrency(item.amount, group?.data?.currency)}
+                          </Text>
+                          <Text
+                            category="c1"
+                            appearance="hint"
+                            style={styles.settlementStatus}
+                          >
+                            {isCurrentUserPaying
+                              ? "You owe"
+                              : isCurrentUserReceiving
+                                ? "You receive"
+                                : "Transfer"}
+                          </Text>
+                        </Layout>
+                      )}
+                    />
+                  );
+                }}
+                ItemSeparatorComponent={Divider}
+              />
+            </Layout>
+          )}
+
+          {sortedBalances.length > 0 ? (
+            <Layout style={styles.balancesSection}>
+              <Text category="s1" style={styles.sectionTitle}>
+                Individual Balances
+              </Text>
+              <List
+                style={styles.balancesList}
+                data={sortedBalances}
+                renderItem={({ item }) => {
+                  const isCurrentUser = item.user_id === user?.id;
+                  const isPositive = item.balance > 0;
+                  const isZero = Math.abs(item.balance) < 0.01;
+                  const isPending = item.status === "pending";
+
+                  return (
+                    <ListItem
+                      title={`${item.username}${isCurrentUser ? " (You)" : ""}${isPending ? " (Pending)" : ""}`}
+                      description={
+                        isZero
+                          ? isPending
+                            ? "Settled up (Pending invitation)"
+                            : "Settled up"
+                          : isPositive
+                            ? `Gets back ${formatCurrency(item.balance, group?.data?.currency)}${isPending ? " (Pending invitation)" : ""}`
+                            : `Owes ${formatCurrency(Math.abs(item.balance), group?.data?.currency)}${isPending ? " (Pending invitation)" : ""}`
+                      }
+                      accessoryRight={() => (
+                        <Layout style={styles.balanceItemRight}>
+                          <Text
+                            category="s1"
+                            style={[
+                              styles.balanceAmountSmall,
+                              {
+                                color: isZero
+                                  ? "#666"
+                                  : isPositive
+                                    ? "#4CAF50"
+                                    : "#F44336",
+                                opacity: isPending ? 0.7 : 1,
+                              },
+                            ]}
+                          >
+                            {isPositive ? "+" : ""}
+                            {formatCurrency(
+                              item.balance,
+                              group?.data?.currency,
+                            )}
+                          </Text>
+                          <Text
+                            category="c1"
+                            appearance="hint"
+                            style={[
+                              styles.balanceStatusSmall,
+                              { opacity: isPending ? 0.7 : 1 },
+                            ]}
+                          >
+                            {isPending
+                              ? isZero
+                                ? "Pending"
+                                : isPositive
+                                  ? "Credit*"
+                                  : "Debt*"
+                              : isZero
+                                ? "Settled"
+                                : isPositive
+                                  ? "Credit"
+                                  : "Debt"}
+                          </Text>
+                        </Layout>
+                      )}
+                    />
+                  );
+                }}
+                ItemSeparatorComponent={Divider}
+              />
+            </Layout>
+          ) : (
+            <Layout style={styles.emptyBalances}>
+              <Ionicons
+                name="people-outline"
+                size={48}
+                color="#8F9BB3"
+                style={styles.emptyIcon}
+              />
+              <Text category="s1" appearance="hint" style={styles.emptyText}>
+                No members to show balances for
+              </Text>
+            </Layout>
+          )}
+
+          {settlements.length === 0 && sortedBalances.length > 0 && (
+            <Layout style={styles.settledMessage}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={32}
+                color="#4CAF50"
+                style={styles.settledIcon}
+              />
+              <Text category="s1" style={styles.settledText}>
+                All balances are settled!
+              </Text>
+            </Layout>
+          )}
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </View>
     );
   };
 
@@ -653,8 +843,7 @@ export default function GroupDetailScreen() {
                     <Text
                       style={[styles.summaryNumber, { color: colors.primary }]}
                     >
-                      {group.members?.filter((m) => m.status === "confirmed")
-                        .length || 0}
+                      {group.members?.length || 0}
                     </Text>
                     <Text style={[styles.summaryLabel, { color: colors.icon }]}>
                       {t("groupDetail.members")}
@@ -1085,68 +1274,66 @@ export default function GroupDetailScreen() {
               {t("groupDetail.refundFrom")}
             </Text>
             <Layout style={styles.selectContainer}>
-              {group?.members
-                ?.filter((m) => m.status === "confirmed")
-                .map((member) => (
-                  <TouchableOpacity
-                    key={member.user_id}
+              {group?.members?.map((member) => (
+                <TouchableOpacity
+                  key={member.user_id}
+                  style={[
+                    styles.memberSelectItem,
+                    refundFormData.from_user_id === member.user_id &&
+                      styles.memberSelectItemSelected,
+                  ]}
+                  onPress={() =>
+                    setRefundFormData((prev) => ({
+                      ...prev,
+                      from_user_id: member.user_id,
+                    }))
+                  }
+                >
+                  <Text
                     style={[
-                      styles.memberSelectItem,
+                      styles.memberSelectText,
                       refundFormData.from_user_id === member.user_id &&
-                        styles.memberSelectItemSelected,
+                        styles.memberSelectTextSelected,
                     ]}
-                    onPress={() =>
-                      setRefundFormData((prev) => ({
-                        ...prev,
-                        from_user_id: member.user_id,
-                      }))
-                    }
                   >
-                    <Text
-                      style={[
-                        styles.memberSelectText,
-                        refundFormData.from_user_id === member.user_id &&
-                          styles.memberSelectTextSelected,
-                      ]}
-                    >
-                      {member.username}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                    {member.username}
+                    {member.status === "pending" ? " (Pending)" : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </Layout>
 
             <Text category="label" style={styles.fieldLabel}>
               {t("groupDetail.refundTo")}
             </Text>
             <Layout style={styles.selectContainer}>
-              {group?.members
-                ?.filter((m) => m.status === "confirmed")
-                .map((member) => (
-                  <TouchableOpacity
-                    key={member.user_id}
+              {group?.members?.map((member) => (
+                <TouchableOpacity
+                  key={member.user_id}
+                  style={[
+                    styles.memberSelectItem,
+                    refundFormData.to_user_id === member.user_id &&
+                      styles.memberSelectItemSelected,
+                  ]}
+                  onPress={() =>
+                    setRefundFormData((prev) => ({
+                      ...prev,
+                      to_user_id: member.user_id,
+                    }))
+                  }
+                >
+                  <Text
                     style={[
-                      styles.memberSelectItem,
+                      styles.memberSelectText,
                       refundFormData.to_user_id === member.user_id &&
-                        styles.memberSelectItemSelected,
+                        styles.memberSelectTextSelected,
                     ]}
-                    onPress={() =>
-                      setRefundFormData((prev) => ({
-                        ...prev,
-                        to_user_id: member.user_id,
-                      }))
-                    }
                   >
-                    <Text
-                      style={[
-                        styles.memberSelectText,
-                        refundFormData.to_user_id === member.user_id &&
-                          styles.memberSelectTextSelected,
-                      ]}
-                    >
-                      {member.username}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                    {member.username}
+                    {member.status === "pending" ? " (Pending)" : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </Layout>
 
             <Input
@@ -1561,5 +1748,70 @@ const styles = StyleSheet.create({
   memberSelectTextSelected: {
     color: "#3366FF",
     fontWeight: "600",
+  },
+  settlementsSection: {
+    marginBottom: 20,
+  },
+  settlementsList: {
+    backgroundColor: "transparent",
+  },
+  settlementIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  settlementAmount: {
+    alignItems: "flex-end",
+  },
+  settlementAmountText: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  settlementStatus: {
+    fontSize: 12,
+  },
+  balancesSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+  },
+  sectionTitle: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    fontWeight: "600",
+    color: "#8F9BB3",
+  },
+  balanceAmountSmall: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  balanceStatusSmall: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  settledMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    marginTop: 16,
+    backgroundColor: "#4CAF5010",
+    borderRadius: 8,
+    marginHorizontal: 16,
+  },
+  settledIcon: {
+    marginRight: 8,
+  },
+  settledText: {
+    color: "#4CAF50",
+    fontWeight: "600",
+  },
+  balancesScrollView: {
+    flex: 1,
   },
 });

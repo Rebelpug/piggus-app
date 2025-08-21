@@ -531,7 +531,10 @@ export default function AddExpenseScreen() {
           status={selectedPayerIndex ? "basic" : "danger"}
         >
           {currentGroupMembers.map((member) => (
-            <SelectItem key={member.user_id} title={member.username} />
+            <SelectItem
+              key={member.user_id}
+              title={`${member.username}${member.status === "pending" ? " (Pending)" : ""}`}
+            />
           ))}
         </Select>
 
@@ -597,7 +600,10 @@ export default function AddExpenseScreen() {
                     { backgroundColor: colors.card, shadowColor: colors.text },
                   ]}
                 >
-                  <Text category="s1">{member.username}</Text>
+                  <Text category="s1">
+                    {member.username}
+                    {member.status === "pending" ? " (Pending)" : ""}
+                  </Text>
                   {member.user_id === user?.id && (
                     <Text category="c1" appearance="hint">
                       ({t("addExpense.you")})
