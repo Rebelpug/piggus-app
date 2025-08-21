@@ -22,7 +22,7 @@ export const VERSION_CONFIG = {
   TIMEOUT: 10000, // milliseconds
 
   // Store URLs
-  IOS_APP_STORE_URL: "https://apps.apple.com/app/piggus/id123456789", // Update with actual App Store URL
+  IOS_APP_STORE_URL: "https://apps.apple.com/app/piggus/6747078622", // Update with actual App Store URL
   ANDROID_PLAY_STORE_URL:
     "https://play.google.com/store/apps/details?id=com.rebelpug.piggus",
 };
