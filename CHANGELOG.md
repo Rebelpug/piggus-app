@@ -4,13 +4,12 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.7.8](https://github.com/Rebelpug/piggus-app/compare/v1.7.7...v1.7.8) (2025-08-22)
 
-
 ### Bug Fixes
 
-* Added error logging when failing to open a link ([9c57c69](https://github.com/Rebelpug/piggus-app/commit/9c57c69d5fd92fde49a604948e1899a29ee9ce93))
-* Balances in expenses groups now show correctly even if a user is pending ([dd6b583](https://github.com/Rebelpug/piggus-app/commit/dd6b583bca173c8ef8a6895b32def7ee19419829))
-* Corrected id of apple in check version ([c13b1b4](https://github.com/Rebelpug/piggus-app/commit/c13b1b478e7c0e1aed61b809e921ae3e9809d33c))
-* Importing existing bank transactions shouldn't change the category again ([6b132ff](https://github.com/Rebelpug/piggus-app/commit/6b132ff6f76baa4cd61b54a48319a330fa16586b))
+- Added error logging when failing to open a link ([9c57c69](https://github.com/Rebelpug/piggus-app/commit/9c57c69d5fd92fde49a604948e1899a29ee9ce93))
+- Balances in expenses groups now show correctly even if a user is pending ([dd6b583](https://github.com/Rebelpug/piggus-app/commit/dd6b583bca173c8ef8a6895b32def7ee19419829))
+- Corrected id of apple in check version ([c13b1b4](https://github.com/Rebelpug/piggus-app/commit/c13b1b478e7c0e1aed61b809e921ae3e9809d33c))
+- Importing existing bank transactions shouldn't change the category again ([6b132ff](https://github.com/Rebelpug/piggus-app/commit/6b132ff6f76baa4cd61b54a48319a330fa16586b))
 
 ### [1.7.7](https://github.com/Rebelpug/piggus-app/compare/v1.7.6...v1.7.7) (2025-08-18)
 
