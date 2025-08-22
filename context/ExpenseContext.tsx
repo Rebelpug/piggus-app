@@ -1458,11 +1458,12 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
             data: {
               ...existingExpense.data,
               amount: expenseAmount,
-              name: transaction.name,
-              description: transaction.description,
+              name: existingExpense.data.name || transaction.name,
+              description:
+                existingExpense.data.description || transaction.description,
               date: transaction.date,
-              category: transaction.category || existingExpense.data.category,
-              currency: transaction.currency || existingExpense.data.currency,
+              category: existingExpense.data.category || transaction.category,
+              currency: existingExpense.data.currency || transaction.currency,
               participants: updatedParticipants,
               // Preserve the status field to maintain any existing status like 'deleted'
               status: existingExpense.data.status,
