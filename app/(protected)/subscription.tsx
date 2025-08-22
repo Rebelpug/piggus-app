@@ -914,7 +914,11 @@ export default function SubscriptionScreen() {
               <TouchableOpacity
                 style={styles.legalLink}
                 onPress={() =>
-                  Linking.openURL("https://piggus.finance/toc-app")
+                  Linking.openURL("https://piggus.finance/toc-app").catch(
+                    (error) => {
+                      console.error("Failed to open Terms of Service:", error);
+                    },
+                  )
                 }
               >
                 <Text style={[styles.legalLinkText, { color: colors.primary }]}>
@@ -924,7 +928,11 @@ export default function SubscriptionScreen() {
               <TouchableOpacity
                 style={styles.legalLink}
                 onPress={() =>
-                  Linking.openURL("https://piggus.finance/privacy-app")
+                  Linking.openURL("https://piggus.finance/privacy-app").catch(
+                    (error) => {
+                      console.error("Failed to open Privacy Policy:", error);
+                    },
+                  )
                 }
               >
                 <Text style={[styles.legalLinkText, { color: colors.primary }]}>

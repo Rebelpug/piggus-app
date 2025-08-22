@@ -432,7 +432,14 @@ const RegisterScreen = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
-                    Linking.openURL("https://piggus.finance/toc-app")
+                    Linking.openURL("https://piggus.finance/toc-app").catch(
+                      (error) => {
+                        console.error(
+                          "Failed to open Terms of Service:",
+                          error,
+                        );
+                      },
+                    )
                   }
                   disabled={loading}
                 >
@@ -452,7 +459,11 @@ const RegisterScreen = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
-                    Linking.openURL("https://piggus.finance/privacy-app")
+                    Linking.openURL("https://piggus.finance/privacy-app").catch(
+                      (error) => {
+                        console.error("Failed to open Privacy Policy:", error);
+                      },
+                    )
                   }
                   disabled={loading}
                 >

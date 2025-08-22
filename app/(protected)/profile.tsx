@@ -730,7 +730,13 @@ export default function ProfileScreen() {
         <View style={styles.legalLinks}>
           <TouchableOpacity
             style={styles.legalLink}
-            onPress={() => Linking.openURL("https://piggus.finance/toc-app")}
+            onPress={() =>
+              Linking.openURL("https://piggus.finance/toc-app").catch(
+                (error) => {
+                  console.error("Failed to open Terms of Service:", error);
+                },
+              )
+            }
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
               {t("profile.termsAndConditions")}
@@ -739,7 +745,11 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.legalLink}
             onPress={() =>
-              Linking.openURL("https://piggus.finance/privacy-app")
+              Linking.openURL("https://piggus.finance/privacy-app").catch(
+                (error) => {
+                  console.error("Failed to open Privacy Policy:", error);
+                },
+              )
             }
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
