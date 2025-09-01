@@ -58,12 +58,19 @@ export type BudgetingData = {
   };
 };
 
+export type FinancesData = {
+  historicalAssets: {
+    [date: string]: number;
+  };
+};
+
 export type ProfileData = {
   name: string | null;
   avatar_url: string | null;
   bio: string | null;
   defaultCurrency?: string;
   budgeting?: BudgetingData;
+  finances?: FinancesData;
 };
 
 export type Profile = {

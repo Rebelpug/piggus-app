@@ -452,6 +452,40 @@ export default function InvestmentStatisticsScreen() {
     );
   }, [investmentStats]);
 
+  // Create line chart data for Financial Assets historical data
+  const financialAssetsLineData: { year: number; value: number }[] =
+    useMemo(() => {
+      if (
+        !userProfile?.profile?.finances?.historicalAssets ||
+        typeof userProfile.profile.finances.historicalAssets !== "object"
+      ) {
+        return [];
+      }
+
+      const historicalAssets = userProfile.profile.finances.historicalAssets;
+
+      return Object.entries(historicalAssets)
+        .map(([dateString, value]) => {
+          // Parse the date string (YYYY-MM-DD format)
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const numericValue =
+            typeof value === "number" ? value : parseFloat(value);
+
+          if (
+            isFinite(year) &&
+            isFinite(numericValue) &&
+            !isNaN(year) &&
+            !isNaN(numericValue)
+          ) {
+            return { year, value: numericValue };
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.year - b.year);
+    }, [userProfile?.profile?.finances?.historicalAssets]);
+
   const getProgressWidth = (amount: number, maxAmount: number) => {
     if (
       !isFinite(amount) ||
@@ -1028,6 +1062,136 @@ export default function InvestmentStatisticsScreen() {
             </View>
           </View>
         </View>
+
+        {/* Financial Assets Section */}
+        {financialAssetsLineData.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Financial Assets
+            </Text>
+
+            <View
+              style={[styles.projectionCard, { backgroundColor: colors.card }]}
+            >
+              <View style={styles.projectionHeader}>
+                <Text
+                  style={[styles.projectionValue, { color: colors.primary }]}
+                >
+                  {formatCurrency(
+                    financialAssetsLineData[financialAssetsLineData.length - 1]
+                      ?.value || 0,
+                    userProfile?.profile.defaultCurrency,
+                  )}
+                </Text>
+                <Text style={[styles.projectionLabel, { color: colors.icon }]}>
+                  Current Financial Assets
+                </Text>
+              </View>
+
+              <View style={styles.projectionChartSection}>
+                <CustomLineChart
+                  data={financialAssetsLineData}
+                  size={{ width: width - 80, height: 200 }}
+                  colors={colors}
+                />
+
+                <View style={styles.projectionStats}>
+                  <View style={styles.projectionStatItem}>
+                    <Text
+                      style={[
+                        styles.projectionStatValue,
+                        { color: colors.success },
+                      ]}
+                    >
+                      {formatCurrency(
+                        financialAssetsLineData[0]?.value || 0,
+                        userProfile?.profile.defaultCurrency,
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.projectionStatLabel,
+                        { color: colors.icon },
+                      ]}
+                    >
+                      Starting Value
+                    </Text>
+                  </View>
+                  <View style={styles.projectionStatItem}>
+                    <Text
+                      style={[
+                        styles.projectionStatValue,
+                        { color: colors.primary },
+                      ]}
+                    >
+                      {formatCurrency(
+                        financialAssetsLineData[
+                          financialAssetsLineData.length - 1
+                        ]?.value || 0,
+                        userProfile?.profile.defaultCurrency,
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.projectionStatLabel,
+                        { color: colors.icon },
+                      ]}
+                    >
+                      Current Value
+                    </Text>
+                  </View>
+                  <View style={styles.projectionStatItem}>
+                    <Text
+                      style={[
+                        styles.projectionStatValue,
+                        {
+                          color:
+                            (financialAssetsLineData[
+                              financialAssetsLineData.length - 1
+                            ]?.value || 0) -
+                              (financialAssetsLineData[0]?.value || 0) >=
+                            0
+                              ? colors.success
+                              : colors.error,
+                        },
+                      ]}
+                    >
+                      {(financialAssetsLineData[
+                        financialAssetsLineData.length - 1
+                      ]?.value || 0) -
+                        (financialAssetsLineData[0]?.value || 0) >=
+                      0
+                        ? "+"
+                        : ""}
+                      {formatCurrency(
+                        (financialAssetsLineData[
+                          financialAssetsLineData.length - 1
+                        ]?.value || 0) -
+                          (financialAssetsLineData[0]?.value || 0),
+                        userProfile?.profile.defaultCurrency,
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.projectionStatLabel,
+                        { color: colors.icon },
+                      ]}
+                    >
+                      Net Change
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <Text
+                style={[styles.projectionDisclaimer, { color: colors.icon }]}
+              >
+                Historical data based on your financial assets records. Past
+                performance does not guarantee future results.
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>

@@ -83,7 +83,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
     encryptWithExternalPublicKey,
     encryptWithExternalEncryptionKey,
   } = useEncryption();
-  const { userProfile } = useProfile();
+  const { userProfile, updateProfile } = useProfile();
   const [portfolios, setPortfolios] = useState<PortfolioWithDecryptedData[]>(
     [],
   );
@@ -287,6 +287,47 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       setError(error.message || "Failed to delete investment");
     }
   };
+
+  const storeHistoricalAssetsValues = useCallback(
+    async (userPortfolios: PortfolioWithDecryptedData[]) => {
+      if (!userProfile?.profile) return;
+
+      const today = new Date().toISOString().split("T")[0];
+      if (
+        userProfile?.profile?.finances?.historicalAssets &&
+        userProfile.profile.finances.historicalAssets[today]
+      ) {
+        return;
+      }
+
+      const totalValue = userPortfolios.reduce((portfolioSum, portfolio) => {
+        return (
+          portfolioSum +
+          portfolio.investments.reduce((investmentSum, investment) => {
+            const currentValue =
+              (investment.data.quantity || 1) *
+              (investment.data.current_price ||
+                investment.data.purchase_price ||
+                0);
+            return investmentSum + currentValue;
+          }, 0)
+        );
+      }, 0);
+
+      const profile = userProfile?.profile;
+      if (!profile.finances) {
+        profile.finances = {
+          historicalAssets: {},
+        };
+      }
+      if (!profile?.finances.historicalAssets) {
+        profile.finances.historicalAssets = {};
+      }
+      profile.finances.historicalAssets[today] = totalValue;
+      await updateProfile(profile);
+    },
+    [updateProfile, userProfile?.profile],
+  );
 
   const syncInvestmentPrices = useCallback(
     async (userPortfolios: PortfolioWithDecryptedData[]) => {
@@ -504,6 +545,9 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       if (result.data) {
         setPortfolios(result.data);
+        storeHistoricalAssetsValues(result.data).catch((e) =>
+          console.error("Failed to store historical assets values", e),
+        );
         syncInvestmentPrices(result.data).catch((e) =>
           console.error("Failed to sync investment prices", e),
         );
@@ -526,6 +570,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
     decryptWithPrivateKey,
     decryptWithExternalEncryptionKey,
     syncInvestmentPrices,
+    storeHistoricalAssetsValues,
   ]);
 
   const inviteUserToPortfolio = async (
