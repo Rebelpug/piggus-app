@@ -26,7 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   calculateUserShare,
   getCategoryDisplayInfo,
-  computeExpenseCategories,
+  getPaymentMethodDisplayInfo,
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -173,6 +173,15 @@ interface CategoryStats {
   percentage: number;
   parent?: string;
   subcategories?: CategoryStats[];
+}
+
+interface PaymentMethodStats {
+  method: string;
+  name: string;
+  icon: string;
+  totalAmount: number;
+  transactionCount: number;
+  percentage: number;
 }
 
 interface PieChartData {
@@ -339,6 +348,7 @@ export default function ExpenseStatisticsScreen() {
     let totalSpent = 0;
     let totalTransactions = 0;
     const rawCategories: { [key: string]: CategoryStats } = {};
+    const rawPaymentMethods: { [key: string]: PaymentMethodStats } = {};
     const monthlyData: { [key: string]: MonthlyStats } = {};
 
     periodData.forEach((period) => {
@@ -386,6 +396,37 @@ export default function ExpenseStatisticsScreen() {
 
             rawCategories[categoryId].totalAmount += userShare;
             rawCategories[categoryId].transactionCount++;
+
+            // Process payment method - include expenses without payment method as "Other"
+            const methodId = expense.data.payment_method || "other";
+            let paymentMethodInfo;
+
+            if (expense.data.payment_method) {
+              paymentMethodInfo = getPaymentMethodDisplayInfo(
+                expense.data.payment_method,
+                userProfile?.profile?.budgeting?.paymentMethodOverrides,
+              );
+            } else {
+              // Generic "Other" for expenses without payment method
+              paymentMethodInfo = {
+                name: "Other",
+                icon: "📄",
+              };
+            }
+
+            if (!rawPaymentMethods[methodId]) {
+              rawPaymentMethods[methodId] = {
+                method: methodId,
+                name: paymentMethodInfo.name,
+                icon: paymentMethodInfo.icon,
+                totalAmount: 0,
+                transactionCount: 0,
+                percentage: 0,
+              };
+            }
+
+            rawPaymentMethods[methodId].totalAmount += userShare;
+            rawPaymentMethods[methodId].transactionCount++;
 
             // Add to period data
             let periodKey: string;
@@ -469,6 +510,17 @@ export default function ExpenseStatisticsScreen() {
     const sortedCategories = mainCategories.sort(
       (a, b) => b.totalAmount - a.totalAmount,
     );
+
+    // Calculate payment method percentages
+    Object.values(rawPaymentMethods).forEach((method) => {
+      method.percentage =
+        totalSpent > 0 ? (method.totalAmount / totalSpent) * 100 : 0;
+    });
+
+    const sortedPaymentMethods = Object.values(rawPaymentMethods).sort(
+      (a, b) => b.totalAmount - a.totalAmount,
+    );
+
     const sortedMonthlyData = Object.values(monthlyData);
 
     const averageSpending =
@@ -533,11 +585,37 @@ export default function ExpenseStatisticsScreen() {
       });
     }
 
+    // Create payment method pie chart data
+    const paymentMethodColors = [
+      "#8B5CF6",
+      "#06B6D4",
+      "#10B981",
+      "#F59E0B",
+      "#EF4444",
+      "#EC4899",
+      "#84CC16",
+      "#6366F1",
+    ];
+
+    const paymentMethodPieData: PieChartData[] = [];
+
+    sortedPaymentMethods.forEach((method, index) => {
+      if (method.percentage > 0) {
+        paymentMethodPieData.push({
+          label: `${method.icon} ${method.name}`,
+          value: method.percentage,
+          color: paymentMethodColors[index % paymentMethodColors.length],
+        });
+      }
+    });
+
     return {
       totalSpent,
       totalTransactions,
       categories: sortedCategories,
+      paymentMethods: sortedPaymentMethods,
       pieData,
+      paymentMethodPieData,
       monthlyData: sortedMonthlyData,
       averageSpending,
       highestSpendingPeriod,
@@ -1035,6 +1113,115 @@ export default function ExpenseStatisticsScreen() {
             ))}
           </View>
         </View>
+
+        {/* Payment Methods Distribution */}
+        {expenseStats.paymentMethods.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Payment Methods Distribution
+            </Text>
+
+            {/* Payment Methods Pie Chart */}
+            {expenseStats.paymentMethodPieData.length > 0 && (
+              <View style={styles.pieChartSection}>
+                <CustomPieChart
+                  data={expenseStats.paymentMethodPieData}
+                  size={280}
+                  colors={colors}
+                />
+
+                {/* Custom Legend Below Chart */}
+                <View style={styles.pieChartLegend}>
+                  {expenseStats.paymentMethodPieData.map((item, index) => (
+                    <View key={index} style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColorBox,
+                          { backgroundColor: item.color },
+                        ]}
+                      />
+                      <Text style={[styles.legendText, { color: colors.text }]}>
+                        {item.label} (
+                        {isFinite(item.value) ? item.value.toFixed(1) : "0.0"}%)
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Payment Methods Table */}
+            <View
+              style={[
+                styles.hierarchicalContainer,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              {expenseStats.paymentMethods.map((method, index) => (
+                <View key={method.method} style={styles.hierarchicalCategory}>
+                  <View style={styles.mainCategoryRow}>
+                    <View style={styles.categoryInfo}>
+                      <Text style={styles.categoryIcon}>{method.icon}</Text>
+                      <Text
+                        style={[
+                          styles.categoryName,
+                          { color: colors.text, fontWeight: "600" },
+                        ]}
+                      >
+                        {method.name}
+                      </Text>
+                    </View>
+                    <View style={styles.categoryAmounts}>
+                      <Text
+                        style={[styles.categoryAmount, { color: colors.text }]}
+                      >
+                        {formatCurrency(method.totalAmount)}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.categoryPercentage,
+                          { color: colors.icon },
+                        ]}
+                      >
+                        {isFinite(method.percentage)
+                          ? method.percentage.toFixed(1)
+                          : "0.0"}
+                        %
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Progress Bar for Payment Method */}
+                  <View style={styles.categoryProgress}>
+                    <View
+                      style={[
+                        styles.progressTrack,
+                        { backgroundColor: colors.border },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.progressFill,
+                          {
+                            width: `${getProgressWidth(method.totalAmount, expenseStats.paymentMethods[0]?.totalAmount || 0)}%`,
+                            backgroundColor:
+                              expenseStats.paymentMethodPieData[index]?.color ||
+                              colors.primary,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[styles.categoryCount, { color: colors.icon }]}
+                    >
+                      {method.transactionCount} transactions
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>

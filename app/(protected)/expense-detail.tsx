@@ -21,6 +21,7 @@ import { useProfile } from "@/context/ProfileContext";
 import {
   ExpenseWithDecryptedData,
   getCategoryDisplayInfo,
+  getPaymentMethodDisplayInfo,
   ExpenseParticipant,
   calculateEqualSplit,
 } from "@/types/expense";
@@ -236,6 +237,14 @@ export default function ExpenseDetailScreen() {
     );
   };
 
+  const getPaymentMethodInfo = (methodId: string | undefined) => {
+    if (!methodId) return null;
+    return getPaymentMethodDisplayInfo(
+      methodId,
+      userProfile?.profile?.budgeting?.paymentMethodOverrides,
+    );
+  };
+
   const getUsernameFromId = (userId: string) => {
     const member = groupMembers.find((m) => m.user_id === userId);
     return member ? member.username : t("common.unknownUser");
@@ -376,6 +385,25 @@ export default function ExpenseDetailScreen() {
                 {categoryInfo.isDeleted ? ` ${t("expenseDetail.deleted")}` : ""}
               </Text>
             </View>
+            {expense.data.payment_method &&
+              (() => {
+                const paymentMethodInfo = getPaymentMethodInfo(
+                  expense.data.payment_method,
+                );
+                return paymentMethodInfo ? (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: colors.icon }]}>
+                      {t("expenseDetail.paymentMethod")}
+                    </Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                      {paymentMethodInfo.icon} {paymentMethodInfo.name}
+                      {paymentMethodInfo.isDeleted
+                        ? ` ${t("expenseDetail.deleted")}`
+                        : ""}
+                    </Text>
+                  </View>
+                ) : null;
+              })()}
             {expense.data.description && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>

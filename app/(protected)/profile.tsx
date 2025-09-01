@@ -515,6 +515,37 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={20} color={colors.icon} />
             </View>
           </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.preferenceRow}
+            onPress={() => router.push("/(protected)/payment-methods")}
+          >
+            <View style={styles.infoLabel}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: colors.primary + "20" },
+                ]}
+              >
+                <Ionicons
+                  name="card-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.labelText, { color: colors.text }]}>
+                {t("profile.paymentMethods")}
+              </Text>
+            </View>
+            <View style={styles.preferenceValue}>
+              <Text style={[styles.currentValue, { color: colors.icon }]}>
+                {t("profile.customize")}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Security */}

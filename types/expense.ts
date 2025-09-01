@@ -73,6 +73,7 @@ export type ExpenseData = {
   amount: number;
   date: string;
   category: string;
+  payment_method?: string;
   is_recurring: boolean;
   recurring_interval?: string;
   recurring_end_date?: string;
@@ -102,6 +103,7 @@ export type ExpenseFormData = {
   amount: number;
   date: string;
   category: string;
+  payment_method?: string;
   is_recurring: boolean;
   recurring_interval?: string;
   recurring_end_date?: string;
@@ -129,6 +131,7 @@ export type RecurringExpenseData = {
   description: string;
   amount: number;
   category: string;
+  payment_method?: string;
   currency?: string;
   payer_user_id: string;
   payer_username?: string;
@@ -156,6 +159,7 @@ export type RecurringExpenseFormData = {
   description: string;
   amount: number;
   category: string;
+  payment_method?: string;
   currency?: string;
   payer_user_id: string;
   payer_username?: string;
@@ -340,15 +344,108 @@ export const getCategoryDisplayInfo = (
   return { name: categoryId, icon: "📋", parent: undefined, isDeleted: false };
 };
 
-export const PAYMENT_METHODS = [
-  { value: "cash", label: "Cash" },
-  { value: "credit_card", label: "Credit Card" },
-  { value: "debit_card", label: "Debit Card" },
-  { value: "bank_transfer", label: "Bank Transfer" },
-  { value: "mobile_payment", label: "Mobile Payment" },
-  { value: "check", label: "Check" },
-  { value: "other", label: "Other" },
+export type ExpensePaymentMethod = {
+  id: string;
+  name: string;
+  icon: string;
+};
+
+export const BASE_PAYMENT_METHODS: ExpensePaymentMethod[] = [
+  { id: "cash", name: "Cash", icon: "💵" },
+  { id: "credit_card", name: "Credit Card", icon: "💳" },
+  { id: "debit_card", name: "Debit Card", icon: "💳" },
+  { id: "bank_transfer", name: "Bank Transfer", icon: "🏦" },
+  { id: "mobile_payment", name: "Mobile Payment", icon: "📱" },
+  { id: "check", name: "Check", icon: "📝" },
+  { id: "other", name: "Other", icon: "💰" },
 ];
+
+// Legacy support - will be computed from base payment methods + overrides
+export const PAYMENT_METHODS = BASE_PAYMENT_METHODS.map((method) => ({
+  value: method.id,
+  label: method.name,
+}));
+
+// Utility function to compute payment methods based on base methods + overrides
+export const computePaymentMethods = (paymentMethodOverrides?: {
+  edited: {
+    [methodId: string]: { name: string; icon: string };
+  };
+  deleted: string[];
+  added: { id: string; name: string; icon: string }[];
+}) => {
+  let methods = [...BASE_PAYMENT_METHODS];
+
+  if (paymentMethodOverrides) {
+    // Apply edits
+    methods = methods.map((method) => {
+      const override = paymentMethodOverrides.edited[method.id];
+      return override
+        ? {
+            ...method,
+            name: override.name,
+            icon: override.icon,
+          }
+        : method;
+    });
+
+    // Remove deleted methods
+    methods = methods.filter(
+      (method) => !paymentMethodOverrides.deleted.includes(method.id),
+    );
+
+    // Add new methods
+    methods = [...methods, ...paymentMethodOverrides.added];
+  }
+
+  return methods;
+};
+
+// Utility function to get payment method display info (including deleted ones for existing expenses)
+export const getPaymentMethodDisplayInfo = (
+  methodId: string,
+  paymentMethodOverrides?: {
+    edited: {
+      [methodId: string]: { name: string; icon: string };
+    };
+    deleted: string[];
+    added: { id: string; name: string; icon: string }[];
+  },
+) => {
+  // First check if it's a custom added method
+  if (paymentMethodOverrides?.added) {
+    const customMethod = paymentMethodOverrides.added.find(
+      (method) => method.id === methodId,
+    );
+    if (customMethod) {
+      return {
+        name: customMethod.name,
+        icon: customMethod.icon,
+        isDeleted: false,
+      };
+    }
+  }
+
+  // Check if it's a base method
+  const baseMethod = BASE_PAYMENT_METHODS.find(
+    (method) => method.id === methodId,
+  );
+  if (baseMethod) {
+    // Check if it's edited
+    const editedInfo = paymentMethodOverrides?.edited[methodId];
+    const isDeleted =
+      paymentMethodOverrides?.deleted.includes(methodId) || false;
+
+    return {
+      name: editedInfo?.name || baseMethod.name,
+      icon: editedInfo?.icon || baseMethod.icon,
+      isDeleted,
+    };
+  }
+
+  // Fallback for unknown payment methods
+  return { name: methodId, icon: "💰", isDeleted: false };
+};
 
 export const CURRENCIES = [
   { value: "USD", label: "USD ($)" },

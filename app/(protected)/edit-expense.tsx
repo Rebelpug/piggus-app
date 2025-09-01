@@ -40,6 +40,7 @@ import {
   getMainCategories,
   getSubcategories,
   ExpenseCategory,
+  computePaymentMethods,
 } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
@@ -87,6 +88,24 @@ export default function EditExpenseScreen() {
 
     return result;
   }, [allCategories]);
+
+  // Compute payment methods with user's customizations
+  const allPaymentMethods = React.useMemo(
+    () =>
+      computePaymentMethods(
+        userProfile?.profile?.budgeting?.paymentMethodOverrides,
+      ),
+    [userProfile?.profile?.budgeting?.paymentMethodOverrides],
+  );
+
+  // Create display list for payment methods
+  const availablePaymentMethods = React.useMemo(() => {
+    return allPaymentMethods.map((method) => ({
+      ...method,
+      displayName: `${method.icon} ${method.name}`,
+    }));
+  }, [allPaymentMethods]);
+
   const [loading, setLoading] = useState(false);
   const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
@@ -99,6 +118,8 @@ export default function EditExpenseScreen() {
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<
     IndexPath | undefined
   >();
+  const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] =
+    useState<IndexPath>(new IndexPath(1)); // Default to credit card (index 1)
   const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(
     new IndexPath(0),
   );
@@ -160,6 +181,16 @@ export default function EditExpenseScreen() {
         setDisplayCategories(mutableCategories);
       }
       setSelectedCategoryIndex(new IndexPath(categoryIndex));
+
+      // Set payment method index if payment method exists
+      if (foundExpense.data.payment_method) {
+        const paymentMethodIndex = availablePaymentMethods.findIndex(
+          (method) => method.id === foundExpense.data.payment_method,
+        );
+        setSelectedPaymentMethodIndex(
+          new IndexPath(paymentMethodIndex >= 0 ? paymentMethodIndex : 1), // Default to credit card if not found
+        );
+      }
 
       // Set currency index
       const currencyIndex = CURRENCIES.findIndex(
@@ -265,6 +296,8 @@ export default function EditExpenseScreen() {
       } else {
         selectedCategory = { id: "other" };
       }
+      const selectedPaymentMethod =
+        availablePaymentMethods[selectedPaymentMethodIndex.row];
       const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
       const selectedPayer = groupMembers[selectedPayerIndex.row];
       const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
@@ -292,6 +325,7 @@ export default function EditExpenseScreen() {
         amount: amountNum,
         date: date.toISOString().split("T")[0],
         category: selectedCategory.id,
+        payment_method: selectedPaymentMethod.id,
         is_recurring: expense.data.is_recurring,
         recurring_interval: expense.data.recurring_interval,
         recurring_end_date: expense.data.recurring_end_date,
@@ -516,6 +550,23 @@ export default function EditExpenseScreen() {
             >
               {displayCategories.map((category, index) => (
                 <SelectItem key={index} title={category.displayName} />
+              ))}
+            </Select>
+
+            <Select
+              label={t("editExpense.paymentMethod")}
+              selectedIndex={selectedPaymentMethodIndex}
+              onSelect={(index) =>
+                setSelectedPaymentMethodIndex(index as IndexPath)
+              }
+              value={
+                availablePaymentMethods[selectedPaymentMethodIndex.row]
+                  ?.displayName || ""
+              }
+              style={styles.input}
+            >
+              {availablePaymentMethods.map((method) => (
+                <SelectItem key={method.id} title={method.displayName} />
               ))}
             </Select>
 

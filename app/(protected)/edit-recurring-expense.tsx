@@ -40,6 +40,7 @@ import {
   getMainCategories,
   getSubcategories,
   ExpenseCategory,
+  computePaymentMethods,
 } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
@@ -71,6 +72,15 @@ export default function EditRecurringExpenseScreen() {
         userProfile?.profile?.budgeting?.categoryOverrides,
       ),
     [userProfile?.profile?.budgeting?.categoryOverrides],
+  );
+
+  // Compute payment methods with user's customizations
+  const availablePaymentMethods = React.useMemo(
+    () =>
+      computePaymentMethods(
+        userProfile?.profile?.budgeting?.paymentMethodOverrides,
+      ),
+    [userProfile?.profile?.budgeting?.paymentMethodOverrides],
   );
 
   // Create hierarchical display list
@@ -109,6 +119,8 @@ export default function EditRecurringExpenseScreen() {
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<
     IndexPath | undefined
   >();
+  const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] =
+    useState<IndexPath>(new IndexPath(1)); // Default to credit card (index 1)
   const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(
     new IndexPath(0),
   );
@@ -196,6 +208,16 @@ export default function EditRecurringExpenseScreen() {
     }
     setSelectedCategoryIndex(new IndexPath(categoryIndex));
 
+    // Set payment method index if available
+    if (foundRecurringExpense.data.payment_method) {
+      const paymentMethodIndex = availablePaymentMethods.findIndex(
+        (pm) => pm.id === foundRecurringExpense.data.payment_method,
+      );
+      setSelectedPaymentMethodIndex(
+        new IndexPath(paymentMethodIndex >= 0 ? paymentMethodIndex : 1),
+      );
+    }
+
     // Set currency index
     const currencyIndex = CURRENCIES.findIndex(
       (cur) => cur.value === foundRecurringExpense.data.currency,
@@ -242,6 +264,7 @@ export default function EditRecurringExpenseScreen() {
     recurringExpenses,
     expensesGroups,
     availableCategories,
+    availablePaymentMethods,
     userProfile?.profile?.budgeting?.categoryOverrides,
   ]);
 
@@ -309,6 +332,8 @@ export default function EditRecurringExpenseScreen() {
       const selectedInterval = RECURRING_INTERVALS[selectedIntervalIndex.row];
       const selectedPayer = groupMembers[selectedPayerIndex.row];
       const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
+      const selectedPaymentMethod =
+        availablePaymentMethods[selectedPaymentMethodIndex.row];
 
       // Calculate participant shares
       let finalParticipants: ExpenseParticipant[] = [];
@@ -332,6 +357,7 @@ export default function EditRecurringExpenseScreen() {
         description: description.trim(),
         amount: amountNum,
         category: selectedCategory.id,
+        payment_method: selectedPaymentMethod.id,
         currency: selectedCurrency.value,
         payer_user_id: selectedPayer.user_id,
         payer_username: selectedPayer.username,
@@ -562,6 +588,28 @@ export default function EditRecurringExpenseScreen() {
             >
               {displayCategories.map((category, index) => (
                 <SelectItem key={index} title={category.displayName} />
+              ))}
+            </Select>
+
+            <Select
+              label="Payment Method"
+              placeholder="Select payment method"
+              selectedIndex={selectedPaymentMethodIndex}
+              onSelect={(index) =>
+                setSelectedPaymentMethodIndex(index as IndexPath)
+              }
+              value={
+                availablePaymentMethods[selectedPaymentMethodIndex.row]
+                  ? `${availablePaymentMethods[selectedPaymentMethodIndex.row].icon} ${availablePaymentMethods[selectedPaymentMethodIndex.row].name}`
+                  : ""
+              }
+              style={styles.input}
+            >
+              {availablePaymentMethods.map((method, index) => (
+                <SelectItem
+                  key={index}
+                  title={`${method.icon} ${method.name}`}
+                />
               ))}
             </Select>
 

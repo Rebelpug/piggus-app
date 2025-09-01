@@ -41,6 +41,7 @@ import {
   getMainCategories,
   getSubcategories,
   ExpenseCategory,
+  computePaymentMethods,
 } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
@@ -92,6 +93,24 @@ export default function AddExpenseScreen() {
 
     return result;
   }, [allCategories]);
+
+  // Compute payment methods with user's customizations
+  const allPaymentMethods = React.useMemo(
+    () =>
+      computePaymentMethods(
+        userProfile?.profile?.budgeting?.paymentMethodOverrides,
+      ),
+    [userProfile?.profile?.budgeting?.paymentMethodOverrides],
+  );
+
+  // Create display list for payment methods
+  const availablePaymentMethods = React.useMemo(() => {
+    return allPaymentMethods.map((method) => ({
+      ...method,
+      displayName: `${method.icon} ${method.name}`,
+    }));
+  }, [allPaymentMethods]);
+
   const [loading, setLoading] = useState(false);
 
   // Form state
@@ -102,6 +121,8 @@ export default function AddExpenseScreen() {
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<
     IndexPath | undefined
   >();
+  const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] =
+    useState<IndexPath>(new IndexPath(1)); // Default to credit card (index 1)
   const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(
     new IndexPath(0),
   );
@@ -341,6 +362,8 @@ export default function AddExpenseScreen() {
       const selectedCategory = selectedCategoryIndex
         ? availableCategories[selectedCategoryIndex.row]
         : { id: "other" };
+      const selectedPaymentMethod =
+        availablePaymentMethods[selectedPaymentMethodIndex.row];
       const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
       const selectedPayer = currentGroupMembers[selectedPayerIndex!.row];
       const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
@@ -357,6 +380,7 @@ export default function AddExpenseScreen() {
           description: description.trim(),
           amount: Number(normalizeDecimalForParsing(amount)),
           category: selectedCategory.id,
+          payment_method: selectedPaymentMethod.id,
           currency: selectedCurrency.value,
           payer_user_id: selectedPayer.user_id,
           payer_username: selectedPayer.username,
@@ -394,6 +418,7 @@ export default function AddExpenseScreen() {
           amount: Number(normalizeDecimalForParsing(amount)),
           date: today,
           category: selectedCategory.id,
+          payment_method: selectedPaymentMethod.id,
           is_recurring: false,
           recurring_expense_id: recurringResult.id,
           currency: selectedCurrency.value,
@@ -421,6 +446,7 @@ export default function AddExpenseScreen() {
           amount: Number(normalizeDecimalForParsing(amount)),
           date: date.toISOString().split("T")[0],
           category: selectedCategory.id,
+          payment_method: selectedPaymentMethod.id,
           is_recurring: false,
           currency: selectedCurrency.value,
           status: "completed",
@@ -809,6 +835,25 @@ export default function AddExpenseScreen() {
             >
               {availableCategories.map((category) => (
                 <SelectItem key={category.id} title={category.displayName} />
+              ))}
+            </Select>
+
+            <Select
+              style={styles.input}
+              label={t("addExpense.paymentMethodLabel")}
+              placeholder={t("addExpense.paymentMethodPlaceholder")}
+              value={
+                availablePaymentMethods[selectedPaymentMethodIndex.row]
+                  ?.displayName || ""
+              }
+              selectedIndex={selectedPaymentMethodIndex}
+              onSelect={(index) =>
+                setSelectedPaymentMethodIndex(index as IndexPath)
+              }
+              status="basic"
+            >
+              {availablePaymentMethods.map((method) => (
+                <SelectItem key={method.id} title={method.displayName} />
               ))}
             </Select>
           </View>

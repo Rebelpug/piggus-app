@@ -30,6 +30,17 @@ export type CategoryOverride = {
   parent?: string;
 };
 
+export type AdditionalPaymentMethodOverride = {
+  id: string;
+  name: string;
+  icon: string;
+};
+
+export type PaymentMethodOverride = {
+  name: string;
+  icon: string;
+};
+
 export type BudgetingData = {
   budget?: {
     amount: number;
@@ -39,6 +50,11 @@ export type BudgetingData = {
     edited: { [categoryId: string]: CategoryOverride };
     deleted: string[];
     added: AdditionalCategoryOverride[];
+  };
+  paymentMethodOverrides?: {
+    edited: { [methodId: string]: PaymentMethodOverride };
+    deleted: string[];
+    added: AdditionalPaymentMethodOverride[];
   };
 };
 

@@ -18,6 +18,7 @@ import { useProfile } from "@/context/ProfileContext";
 import {
   RecurringExpenseWithDecryptedData,
   getCategoryDisplayInfo,
+  getPaymentMethodDisplayInfo,
 } from "@/types/expense";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -368,6 +369,22 @@ export default function RecurringExpenseDetailScreen() {
                 {categoryInfo.isDeleted ? " (Deleted)" : ""}
               </Text>
             </View>
+            {recurringExpense.data.payment_method && (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.icon }]}>
+                  Payment Method:
+                </Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
+                  {(() => {
+                    const paymentMethodInfo = getPaymentMethodDisplayInfo(
+                      recurringExpense.data.payment_method,
+                      userProfile?.profile?.budgeting?.paymentMethodOverrides,
+                    );
+                    return `${paymentMethodInfo.icon} ${paymentMethodInfo.name}`;
+                  })()}
+                </Text>
+              </View>
+            )}
             {recurringExpense.data.description && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
