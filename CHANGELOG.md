@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/Rebelpug/piggus-app/compare/v1.7.8...v1.8.0) (2025-09-01)
+
+
+### Features
+
+* Added payment method information to expense and expenses statistics ([d490241](https://github.com/Rebelpug/piggus-app/commit/d4902413f41273d06e4a7a0883ce994689e79c6d))
+* Added tracking of historical financial assets ([fb09f3a](https://github.com/Rebelpug/piggus-app/commit/fb09f3adbc23b029658ec504f85ca4eac5f95293))
+
+
+### Bug Fixes
+
+* Plus button moved higher on IOS since sometimes it hides behind the navigation bar ([da24dbc](https://github.com/Rebelpug/piggus-app/commit/da24dbcf6cf1864ce9818a6e5562adfd04c9f183))
+* Rendering issue with ViertualizedLists in the Shares screen ([8dc452e](https://github.com/Rebelpug/piggus-app/commit/8dc452ef1f68e28203462903b7fa20297c0800f4))
+
 ### [1.7.8](https://github.com/Rebelpug/piggus-app/compare/v1.7.7...v1.7.8) (2025-08-22)
 
 ### Bug Fixes
