@@ -482,7 +482,9 @@ export default function InvestmentStatisticsScreen() {
           }
           return null;
         })
-        .filter(Boolean)
+        .filter(
+          (item): item is { year: number; value: number } => item !== null,
+        )
         .sort((a, b) => a.year - b.year);
     }, [userProfile?.profile?.finances?.historicalAssets]);
 
