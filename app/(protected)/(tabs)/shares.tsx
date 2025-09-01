@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  Platform,
 } from "react-native";
 import {
   Layout,
@@ -14,7 +15,10 @@ import {
   Tab,
   TabView,
 } from "@ui-kitten/components";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useExpense } from "@/context/ExpenseContext";
 import { useInvestment } from "@/context/InvestmentContext";
@@ -35,6 +39,7 @@ export default function SharesScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
   const { userProfile } = useProfile();
+  const insets = useSafeAreaInsets();
   const { expensesGroups, isLoading, error } = useExpense();
   const {
     portfolios,
@@ -507,7 +512,16 @@ export default function SharesScreen() {
       {((expensesGroups.length > 0 && selectedIndex === 0) ||
         (portfolios.length > 0 && selectedIndex === 1)) && (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary }]}
+          style={[
+            styles.fab,
+            {
+              backgroundColor: colors.primary,
+              bottom:
+                Platform.OS === "ios"
+                  ? Math.max(insets.bottom + 69, 89) // iOS: Account for absolute positioned tab bar (49px base + 20px margin)
+                  : Math.max(insets.bottom + 20, 30), // Android: Normal spacing since tab bar pushes content up
+            },
+          ]}
           onPress={
             selectedIndex === 0 ? handleCreateGroup : handleCreatePortfolio
           }
@@ -652,7 +666,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    bottom: 20,
     right: 20,
     width: 56,
     height: 56,

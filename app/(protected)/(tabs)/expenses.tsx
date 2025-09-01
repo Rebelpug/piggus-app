@@ -8,6 +8,7 @@ import {
   FlatList,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import {
   Layout,
@@ -784,7 +785,10 @@ export default function ExpensesScreen() {
           styles.fab,
           {
             backgroundColor: colors.primary,
-            bottom: Math.max(insets.bottom + 20, 60), // Ensure minimum 90px from bottom, or safe area + tab bar height
+            bottom:
+              Platform.OS === "ios"
+                ? Math.max(insets.bottom + 69, 89) // iOS: Account for absolute positioned tab bar (49px base + 20px margin)
+                : Math.max(insets.bottom + 20, 30), // Android: Normal spacing since tab bar pushes content up
           },
         ]}
         onPress={handleAddExpense}
