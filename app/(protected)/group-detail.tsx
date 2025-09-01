@@ -495,6 +495,7 @@ export default function GroupDetailScreen() {
               <List
                 style={styles.settlementsList}
                 data={settlements}
+                scrollEnabled={false}
                 renderItem={({ item }) => {
                   const isCurrentUserPaying = item.from.user_id === user?.id;
                   const isCurrentUserReceiving = item.to.user_id === user?.id;
@@ -581,6 +582,7 @@ export default function GroupDetailScreen() {
               <List
                 style={styles.balancesList}
                 data={sortedBalances}
+                scrollEnabled={false}
                 renderItem={({ item }) => {
                   const isCurrentUser = item.user_id === user?.id;
                   const isPositive = item.balance > 0;
