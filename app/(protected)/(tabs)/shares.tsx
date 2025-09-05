@@ -106,19 +106,7 @@ export default function SharesScreen() {
       return null;
     }
 
-    const nonDeletedExpenses =
-      item.expenses?.filter((expense) => expense.data.status !== "deleted") ||
-      [];
-    const expenseCount = nonDeletedExpenses.length;
     const memberCount = item.members?.length || 0;
-    const totalAmount =
-      nonDeletedExpenses.reduce((sum, expense) => {
-        try {
-          return sum + (expense.data?.amount || 0);
-        } catch {
-          return sum;
-        }
-      }, 0) || 0;
 
     return (
       <TouchableOpacity
@@ -163,9 +151,12 @@ export default function SharesScreen() {
               </View>
             </View>
             <View style={styles.groupAmount}>
-              <Text style={[styles.amountText, { color: colors.text }]}>
-                {formatCurrency(totalAmount, item.data.currency)}
-              </Text>
+              <View style={styles.statItem}>
+                <Ionicons name="people-outline" size={14} color={colors.icon} />
+                <Text style={[styles.statText, { color: colors.icon }]}>
+                  {t("shares.memberCount", { count: memberCount })}
+                </Text>
+              </View>
               <Text
                 style={[
                   styles.statusText,
@@ -178,27 +169,6 @@ export default function SharesScreen() {
               >
                 {getGroupStatusText(item.membership_status || "confirmed")}
               </Text>
-            </View>
-          </View>
-
-          <View style={styles.groupFooter}>
-            <View style={styles.groupStats}>
-              <View style={styles.statItem}>
-                <Ionicons
-                  name="receipt-outline"
-                  size={14}
-                  color={colors.icon}
-                />
-                <Text style={[styles.statText, { color: colors.icon }]}>
-                  {t("shares.expenseCount", { count: expenseCount })}
-                </Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={14} color={colors.icon} />
-                <Text style={[styles.statText, { color: colors.icon }]}>
-                  {t("shares.memberCount", { count: memberCount })}
-                </Text>
-              </View>
             </View>
           </View>
         </View>
