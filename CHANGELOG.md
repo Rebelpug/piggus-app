@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.1](https://github.com/Rebelpug/piggus-app/compare/v1.8.0...v1.8.1) (2025-09-05)
+
+
+### Bug Fixes
+
+* Fetching expenses for groups when opening the group ([beadc73](https://github.com/Rebelpug/piggus-app/commit/beadc73d7d34f442907b0840900d97d855014bb8))
+
 ## [1.8.0](https://github.com/Rebelpug/piggus-app/compare/v1.7.8...v1.8.0) (2025-09-01)
 
 ### Features
