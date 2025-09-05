@@ -49,6 +49,12 @@ export default function SharesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // Filter out private groups and portfolios
+  const publicGroups = expensesGroups.filter((group) => !group.data?.private);
+  const publicPortfolios = portfolios.filter(
+    (portfolio) => !portfolio.data?.private,
+  );
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     // The context will handle refreshing
@@ -343,7 +349,7 @@ export default function SharesScreen() {
 
   const renderExpenseGroupsTab = () => (
     <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
-      {expensesGroups.length === 0 ? (
+      {publicGroups.length === 0 ? (
         renderExpenseGroupsEmptyState()
       ) : (
         <ScrollView
@@ -358,7 +364,7 @@ export default function SharesScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.groupsList}>
-            {expensesGroups.map((item, index) => (
+            {publicGroups.map((item, index) => (
               <View key={item.id}>{renderGroupItem({ item })}</View>
             ))}
           </View>
@@ -370,7 +376,7 @@ export default function SharesScreen() {
 
   const renderPortfoliosTab = () => (
     <View style={[styles.tabContent, { backgroundColor: colors.background }]}>
-      {portfolios.length === 0 ? (
+      {publicPortfolios.length === 0 ? (
         renderPortfoliosEmptyState()
       ) : (
         <ScrollView
@@ -385,7 +391,7 @@ export default function SharesScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.groupsList}>
-            {portfolios.map((item, index) => (
+            {publicPortfolios.map((item, index) => (
               <View key={item.id}>{renderPortfolioItem({ item })}</View>
             ))}
           </View>
@@ -461,7 +467,7 @@ export default function SharesScreen() {
       >
         <Tab
           title={t("shares.expenseGroupsCount", {
-            count: expensesGroups.length,
+            count: publicGroups.length,
           })}
           icon={(props) => (
             <Ionicons name="people-outline" size={20} color={colors.icon} />
@@ -479,8 +485,8 @@ export default function SharesScreen() {
         </Tab>
       </TabView>
 
-      {((expensesGroups.length > 0 && selectedIndex === 0) ||
-        (portfolios.length > 0 && selectedIndex === 1)) && (
+      {((publicGroups.length > 0 && selectedIndex === 0) ||
+        (publicPortfolios.length > 0 && selectedIndex === 1)) && (
         <TouchableOpacity
           style={[
             styles.fab,

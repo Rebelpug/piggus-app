@@ -987,6 +987,60 @@ export const apiMoveExpense = async (
   }
 };
 
+export const apiFetchAllExpensesForGroup = async (
+  user: User,
+  groupId: string,
+  groupKey: string,
+  decryptWithExternalEncryptionKey: (
+    encryptionKey: string,
+    encryptedData: string,
+  ) => Promise<any>,
+): Promise<{
+  success: boolean;
+  data?: ExpenseWithDecryptedData[];
+  error?: string;
+}> => {
+  try {
+    if (!user || !groupId || !groupKey || !decryptWithExternalEncryptionKey) {
+      console.error("User credentials or group information is invalid");
+      return {
+        success: false,
+        error: "User credentials or group information is invalid",
+      };
+    }
+
+    const expenses = await piggusApi.getExpensesForGroup(groupId);
+
+    if (!expenses) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    const decryptedExpenses = await Promise.all(
+      expenses.map(async (expense) => ({
+        ...expense,
+        data: await decryptWithExternalEncryptionKey(
+          groupKey,
+          expense.encrypted_data,
+        ),
+      })),
+    );
+
+    return {
+      success: true,
+      data: decryptedExpenses,
+    };
+  } catch (error: any) {
+    console.error("Error fetching all expenses for group:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to load all expenses for group",
+    };
+  }
+};
+
 export const apiBulkInsertAndUpdateExpenses = async (
   user: User,
   expenses: {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   StyleSheet,
   Alert,
@@ -54,6 +54,7 @@ export default function GroupDetailScreen() {
     addRefund,
     updateRefund,
     deleteRefund,
+    fetchAllExpensesForGroup,
   } = useExpense();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
@@ -68,6 +69,8 @@ export default function GroupDetailScreen() {
   });
   const [editingRefund, setEditingRefund] = useState<GroupRefund | null>(null);
   const [refundLoading, setRefundLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [showLoadingAlert, setShowLoadingAlert] = useState(false);
   const { t } = useLocalization();
 
   const group = useMemo(() => {
@@ -88,12 +91,53 @@ export default function GroupDetailScreen() {
     );
   }, [group]);
 
+  // Fetch all expenses for this group when component mounts or id changes
+  useEffect(() => {
+    if (id && group) {
+      setShowLoadingAlert(true);
+      setRefreshLoading(true);
+
+      fetchAllExpensesForGroup(id)
+        .then(() => {
+          setRefreshLoading(false);
+          // Keep the alert visible for a short moment to show completion
+          setTimeout(() => {
+            setShowLoadingAlert(false);
+          }, 500);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch all expenses for group:", error);
+          setRefreshLoading(false);
+          setShowLoadingAlert(false);
+        });
+    }
+  }, [id, group?.id, fetchAllExpensesForGroup]);
+
   const navigateBack = () => {
     router.back();
   };
 
   const handleAddExpense = () => {
     router.push(`/(protected)/add-expense?groupId=${group?.id}`);
+  };
+
+  const handleRefresh = async () => {
+    if (!id || !group || refreshLoading) return;
+
+    setRefreshLoading(true);
+    setShowLoadingAlert(true);
+
+    try {
+      await fetchAllExpensesForGroup(id, true); // force=true to bypass cache
+    } catch (error) {
+      console.error("Failed to refresh expenses:", error);
+    } finally {
+      setRefreshLoading(false);
+      // Keep the alert visible for a short moment to show success
+      setTimeout(() => {
+        setShowLoadingAlert(false);
+      }, 500);
+    }
   };
 
   const handleInviteUser = async () => {
@@ -691,6 +735,43 @@ export default function GroupDetailScreen() {
     </TouchableOpacity>
   );
 
+  const renderRefreshAction = () => (
+    <TouchableOpacity
+      onPress={handleRefresh}
+      style={[
+        styles.refreshButton,
+        refreshLoading && styles.refreshButtonDisabled,
+      ]}
+      disabled={refreshLoading}
+    >
+      <Ionicons
+        name={refreshLoading ? "hourglass-outline" : "refresh-outline"}
+        size={24}
+        color={refreshLoading ? colors.icon + "60" : colors.icon}
+      />
+    </TouchableOpacity>
+  );
+
+  const renderLoadingAlert = () => {
+    if (!showLoadingAlert) return null;
+
+    return (
+      <View
+        style={[
+          styles.loadingAlert,
+          { backgroundColor: colors.primary + "15" },
+        ]}
+      >
+        <View style={styles.loadingAlertContent}>
+          <Spinner size="small" status="primary" />
+          <Text style={[styles.loadingAlertText, { color: colors.primary }]}>
+            Refreshing expenses...
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   if (!group) {
     return (
       <ThemedView style={styles.container}>
@@ -699,8 +780,10 @@ export default function GroupDetailScreen() {
             title="Group Details"
             alignment="center"
             accessoryLeft={renderBackAction}
+            accessoryRight={renderRefreshAction}
             style={{ backgroundColor: colors.background }}
           />
+          {renderLoadingAlert()}
           <Layout style={styles.errorContainer}>
             <Ionicons
               name="alert-circle-outline"
@@ -748,8 +831,11 @@ export default function GroupDetailScreen() {
           title={group.data?.name || "Group Details"}
           alignment="center"
           accessoryLeft={renderBackAction}
+          accessoryRight={renderRefreshAction}
           style={{ backgroundColor: colors.background }}
         />
+
+        {renderLoadingAlert()}
 
         {isPending ? (
           <Layout style={styles.pendingContainer}>
@@ -1660,6 +1746,28 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     padding: 8,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.5,
+  },
+  loadingAlert: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(51, 102, 255, 0.2)",
+  },
+  loadingAlertContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingAlertText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "500",
   },
   backdrop: {
     backgroundColor: "rgba(0, 0, 0, 0.5)",

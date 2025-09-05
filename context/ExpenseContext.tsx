@@ -15,13 +15,13 @@ import {
   RecurringExpenseWithDecryptedData,
   GroupRefund,
 } from "@/types/expense";
-import { useAuth } from "@/context/AuthContext"; // Updated import path
+import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
-// Use services instead of direct client imports
 import {
   apiCreateExpensesGroup,
   apiFetchExpenseGroupsOnly,
   apiFetchExpensesPaginated,
+  apiFetchAllExpensesForGroup,
   apiAddExpense,
   apiUpdateExpense,
   apiDeleteExpense,
@@ -140,6 +140,14 @@ interface ExpenseContextType {
     updatedCount: number;
     error?: string;
   }>;
+  fetchAllExpensesForGroup: (
+    groupId: string,
+    force?: boolean,
+  ) => Promise<{
+    success: boolean;
+    data?: ExpenseWithDecryptedData[];
+    error?: string;
+  }>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
@@ -164,6 +172,19 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedMonths, setCachedMonths] = useState<Set<string>>(new Set());
+  const [fetchedGroupsCache, setFetchedGroupsCache] = useState<
+    Record<string, number>
+  >({}); // groupId -> timestamp
+
+  // Helper function to invalidate cache for a specific group
+  const invalidateGroupCache = useCallback((groupId: string) => {
+    setFetchedGroupsCache((prev) => {
+      const newCache = { ...prev };
+      delete newCache[groupId];
+      console.log(`🗑️ Invalidated cache for group ${groupId}`);
+      return newCache;
+    });
+  }, []);
 
   const fetchExpensesForCurrentMonth = useCallback(async () => {
     try {
@@ -1275,6 +1296,93 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchAllExpensesForGroup = async (groupId: string, force = false) => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        return {
+          success: false,
+          error: "User credentials are invalid or encryption not initialized",
+        };
+      }
+
+      // Check cache first (if not forced)
+      if (!force && fetchedGroupsCache[groupId]) {
+        console.log(
+          `✓ Using cached expenses for group ${groupId}, fetched at ${new Date(fetchedGroupsCache[groupId]).toLocaleTimeString()}`,
+        );
+        return {
+          success: true,
+          data: expensesGroups.find((g) => g.id === groupId)?.expenses || [],
+        };
+      }
+
+      // Find the group
+      const group = expensesGroups.find((g) => g.id === groupId);
+      if (!group) {
+        return {
+          success: false,
+          error: "Group not found",
+        };
+      }
+
+      // Get the group key
+      const groupKey = group.encrypted_key;
+      if (!groupKey) {
+        return {
+          success: false,
+          error: "Could not access encryption key",
+        };
+      }
+
+      console.log(
+        `🔄 Fetching all expenses for group ${groupId}${force ? " (forced)" : ""}`,
+      );
+      const result = await apiFetchAllExpensesForGroup(
+        user,
+        groupId,
+        groupKey,
+        decryptWithExternalEncryptionKey,
+      );
+
+      if (result.success && result.data) {
+        // Update the local state with all expenses for this group
+        setExpensesGroups((prev) =>
+          prev.map((g) => {
+            if (g.id === groupId) {
+              return {
+                ...g,
+                expenses: result.data!.sort(
+                  (a, b) =>
+                    new Date(b.data.date).getTime() -
+                    new Date(a.data.date).getTime(),
+                ),
+              };
+            }
+            return g;
+          }),
+        );
+
+        // Update cache with current timestamp
+        setFetchedGroupsCache((prev) => ({
+          ...prev,
+          [groupId]: Date.now(),
+        }));
+
+        console.log(
+          `✓ Successfully fetched and cached ${result.data.length} expenses for group ${groupId}`,
+        );
+      }
+
+      return result;
+    } catch (error: any) {
+      console.error("Failed to fetch all expenses for group:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to fetch all expenses for group",
+      };
+    }
+  };
+
   const syncBankTransactions = async (): Promise<{
     success: boolean;
     addedCount: number;
@@ -1574,6 +1682,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         fetchExpensesForMonth,
         cachedMonths,
         clearMonthCache,
+        fetchAllExpensesForGroup,
       }}
     >
       {children}
