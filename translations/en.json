@@ -283,7 +283,11 @@
     "noInvestmentsYet": "No investments yet",
     "startBuildingPortfolio": "Start building your investment portfolio",
     "addInvestment": "Add Investment",
-    "errorLoadingInvestments": "Error loading investments"
+    "errorLoadingInvestments": "Error loading investments",
+    "selectPortfolio": "Select portfolio",
+    "portfolioNumber": "Portfolio {{number}}",
+    "seeMoreStats": "See more stats",
+    "syncingInvestments": "Syncing investments..."
   },
   "investmentItem": {
     "priceUpdateFailed": "Price update failed today"

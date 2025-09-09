@@ -181,7 +181,7 @@ export default function InvestmentsScreen() {
             ]}
           >
             <Text style={[styles.selectorLabel, { color: colors.text }]}>
-              Portfolio
+              {t("investments.portfolio")}
             </Text>
             <Select
               style={styles.portfolioSelector}
@@ -192,12 +192,15 @@ export default function InvestmentsScreen() {
               onSelect={(index) =>
                 setSelectedPortfolioIndex(index as IndexPath)
               }
-              placeholder="Select portfolio"
+              placeholder={t("investments.selectPortfolio")}
             >
               {portfolios.map((portfolio, index) => (
                 <SelectItem
                   key={portfolio.id}
-                  title={portfolio.data?.name || `Portfolio ${index + 1}`}
+                  title={
+                    portfolio.data?.name ||
+                    t("investments.portfolioNumber", { number: index + 1 })
+                  }
                 />
               ))}
             </Select>
@@ -259,7 +262,7 @@ export default function InvestmentsScreen() {
               color={colors.primary}
             />
             <Text style={[styles.statsButtonText, { color: colors.primary }]}>
-              See more stats
+              {t("investments.seeMoreStats")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -368,7 +371,7 @@ export default function InvestmentsScreen() {
         >
           <Ionicons name="sync" size={16} color={colors.primary} />
           <Text style={[styles.syncAlertText, { color: colors.primary }]}>
-            Syncing investments...
+            {t("investments.syncingInvestments")}
           </Text>
         </View>
       )}
