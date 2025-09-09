@@ -140,10 +140,7 @@ export default function GuidesScreen() {
               ]}
             >
               <Text style={[styles.disclaimerText, { color: colors.icon }]}>
-                This content is for educational purposes only and does not
-                constitute financial, investment, or legal advice. Consult with
-                qualified professionals before making financial decisions. All
-                investments carry risk of loss.
+                {t("guides.disclaimer")}
               </Text>
             </View>
             {(() => {

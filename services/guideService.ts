@@ -1,8 +1,8 @@
 import { piggusApi, Guide } from "@/client/piggusApi";
 
-export const apiFetchGuides = async (): Promise<Guide[]> => {
+export const apiFetchGuides = async (language?: string): Promise<Guide[]> => {
   try {
-    return await piggusApi.getGuides();
+    return await piggusApi.getGuides(language);
   } catch (error) {
     console.error("Failed to fetch guides:", error);
     throw error;

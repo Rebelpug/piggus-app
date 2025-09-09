@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useCallback,
   ReactNode,
 } from "react";
 import { Guide } from "@/client/piggusApi";
@@ -10,6 +11,7 @@ import { apiFetchGuides, apiFetchGuide } from "@/services";
 import { useAuth } from "@/context/AuthContext";
 import { useEncryption } from "@/context/EncryptionContext";
 import { useProfile } from "@/context/ProfileContext";
+import { useLocalization } from "@/context/LocalizationContext";
 
 interface GuideContextType {
   guides: Guide[];
@@ -27,18 +29,19 @@ interface GuideProviderProps {
 }
 
 export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
-  const { user } = useAuth(); // Added encryptionInitialized
+  const { user } = useAuth();
   const { isEncryptionInitialized } = useEncryption();
   const { userProfile } = useProfile();
+  const { language } = useLocalization();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshGuides = async () => {
+  const refreshGuides = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedGuides = await apiFetchGuides();
+      const fetchedGuides = await apiFetchGuides(language);
       setGuides(fetchedGuides);
     } catch (err) {
       console.error("Failed to fetch guides:", err);
@@ -46,7 +49,7 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [language]);
 
   const getGuideById = (id: string): Guide | undefined => {
     return guides.find((guide) => guide.id === id);
@@ -74,12 +77,12 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (isEncryptionInitialized) {
+    if (isEncryptionInitialized && language) {
       refreshGuides().catch((error) =>
         console.error("Failed to fetch guides:", error),
       );
     }
-  }, [isEncryptionInitialized]);
+  }, [isEncryptionInitialized, language, refreshGuides]);
 
   const value: GuideContextType = {
     guides,

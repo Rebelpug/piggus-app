@@ -365,7 +365,7 @@ export interface PiggusApi {
   ) => Promise<{ expense: any; updatedRecurring: RecurringExpense }>;
 
   // Guide Methods
-  getGuides: () => Promise<Guide[]>;
+  getGuides: (language?: string) => Promise<Guide[]>;
   getGuide: (guideId: string) => Promise<Guide>;
 
   // Version Methods
@@ -743,9 +743,10 @@ export const piggusApi: PiggusApi = {
   },
 
   // Guide Methods
-  getGuides: async () => {
+  getGuides: async (language?: string) => {
     const httpClient = getHttpClient();
-    const response = await httpClient.get(`${BASE_URL}/api/v1/guides`);
+    const params = language ? `?language=${language}` : "";
+    const response = await httpClient.get(`${BASE_URL}/api/v1/guides${params}`);
     return response.data;
   },
 

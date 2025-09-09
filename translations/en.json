@@ -251,7 +251,8 @@
     "beginner": "Beginner",
     "intermediate": "Intermediate",
     "advanced": "Advanced",
-    "missing": "Missing"
+    "missing": "Missing",
+    "disclaimer": "This content is for educational purposes only and does not constitute financial, investment, or legal advice. Consult with qualified professionals before making financial decisions. All investments carry risk of loss."
   },
   "home": {
     "title": "Dashboard",
