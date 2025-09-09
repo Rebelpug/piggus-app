@@ -73,7 +73,7 @@ export default function ExpensesScreen() {
     // Add "Current month" option
     months.push({
       key: "current",
-      label: t("expenses.currentMonth"),
+      label: "expenses.currentMonth",
       value: "current",
     });
 
@@ -94,7 +94,7 @@ export default function ExpensesScreen() {
     }
 
     return months;
-  }, [t]);
+  }, []);
 
   // Flatten all expenses from all groups with error handling
   const allExpenses: (ExpenseWithDecryptedData & { groupName?: string })[] =
@@ -238,7 +238,7 @@ export default function ExpensesScreen() {
           date.getFullYear() === now.getFullYear();
 
         if (isThisMonth) {
-          return t("expenses.thisMonth");
+          return "expenses.thisMonth";
         }
 
         return date.toLocaleDateString("en-US", {
@@ -246,7 +246,7 @@ export default function ExpensesScreen() {
           year: "numeric",
         });
       } catch {
-        return t("common.unknown");
+        return "common.unknown";
       }
     };
 
@@ -300,7 +300,7 @@ export default function ExpensesScreen() {
   const renderMonthHeader = ({ item }: { item: string }) => (
     <View style={[styles.monthHeader, { backgroundColor: colors.background }]}>
       <Text style={[styles.monthHeaderText, { color: colors.text }]}>
-        {item}
+        {item.includes(".") ? t(item) : item}
       </Text>
     </View>
   );
@@ -372,7 +372,9 @@ export default function ExpensesScreen() {
                 },
               ]}
             >
-              {month.label}
+              {month.label.startsWith("expenses.")
+                ? t(month.label)
+                : month.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -390,23 +392,20 @@ export default function ExpensesScreen() {
 
       if (result.success) {
         Alert.alert(
-          "Sync Complete",
-          `Added: ${result.addedCount}\nUpdated: ${result.updatedCount}`,
+          t("banking.syncComplete"),
+          t("banking.syncCompleteMessage", {
+            addedCount: result.addedCount,
+            updatedCount: result.updatedCount,
+          }),
         );
         // Refresh the UI
         onRefresh();
       } else {
-        Alert.alert(
-          "Error",
-          result.error || "Failed to sync bank transactions",
-        );
+        Alert.alert(t("alerts.error"), result.error || t("banking.syncError"));
       }
     } catch (error) {
       console.error("Error syncing bank transactions:", error);
-      Alert.alert(
-        "Error",
-        "Failed to sync bank transactions. Please try again.",
-      );
+      Alert.alert(t("alerts.error"), t("banking.syncErrorMessage"));
     } finally {
       setRefreshing(false);
     }
@@ -415,18 +414,12 @@ export default function ExpensesScreen() {
   const handleDisconnectBank = async () => {
     try {
       await piggusApi.disconnectBank();
-      Alert.alert(
-        "Success",
-        "Your bank account has been disconnected successfully.",
-      );
+      Alert.alert(t("alerts.thankYou"), t("banking.disconnectSuccess"));
       // Refresh the profile to update the bank connection status
       onRefresh();
     } catch (error) {
       console.error("Error disconnecting bank:", error);
-      Alert.alert(
-        "Error",
-        "Failed to disconnect bank account. Please try again.",
-      );
+      Alert.alert(t("alerts.error"), t("banking.disconnectError"));
     }
   };
 
@@ -501,7 +494,7 @@ export default function ExpensesScreen() {
             {hasBankConnection &&
               userProfile?.bank_accounts?.[0]?.last_fetched && (
                 <Text category="c1" appearance="hint">
-                  Last Sync:{" "}
+                  {t("expenses.lastSync")}
                   {new Date(
                     userProfile.bank_accounts[0].last_fetched,
                   ).toLocaleDateString()}
@@ -671,7 +664,7 @@ export default function ExpensesScreen() {
         >
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={[styles.monthLoadingText, { color: colors.primary }]}>
-            Loading expenses...
+            {t("expenses.loadingExpenses")}
           </Text>
         </View>
       )}
@@ -748,7 +741,7 @@ export default function ExpensesScreen() {
         >
           <Ionicons name="sync" size={16} color={colors.primary} />
           <Text style={[styles.syncAlertText, { color: colors.primary }]}>
-            Syncing bank transactions...
+            {t("expenses.syncingBankTransactions")}
           </Text>
         </View>
       )}

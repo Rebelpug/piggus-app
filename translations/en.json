@@ -238,7 +238,10 @@
     "addRecurringExpense": "Add Recurring Expense",
     "errorLoadingExpenses": "Error loading expenses",
     "expensesCount": "Expenses ({{count}})",
-    "recurringCount": "Recurring ({{count}})"
+    "recurringCount": "Recurring ({{count}})",
+    "loadingExpenses": "Loading expenses...",
+    "syncingBankTransactions": "Syncing bank transactions...",
+    "lastSync": "Last Sync: "
   },
   "guides": {
     "title": "Guides",
@@ -975,7 +978,13 @@
     "selectCountry": "Select Country",
     "continue": "Continue",
     "upgradeForBankConnection": "Unlock automatic expenses import",
-    "upgrade": "Upgrade"
+    "upgrade": "Upgrade",
+    "syncComplete": "Sync Complete",
+    "syncCompleteMessage": "Added: {{addedCount}}\nUpdated: {{updatedCount}}",
+    "syncError": "Failed to sync bank transactions",
+    "syncErrorMessage": "Failed to sync bank transactions. Please try again.",
+    "disconnectSuccess": "Your bank account has been disconnected successfully.",
+    "disconnectError": "Failed to disconnect bank account. Please try again."
   },
   "version": {
     "newVersionAvailable": "New Version Available",
