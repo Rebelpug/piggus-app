@@ -281,7 +281,7 @@ export default function GroupsScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <TopNavigation
-          title="Expense Groups"
+          title={t("groups.expenseGroups")}
           alignment="center"
           accessoryLeft={renderBackAction}
           accessoryRight={renderRightAction}

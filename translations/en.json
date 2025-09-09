@@ -322,6 +322,7 @@
   },
   "groups": {
     "title": "Groups",
+    "expenseGroups": "Expense Groups",
     "errorLoadingGroups": "Error loading groups",
     "tryAgain": "Try Again"
   },
@@ -446,7 +447,14 @@
     "error": "Error",
     "addInvestmentFailed": "Failed to add investment. Please try again.",
     "unexpectedError": "An unexpected error occurred. Please try again.",
-    "exchangeMarketInstruction": "If you are not sure: If you are in the EU → XETRA (EUR). If you are in the UK → LSE (GBX or USD). If you are in Switzerland → SW (CHF). If you are in the US → Use USD. If you are in Canada → Use CAD."
+    "exchangeMarketInstruction": "If you are not sure: If you are in the EU → XETRA (EUR). If you are in the UK → LSE (GBX or USD). If you are in Switzerland → SW (CHF). If you are in the US → Use USD. If you are in Canada → Use CAD.",
+    "symbolPlaceholder": "e.g., AAPL or US0378331005",
+    "symbolPlaceholderShort": "e.g., AAPL",
+    "exchangePlaceholder": "e.g., NASDAQ, LSE, XETRA",
+    "pricePlaceholder": "0.00",
+    "taxationPlaceholder": "0",
+    "interestRatePlaceholder": "e.g., 3.5",
+    "premiumFeature": "(Premium Feature)"
   },
   "editInvestment": {
     "title": "Edit Investment",
@@ -514,7 +522,15 @@
     "unexpectedError": "An unexpected error occurred. Please try again.",
     "exchangeMarketInstruction": "If you are not sure: If you are in the EU → XETRA (EUR). If you are in the UK → LSE (GBX or USD). If you are in Switzerland → SW (CHF). If you are in the US → Use USD. If you are in Canada → Use CAD.",
     "priceUpdateFailed": "Automatic price update failed",
-    "priceUpdateFailedDescription": "The automatic price update failed today. Please search for the symbol again to verify it's correct and get the latest price."
+    "priceUpdateFailedDescription": "The automatic price update failed today. Please search for the symbol again to verify it's correct and get the latest price.",
+    "investmentNamePlaceholder": "e.g., Apple Inc.",
+    "symbolPlaceholder": "e.g., AAPL",
+    "exchangePlaceholder": "e.g., MX",
+    "isinPlaceholder": "e.g., IT9282990139",
+    "pricePlaceholder": "0.00",
+    "taxationPlaceholder": "0",
+    "interestRatePlaceholder": "e.g., 3.5",
+    "premiumFeature": "(Premium Feature)"
   },
   "investmentDetail": {
     "title": "Investment Details",
@@ -601,7 +617,48 @@
     "investmentsCount": "investments",
     "selectPortfolio": "Select Portfolio",
     "unnamedPortfolio": "Unnamed Portfolio",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "investedValue": "Invested Value",
+    "estimatedYearlyReturn": "Estimated Yearly Return",
+    "earnings": "Earnings",
+    "yearlyEstimatedReturn": "Yearly Estimated Return",
+    "estYearlyDividendInterest": "Est. Yearly Dividend/Interest",
+    "estYearlyCapitalGain": "Est. Yearly Capital Gain",
+    "investmentDistribution": "Investment Distribution",
+    "distributionBreakdown": "Distribution Breakdown",
+    "estEarning": "Est. earning:",
+    "performanceMetrics": "Performance Metrics",
+    "annualizedReturnCAGR": "Annualized Return (CAGR)",
+    "estimatedTaxRate": "Estimated Tax Rate",
+    "financialAssets": "Financial Assets",
+    "currentFinancialAssets": "Current Financial Assets",
+    "startingValue": "Starting Value",
+    "netChange": "Net Change",
+    "financialAssetsDisclaimer": "Historical data based on your financial assets records. Past performance does not guarantee future results."
+  },
+  "paymentMethods": {
+    "title": "Manage Payment Methods",
+    "error": "Error",
+    "failedToSaveChanges": "Failed to save changes. Please try again.",
+    "pleaseEnterPaymentMethodName": "Please enter a payment method name",
+    "paymentMethodAlreadyExists": "A payment method with this name already exists",
+    "failedToAddPaymentMethod": "Failed to add payment method. Please try again.",
+    "deletePaymentMethod": "Delete Payment Method",
+    "deleteConfirmation": "Are you sure you want to delete this payment method?",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "failedToDeletePaymentMethod": "Failed to delete payment method. Please try again.",
+    "failedToRestorePaymentMethod": "Failed to restore payment method. Please try again.",
+    "chooseIcon": "Choose Icon:",
+    "activePaymentMethods": "Active Payment Methods",
+    "methodNamePlaceholder": "Method name",
+    "save": "Save",
+    "modified": "Modified",
+    "custom": "Custom",
+    "newMethodNamePlaceholder": "New method name",
+    "add": "Add",
+    "deletedPaymentMethods": "Deleted Payment Methods",
+    "deletedMethodsDescription": "These methods are hidden but can be restored."
   },
   "portfolioDetail": {
     "title": "Portfolio Details",
@@ -686,7 +743,8 @@
     "moveExpenseFailed": "Failed to move expense. Please try again.",
     "cancel": "Cancel",
     "error": "Error",
-    "deleteExpenseFailed": "Failed to delete expense. Please try again."
+    "deleteExpenseFailed": "Failed to delete expense. Please try again.",
+    "of": "of"
   },
   "editExpense": {
     "title": "Edit Expense",
@@ -698,6 +756,7 @@
     "description": "Description (Optional)",
     "enterDescription": "Enter description",
     "amount": "Amount",
+    "amountPlaceholder": "0.00",
     "category": "Category",
     "selectCategory": "Select category",
     "paymentMethod": "Payment Method",
@@ -794,7 +853,17 @@
     "selectCategoryAndPayer": "Please select a category and payer",
     "selectAtLeastOneParticipant": "Please select at least one participant",
     "customAmountsMustMatch": "Custom amounts must add up to the total amount",
-    "updateRecurringExpenseFailed": "Failed to update recurring expense"
+    "updateRecurringExpenseFailed": "Failed to update recurring expense",
+    "selectPayer": "Please select a payer",
+    "amountPlaceholder": "0.00",
+    "paymentMethod": "Payment Method",
+    "selectPaymentMethod": "Select payment method",
+    "hasEndDate": "Has End Date",
+    "generateExpenses": "Generate Expenses",
+    "generateExpensesDescription": "Automatically create expenses for this recurring schedule",
+    "generateExpensesDescriptionWithBank": "Not recommended if bank account is connected to avoid adding expenses twice",
+    "notRecommendedBankConnected": "Not recommended if bank account is connected to avoid adding expenses twice",
+    "automaticallyCreateExpenses": "Automatically create expenses for this recurring schedule"
   },
   "budgetingCategories": {
     "title": "Manage Categories",
@@ -880,7 +949,10 @@
     "dec": "Dec",
     "year": "Year",
     "transactionsCount": "transactions",
-    "others": "Others"
+    "others": "Others",
+    "other": "Other",
+    "loadingExpenses": "Loading expenses...",
+    "paymentMethodsDistribution": "Payment Methods Distribution"
   },
   "groupDetail": {
     "title": "Group Details",
@@ -962,7 +1034,29 @@
     "rejectedStatus": "rejected",
     "unknownUser": "Unknown User",
     "memberSince": "Member since",
-    "you": "(You)"
+    "you": "(You)",
+    "cannotRefundSamePerson": "Cannot create a refund to the same person",
+    "unknownGroup": "Unknown Group",
+    "refreshingExpenses": "Refreshing expenses...",
+    "settlementSuggestions": "Settlement Suggestions",
+    "whoShouldPayWhom": "Who should pay whom to settle all balances",
+    "youNeedToPay": "You need to pay",
+    "shouldPayYou": "should pay you",
+    "settlementBetweenMembers": "Settlement between members",
+    "youOwe": "You owe",
+    "youReceive": "You receive",
+    "transfer": "Transfer",
+    "individualBalances": "Individual Balances",
+    "settledUpPending": "Settled up (Pending invitation)",
+    "getsBackPending": "Gets back {{amount}} (Pending invitation)",
+    "owesPending": "Owes {{amount}} (Pending invitation)",
+    "credit": "Credit",
+    "creditPending": "Credit*",
+    "debt": "Debt",
+    "debtPending": "Debt*",
+    "noMembersToShowBalances": "No members to show balances for",
+    "allBalancesSettled": "All balances are settled!",
+    "amountPlaceholder": "0.00"
   },
   "guideDetail": {
     "title": "Guide",

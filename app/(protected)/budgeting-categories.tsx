@@ -22,6 +22,7 @@ import { useRouter } from "expo-router";
 import { useProfile } from "@/context/ProfileContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { Ionicons } from "@expo/vector-icons";
 import {
   BASE_EXPENSE_CATEGORIES,
@@ -77,6 +78,7 @@ export default function BudgetingCategoriesScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { userProfile, updateProfile } = useProfile();
+  const { t } = useLocalization();
   const [loading, setLoading] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
@@ -132,8 +134,8 @@ export default function BudgetingCategoriesScreen() {
       )
     ) {
       Alert.alert(
-        "Invalid Hierarchy",
-        "A subcategory cannot be a child of another subcategory.",
+        t("budgetingCategories.invalidHierarchy"),
+        t("budgetingCategories.subcategoryCannotBeChild"),
       );
       return;
     }
@@ -180,7 +182,10 @@ export default function BudgetingCategoriesScreen() {
       setSelectedParent(null);
     } catch (error) {
       console.error("Failed to update category:", (error as Error).message);
-      Alert.alert("Error", "Failed to update category. Please try again.");
+      Alert.alert(
+        t("budgetingCategories.error"),
+        t("budgetingCategories.updateCategoryFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -198,8 +203,8 @@ export default function BudgetingCategoriesScreen() {
       )
     ) {
       Alert.alert(
-        "Invalid Hierarchy",
-        "A subcategory cannot be a child of another subcategory.",
+        t("budgetingCategories.invalidHierarchy"),
+        t("budgetingCategories.subcategoryCannotBeChild"),
       );
       return;
     }
@@ -229,7 +234,10 @@ export default function BudgetingCategoriesScreen() {
       setSelectedParent(null);
     } catch (error) {
       console.error("Failed to add category:", (error as Error).message);
-      Alert.alert("Error", "Failed to add category. Please try again.");
+      Alert.alert(
+        t("budgetingCategories.error"),
+        t("budgetingCategories.addCategoryFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -237,12 +245,12 @@ export default function BudgetingCategoriesScreen() {
 
   const handleDeleteCategory = async (categoryId: string) => {
     Alert.alert(
-      "Delete Category",
-      "Are you sure you want to delete this category? Existing expenses will still show this category.",
+      t("budgetingCategories.deleteCategory"),
+      t("budgetingCategories.deleteCategoryConfirm"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("budgetingCategories.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("budgetingCategories.delete"),
           style: "destructive",
           onPress: async () => {
             setLoading(true);
@@ -278,8 +286,8 @@ export default function BudgetingCategoriesScreen() {
                 (error as Error).message,
               );
               Alert.alert(
-                "Error",
-                "Failed to delete category. Please try again.",
+                t("budgetingCategories.error"),
+                t("budgetingCategories.deleteCategoryFailed"),
               );
             } finally {
               setLoading(false);
@@ -308,7 +316,10 @@ export default function BudgetingCategoriesScreen() {
       });
     } catch (error) {
       console.error("Failed to restore category:", (error as Error).message);
-      Alert.alert("Error", "Failed to restore category. Please try again.");
+      Alert.alert(
+        t("budgetingCategories.error"),
+        t("budgetingCategories.restoreCategoryFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -334,8 +345,8 @@ export default function BudgetingCategoriesScreen() {
     return (
       <View style={styles.parentSelector}>
         <Select
-          label="Parent Category (Optional)"
-          placeholder="Select parent category or leave empty for main category"
+          label={t("budgetingCategories.parentCategory")}
+          placeholder={t("budgetingCategories.parentCategoryDescription")}
           value={
             selectedParent
               ? availableParents.find((cat) => cat.id === selectedParent)?.name
@@ -365,7 +376,7 @@ export default function BudgetingCategoriesScreen() {
             onPress={() => setSelectedParent(null)}
           >
             <Text style={[styles.clearParentText, { color: colors.error }]}>
-              Clear Parent
+              {t("budgetingCategories.clearParent")}
             </Text>
           </TouchableOpacity>
         )}
@@ -376,7 +387,7 @@ export default function BudgetingCategoriesScreen() {
   const renderEmojiPicker = () => (
     <View style={styles.emojiPicker}>
       <Text style={[styles.emojiLabel, { color: colors.text }]}>
-        Select Icon:
+        {t("budgetingCategories.selectIcon")}
       </Text>
       <ScrollView
         horizontal
@@ -413,7 +424,7 @@ export default function BudgetingCategoriesScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TopNavigation
-        title="Manage Categories"
+        title={t("budgetingCategories.title")}
         alignment="center"
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
@@ -429,7 +440,7 @@ export default function BudgetingCategoriesScreen() {
         >
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Active Categories
+              {t("budgetingCategories.activeCategories")}
             </Text>
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: colors.primary }]}
@@ -458,7 +469,7 @@ export default function BudgetingCategoriesScreen() {
                       <Text
                         style={[styles.modifiedText, { color: colors.warning }]}
                       >
-                        Modified
+                        {t("budgetingCategories.modified")}
                       </Text>
                     </View>
                   )}
@@ -528,7 +539,7 @@ export default function BudgetingCategoriesScreen() {
                               { color: colors.warning },
                             ]}
                           >
-                            Modified
+                            {t("budgetingCategories.modified")}
                           </Text>
                         </View>
                       )}
@@ -580,10 +591,10 @@ export default function BudgetingCategoriesScreen() {
             ]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Deleted Categories
+              {t("budgetingCategories.deletedCategories")}
             </Text>
             <Text style={[styles.sectionSubtitle, { color: colors.icon }]}>
-              These categories are hidden but existing expenses still use them
+              {t("budgetingCategories.deletedCategoriesDescription")}
             </Text>
 
             {currentOverrides.deleted.map((categoryId) => {
@@ -611,7 +622,7 @@ export default function BudgetingCategoriesScreen() {
                       <Text
                         style={[styles.deletedText, { color: colors.error }]}
                       >
-                        Deleted
+                        {t("budgetingCategories.deleted")}
                       </Text>
                     </View>
                   </View>
@@ -626,7 +637,7 @@ export default function BudgetingCategoriesScreen() {
                     <Text
                       style={[styles.restoreText, { color: colors.success }]}
                     >
-                      Restore
+                      {t("budgetingCategories.restore")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -646,11 +657,11 @@ export default function BudgetingCategoriesScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              Edit Category
+              {t("budgetingCategories.editCategory")}
             </Text>
 
             <Input
-              label="Category Name"
+              label={t("budgetingCategories.categoryName")}
               value={categoryName}
               onChangeText={setCategoryName}
               style={styles.modalInput}
@@ -666,7 +677,7 @@ export default function BudgetingCategoriesScreen() {
                 appearance="outline"
                 onPress={() => setEditingCategory(null)}
               >
-                Cancel
+                {t("budgetingCategories.cancel")}
               </Button>
               <Button
                 style={styles.modalButton}
@@ -678,7 +689,9 @@ export default function BudgetingCategoriesScreen() {
                     : undefined
                 }
               >
-                {loading ? "Saving..." : "Save"}
+                {loading
+                  ? t("budgetingCategories.saving")
+                  : t("budgetingCategories.save")}
               </Button>
             </View>
           </View>
@@ -695,11 +708,11 @@ export default function BudgetingCategoriesScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              Add New Category
+              {t("budgetingCategories.addNewCategory")}
             </Text>
 
             <Input
-              label="Category Name"
+              label={t("budgetingCategories.categoryName")}
               value={categoryName}
               onChangeText={setCategoryName}
               style={styles.modalInput}
@@ -715,7 +728,7 @@ export default function BudgetingCategoriesScreen() {
                 appearance="outline"
                 onPress={() => setAddingCategory(false)}
               >
-                Cancel
+                {t("budgetingCategories.cancel")}
               </Button>
               <Button
                 style={styles.modalButton}
@@ -727,7 +740,9 @@ export default function BudgetingCategoriesScreen() {
                     : undefined
                 }
               >
-                {loading ? "Adding..." : "Add"}
+                {loading
+                  ? t("budgetingCategories.adding")
+                  : t("budgetingCategories.add")}
               </Button>
             </View>
           </View>

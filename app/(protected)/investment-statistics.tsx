@@ -326,17 +326,25 @@ interface PieChartData {
   color: string;
 }
 
-const investmentTypes = [
-  { id: "stock", name: "Stock", icon: "📈" },
-  { id: "bond", name: "Bond", icon: "🏛️" },
-  { id: "crypto", name: "Cryptocurrency", icon: "₿" },
-  { id: "etf", name: "ETF", icon: "📊" },
-  { id: "mutual_fund", name: "Mutual Fund", icon: "🏦" },
-  { id: "real_estate", name: "Real Estate", icon: "🏠" },
-  { id: "commodity", name: "Commodity", icon: "🥇" },
-  { id: "checkingAccount", name: "Checking Account", icon: "💳" },
-  { id: "savingsAccount", name: "Savings Account", icon: "💰" },
-  { id: "other", name: "Other", icon: "📦" },
+const getInvestmentTypes = (t: any) => [
+  { id: "stock", name: t("investmentTypes.stock"), icon: "📈" },
+  { id: "bond", name: t("investmentTypes.bond"), icon: "🏛️" },
+  { id: "crypto", name: t("investmentTypes.cryptocurrency"), icon: "₿" },
+  { id: "etf", name: t("investmentTypes.etf"), icon: "📊" },
+  { id: "mutual_fund", name: t("investmentTypes.mutualFund"), icon: "🏦" },
+  { id: "real_estate", name: t("investmentTypes.realEstate"), icon: "🏠" },
+  { id: "commodity", name: t("investmentTypes.commodity"), icon: "🥇" },
+  {
+    id: "checkingAccount",
+    name: t("investmentTypes.checkingAccount"),
+    icon: "💳",
+  },
+  {
+    id: "savingsAccount",
+    name: t("investmentTypes.savingsAccount"),
+    icon: "💰",
+  },
+  { id: "other", name: t("investmentTypes.other"), icon: "📦" },
 ];
 
 export default function InvestmentStatisticsScreen() {
@@ -347,6 +355,8 @@ export default function InvestmentStatisticsScreen() {
   const { t } = useLocalization();
   const { portfolioId } = useLocalSearchParams<{ portfolioId?: string }>();
   const { portfolios } = useInvestment();
+
+  const investmentTypes = getInvestmentTypes(t);
 
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | null>(
     portfolioId || null,
@@ -540,7 +550,7 @@ export default function InvestmentStatisticsScreen() {
         {/* Section 1: Overview - 4 Key Metrics */}
         <View style={styles.summarySection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Overview
+            {t("investmentStatistics.overview")}
           </Text>
 
           <View style={styles.statsGrid}>
@@ -552,7 +562,7 @@ export default function InvestmentStatisticsScreen() {
                 )}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Invested Value
+                {t("investmentStatistics.investedValue")}
               </Text>
             </View>
 
@@ -564,7 +574,7 @@ export default function InvestmentStatisticsScreen() {
                 )}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Current Value
+                {t("investmentStatistics.currentValue")}
               </Text>
             </View>
 
@@ -604,7 +614,7 @@ export default function InvestmentStatisticsScreen() {
                 %
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Total Return
+                {t("investmentStatistics.totalReturn")}
               </Text>
             </View>
 
@@ -644,7 +654,7 @@ export default function InvestmentStatisticsScreen() {
                 %
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Estimated Yearly Return
+                {t("investmentStatistics.estimatedYearlyReturn")}
               </Text>
             </View>
           </View>
@@ -653,7 +663,7 @@ export default function InvestmentStatisticsScreen() {
         {/* Section 2: 10-Year Projection */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            10-Year Projection
+            {t("investmentStatistics.tenYearProjection")}
           </Text>
 
           <View
@@ -758,14 +768,14 @@ export default function InvestmentStatisticsScreen() {
         {/* Section 5: Advanced Metrics */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Earnings
+            {t("investmentStatistics.earnings")}
           </Text>
           <View
             style={[styles.advancedContainer, { backgroundColor: colors.card }]}
           >
             <View style={styles.advancedRow}>
               <Text style={[styles.advancedLabel, { color: colors.icon }]}>
-                Yearly Estimated Return
+                {t("investmentStatistics.yearlyEstimatedReturn")}
               </Text>
               <View style={styles.advancedValueContainer}>
                 <Text
@@ -809,7 +819,7 @@ export default function InvestmentStatisticsScreen() {
 
             <View style={styles.advancedRow}>
               <Text style={[styles.advancedLabel, { color: colors.icon }]}>
-                Est. Yearly Dividend/Interest
+                {t("investmentStatistics.estYearlyDividendInterest")}
               </Text>
               <View style={styles.advancedValueContainer}>
                 <Text style={[styles.advancedValue, { color: colors.success }]}>
@@ -834,7 +844,7 @@ export default function InvestmentStatisticsScreen() {
 
             <View style={styles.advancedRow}>
               <Text style={[styles.advancedLabel, { color: colors.icon }]}>
-                Est. Yearly Capital Gain
+                {t("investmentStatistics.estYearlyCapitalGain")}
               </Text>
               <View style={styles.advancedValueContainer}>
                 <Text
@@ -879,7 +889,7 @@ export default function InvestmentStatisticsScreen() {
         {/* Section 3: Investment Distribution */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Investment Distribution
+            {t("investmentStatistics.investmentDistribution")}
           </Text>
 
           {typesPieData.length > 0 && (
@@ -929,7 +939,7 @@ export default function InvestmentStatisticsScreen() {
         {/* Section 4: Distribution Breakdown */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Distribution Breakdown
+            {t("investmentStatistics.distributionBreakdown")}
           </Text>
           <View
             style={[styles.typeContainer, { backgroundColor: colors.card }]}
@@ -997,7 +1007,8 @@ export default function InvestmentStatisticsScreen() {
                         />
                       </View>
                       <Text style={[styles.typeCount, { color: colors.icon }]}>
-                        Est. earning: {estimatedEarning >= 0 ? "+" : ""}
+                        {t("investmentStatistics.estEarning")}{" "}
+                        {estimatedEarning >= 0 ? "+" : ""}
                         {formatCurrency(
                           estimatedEarning,
                           userProfile?.profile.defaultCurrency,
@@ -1020,7 +1031,7 @@ export default function InvestmentStatisticsScreen() {
         {/* Section 6: Performance Metrics */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Performance Metrics
+            {t("investmentStatistics.performanceMetrics")}
           </Text>
           <View
             style={[
@@ -1030,7 +1041,7 @@ export default function InvestmentStatisticsScreen() {
           >
             <View style={styles.performanceRow}>
               <Text style={[styles.performanceLabel, { color: colors.icon }]}>
-                Annualized Return (CAGR)
+                {t("investmentStatistics.annualizedReturnCAGR")}
               </Text>
               <Text
                 style={[
@@ -1051,7 +1062,7 @@ export default function InvestmentStatisticsScreen() {
 
             <View style={styles.performanceRow}>
               <Text style={[styles.performanceLabel, { color: colors.icon }]}>
-                Estimated Tax Rate
+                {t("investmentStatistics.estimatedTaxRate")}
               </Text>
               <Text
                 style={[styles.performanceValue, { color: colors.warning }]}
@@ -1069,7 +1080,7 @@ export default function InvestmentStatisticsScreen() {
         {financialAssetsLineData.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Financial Assets
+              {t("investmentStatistics.financialAssets")}
             </Text>
 
             <View
@@ -1086,7 +1097,7 @@ export default function InvestmentStatisticsScreen() {
                   )}
                 </Text>
                 <Text style={[styles.projectionLabel, { color: colors.icon }]}>
-                  Current Financial Assets
+                  {t("investmentStatistics.currentFinancialAssets")}
                 </Text>
               </View>
 
@@ -1116,7 +1127,7 @@ export default function InvestmentStatisticsScreen() {
                         { color: colors.icon },
                       ]}
                     >
-                      Starting Value
+                      {t("investmentStatistics.startingValue")}
                     </Text>
                   </View>
                   <View style={styles.projectionStatItem}>
@@ -1139,7 +1150,7 @@ export default function InvestmentStatisticsScreen() {
                         { color: colors.icon },
                       ]}
                     >
-                      Current Value
+                      {t("investmentStatistics.currentValue")}
                     </Text>
                   </View>
                   <View style={styles.projectionStatItem}>
@@ -1179,7 +1190,7 @@ export default function InvestmentStatisticsScreen() {
                         { color: colors.icon },
                       ]}
                     >
-                      Net Change
+                      {t("investmentStatistics.netChange")}
                     </Text>
                   </View>
                 </View>
@@ -1188,8 +1199,7 @@ export default function InvestmentStatisticsScreen() {
               <Text
                 style={[styles.projectionDisclaimer, { color: colors.icon }]}
               >
-                Historical data based on your financial assets records. Past
-                performance does not guarantee future results.
+                {t("investmentStatistics.financialAssetsDisclaimer")}
               </Text>
             </View>
           </View>

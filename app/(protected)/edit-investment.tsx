@@ -657,7 +657,7 @@ export default function EditInvestmentScreen() {
 
             <Input
               label={t("editInvestment.investmentNameRequired")}
-              placeholder="e.g., Apple Inc."
+              placeholder={t("editInvestment.investmentNamePlaceholder")}
               value={formData.name}
               onChangeText={(text) =>
                 setFormData((prev) => ({ ...prev, name: text }))
@@ -669,7 +669,7 @@ export default function EditInvestmentScreen() {
 
             <Input
               label={t("editInvestment.symbolOptional")}
-              placeholder="e.g., AAPL"
+              placeholder={t("editInvestment.symbolPlaceholder")}
               value={formData.symbol}
               onChangeText={(text) => {
                 setFormData((prev) => ({
@@ -705,7 +705,7 @@ export default function EditInvestmentScreen() {
               {isSearching
                 ? t("editInvestment.searching", "Searching...")
                 : userProfile?.subscription?.subscription_tier !== "premium"
-                  ? `${t("editInvestment.findInvestment", "Find Investment")} (Premium Feature)`
+                  ? `${t("editInvestment.findInvestment", "Find Investment")} ${t("editInvestment.premiumFeature")}`
                   : t("editInvestment.findInvestment", "Find Investment")}
             </Button>
 
@@ -847,7 +847,7 @@ export default function EditInvestmentScreen() {
 
             <Input
               label={t("editInvestment.exchangeMarketOptional")}
-              placeholder="e.g., MX"
+              placeholder={t("editInvestment.exchangePlaceholder")}
               value={formData.exchange_market}
               onChangeText={(text) =>
                 setFormData((prev) => ({ ...prev, exchange_market: text }))
@@ -860,7 +860,7 @@ export default function EditInvestmentScreen() {
 
             <Input
               label={t("editInvestment.isinOptional")}
-              placeholder="e.g., IT9282990139"
+              placeholder={t("editInvestment.isinPlaceholder")}
               value={formData.isin}
               onChangeText={(text) =>
                 setFormData((prev) => ({ ...prev, isin: text }))
@@ -895,7 +895,7 @@ export default function EditInvestmentScreen() {
 
             <Input
               label={t("editInvestment.purchasePriceRequired")}
-              placeholder="0.00"
+              placeholder={t("editInvestment.pricePlaceholder")}
               value={formData.purchase_price}
               onChangeText={(text) => {
                 setFormData((prev) => ({
@@ -933,7 +933,7 @@ export default function EditInvestmentScreen() {
               <Input
                 style={styles.taxationInput}
                 label={t("editInvestment.taxation")}
-                placeholder="0"
+                placeholder={t("editInvestment.taxationPlaceholder")}
                 value={formData.taxation}
                 onChangeText={(text) =>
                   setFormData((prev) => ({ ...prev, taxation: text }))
@@ -955,7 +955,7 @@ export default function EditInvestmentScreen() {
               <>
                 <Input
                   label={t("editInvestment.interestRate")}
-                  placeholder="e.g., 3.5"
+                  placeholder={t("editInvestment.interestRatePlaceholder")}
                   value={formData.interest_rate}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, interest_rate: text }))

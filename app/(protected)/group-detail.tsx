@@ -244,7 +244,7 @@ export default function GroupDetailScreen() {
     if (refundFormData.from_user_id === refundFormData.to_user_id) {
       Alert.alert(
         t("groupDetail.error"),
-        "Cannot create a refund to the same person",
+        t("groupDetail.cannotRefundSamePerson"),
       );
       return;
     }
@@ -283,7 +283,10 @@ export default function GroupDetailScreen() {
         });
         setEditingRefund(null);
       } else {
-        Alert.alert("Error", result.error || t("groupDetail.saveRefundFailed"));
+        Alert.alert(
+          t("groupDetail.error"),
+          result.error || t("groupDetail.saveRefundFailed"),
+        );
       }
     } catch (error) {
       console.error("Failed to save refund", (error as Error).message);
@@ -344,7 +347,7 @@ export default function GroupDetailScreen() {
     // Add group name to the item for ExpenseItem component
     const itemWithGroupName = {
       ...item,
-      groupName: group?.data?.name || "Unknown Group",
+      groupName: group?.data?.name || t("groupDetail.unknownGroup"),
     };
 
     return <ExpenseItem item={itemWithGroupName} />;
@@ -372,8 +375,8 @@ export default function GroupDetailScreen() {
 
     return (
       <ListItem
-        title={item.username || "Unknown User"}
-        description={`Member since ${formatDate(item.created_at)}`}
+        title={item.username || t("groupDetail.unknownUser")}
+        description={`${t("groupDetail.memberSince")} ${formatDate(item.created_at)}`}
         accessoryLeft={() => (
           <Layout
             style={[
@@ -523,14 +526,14 @@ export default function GroupDetailScreen() {
         >
           <Layout style={styles.balancesHeader}>
             <Text category="h6" style={styles.balancesTitle}>
-              Settlement Suggestions
+              {t("groupDetail.settlementSuggestions")}
             </Text>
             <Text
               category="c1"
               appearance="hint"
               style={styles.balancesSubtitle}
             >
-              Who should pay whom to settle all balances
+              {t("groupDetail.whoShouldPayWhom")}
             </Text>
           </Layout>
 
@@ -549,10 +552,10 @@ export default function GroupDetailScreen() {
                       title={`${item.from.username} → ${item.to.username}`}
                       description={
                         isCurrentUserPaying
-                          ? `You need to pay ${item.to.username}`
+                          ? `${t("groupDetail.youNeedToPay")} ${item.to.username}`
                           : isCurrentUserReceiving
-                            ? `${item.from.username} should pay you`
-                            : "Settlement between members"
+                            ? `${item.from.username} ${t("groupDetail.shouldPayYou")}`
+                            : t("groupDetail.settlementBetweenMembers")
                       }
                       accessoryLeft={() => (
                         <Layout
@@ -603,10 +606,10 @@ export default function GroupDetailScreen() {
                             style={styles.settlementStatus}
                           >
                             {isCurrentUserPaying
-                              ? "You owe"
+                              ? t("groupDetail.youOwe")
                               : isCurrentUserReceiving
-                                ? "You receive"
-                                : "Transfer"}
+                                ? t("groupDetail.youReceive")
+                                : t("groupDetail.transfer")}
                           </Text>
                         </Layout>
                       )}
@@ -621,7 +624,7 @@ export default function GroupDetailScreen() {
           {sortedBalances.length > 0 ? (
             <Layout style={styles.balancesSection}>
               <Text category="s1" style={styles.sectionTitle}>
-                Individual Balances
+                {t("groupDetail.individualBalances")}
               </Text>
               <List
                 style={styles.balancesList}
@@ -635,15 +638,15 @@ export default function GroupDetailScreen() {
 
                   return (
                     <ListItem
-                      title={`${item.username}${isCurrentUser ? " (You)" : ""}${isPending ? " (Pending)" : ""}`}
+                      title={`${item.username}${isCurrentUser ? ` ${t("groupDetail.you")}` : ""}${isPending ? ` ${t("groupDetail.pendingStatus")}` : ""}`}
                       description={
                         isZero
                           ? isPending
-                            ? "Settled up (Pending invitation)"
-                            : "Settled up"
+                            ? t("groupDetail.settledUpPending")
+                            : t("groupDetail.settledUp")
                           : isPositive
-                            ? `Gets back ${formatCurrency(item.balance, group?.data?.currency)}${isPending ? " (Pending invitation)" : ""}`
-                            : `Owes ${formatCurrency(Math.abs(item.balance), group?.data?.currency)}${isPending ? " (Pending invitation)" : ""}`
+                            ? `${t("groupDetail.getsBack")} ${formatCurrency(item.balance, group?.data?.currency)}${isPending ? ` (${t("groupDetail.pendingStatus")})` : ""}`
+                            : `${t("groupDetail.owes")} ${formatCurrency(Math.abs(item.balance), group?.data?.currency)}${isPending ? ` (${t("groupDetail.pendingStatus")})` : ""}`
                       }
                       accessoryRight={() => (
                         <Layout style={styles.balanceItemRight}>
@@ -677,15 +680,15 @@ export default function GroupDetailScreen() {
                           >
                             {isPending
                               ? isZero
-                                ? "Pending"
+                                ? t("groupDetail.pending")
                                 : isPositive
-                                  ? "Credit*"
-                                  : "Debt*"
+                                  ? t("groupDetail.creditPending")
+                                  : t("groupDetail.debtPending")
                               : isZero
-                                ? "Settled"
+                                ? t("groupDetail.settled")
                                 : isPositive
-                                  ? "Credit"
-                                  : "Debt"}
+                                  ? t("groupDetail.credit")
+                                  : t("groupDetail.debt")}
                           </Text>
                         </Layout>
                       )}
@@ -704,7 +707,7 @@ export default function GroupDetailScreen() {
                 style={styles.emptyIcon}
               />
               <Text category="s1" appearance="hint" style={styles.emptyText}>
-                No members to show balances for
+                {t("groupDetail.noMembersToShowBalances")}
               </Text>
             </Layout>
           )}
@@ -718,7 +721,7 @@ export default function GroupDetailScreen() {
                 style={styles.settledIcon}
               />
               <Text category="s1" style={styles.settledText}>
-                All balances are settled!
+                {t("groupDetail.allBalancesSettled")}
               </Text>
             </Layout>
           )}
@@ -765,7 +768,7 @@ export default function GroupDetailScreen() {
         <View style={styles.loadingAlertContent}>
           <Spinner size="small" status="primary" />
           <Text style={[styles.loadingAlertText, { color: colors.primary }]}>
-            Refreshing expenses...
+            {t("groupDetail.refreshingExpenses")}
           </Text>
         </View>
       </View>
@@ -777,7 +780,7 @@ export default function GroupDetailScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <TopNavigation
-            title="Group Details"
+            title={t("groupDetail.title")}
             alignment="center"
             accessoryLeft={renderBackAction}
             accessoryRight={renderRefreshAction}
@@ -795,7 +798,7 @@ export default function GroupDetailScreen() {
               category="h6"
               style={[styles.errorTitle, { color: colors.text }]}
             >
-              Group not found
+              {t("groupDetail.groupNotFound")}
             </Text>
             <Text
               category="s1"
@@ -804,7 +807,7 @@ export default function GroupDetailScreen() {
             >
               {t("groupDetail.groupNotFoundDescription")}
             </Text>
-            <Button onPress={navigateBack}>Go Back</Button>
+            <Button onPress={navigateBack}>{t("groupDetail.goBack")}</Button>
           </Layout>
         </SafeAreaView>
       </ThemedView>
@@ -848,7 +851,7 @@ export default function GroupDetailScreen() {
                   style={styles.pendingIcon}
                 />
                 <Text category="h6" style={styles.pendingTitle}>
-                  Invitation Pending
+                  {t("groupDetail.invitationPending")}
                 </Text>
                 <Text
                   category="s1"
@@ -946,7 +949,7 @@ export default function GroupDetailScreen() {
               selectedIndex={selectedIndex}
               onSelect={(index) => setSelectedIndex(index)}
             >
-              <Tab title="Expenses">
+              <Tab title={t("groupDetail.expenses")}>
                 <View style={styles.tabContent}>
                   {group.expenses &&
                   group.expenses.filter(
@@ -1010,12 +1013,12 @@ export default function GroupDetailScreen() {
                   )}
                 </View>
               </Tab>
-              <Tab title="Balances">{renderBalancesTab()}</Tab>
-              <Tab title="Members">
+              <Tab title={t("groupDetail.balances")}>{renderBalancesTab()}</Tab>
+              <Tab title={t("groupDetail.members")}>
                 <Layout style={styles.tabContent}>
                   <Layout style={styles.membersHeader}>
                     <Text category="h6" style={styles.membersTitle}>
-                      Group Members
+                      {t("groupDetail.groupMembers")}
                     </Text>
                     <Button
                       style={styles.inviteButton}
@@ -1074,7 +1077,7 @@ export default function GroupDetailScreen() {
                   )}
                 </Layout>
               </Tab>
-              <Tab title="Refunds">
+              <Tab title={t("groupDetail.refunds")}>
                 <Layout style={styles.tabContent}>
                   <Layout style={styles.refundsHeader}>
                     <Text category="h6" style={styles.refundsTitle}>
@@ -1283,7 +1286,7 @@ export default function GroupDetailScreen() {
         >
           <Card disabled={true}>
             <Text category="h6" style={styles.modalTitle}>
-              Invite Member
+              {t("groupDetail.inviteMember")}
             </Text>
             <Text
               category="s1"
@@ -1295,7 +1298,7 @@ export default function GroupDetailScreen() {
 
             <Input
               style={styles.modalInput}
-              placeholder="Enter username"
+              placeholder={t("groupDetail.enterUsername")}
               value={inviteUsername}
               onChangeText={setInviteUsername}
               autoCapitalize="none"
@@ -1385,7 +1388,9 @@ export default function GroupDetailScreen() {
                     ]}
                   >
                     {member.username}
-                    {member.status === "pending" ? " (Pending)" : ""}
+                    {member.status === "pending"
+                      ? ` (${t("groupDetail.pending")})`
+                      : ""}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -1418,7 +1423,9 @@ export default function GroupDetailScreen() {
                     ]}
                   >
                     {member.username}
-                    {member.status === "pending" ? " (Pending)" : ""}
+                    {member.status === "pending"
+                      ? ` (${t("groupDetail.pending")})`
+                      : ""}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -1427,7 +1434,7 @@ export default function GroupDetailScreen() {
             <Input
               style={styles.modalInput}
               label={t("groupDetail.amount")}
-              placeholder="0.00"
+              placeholder={t("groupDetail.amountPlaceholder")}
               value={refundFormData.amount}
               onChangeText={(text) =>
                 setRefundFormData((prev) => ({ ...prev, amount: text }))
@@ -1461,7 +1468,7 @@ export default function GroupDetailScreen() {
                   });
                 }}
               >
-                Cancel
+                {t("groupDetail.cancel")}
               </Button>
               <Button
                 style={styles.modalButton}
