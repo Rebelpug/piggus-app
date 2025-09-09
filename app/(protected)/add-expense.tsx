@@ -559,7 +559,7 @@ export default function AddExpenseScreen() {
           {currentGroupMembers.map((member) => (
             <SelectItem
               key={member.user_id}
-              title={`${member.username}${member.status === "pending" ? " (Pending)" : ""}`}
+              title={`${member.username}${member.status === "pending" ? t("addExpense.pending") : ""}`}
             />
           ))}
         </Select>
@@ -628,7 +628,7 @@ export default function AddExpenseScreen() {
                 >
                   <Text category="s1">
                     {member.username}
-                    {member.status === "pending" ? " (Pending)" : ""}
+                    {member.status === "pending" ? t("addExpense.pending") : ""}
                   </Text>
                   {member.user_id === user?.id && (
                     <Text category="c1" appearance="hint">
@@ -781,7 +781,7 @@ export default function AddExpenseScreen() {
               {availableGroups.map((group) => (
                 <SelectItem
                   key={group.id}
-                  title={`${group.data?.name || "Unnamed Group"} (${group.data?.currency || "USD"})`}
+                  title={`${group.data?.name || t("addExpense.unnamedGroup")} (${group.data?.currency || t("addExpense.defaultCurrency")})`}
                 />
               ))}
             </Select>
@@ -802,7 +802,7 @@ export default function AddExpenseScreen() {
                   ? t("addExpense.currencyDefault", {
                       currency:
                         availableGroups[selectedGroupIndex.row]?.data
-                          ?.currency || "USD",
+                          ?.currency || t("addExpense.defaultCurrency"),
                     })
                   : t("addExpense.currencySelectGroupFirst")
               }

@@ -223,7 +223,10 @@
     "addExpense": "Add Expense",
     "addingExpense": "Adding Expense...",
     "noGroupsTitle": "No expense groups available",
-    "noGroupsDescription": "You need to create or join an expense group before adding expenses."
+    "noGroupsDescription": "You need to create or join an expense group before adding expenses.",
+    "pending": "(Pending)",
+    "unnamedGroup": "Unnamed Group",
+    "defaultCurrency": "USD"
   },
   "expenses": {
     "title": "Expenses",
