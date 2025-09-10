@@ -282,7 +282,7 @@ export default function PortfolioDetailScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <TopNavigation
-          title={portfolio.data?.name || "Portfolio Details"}
+          title={portfolio.data?.name || t("portfolioDetail.title")}
           alignment="center"
           accessoryLeft={renderBackAction}
           accessoryRight={renderRightAction}

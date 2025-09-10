@@ -104,12 +104,12 @@ export default function ProfileScreen() {
 
   const handleDeleteAccount = async () => {
     Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
+      t("profile.deleteAccount"),
+      t("profile.deleteAccountConfirm"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("modals.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("modals.delete"),
           style: "destructive",
           onPress: async () => {
             setLoading(true);
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
                 "Failed to delete account: ",
                 (error as Error).message,
               );
-              Alert.alert("Error", "Failed to delete account");
+              Alert.alert(t("alerts.error"), t("profile.deleteAccountFailed"));
             }
             try {
               await signOut();
@@ -434,13 +434,13 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                {t("profile.language")} (Coming soon)
+                {t("profile.language")} ({t("profile.comingSoon")})
               </Text>
             </View>
             <View style={styles.preferenceValue}>
               <Text style={[styles.currentValue, { color: colors.icon }]}>
                 {availableLanguages?.find((l) => l.code === currentLanguage)
-                  ?.nativeName || "English"}
+                  ?.nativeName || t("language.english")}
               </Text>
               <Ionicons name="chevron-forward" size={20} color={colors.icon} />
             </View>
@@ -556,7 +556,7 @@ export default function ProfileScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Security
+            {t("profile.security")}
           </Text>
 
           <TouchableOpacity
@@ -578,7 +578,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Change Password (Coming soon)
+                {t("profile.changePasswordComingSoon")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -638,7 +638,7 @@ export default function ProfileScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            About
+            {t("profile.about")}
           </Text>
 
           <TouchableOpacity
@@ -659,7 +659,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Support us
+                {t("profile.supportUs")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -685,7 +685,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Roadmap
+                {t("profile.roadmap")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -711,7 +711,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Feedback
+                {t("profile.feedback")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -733,7 +733,7 @@ export default function ProfileScreen() {
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </View>
               <Text style={[styles.labelText, { color: colors.error }]}>
-                Delete Account
+                {t("profile.deleteAccount")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.error} />

@@ -28,7 +28,11 @@
     "signingOut": "Signing Out...",
     "termsAndConditions": "Terms and Conditions",
     "privacyPolicy": "Privacy Policy",
-    "version": "Version"
+    "version": "Version",
+    "comingSoon": "Coming soon",
+    "deleteAccount": "Delete Account",
+    "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
+    "deleteAccountFailed": "Failed to delete account"
   },
   "language": {
     "english": "English",
@@ -58,7 +62,8 @@
     "updating": "Updating...",
     "sendFeedbackButton": "Send Feedback",
     "sending": "Sending...",
-    "close": "Close"
+    "close": "Close",
+    "delete": "Delete"
   },
   "roadmapItems": {
     "automaticInvestmentTracking": "Automatic tracking of investments",
@@ -1168,6 +1173,16 @@
     "initializationError": "Failed to load subscription information. Please try again.",
     "purchaseError": "Failed to complete purchase. Please try again.",
     "restoreError": "Failed to restore purchases. Please try again.",
+    "restoreTimeout": "Restore purchases timed out. Please try again.",
+    "retrying": "Retrying...",
+    "attemptCount": "Attempt {{count}} of 3",
+    "loadError": "Unable to Load Subscription",
+    "loadErrorDescription": "We're having trouble connecting to the subscription service. Please check your internet connection and try again.",
+    "tryAgain": "Try Again",
+    "limitedMode": "Limited features available. Some subscription options may not display correctly.",
+    "tapToRetry": "Tap to retry loading",
+    "deviceSubscriptionSettings": "Please go to your device settings to manage subscriptions",
+    "monthsFree": "{{count}} months free!",
     "autoRenewal": {
       "monthly": "Automatically renews monthly unless cancelled at least 24 hours before the end of the current period.",
       "yearly": "Automatically renews yearly unless cancelled at least 24 hours before the end of the current period.",

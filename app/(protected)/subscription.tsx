@@ -308,7 +308,7 @@ export default function SubscriptionScreen() {
       Alert.alert(
         t("subscription.success"),
         t("subscription.purchaseSuccess"),
-        [{ text: "OK", onPress: () => router.back() }],
+        [{ text: t("common.ok"), onPress: () => router.back() }],
       );
     } catch (error: any) {
       console.error("Purchase error:", error);
@@ -412,7 +412,7 @@ export default function SubscriptionScreen() {
           } else {
             Alert.alert(
               t("subscription.error"),
-              "Please go to your device settings to manage subscriptions",
+              t("subscription.deviceSubscriptionSettings"),
             );
           }
         })
@@ -420,7 +420,7 @@ export default function SubscriptionScreen() {
           console.error("Error opening subscription settings:", err);
           Alert.alert(
             t("subscription.error"),
-            "Please go to your device settings to manage subscriptions",
+            t("subscription.deviceSubscriptionSettings"),
           );
         });
     }
@@ -476,7 +476,7 @@ export default function SubscriptionScreen() {
       pricingTier.package.identifier.includes("annual");
 
     // Calculate savings for annual plans (example logic)
-    const monthlySavings = isAnnual ? "2 months free!" : null;
+    const monthlySavings = isAnnual ? t("subscription.monthsFree", { count: 2 }) : null;
 
     // Get renewal date if this is the current active subscription
     const subscription = customerInfo?.entitlements.active.premium;

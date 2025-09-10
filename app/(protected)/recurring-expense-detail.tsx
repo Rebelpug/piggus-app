@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useExpense } from "@/context/ExpenseContext";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import {
   RecurringExpenseWithDecryptedData,
   getCategoryDisplayInfo,
@@ -37,6 +38,7 @@ export default function RecurringExpenseDetailScreen() {
   const { expensesGroups, recurringExpenses, deleteRecurringExpense } =
     useExpense();
   const { userProfile } = useProfile();
+  const { t } = useLocalization();
   const [recurringExpense, setRecurringExpense] =
     useState<RecurringExpenseWithDecryptedData | null>(null);
   const [groupName, setGroupName] = useState<string>("");
@@ -54,7 +56,7 @@ export default function RecurringExpenseDetailScreen() {
 
     const group = expensesGroups?.find((g) => g.id === groupId);
     if (group) {
-      setGroupName(group.data?.name || "Unknown Group");
+      setGroupName(group.data?.name || t("common.unknownGroup"));
       setGroupMembers(group.members || []);
     }
   }, [recurringExpenseId, groupId, recurringExpenses, expensesGroups]);
@@ -75,12 +77,12 @@ export default function RecurringExpenseDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Recurring Expense",
-      "Are you sure you want to delete this recurring expense? This will not affect previously generated expenses.",
+      t("recurringExpenseDetail.delete"),
+      t("recurringExpenseDetail.deleteRecurringExpenseConfirm"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("recurringExpenseDetail.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("recurringExpenseDetail.deleteButton"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -91,8 +93,8 @@ export default function RecurringExpenseDetailScreen() {
             } catch (error) {
               console.error("Failed to delete recurring expense:", error);
               Alert.alert(
-                "Error",
-                "Failed to delete recurring expense. Please try again.",
+                t("recurringExpenseDetail.error"),
+                t("recurringExpenseDetail.deleteRecurringExpenseFailed"),
               );
             }
           },
@@ -127,10 +129,10 @@ export default function RecurringExpenseDetailScreen() {
 
   const getIntervalDisplay = (interval: string) => {
     const intervalMap = {
-      daily: "Daily",
-      weekly: "Weekly",
-      monthly: "Monthly",
-      yearly: "Yearly",
+      daily: t("recurringExpenseDetail.daily"),
+      weekly: t("recurringExpenseDetail.weekly"),
+      monthly: t("recurringExpenseDetail.monthly"),
+      yearly: t("recurringExpenseDetail.yearly"),
     };
     return intervalMap[interval as keyof typeof intervalMap] || interval;
   };
@@ -143,13 +145,13 @@ export default function RecurringExpenseDetailScreen() {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays < 0) {
-        return "Overdue";
+        return t("recurringExpenseDetail.overdue");
       } else if (diffDays === 0) {
-        return "Due today";
+        return t("recurringExpenseDetail.dueToday");
       } else if (diffDays === 1) {
-        return "Due tomorrow";
+        return t("recurringExpenseDetail.dueTomorrow");
       } else if (diffDays <= 7) {
-        return `Due in ${diffDays} days`;
+        return t("recurringExpenseDetail.dueInDays", { days: diffDays });
       } else {
         return formatDate(dateString);
       }
@@ -167,7 +169,7 @@ export default function RecurringExpenseDetailScreen() {
 
   const getUsernameFromId = (userId: string) => {
     const member = groupMembers.find((m) => m.user_id === userId);
-    return member ? member.username : "Unknown User";
+    return member ? member.username : t("recurringExpenseDetail.unknownUser");
   };
 
   const userShare =
@@ -199,13 +201,13 @@ export default function RecurringExpenseDetailScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
       >
         <TopNavigation
-          title="Recurring Expense Details"
+          title={t("recurringExpenseDetail.title")}
           alignment="center"
           accessoryLeft={renderBackAction}
           style={{ backgroundColor: colors.background }}
         />
         <Layout style={styles.loadingContainer}>
-          <Text category="h6">Recurring expense not found</Text>
+          <Text category="h6">{t("recurringExpenseDetail.recurringExpenseNotFound")}</Text>
         </Layout>
       </SafeAreaView>
     );
@@ -218,7 +220,7 @@ export default function RecurringExpenseDetailScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TopNavigation
-        title="Recurring Expense Details"
+        title={t("recurringExpenseDetail.title")}
         alignment="center"
         accessoryLeft={renderBackAction}
         accessoryRight={renderEditAction}
@@ -259,7 +261,7 @@ export default function RecurringExpenseDetailScreen() {
                     ]}
                   />
                   <Text style={[styles.statusText, { color: colors.text }]}>
-                    {recurringExpense.data.is_active ? "Active" : "Inactive"}
+                    {recurringExpense.data.is_active ? t("recurringExpenseDetail.active") : t("recurringExpenseDetail.inactive")}
                   </Text>
                 </View>
               </View>
@@ -269,7 +271,7 @@ export default function RecurringExpenseDetailScreen() {
                 </Text>
                 {recurringExpense.data.participants.length > 1 && (
                   <Text style={[styles.totalAmount, { color: colors.icon }]}>
-                    of{" "}
+                    {t("expenseDetail.of")}{" "}
                     {formatCurrency(
                       recurringExpense.data.amount,
                       recurringExpense.data.currency,
@@ -286,7 +288,7 @@ export default function RecurringExpenseDetailScreen() {
                   <Text
                     style={[styles.recurringText, { color: colors.primary }]}
                   >
-                    Recurring
+                    {t("recurringExpenseDetail.recurring")}
                   </Text>
                 </View>
               </View>
@@ -296,11 +298,11 @@ export default function RecurringExpenseDetailScreen() {
           {/* Schedule Information */}
           <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Schedule
+              {t("recurringExpenseDetail.schedule")}
             </Text>
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                Frequency:
+                {t("recurringExpenseDetail.frequency")}
               </Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>
                 {getIntervalDisplay(recurringExpense.data.interval)}
@@ -308,7 +310,7 @@ export default function RecurringExpenseDetailScreen() {
             </View>
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                Start Date:
+                {t("recurringExpenseDetail.startDate")}
               </Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>
                 {formatDate(recurringExpense.data.start_date)}
@@ -317,7 +319,7 @@ export default function RecurringExpenseDetailScreen() {
             {recurringExpense.data.end_date && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  End Date:
+                  {t("recurringExpenseDetail.endDate")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {formatDate(recurringExpense.data.end_date)}
@@ -326,7 +328,7 @@ export default function RecurringExpenseDetailScreen() {
             )}
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                Next Due:
+                {t("recurringExpenseDetail.nextDue")}
               </Text>
               <Text
                 style={[
@@ -340,13 +342,13 @@ export default function RecurringExpenseDetailScreen() {
               >
                 {recurringExpense.data.is_active
                   ? formatNextDueDate(recurringExpense.data.next_due_date)
-                  : "Inactive"}
+                  : t("recurringExpenseDetail.inactive")}
               </Text>
             </View>
             {recurringExpense.data.last_generated_date && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  Last Generated:
+                  {t("recurringExpenseDetail.lastGenerated")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {formatDate(recurringExpense.data.last_generated_date)}
@@ -358,21 +360,21 @@ export default function RecurringExpenseDetailScreen() {
           {/* Expense Details */}
           <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Details
+              {t("recurringExpenseDetail.details")}
             </Text>
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                Category:
+                {t("recurringExpenseDetail.category")}
               </Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>
                 {categoryInfo.icon} {categoryInfo.name}
-                {categoryInfo.isDeleted ? " (Deleted)" : ""}
+                {categoryInfo.isDeleted ? t("recurringExpenseDetail.deleted") : ""}
               </Text>
             </View>
             {recurringExpense.data.payment_method && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  Payment Method:
+                  {t("expenseDetail.paymentMethod")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {(() => {
@@ -388,7 +390,7 @@ export default function RecurringExpenseDetailScreen() {
             {recurringExpense.data.description && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  Description:
+                  {t("recurringExpenseDetail.description")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {recurringExpense.data.description}
@@ -397,7 +399,7 @@ export default function RecurringExpenseDetailScreen() {
             )}
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                Amount:
+                {t("recurringExpenseDetail.amount")}
               </Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>
                 {formatCurrency(
@@ -409,14 +411,14 @@ export default function RecurringExpenseDetailScreen() {
             {groupMembers.length > 1 && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  Split Method:
+                  {t("recurringExpenseDetail.splitMethod")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {recurringExpense.data.split_method === "equal"
-                    ? "Split Equally"
+                    ? t("recurringExpenseDetail.splitEqually")
                     : recurringExpense.data.split_method === "custom"
-                      ? "Custom Amounts"
-                      : "By Percentage"}
+                      ? t("recurringExpenseDetail.customAmounts")
+                      : t("recurringExpenseDetail.byPercentage")}
                 </Text>
               </View>
             )}
@@ -426,15 +428,15 @@ export default function RecurringExpenseDetailScreen() {
           {groupMembers.length > 1 && (
             <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Participants
+                {t("recurringExpenseDetail.participants")}
               </Text>
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  Paid by:
+                  {t("recurringExpenseDetail.paidBy")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {getUsernameFromId(recurringExpense.data.payer_user_id)}
-                  {isPayer && " (You)"}
+                  {isPayer && t("recurringExpenseDetail.you")}
                 </Text>
               </View>
               {recurringExpense.data.participants.map((participant, index) => (
@@ -443,7 +445,7 @@ export default function RecurringExpenseDetailScreen() {
                     style={[styles.participantName, { color: colors.text }]}
                   >
                     {getUsernameFromId(participant.user_id)}
-                    {participant.user_id === user?.id && " (You)"}
+                    {participant.user_id === user?.id && t("recurringExpenseDetail.you")}
                   </Text>
                   <Text
                     style={[styles.participantAmount, { color: colors.text }]}
@@ -462,15 +464,15 @@ export default function RecurringExpenseDetailScreen() {
           {groupMembers.length >= 1 && (
             <Card style={[styles.detailCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Payment
+                {t("recurringExpenseDetail.payment")}
               </Text>
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.icon }]}>
-                  Paid by:
+                  {t("recurringExpenseDetail.paidBy")}
                 </Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>
                   {getUsernameFromId(recurringExpense.data.payer_user_id)}
-                  {isPayer && " (You)"}
+                  {isPayer && t("recurringExpenseDetail.you")}
                 </Text>
               </View>
             </Card>
@@ -491,7 +493,7 @@ export default function RecurringExpenseDetailScreen() {
               )}
               onPress={handleEdit}
             >
-              Edit
+              {t("recurringExpenseDetail.edit")}
             </Button>
             <Button
               style={[styles.actionButton, styles.deleteButton]}
@@ -502,7 +504,7 @@ export default function RecurringExpenseDetailScreen() {
               )}
               onPress={handleDelete}
             >
-              Delete
+              {t("recurringExpenseDetail.delete")}
             </Button>
           </View>
         </ThemedView>
