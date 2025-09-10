@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { calculateUserShare } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { formatCurrency } from "@/utils/currencyUtils";
 
 interface BudgetCardProps {
@@ -31,6 +32,7 @@ export default function BudgetCard({
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { t } = useLocalization();
   const { user } = useAuth();
   const { expensesGroups, recurringExpenses } = useExpense();
   const { userProfile, updateProfile } = useProfile();
@@ -159,7 +161,7 @@ export default function BudgetCard({
       isNaN(Number(budgetAmount)) ||
       Number(budgetAmount) <= 0
     ) {
-      Alert.alert("Validation Error", "Please enter a valid budget amount");
+      Alert.alert(t("budget.validationError"), t("budget.validBudgetAmount"));
       return;
     }
 
@@ -177,7 +179,7 @@ export default function BudgetCard({
       setBudgetModalVisible(false);
     } catch (error) {
       console.error("Failed to set budget: ", (error as Error).message || "");
-      Alert.alert("Error", "Failed to set budget. Please try again.");
+      Alert.alert(t("alerts.error"), t("budget.failedSetBudget"));
     } finally {
       setSavingBudget(false);
     }
@@ -185,10 +187,10 @@ export default function BudgetCard({
 
   const getBudgetStatus = () => {
     if (budgetPercentUsed <= 50)
-      return { color: "#4CAF50", status: "On Track" };
+      return { color: "#4CAF50", status: t("budget.onTrack") };
     if (budgetPercentUsed <= 80)
-      return { color: "#FF9800", status: "Watch Out" };
-    return { color: "#F44336", status: "Over Budget" };
+      return { color: "#FF9800", status: t("budget.watchOut") };
+    return { color: "#F44336", status: t("budget.overBudget") };
   };
 
   const budgetStatusInfo = getBudgetStatus();
@@ -204,7 +206,7 @@ export default function BudgetCard({
       >
         <View style={styles.budgetHeader}>
           <Text style={[styles.budgetTitle, { color: colors.text }]}>
-            Monthly Budget
+            {t("budget.monthlyBudget")}
           </Text>
           {budget ? (
             <TouchableOpacity onPress={() => setBudgetModalVisible(true)}>
@@ -224,8 +226,8 @@ export default function BudgetCard({
                 </Text>
                 <Text style={[styles.budgetSpentLabel, { color: colors.icon }]}>
                   {selectedMonth === "current"
-                    ? "Spending this month"
-                    : "Spending this period"}
+                    ? t("budget.spendingThisMonth")
+                    : t("budget.spendingThisPeriod")}
                 </Text>
               </View>
               <View style={styles.budgetRemaining}>
@@ -243,7 +245,9 @@ export default function BudgetCard({
                 <Text
                   style={[styles.budgetRemainingLabel, { color: colors.icon }]}
                 >
-                  {budgetRemaining >= 0 ? "Remaining" : "Over Budget"}
+                  {budgetRemaining >= 0
+                    ? t("budget.remaining")
+                    : t("budget.overBudget")}
                 </Text>
               </View>
             </View>
@@ -298,7 +302,7 @@ export default function BudgetCard({
                 color={colors.primary}
               />
               <Text style={[styles.statsButtonText, { color: colors.primary }]}>
-                See more stats
+                {t("budget.seeMoreStats")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -317,10 +321,10 @@ export default function BudgetCard({
               />
             </View>
             <Text style={[styles.noBudgetText, { color: colors.text }]}>
-              Set a monthly budget
+              {t("budget.setMonthlyBudget")}
             </Text>
             <Text style={[styles.noBudgetSubtext, { color: colors.icon }]}>
-              Track your spending and stay on budget
+              {t("budget.trackSpendingDescription")}
             </Text>
             <TouchableOpacity
               style={[
@@ -329,7 +333,9 @@ export default function BudgetCard({
               ]}
               onPress={() => setBudgetModalVisible(true)}
             >
-              <Text style={styles.setBudgetButtonText}>Set Budget</Text>
+              <Text style={styles.setBudgetButtonText}>
+                {t("budget.setBudget")}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -344,16 +350,16 @@ export default function BudgetCard({
       >
         <Card disabled={true} style={styles.modalCard}>
           <Text category="h6" style={styles.modalTitle}>
-            Set Monthly Budget
+            {t("budget.setMonthlyBudgetTitle")}
           </Text>
           <Text category="s1" appearance="hint" style={styles.modalDescription}>
-            Set your monthly spending limit to track your expenses better.
+            {t("budget.budgetModalDescription")}
           </Text>
 
           <Input
             style={styles.modalInput}
-            label="Budget Amount"
-            placeholder="Enter amount"
+            label={t("budget.budgetAmount")}
+            placeholder={t("budget.enterAmount")}
             value={budgetAmount}
             onChangeText={setBudgetAmount}
             keyboardType="decimal-pad"
@@ -375,7 +381,7 @@ export default function BudgetCard({
                 );
               }}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               style={styles.modalButton}
@@ -387,7 +393,7 @@ export default function BudgetCard({
                   : undefined
               }
             >
-              {savingBudget ? "Saving..." : "Set Budget"}
+              {savingBudget ? t("budget.saving") : t("budget.setBudget")}
             </Button>
           </Layout>
         </Card>

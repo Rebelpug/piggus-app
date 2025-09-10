@@ -262,7 +262,7 @@ const RegisterScreen = () => {
                 <Text
                   style={[styles.requirementsTitle, { color: colors.text }]}
                 >
-                  Password Requirements
+                  {t("auth.passwordRequirements")}
                 </Text>
                 <View
                   style={[
@@ -282,7 +282,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Lowercase letter
+                    {t("auth.lowercaseLetter")}
                   </Text>
                 </View>
                 <View
@@ -303,7 +303,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Uppercase letter
+                    {t("auth.uppercaseLetter")}
                   </Text>
                 </View>
                 <View
@@ -324,7 +324,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Number
+                    {t("auth.number")}
                   </Text>
                 </View>
                 <View
@@ -353,7 +353,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Special character
+                    {t("auth.specialCharacter")}
                   </Text>
                 </View>
                 <View
@@ -372,7 +372,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    At least 8 characters
+                    {t("auth.atLeastEightCharacters")}
                   </Text>
                 </View>
                 <View
@@ -402,7 +402,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Passwords match
+                    {t("auth.passwordsMatch")}
                   </Text>
                 </View>
               </View>

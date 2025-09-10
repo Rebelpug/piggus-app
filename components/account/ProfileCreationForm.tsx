@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { CURRENCIES } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { checkUsernameAvailability } from "@/services/profileService";
 
 interface ProfileCreationProps {
@@ -27,6 +28,7 @@ export default function ProfileCreationForm({
   const { user } = useAuth();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { t } = useLocalization();
   const [customName, setCustomName] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("EUR"); // Default to EUR
   const [isCreating, setIsCreating] = useState(false);
@@ -44,15 +46,15 @@ export default function ProfileCreationForm({
     if (username.length === 0) return null; // Empty is allowed (will generate random)
 
     if (username.length < 3) {
-      return "Username must be at least 3 characters long";
+      return t("onboarding.usernameMinLength");
     }
 
     if (username.length > 20) {
-      return "Username must be no more than 20 characters long";
+      return t("onboarding.usernameMaxLength");
     }
 
     if (!/^[a-zA-Z0-9]+$/.test(username)) {
-      return "Username can only contain letters and numbers (no spaces or special characters)";
+      return t("onboarding.usernameAlphanumeric");
     }
 
     return null;
@@ -122,7 +124,7 @@ export default function ProfileCreationForm({
     setError(null);
 
     if (!user) {
-      setError("Cannot create profile: No user is logged in");
+      setError(t("onboarding.cannotCreateProfile"));
       setIsCreating(false);
       return;
     }
@@ -144,9 +146,7 @@ export default function ProfileCreationForm({
         setIsCheckingName(false);
 
         if (taken) {
-          setError(
-            "This username is already taken. Please choose a different one.",
-          );
+          setError(t("onboarding.usernameAlreadyTaken"));
           setIsCreating(false);
           return;
         }
@@ -170,9 +170,7 @@ export default function ProfileCreationForm({
         }
 
         if (!isUnique) {
-          setError(
-            "Failed to generate a unique username. Please try again or provide a custom name.",
-          );
+          setError(t("onboarding.failedGenerateUsername"));
           setIsCreating(false);
           return;
         }
@@ -182,8 +180,8 @@ export default function ProfileCreationForm({
       const profile = await onCreateProfile(finalUsername, selectedCurrency);
 
       if (!profile) {
-        setError("Failed to create profile");
-        showToast("Error", "Failed to create profile", true);
+        setError(t("onboarding.failedCreateProfile"));
+        showToast(t("alerts.error"), t("onboarding.failedCreateProfile"), true);
         setIsCreating(false);
         return;
       }
@@ -191,7 +189,9 @@ export default function ProfileCreationForm({
       onComplete();
     } catch (err) {
       setError(
-        `An error occurred: ${err instanceof Error ? err.message : String(err)}`,
+        t("onboarding.anErrorOccurred", {
+          error: err instanceof Error ? err.message : String(err),
+        }),
       );
       console.error("Profile creation error:", err);
     } finally {
@@ -218,11 +218,10 @@ export default function ProfileCreationForm({
       >
         <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
-            Complete Your Registration
+            {t("onboarding.completeRegistration")}
           </Text>
           <Text style={[styles.cardDescription, { color: colors.icon }]}>
-            One more step! We need to create your profile to store your
-            encrypted data.
+            {t("onboarding.oneMoreStepDescription")}
           </Text>
         </View>
 
@@ -244,14 +243,12 @@ export default function ProfileCreationForm({
           )}
 
           <Text style={[styles.paragraph, { color: colors.text }]}>
-            You can share your things with family and friends. This means that
-            they will need to be able to find you. Unless you choose a unique
-            name, you will be assigned something random.
+            {t("onboarding.shareWithFamilyDescription")}
           </Text>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>
-              Username (Optional)
+              {t("onboarding.usernameOptional")}
             </Text>
             <TextInput
               style={[
@@ -262,7 +259,7 @@ export default function ProfileCreationForm({
                   color: colors.text,
                 },
               ]}
-              placeholder="Enter a custom name (optional)"
+              placeholder={t("onboarding.customNamePlaceholder")}
               placeholderTextColor={colors.icon}
               value={customName}
               onChangeText={(text) => {
@@ -274,14 +271,13 @@ export default function ProfileCreationForm({
               autoCorrect={false}
             />
             <Text style={[styles.helperText, { color: colors.icon }]}>
-              Only letters and numbers allowed (3-20 characters). No spaces or
-              special characters.
+              {t("onboarding.usernameRules")}
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>
-              Default Currency
+              {t("onboarding.defaultCurrency")}
             </Text>
             <TouchableOpacity
               style={[
@@ -347,7 +343,7 @@ export default function ProfileCreationForm({
               </View>
             )}
             <Text style={[styles.helperText, { color: colors.icon }]}>
-              This will be your default currency for expenses and budgets
+              {t("onboarding.defaultCurrencyHelper")}
             </Text>
           </View>
 
@@ -371,11 +367,15 @@ export default function ProfileCreationForm({
                   style={styles.spinner}
                 />
                 <Text style={styles.buttonText}>
-                  {isCheckingName ? "Checking..." : "Creating..."}
+                  {isCheckingName
+                    ? t("onboarding.checking")
+                    : t("onboarding.creating")}
                 </Text>
               </View>
             ) : (
-              <Text style={styles.buttonText}>Create Profile</Text>
+              <Text style={styles.buttonText}>
+                {t("onboarding.createProfile")}
+              </Text>
             )}
           </TouchableOpacity>
         </View>

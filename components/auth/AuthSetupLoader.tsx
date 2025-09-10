@@ -10,10 +10,12 @@ import {
 import { Spinner } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 
 const AuthSetupLoader = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme || "light"];
+  const { t } = useLocalization();
 
   return (
     <SafeAreaView
@@ -25,9 +27,11 @@ const AuthSetupLoader = () => {
       >
         <View style={styles.contentContainer}>
           <Spinner size="large" />
-          <Text style={[styles.title, { color: colors.text }]}>Loading</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("auth.loading")}
+          </Text>
           <Text style={[styles.subtitle, { color: colors.icon }]}>
-            Doing some magic to set you up
+            {t("auth.doingSomeMagic")}
           </Text>
         </View>
       </KeyboardAvoidingView>

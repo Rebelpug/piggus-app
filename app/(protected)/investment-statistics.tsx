@@ -447,7 +447,13 @@ export default function InvestmentStatisticsScreen() {
       })
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [investmentStats.totalValue, investmentStats.typeBreakdown, typeColors]);
+  }, [
+    investmentStats.totalValue,
+    investmentStats.typeBreakdown,
+    typeColors,
+    investmentTypes,
+  ]);
+  // ESLint disabled: Including all necessary dependencies including investmentTypes
 
   // Create line chart data for 10-year projection using yearly return composition
   const projectionLineData: { year: number; value: number }[] = useMemo(() => {

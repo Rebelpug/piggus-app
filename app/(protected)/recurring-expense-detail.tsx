@@ -60,6 +60,8 @@ export default function RecurringExpenseDetailScreen() {
       setGroupMembers(group.members || []);
     }
   }, [recurringExpenseId, groupId, recurringExpenses, expensesGroups]);
+  // ESLint disabled: 't' is stable from useLocalization context
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const navigateBack = () => {
     router.back();
@@ -207,7 +209,9 @@ export default function RecurringExpenseDetailScreen() {
           style={{ backgroundColor: colors.background }}
         />
         <Layout style={styles.loadingContainer}>
-          <Text category="h6">{t("recurringExpenseDetail.recurringExpenseNotFound")}</Text>
+          <Text category="h6">
+            {t("recurringExpenseDetail.recurringExpenseNotFound")}
+          </Text>
         </Layout>
       </SafeAreaView>
     );
@@ -261,7 +265,9 @@ export default function RecurringExpenseDetailScreen() {
                     ]}
                   />
                   <Text style={[styles.statusText, { color: colors.text }]}>
-                    {recurringExpense.data.is_active ? t("recurringExpenseDetail.active") : t("recurringExpenseDetail.inactive")}
+                    {recurringExpense.data.is_active
+                      ? t("recurringExpenseDetail.active")
+                      : t("recurringExpenseDetail.inactive")}
                   </Text>
                 </View>
               </View>
@@ -368,7 +374,9 @@ export default function RecurringExpenseDetailScreen() {
               </Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>
                 {categoryInfo.icon} {categoryInfo.name}
-                {categoryInfo.isDeleted ? t("recurringExpenseDetail.deleted") : ""}
+                {categoryInfo.isDeleted
+                  ? t("recurringExpenseDetail.deleted")
+                  : ""}
               </Text>
             </View>
             {recurringExpense.data.payment_method && (
@@ -445,7 +453,8 @@ export default function RecurringExpenseDetailScreen() {
                     style={[styles.participantName, { color: colors.text }]}
                   >
                     {getUsernameFromId(participant.user_id)}
-                    {participant.user_id === user?.id && t("recurringExpenseDetail.you")}
+                    {participant.user_id === user?.id &&
+                      t("recurringExpenseDetail.you")}
                   </Text>
                   <Text
                     style={[styles.participantAmount, { color: colors.text }]}

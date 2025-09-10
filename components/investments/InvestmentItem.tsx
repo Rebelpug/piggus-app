@@ -138,13 +138,16 @@ export default function InvestmentItem({
               </Text>
               {item.data.last_updated && (
                 <Text style={[styles.lastUpdated, { color: colors.icon }]}>
-                  Last updated {formatDate(item.data.last_updated)}
+                  {t("investments.lastUpdated", {
+                    date: formatDate(item.data.last_updated),
+                  })}
                 </Text>
               )}
               {!item.data.last_updated && item.data.last_tentative_update && (
                 <Text style={[styles.lastUpdated, { color: colors.icon }]}>
-                  Last failed update{" "}
-                  {formatDate(item.data.last_tentative_update)}
+                  {t("investments.lastFailedUpdate", {
+                    date: formatDate(item.data.last_tentative_update),
+                  })}
                 </Text>
               )}
             </View>
@@ -169,7 +172,9 @@ export default function InvestmentItem({
                   { color: netInterestRate > 0 ? "#4CAF50" : "#9E9E9E" },
                 ]}
               >
-                {netInterestRate.toFixed(2)}% net interest
+                {t("investments.netInterest", {
+                  rate: netInterestRate.toFixed(2),
+                })}
               </Text>
             )}
           </View>
@@ -180,10 +185,7 @@ export default function InvestmentItem({
           <View style={styles.warningLine}>
             <Ionicons name="warning" size={14} color={colors.warning} />
             <Text style={[styles.warningText, { color: colors.warning }]}>
-              {t(
-                "investmentItem.priceUpdateFailed",
-                "Price update failed today",
-              )}
+              {t("investments.priceUpdateFailed")}
             </Text>
           </View>
         )}

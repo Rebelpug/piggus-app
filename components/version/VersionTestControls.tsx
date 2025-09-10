@@ -4,6 +4,7 @@ import { Button, Text } from "@ui-kitten/components";
 import { useAppVersion } from "@/context/AppVersionContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { SuggestedUpdateModal } from "./SuggestedUpdateModal";
 import { RequiredUpdateModal } from "./RequiredUpdateModal";
 
@@ -17,6 +18,7 @@ export const VersionTestControls: React.FC = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { retryVersionCheck, isLoading } = useAppVersion();
+  const { t } = useLocalization();
 
   // Only show in development
   if (!__DEV__) {
@@ -35,7 +37,7 @@ export const VersionTestControls: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>
-        Version Testing (Dev Only)
+        {t("version.versionTesting")}
       </Text>
 
       <View style={styles.buttonsContainer}>
@@ -45,7 +47,7 @@ export const VersionTestControls: React.FC = () => {
           appearance="outline"
           size="small"
         >
-          Test Suggested Update
+          {t("version.testSuggestedUpdate")}
         </Button>
 
         <Button
@@ -54,7 +56,7 @@ export const VersionTestControls: React.FC = () => {
           appearance="outline"
           size="small"
         >
-          Test Required Update
+          {t("version.testRequiredUpdate")}
         </Button>
 
         <Button
@@ -64,7 +66,7 @@ export const VersionTestControls: React.FC = () => {
           size="small"
           disabled={isLoading}
         >
-          {isLoading ? "Checking..." : "Force Version Check"}
+          {isLoading ? t("version.checking") : t("version.forceVersionCheck")}
         </Button>
       </View>
 

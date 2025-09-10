@@ -178,7 +178,13 @@ export default function EditInvestmentScreen() {
         }
       }
     }
-  }, [params.investmentId, params.portfolioId, portfolios.length, investment]);
+  }, [
+    params.investmentId,
+    params.portfolioId,
+    portfolios.length,
+    investment,
+    portfolios,
+  ]);
 
   const selectedPortfolio = portfolios[selectedPortfolioIndex.row];
   const selectedType = INVESTMENT_TYPES[selectedTypeIndex.row];

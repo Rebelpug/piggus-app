@@ -110,7 +110,7 @@ export default function SubscriptionScreen() {
 
   useEffect(() => {
     initializePurchases().catch(console.error);
-  }, []);
+  }, [initializePurchases]);
 
   // Silent retry mechanism
   const retryInitialization = async () => {
@@ -476,7 +476,9 @@ export default function SubscriptionScreen() {
       pricingTier.package.identifier.includes("annual");
 
     // Calculate savings for annual plans (example logic)
-    const monthlySavings = isAnnual ? t("subscription.monthsFree", { count: 2 }) : null;
+    const monthlySavings = isAnnual
+      ? t("subscription.monthsFree", { count: 2 })
+      : null;
 
     // Get renewal date if this is the current active subscription
     const subscription = customerInfo?.entitlements.active.premium;

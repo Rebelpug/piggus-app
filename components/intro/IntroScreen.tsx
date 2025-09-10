@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
@@ -22,49 +23,46 @@ interface IntroSlide {
   iconColor: string;
 }
 
-const introSlides: IntroSlide[] = [
-  {
-    id: 1,
-    title: "We're Just Getting Started",
-    subtitle: "A startup with big dreams",
-    description:
-      "We're a passionate startup working hard to bring you amazing new features. Your feedback helps us build the perfect financial companion for you!",
-    icon: "rocket-outline",
-    iconColor: "#9C27B0",
-  },
-  {
-    id: 2,
-    title: "Manage & Share Expenses",
-    subtitle: "Track your spending effortlessly",
-    description:
-      "Keep track of your personal expenses and easily share costs with friends, family, or roommates. Split bills, manage group expenses, and never forget who owes what.",
-    icon: "people-outline",
-    iconColor: "#4CAF50",
-  },
-  {
-    id: 3,
-    title: "Investment Tracker",
-    subtitle: "Grow your wealth smartly",
-    description:
-      "Monitor your investment portfolio, track performance, and make informed financial decisions. Keep all your investments organized in one secure place.",
-    icon: "trending-up-outline",
-    iconColor: "#2196F3",
-  },
-  {
-    id: 4,
-    title: "Privacy & Security",
-    subtitle: "Your data stays yours",
-    description:
-      "End-to-end encryption ensures your financial data remains completely private. We use zero-knowledge architecture - not even we can see your personal information.",
-    icon: "shield-checkmark-outline",
-    iconColor: "#FF9800",
-  },
-];
-
 export default function IntroScreen({ onComplete }: IntroScreenProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { t } = useLocalization();
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const introSlides: IntroSlide[] = [
+    {
+      id: 1,
+      title: t("intro.slide1.title"),
+      subtitle: t("intro.slide1.subtitle"),
+      description: t("intro.slide1.description"),
+      icon: "rocket-outline",
+      iconColor: "#9C27B0",
+    },
+    {
+      id: 2,
+      title: t("intro.slide2.title"),
+      subtitle: t("intro.slide2.subtitle"),
+      description: t("intro.slide2.description"),
+      icon: "people-outline",
+      iconColor: "#4CAF50",
+    },
+    {
+      id: 3,
+      title: t("intro.slide3.title"),
+      subtitle: t("intro.slide3.subtitle"),
+      description: t("intro.slide3.description"),
+      icon: "trending-up-outline",
+      iconColor: "#2196F3",
+    },
+    {
+      id: 4,
+      title: t("intro.slide4.title"),
+      subtitle: t("intro.slide4.subtitle"),
+      description: t("intro.slide4.description"),
+      icon: "shield-checkmark-outline",
+      iconColor: "#FF9800",
+    },
+  ];
 
   const handleNext = () => {
     if (currentSlide < introSlides.length - 1) {
@@ -145,10 +143,13 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Welcome to Piggus
+            {t("intro.welcomeToPiggus")}
           </Text>
           <Text style={[styles.slideCounter, { color: colors.icon }]}>
-            {currentSlide + 1} of {introSlides.length}
+            {t("intro.ofSlides", {
+              current: currentSlide + 1,
+              total: introSlides.length,
+            })}
           </Text>
         </View>
 
@@ -186,7 +187,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
               />
             )}
           >
-            Previous
+            {t("intro.previous")}
           </Button>
 
           <Button
@@ -205,7 +206,9 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
               />
             )}
           >
-            {currentSlide === introSlides.length - 1 ? "Get Started" : "Next"}
+            {currentSlide === introSlides.length - 1
+              ? t("intro.getStarted")
+              : t("intro.next")}
           </Button>
         </View>
 
@@ -218,7 +221,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
             onPress={handleComplete}
             style={styles.skipButton}
           >
-            Skip Introduction
+            {t("intro.skipIntroduction")}
           </Button>
         </View>
       </Layout>

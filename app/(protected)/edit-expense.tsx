@@ -226,6 +226,8 @@ export default function EditExpenseScreen() {
       }
     }
   }, [expenseId, groupId, expensesGroups]);
+  // ESLint disabled: 't', 'availableCategories', 'availablePaymentMethods', and 'userProfile' are stable or not used in this effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const navigateBack = () => {
     router.back();

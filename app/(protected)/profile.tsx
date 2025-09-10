@@ -103,38 +103,34 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    Alert.alert(
-      t("profile.deleteAccount"),
-      t("profile.deleteAccountConfirm"),
-      [
-        { text: t("modals.cancel"), style: "cancel" },
-        {
-          text: t("modals.delete"),
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await apiDeleteProfile();
-              router.replace("/login");
-            } catch (error) {
-              console.error(
-                "Failed to delete account: ",
-                (error as Error).message,
-              );
-              Alert.alert(t("alerts.error"), t("profile.deleteAccountFailed"));
-            }
-            try {
-              await signOut();
-            } catch (e) {
-              // This is needed but at the same time it fails so we don't want to show errors here.
-              console.error("Failed to sign out: ", (e as Error).message);
-            } finally {
-              setLoading(false);
-            }
-          },
+    Alert.alert(t("profile.deleteAccount"), t("profile.deleteAccountConfirm"), [
+      { text: t("modals.cancel"), style: "cancel" },
+      {
+        text: t("modals.delete"),
+        style: "destructive",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await apiDeleteProfile();
+            router.replace("/login");
+          } catch (error) {
+            console.error(
+              "Failed to delete account: ",
+              (error as Error).message,
+            );
+            Alert.alert(t("alerts.error"), t("profile.deleteAccountFailed"));
+          }
+          try {
+            await signOut();
+          } catch (e) {
+            // This is needed but at the same time it fails so we don't want to show errors here.
+            console.error("Failed to sign out: ", (e as Error).message);
+          } finally {
+            setLoading(false);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const handleUpdateCurrency = async () => {

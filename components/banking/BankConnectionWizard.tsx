@@ -102,18 +102,17 @@ export default function BankConnectionWizard({
       setCurrentStep(2);
     } catch (error: any) {
       console.error("Error fetching bank institutions:", error);
-      let errorMessage = "Failed to load bank institutions. Please try again.";
+      let errorMessage = t("banking.failedLoadInstitutions");
 
       if (error.response?.status === 403) {
-        errorMessage = "Premium subscription required to access bank data.";
+        errorMessage = t("banking.premiumRequired");
       } else if (error.response?.status === 409) {
-        errorMessage =
-          "You already have an active bank connection. Only one connection is allowed.";
+        errorMessage = t("banking.bankConnectionExists");
       } else if (error.response?.status === 500) {
-        errorMessage = "Bank data service is currently unavailable.";
+        errorMessage = t("banking.bankServiceUnavailable");
       }
 
-      Alert.alert("Error", errorMessage);
+      Alert.alert(t("alerts.error"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -144,18 +143,17 @@ export default function BankConnectionWizard({
       setCurrentStep(3); // Move to WebView step
     } catch (error: any) {
       console.error("Error creating bank connection:", error);
-      let errorMessage = "Failed to create bank connection. Please try again.";
+      let errorMessage = t("banking.failedCreateConnection");
 
       if (error.response?.status === 403) {
-        errorMessage = "Premium subscription required to access bank data.";
+        errorMessage = t("banking.premiumRequired");
       } else if (error.response?.status === 409) {
-        errorMessage =
-          "You already have an active bank connection. Only one connection is allowed.";
+        errorMessage = t("banking.bankConnectionExists");
       } else if (error.response?.status === 500) {
-        errorMessage = "Bank data service is currently unavailable.";
+        errorMessage = t("banking.bankServiceUnavailable");
       }
 
-      Alert.alert("Error", errorMessage);
+      Alert.alert(t("alerts.error"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -311,7 +309,7 @@ export default function BankConnectionWizard({
               : undefined
           }
         >
-          {loading ? "Loading..." : t("banking.continue")}
+          {loading ? t("banking.loading") : t("banking.continue")}
         </Button>
       </Layout>
     </ScrollView>
@@ -330,16 +328,16 @@ export default function BankConnectionWizard({
         </Layout>
 
         <Text category="h4" style={styles.stepTitle}>
-          Select Your Bank
+          {t("banking.selectYourBank")}
         </Text>
 
         <Text category="s1" appearance="hint" style={styles.stepDescription}>
-          Choose your bank from the list below to connect your account.
+          {t("banking.selectBankDescription")}
         </Text>
 
         <Input
           style={styles.searchInput}
-          placeholder="Search banks..."
+          placeholder={t("banking.searchBanks")}
           value={searchQuery}
           onChangeText={setSearchQuery}
           accessoryLeft={(props) => (
@@ -435,8 +433,8 @@ export default function BankConnectionWizard({
             <Ionicons name="search" size={48} color={colors.text + "40"} />
             <Text category="s1" appearance="hint" style={styles.emptyStateText}>
               {searchQuery
-                ? "No banks found matching your search"
-                : "No banks available"}
+                ? t("banking.noBanksFound")
+                : t("banking.noBanksAvailable")}
             </Text>
             {searchQuery && (
               <Button
@@ -445,7 +443,7 @@ export default function BankConnectionWizard({
                 onPress={() => setSearchQuery("")}
                 style={styles.clearSearchButton}
               >
-                Clear search
+                {t("banking.clearSearch")}
               </Button>
             )}
           </Layout>
@@ -464,7 +462,7 @@ export default function BankConnectionWizard({
               : undefined
           }
         >
-          {loading ? "Connecting..." : "Connect Bank"}
+          {loading ? t("banking.connecting") : t("banking.connectBank")}
         </Button>
       </Layout>
     </Layout>
@@ -474,10 +472,12 @@ export default function BankConnectionWizard({
     <Layout style={styles.webViewContainer}>
       <Layout style={styles.webViewHeader}>
         <Text category="h6" style={styles.webViewTitle}>
-          Authenticate with {selectedInstitution?.name}
+          {t("banking.authenticateWith", {
+            bankName: selectedInstitution?.name,
+          })}
         </Text>
         <Text category="s2" appearance="hint" style={styles.webViewDescription}>
-          Please log in to your bank account to complete the connection.
+          {t("banking.bankLoginPrompt")}
         </Text>
       </Layout>
 
@@ -493,30 +493,26 @@ export default function BankConnectionWizard({
 
               // Show success and close
               Alert.alert(
-                "Success",
-                "Your bank account has been connected successfully!",
-                [{ text: "OK", onPress: onClose }],
+                t("banking.success"),
+                t("banking.bankConnectedSuccess"),
+                [{ text: t("common.ok"), onPress: onClose }],
               );
             }
           }}
           onError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
             console.error("WebView error:", nativeEvent);
-            Alert.alert(
-              "Error",
-              "Failed to load bank authentication page. Please try again.",
-              [
-                { text: "Retry", onPress: () => setCurrentStep(2) },
-                { text: "Cancel", onPress: onClose },
-              ],
-            );
+            Alert.alert(t("alerts.error"), t("banking.webViewError"), [
+              { text: t("banking.retry"), onPress: () => setCurrentStep(2) },
+              { text: t("common.cancel"), onPress: onClose },
+            ]);
           }}
           startInLoadingState={true}
           renderLoading={() => (
             <Layout style={styles.webViewLoading}>
               <Spinner size="large" />
               <Text category="s1" style={styles.loadingText}>
-                Loading bank authentication...
+                {t("banking.loadingBankAuth")}
               </Text>
             </Layout>
           )}

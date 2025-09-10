@@ -17,6 +17,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { useAuth } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { SecureKeyManager } from "@/lib/secureKeyManager";
 
 interface PasswordPromptProps {
@@ -30,6 +31,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { t } = useLocalization();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +40,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
 
   useEffect(() => {
     handleBiometricLogin().catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleBiometricLogin is stable and contains all needed dependencies
   }, []);
 
   // Centralized cleanup function for authentication failures
@@ -90,9 +93,9 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
       }
 
       const biometricResult = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Authenticate to unlock your encrypted data",
-        cancelLabel: "Cancel",
-        fallbackLabel: "Use Password",
+        promptMessage: t("auth.authenticateToUnlock"),
+        cancelLabel: t("common.cancel"),
+        fallbackLabel: t("auth.usePasswordFallback"),
         disableDeviceFallback: false,
       });
 
@@ -125,7 +128,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
 
   const handleSubmit = async () => {
     if (!password.trim()) {
-      Alert.alert("Error", "Please enter your password");
+      Alert.alert(t("alerts.error"), t("auth.pleasEnterPassword"));
       return;
     }
 
@@ -143,25 +146,21 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
   };
 
   const handleCancel = async () => {
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out? You will need to sign in again.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut();
-              onCancel?.();
-            } catch (error) {
-              console.error("Sign out failed:", error);
-            }
-          },
+    Alert.alert(t("auth.signOut"), t("auth.signOutConfirmMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("auth.signOut"),
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+            onCancel?.();
+          } catch (error) {
+            console.error("Sign out failed:", error);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -192,10 +191,10 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
               />
             </View>
             <Text style={[styles.title, { color: colors.text }]}>
-              Enter Password
+              {t("auth.enterPassword")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.icon }]}>
-              Please enter your password to unlock your encrypted data
+              {t("auth.enterPasswordToUnlock")}
             </Text>
           </View>
 
@@ -203,7 +202,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
           <View style={styles.form}>
             <View style={styles.inputContainer}>
               <Text style={[styles.label, { color: colors.text }]}>
-                Password
+                {t("auth.password")}
               </Text>
               <View
                 style={[
@@ -221,7 +220,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
                   style={[styles.input, { color: colors.text }]}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Enter your password"
+                  placeholder={t("auth.enterPassword")}
                   placeholderTextColor={colors.icon}
                   secureTextEntry={!showPassword}
                   onSubmitEditing={handleSubmit}
@@ -254,11 +253,11 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
               {loading ? (
                 <View style={styles.buttonContent}>
                   <ActivityIndicator color="#FFF" size="small" />
-                  <Text style={styles.buttonText}>Unlocking...</Text>
+                  <Text style={styles.buttonText}>{t("auth.unlocking")}</Text>
                 </View>
               ) : (
                 <View style={styles.buttonContent}>
-                  <Text style={styles.buttonText}>Unlock</Text>
+                  <Text style={styles.buttonText}>{t("auth.unlock")}</Text>
                   <Ionicons name="arrow-forward" size={20} color="#FFF" />
                 </View>
               )}
@@ -271,7 +270,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
               activeOpacity={loading ? 1 : 0.7}
             >
               <Text style={[styles.cancelButtonText, { color: colors.icon }]}>
-                Sign Out
+                {t("auth.signOut")}
               </Text>
             </TouchableOpacity>
           </View>

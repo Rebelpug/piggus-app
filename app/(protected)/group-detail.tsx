@@ -111,7 +111,7 @@ export default function GroupDetailScreen() {
           setShowLoadingAlert(false);
         });
     }
-  }, [id, group?.id, fetchAllExpensesForGroup]);
+  }, [id, group?.id, fetchAllExpensesForGroup, group]);
 
   const navigateBack = () => {
     router.back();
@@ -327,7 +327,7 @@ export default function GroupDetailScreen() {
                   result.error || t("groupDetail.deleteRefundFailed"),
                 );
               }
-            } catch (error) {
+            } catch {
               Alert.alert(
                 t("groupDetail.error"),
                 t("groupDetail.deleteRefundFailed"),

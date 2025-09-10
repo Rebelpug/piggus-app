@@ -115,7 +115,7 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
             </View>
             <View style={styles.expenseDetails}>
               <Text style={[styles.expenseTitle, { color: colors.text }]}>
-                {item.data.name || "Unnamed Expense"}
+                {item.data.name || t("expenses.unnamedExpense")}
               </Text>
               <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
                 {item.groupName || t("expenses.unknownGroup")} •{" "}
@@ -129,7 +129,8 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
             </Text>
             {isSharedExpense && (
               <Text style={[styles.totalAmountText, { color: colors.icon }]}>
-                Your share: {formatCurrency(userShare, item.data.currency)}
+                {t("expenses.yourShare")}:{" "}
+                {formatCurrency(userShare, item.data.currency)}
               </Text>
             )}
           </View>
@@ -142,7 +143,7 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
                 const categoryInfo = getCategoryInfo(
                   item.data.category || "other",
                 );
-                return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? " (Deleted)" : ""}`;
+                return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ` (${t("expenses.deleted")})` : ""}`;
               })()}
             </Text>
           </View>
@@ -154,7 +155,7 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
               ]}
             >
               <Text style={[styles.payerText, { color: colors.primary }]}>
-                You paid
+                {t("expenses.youPaid")}
               </Text>
             </View>
           )}
