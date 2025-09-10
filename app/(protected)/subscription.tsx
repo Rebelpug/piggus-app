@@ -108,10 +108,6 @@ export default function SubscriptionScreen() {
   const isPremium = userProfile?.subscription?.subscription_tier === "premium";
   const hasActiveSubscription = customerInfo?.entitlements.active.premium;
 
-  useEffect(() => {
-    initializePurchases().catch(console.error);
-  }, [initializePurchases]);
-
   // Silent retry mechanism
   const retryInitialization = async () => {
     if (retryCount < 3) {
@@ -235,6 +231,11 @@ export default function SubscriptionScreen() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    initializePurchases().catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initializePurchases is stable function
+  }, []);
 
   // Helper function to format price (fallback if store doesn't provide formatted string)
   const formatPrice = (price: number, currencyCode: string): string => {

@@ -4,6 +4,7 @@ import i18n, { getSystemLanguage } from "@/lib/i18n";
 
 interface LocalizationContextType {
   currentLanguage: string;
+  language: string;
   changeLanguage: (language: string) => Promise<void>;
   t: (key: string, options?: any) => string;
   availableLanguages: Array<{
@@ -77,6 +78,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const value: LocalizationContextType = {
     currentLanguage,
+    language: currentLanguage,
     changeLanguage,
     t,
     availableLanguages: AVAILABLE_LANGUAGES,

@@ -414,7 +414,6 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.preferenceRow}
             onPress={() => setLanguageModalVisible(true)}
-            disabled={true}
           >
             <View style={styles.infoLabel}>
               <View
@@ -430,7 +429,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                {t("profile.language")} ({t("profile.comingSoon")})
+                {t("profile.language")}
               </Text>
             </View>
             <View style={styles.preferenceValue}>
