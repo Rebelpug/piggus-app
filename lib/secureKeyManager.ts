@@ -103,11 +103,25 @@ export class SecureKeyManager {
    */
   static async hasStoredKey(): Promise<boolean> {
     try {
-      const [encryptedPrivateKey, publicKey] = await Promise.all([
-        AsyncStorage.getItem(ENCRYPTED_PRIVATE_KEY),
-        AsyncStorage.getItem(PUBLIC_KEY),
-      ]);
-      return !!(encryptedPrivateKey && publicKey);
+      const [encryptedPrivateKey, publicKey, encryptionKey] = await Promise.all(
+        [
+          AsyncStorage.getItem(ENCRYPTED_PRIVATE_KEY),
+          AsyncStorage.getItem(PUBLIC_KEY),
+          SecureStore.getItemAsync(ENCRYPTION_KEY),
+        ],
+      );
+
+      const hasAllKeys = !!(encryptedPrivateKey && publicKey && encryptionKey);
+
+      // Debug logging
+      console.debug("Key storage status:", {
+        hasEncryptedPrivateKey: !!encryptedPrivateKey,
+        hasPublicKey: !!publicKey,
+        hasEncryptionKey: !!encryptionKey,
+        hasAllKeys,
+      });
+
+      return hasAllKeys;
     } catch (error) {
       console.error("Failed to check for stored key:", error);
       return false;

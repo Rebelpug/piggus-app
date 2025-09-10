@@ -120,7 +120,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
       }
     } catch (error) {
       console.error("PasswordPrompt: Biometric login error:", error);
-      await cleanupAndRedirect("Biometric login error");
+      await cleanupAndRedirect(t("auth.biometricLoginError"));
     } finally {
       setLoading(false);
     }
@@ -139,7 +139,7 @@ const PasswordPrompt: React.FC<PasswordPromptProps> = ({
       onSuccess?.();
     } catch (error: any) {
       console.error("Password verification failed:", error);
-      await cleanupAndRedirect("Password verification failed");
+      await cleanupAndRedirect(t("auth.passwordVerificationFailed"));
     } finally {
       setLoading(false);
     }

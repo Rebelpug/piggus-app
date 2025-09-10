@@ -175,11 +175,14 @@
     "number": "Number",
     "specialCharacter": "Special character",
     "atLeastEightCharacters": "At least 8 characters",
-    "passwordsMatch": "Passwords match"
+    "passwordsMatch": "Passwords match",
+    "biometricLoginError": "Biometric login error",
+    "passwordVerificationFailed": "Password verification failed"
   },
   "common": {
     "unknown": "Unknown",
     "unknownUser": "Unknown User",
+    "unknownGroup": "Unknown Group",
     "ok": "OK",
     "cancel": "Cancel",
     "tryAgain": "Try Again",
@@ -286,23 +289,6 @@
     "missing": "Missing",
     "disclaimer": "This content is for educational purposes only and does not constitute financial, investment, or legal advice. Consult with qualified professionals before making financial decisions. All investments carry risk of loss."
   },
-  "home": {
-    "title": "Dashboard",
-    "welcomeBack": "Welcome Back",
-    "spendingOverview": "Here's your spending overview",
-    "investmentPortfolio": "Investment Portfolio",
-    "currentPortfolioValue": "Current portfolio value",
-    "totalReturn": "Total return",
-    "thisYear": "This year",
-    "someInvestmentsLackPrices": "Some investments lack current prices",
-    "seeMoreStats": "See more stats",
-    "startInvesting": "Start investing",
-    "addFirstInvestment": "Add your first investment to start building your portfolio",
-    "createInvestment": "Create Investment",
-    "financialEducation": "Financial Education",
-    "masterYourFinances": "Master your finances with our comprehensive guides",
-    "learn": "Learn"
-  },
   "investments": {
     "title": "Investments",
     "unknownPortfolio": "Unknown Portfolio",
@@ -319,7 +305,28 @@
     "selectPortfolio": "Select portfolio",
     "portfolioNumber": "Portfolio {{number}}",
     "seeMoreStats": "See more stats",
-    "syncingInvestments": "Syncing investments..."
+    "syncingInvestments": "Syncing investments...",
+    "lastUpdated": "Last updated {{date}}",
+    "lastFailedUpdate": "Last failed update {{date}}",
+    "netInterest": "{{rate}}% net interest",
+    "priceUpdateFailed": "Price update failed today"
+  },
+  "home": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome Back",
+    "spendingOverview": "Here's your spending overview",
+    "investmentPortfolio": "Investment Portfolio",
+    "currentPortfolioValue": "Current portfolio value",
+    "totalReturn": "Total return",
+    "thisYear": "This year",
+    "someInvestmentsLackPrices": "Some investments lack current prices",
+    "seeMoreStats": "See more stats",
+    "startInvesting": "Start investing",
+    "addFirstInvestment": "Add your first investment to start building your portfolio",
+    "createInvestment": "Create Investment",
+    "financialEducation": "Financial Education",
+    "masterYourFinances": "Master your finances with our comprehensive guides",
+    "learn": "Learn"
   },
   "investmentItem": {
     "priceUpdateFailed": "Price update failed today"
@@ -470,6 +477,7 @@
     "purchasePricePositive": "Purchase price must be a positive number",
     "currentPricePositive": "Current price must be a positive number",
     "taxationValidRange": "Taxation must be between 0 and 100",
+    "interestRateValidRange": "Interest rate must be between 0 and 100",
     "interestRatePositive": "Interest rate must be a positive number",
     "maturityDateAfterPurchase": "Maturity date must be after purchase date",
     "selectPortfolioRequired": "Please select a portfolio",
@@ -540,6 +548,7 @@
     "purchasePricePositive": "Purchase price must be a positive number",
     "currentPricePositive": "Current price must be a positive number",
     "taxationValidRange": "Taxation must be between 0 and 100",
+    "interestRateValidRange": "Interest rate must be between 0 and 100",
     "interestRatePositive": "Interest rate must be a positive number",
     "maturityDateAfterPurchase": "Maturity date must be after purchase date",
     "selectPortfolioRequired": "Please select a portfolio",
@@ -794,6 +803,7 @@
     "paymentDetails": "Payment Details",
     "paidBy": "Paid by",
     "selectWhoPays": "Select who pays",
+    "selectPayer": "Please select a payer",
     "you": "(You)",
     "splitMethod": "Split Method",
     "participants": "Participants",
@@ -1226,6 +1236,22 @@
     "failedSetBudget": "Failed to set budget. Please try again."
   },
   "expenses": {
+    "title": "Expenses",
+    "currentMonth": "Current Month",
+    "thisMonth": "This Month",
+    "unknownGroup": "Unknown Group",
+    "noExpensesYet": "No expenses yet",
+    "startTrackingExpenses": "Start tracking your expenses to get insights into your spending",
+    "addExpense": "Add Expense",
+    "noRecurringExpenses": "No recurring expenses",
+    "setupRecurringExpenses": "Set up recurring expenses to automate your tracking",
+    "addRecurringExpense": "Add Recurring Expense",
+    "errorLoadingExpenses": "Error loading expenses",
+    "expensesCount": "Expenses ({{count}})",
+    "recurringCount": "Recurring ({{count}})",
+    "loadingExpenses": "Loading expenses...",
+    "syncingBankTransactions": "Syncing bank transactions...",
+    "lastSync": "Last Sync: ",
     "unnamedExpense": "Unnamed Expense",
     "unknownGroup": "Unknown Group",
     "yourShare": "Your share",
@@ -1271,15 +1297,6 @@
       "subtitle": "Your data stays yours",
       "description": "End-to-end encryption ensures your financial data remains completely private. We use zero-knowledge architecture - not even we can see your personal information."
     }
-  },
-  "investments": {
-    "unknownInvestment": "Unknown Investment",
-    "unknownPortfolio": "Unknown Portfolio",
-    "shares": "shares",
-    "lastUpdated": "Last updated {{date}}",
-    "lastFailedUpdate": "Last failed update {{date}}",
-    "netInterest": "{{rate}}% net interest",
-    "priceUpdateFailed": "Price update failed today"
   },
   "subscription": {
     "title": "Subscription",
