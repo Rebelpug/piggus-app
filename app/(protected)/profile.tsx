@@ -206,8 +206,8 @@ export default function ProfileScreen() {
       styles.avatar,
       {
         backgroundColor: colors.border,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: "center" as const,
+        alignItems: "center" as const,
       },
     ];
     const placeholderTextStyle = {
