@@ -395,7 +395,7 @@ export default function SubscriptionScreen() {
   };
 
   const openSubscriptionSettings = () => {
-    let url;
+    let url: string | null = null;
 
     if (Platform.OS === "ios") {
       // Direct link to app-specific subscription management on iOS
