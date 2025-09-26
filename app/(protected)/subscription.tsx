@@ -1,37 +1,38 @@
-import React, { useState, useEffect } from "react";
+import { piggusApi } from "@/client/piggusApi";
+import { Colors } from "@/constants/Colors";
+import { useInvestment } from "@/context/InvestmentContext";
+import { useLocalization } from "@/context/LocalizationContext";
+import { useProfile } from "@/context/ProfileContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { getPrivacyPolicyUrl, getTocUrl } from "@/utils/tocUtils";
+import { Ionicons } from "@expo/vector-icons";
 import {
-  StyleSheet,
-  ScrollView,
-  Alert,
+  Button,
+  Card,
+  Layout,
+  Spinner,
+  Text,
+  TopNavigation,
+  TopNavigationAction,
+} from "@ui-kitten/components";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
   ActivityIndicator,
-  Platform,
+  Alert,
   Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  Layout,
-  Text,
-  Button,
-  Card,
-  TopNavigation,
-  TopNavigationAction,
-  Spinner,
-} from "@ui-kitten/components";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { useLocalization } from "@/context/LocalizationContext";
-import { useProfile } from "@/context/ProfileContext";
-import { router } from "expo-router";
 import Purchases, {
-  PurchasesPackage,
   CustomerInfo,
   PurchasesOffering,
+  PurchasesPackage,
 } from "react-native-purchases";
-import { piggusApi } from "@/client/piggusApi";
-import { useInvestment } from "@/context/InvestmentContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PricingTier {
   package: PurchasesPackage;
@@ -49,7 +50,7 @@ interface PricingTier {
 export default function SubscriptionScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { t } = useLocalization();
+  const { t, currentLanguage } = useLocalization();
   const { userProfile, refreshProfile } = useProfile();
   const { fetchPortfolios } = useInvestment();
 
@@ -58,10 +59,10 @@ export default function SubscriptionScreen() {
     const packageType = pkg.packageType;
     const identifier = pkg.identifier.toLowerCase();
 
-    let subscriptionTitle = "";
-    let duration = "";
-    let pricePerDuration = "";
-    let autoRenewalInfo = "";
+    let subscriptionTitle: string;
+    let duration: string;
+    let pricePerDuration: string;
+    let autoRenewalInfo: string;
 
     // Determine subscription type and duration
     const isAnnual =
@@ -917,11 +918,9 @@ export default function SubscriptionScreen() {
               <TouchableOpacity
                 style={styles.legalLink}
                 onPress={() =>
-                  Linking.openURL("https://piggus.finance/toc-app").catch(
-                    (error) => {
-                      console.error("Failed to open Terms of Service:", error);
-                    },
-                  )
+                  Linking.openURL(getTocUrl(currentLanguage)).catch((error) => {
+                    console.error("Failed to open Terms of Service:", error);
+                  })
                 }
               >
                 <Text style={[styles.legalLinkText, { color: colors.primary }]}>
@@ -931,7 +930,7 @@ export default function SubscriptionScreen() {
               <TouchableOpacity
                 style={styles.legalLink}
                 onPress={() =>
-                  Linking.openURL("https://piggus.finance/privacy-app").catch(
+                  Linking.openURL(getPrivacyPolicyUrl(currentLanguage)).catch(
                     (error) => {
                       console.error("Failed to open Privacy Policy:", error);
                     },

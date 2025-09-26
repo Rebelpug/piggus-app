@@ -270,8 +270,6 @@ export default function EditRecurringExpenseScreen() {
     availablePaymentMethods,
     userProfile?.profile?.budgeting?.categoryOverrides,
   ]);
-  // ESLint disabled: 't' is stable from useLocalization context
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Update displayCategories when availableCategories changes
   useEffect(() => {

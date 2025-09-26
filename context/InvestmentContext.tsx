@@ -1,32 +1,32 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-  useCallback,
-} from "react";
-import { PortfolioData, PortfolioWithDecryptedData } from "@/types/portfolio";
+import { useAuth } from "@/context/AuthContext";
+import { useEncryption } from "@/context/EncryptionContext";
+import { useProfile } from "@/context/ProfileContext";
+import {
+  apiAddInvestment,
+  apiCreatePortfolio,
+  apiDeleteInvestment,
+  apiFetchPortfolios,
+  apiHandlePortfolioInvitation,
+  apiInviteUserToPortfolio,
+  apiLookupInvestmentBySymbol,
+  apiRemoveUserFromPortfolio,
+  apiUpdateInvestment,
+  apiUpdatePortfolio,
+} from "@/services/investmentService";
 import {
   InvestmentData,
   InvestmentWithDecryptedData,
 } from "@/types/investment";
-import { useAuth } from "@/context/AuthContext";
-import { useProfile } from "@/context/ProfileContext";
-import {
-  apiCreatePortfolio,
-  apiFetchPortfolios,
-  apiAddInvestment,
-  apiUpdateInvestment,
-  apiDeleteInvestment,
-  apiInviteUserToPortfolio,
-  apiHandlePortfolioInvitation,
-  apiUpdatePortfolio,
-  apiRemoveUserFromPortfolio,
-  apiLookupInvestmentBySymbol,
-} from "@/services/investmentService";
+import { PortfolioData, PortfolioWithDecryptedData } from "@/types/portfolio";
 import { encodeStringForUrl } from "@/utils/stringUtils";
-import { useEncryption } from "@/context/EncryptionContext";
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface InvestmentContextType {
   portfolios: PortfolioWithDecryptedData[];
@@ -326,7 +326,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
       profile.finances.historicalAssets[today] = totalValue;
       await updateProfile(profile);
     },
-    [updateProfile, userProfile?.profile],
+    [updateProfile, userProfile?.id], // Only depend on profile ID, not the entire profile object
   );
 
   const syncInvestmentPrices = useCallback(
@@ -351,9 +351,6 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
         const today = new Date();
         const todayString = today.toISOString().split("T")[0];
-
-        let syncCount = 0;
-        let errorCount = 0;
 
         const processInvestment = async (
           portfolio: PortfolioWithDecryptedData,
@@ -566,11 +563,9 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
   }, [
     user,
     isEncryptionInitialized,
-    userProfile,
+    userProfile?.id, // Only depend on the profile ID, not the entire object
     decryptWithPrivateKey,
     decryptWithExternalEncryptionKey,
-    syncInvestmentPrices,
-    storeHistoricalAssetsValues,
   ]);
 
   const inviteUserToPortfolio = async (
@@ -781,7 +776,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
         console.error("Failed to fetch portfolios:", error),
       );
     }
-  }, [user, userProfile, isEncryptionInitialized]);
+  }, [user, userProfile?.id, isEncryptionInitialized, fetchPortfolios]);
 
   return (
     <InvestmentContext.Provider

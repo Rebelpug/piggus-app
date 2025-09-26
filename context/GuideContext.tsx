@@ -1,17 +1,16 @@
+import { Guide } from "@/client/piggusApi";
+import { useEncryption } from "@/context/EncryptionContext";
+import { useLocalization } from "@/context/LocalizationContext";
+import { apiFetchGuide, apiFetchGuides } from "@/services";
 import React, {
   createContext,
+  ReactNode,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
-  useCallback,
-  ReactNode,
 } from "react";
-import { Guide } from "@/client/piggusApi";
-import { apiFetchGuides, apiFetchGuide } from "@/services";
-import { useAuth } from "@/context/AuthContext";
-import { useEncryption } from "@/context/EncryptionContext";
-import { useProfile } from "@/context/ProfileContext";
-import { useLocalization } from "@/context/LocalizationContext";
 
 interface GuideContextType {
   guides: Guide[];
@@ -29,9 +28,7 @@ interface GuideProviderProps {
 }
 
 export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
-  const { user } = useAuth();
   const { isEncryptionInitialized } = useEncryption();
-  const { userProfile } = useProfile();
   const { language } = useLocalization();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,30 +48,34 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
     }
   }, [language]);
 
-  const getGuideById = (id: string): Guide | undefined => {
-    return guides.find((guide) => guide.id === id);
-  };
+  const getGuideById = useMemo(() => {
+    return (id: string): Guide | undefined => {
+      return guides.find((guide) => guide.id === id);
+    };
+  }, [guides]);
 
-  const fetchGuideById = async (id: string): Promise<Guide> => {
-    try {
-      const guide = await apiFetchGuide(id);
-      // Update the guides array with the fetched guide if it's not already there or if it needs updating
-      setGuides((prevGuides) => {
-        const existingIndex = prevGuides.findIndex((g) => g.id === id);
-        if (existingIndex >= 0) {
-          const newGuides = [...prevGuides];
-          newGuides[existingIndex] = guide;
-          return newGuides;
-        } else {
-          return [...prevGuides, guide];
-        }
-      });
-      return guide;
-    } catch (err) {
-      console.error(`Failed to fetch guide ${id}:`, err);
-      throw err;
-    }
-  };
+  const fetchGuideById = useMemo(() => {
+    return async (id: string): Promise<Guide> => {
+      try {
+        const guide = await apiFetchGuide(id);
+        // Update the guides array with the fetched guide if it's not already there or if it needs updating
+        setGuides((prevGuides) => {
+          const existingIndex = prevGuides.findIndex((g) => g.id === id);
+          if (existingIndex >= 0) {
+            const newGuides = [...prevGuides];
+            newGuides[existingIndex] = guide;
+            return newGuides;
+          } else {
+            return [...prevGuides, guide];
+          }
+        });
+        return guide;
+      } catch (err) {
+        console.error(`Failed to fetch guide ${id}:`, err);
+        throw err;
+      }
+    };
+  }, [setGuides]); // setGuides is stable, but we include it for clarity
 
   useEffect(() => {
     if (isEncryptionInitialized && language) {
@@ -84,14 +85,17 @@ export const GuideProvider: React.FC<GuideProviderProps> = ({ children }) => {
     }
   }, [isEncryptionInitialized, language, refreshGuides]);
 
-  const value: GuideContextType = {
-    guides,
-    loading,
-    error,
-    refreshGuides,
-    getGuideById,
-    fetchGuideById,
-  };
+  const value: GuideContextType = useMemo(
+    () => ({
+      guides,
+      loading,
+      error,
+      refreshGuides,
+      getGuideById,
+      fetchGuideById,
+    }),
+    [guides, loading, error, refreshGuides, getGuideById, fetchGuideById],
+  );
 
   return (
     <GuideContext.Provider value={value}>{children}</GuideContext.Provider>

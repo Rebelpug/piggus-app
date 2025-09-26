@@ -69,6 +69,7 @@ export type ProfileData = {
   avatar_url: string | null;
   bio: string | null;
   defaultCurrency?: string;
+  preferredLanguage?: string;
   budgeting?: BudgetingData;
   finances?: FinancesData;
 };

@@ -1,40 +1,43 @@
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import type { Profile } from "@/types/profile";
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-  View,
-  Text,
   ActivityIndicator,
-  StyleSheet,
   Alert,
   Platform,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import Constants from "expo-constants";
-import type { Profile } from "@/types/profile";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
 
 import { useAuth } from "@/context/AuthContext";
+import { LocalizationImperative } from "@/context/LocalizationContext";
 import { supabase } from "@/lib/supabase";
+import { profileLanguageSynchronizer } from "@/utils/profileLanguageSynchronizer";
 // Use services instead of direct client imports
-import { apiCreatePortfolio } from "@/services/investmentService";
 import { apiCreateExpensesGroup } from "@/services/expenseService";
+import { apiCreatePortfolio } from "@/services/investmentService";
 import {
-  apiFetchProfile,
   apiCreateProfile,
+  apiFetchProfile,
   apiUpdateProfile,
 } from "@/services/profileService";
 // Keep old client imports as backup
 // import { apiCreatePortfolio } from '@/client/investment';
 // import { apiCreateExpensesGroup } from '@/client/expense';
 // import { apiFetchProfile, apiCreateProfile, apiUpdateProfile } from '@/client/profile';
+import { piggusApi } from "@/client/piggusApi";
 import { useEncryption } from "@/context/EncryptionContext";
 import Purchases from "react-native-purchases";
-import { piggusApi } from "@/client/piggusApi";
 
 // Import the form component normally since we fixed the circular dependency
 import ProfileCreationForm from "@/components/account/ProfileCreationForm";
@@ -67,6 +70,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     needsRecoveryKey,
     storeRecoveryKey,
   } = useAuth();
+  // Remove the circular dependency - we'll use the imperative interface instead
   const {
     encryptWithExternalPublicKey,
     createEncryptionKey,
@@ -80,6 +84,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [profileInitialized, setProfileInitialized] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+
+  // Ref to track the last processed profile language to prevent infinite loops
+  const lastProcessedLanguageRef = useRef<string | null>(null);
 
   const initialisePersonalExpensesGroup = async (
     username: string,
@@ -416,6 +423,84 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     profileInitialized,
   ]);
 
+  // Create stable callback for language updates using the new synchronizer
+  const handleLanguageUpdate = useCallback(
+    async (language: string) => {
+      if (!language || typeof language !== "string") {
+        console.warn(
+          "Invalid language provided to handleLanguageUpdate:",
+          language,
+        );
+        return;
+      }
+
+      if (userProfile && userProfile.profile?.preferredLanguage !== language) {
+        try {
+          await updateProfile({ preferredLanguage: language });
+          // Update the synchronizer's cached profile language
+          profileLanguageSynchronizer.setProfileLanguage(language);
+        } catch (error) {
+          console.error("Error updating profile language:", error);
+          throw error; // Let the synchronizer handle the retry
+        }
+      }
+    },
+    [userProfile?.id, userProfile?.profile?.preferredLanguage, updateProfile],
+  );
+
+  // Effect to set up the profile language callback when user profile is available
+  useEffect(() => {
+    if (userProfile?.profile) {
+      // Set up the profile update callback in both places
+      profileLanguageSynchronizer.setProfileUpdateCallback(
+        handleLanguageUpdate,
+      );
+      LocalizationImperative.setProfileLanguageCallback(handleLanguageUpdate);
+    } else {
+      // Clear callbacks when no profile
+      profileLanguageSynchronizer.setProfileUpdateCallback(null);
+      LocalizationImperative.setProfileLanguageCallback(null);
+    }
+  }, [userProfile?.profile, handleLanguageUpdate]);
+
+  // Effect to sync profile language with localization - only run once when profile first loads
+  useEffect(() => {
+    if (!userProfile?.profile) {
+      // Reset tracking when no profile
+      lastProcessedLanguageRef.current = null;
+      return;
+    }
+
+    const profileLanguage = userProfile.profile.preferredLanguage;
+
+    // Skip if we've already processed this exact language
+    if (lastProcessedLanguageRef.current === profileLanguage) {
+      return;
+    }
+
+    // Only process if we have a valid string language
+    if (profileLanguage && typeof profileLanguage === "string") {
+      console.log("Profile loaded with language:", profileLanguage);
+
+      // Update the synchronizer's cached language
+      profileLanguageSynchronizer.setProfileLanguage(profileLanguage);
+
+      // Sync with localization context
+      LocalizationImperative.syncProfileLanguage(profileLanguage);
+
+      // Track that we've processed this language
+      lastProcessedLanguageRef.current = profileLanguage;
+    } else {
+      // Only log once when we first encounter no language
+      if (lastProcessedLanguageRef.current !== null) {
+        console.log("No valid profile language found");
+        // Clear any cached language
+        profileLanguageSynchronizer.setProfileLanguage(null);
+        lastProcessedLanguageRef.current = null;
+      }
+    }
+  }, [userProfile?.id, userProfile?.profile?.preferredLanguage]); // Only depend on user ID and the specific language field
+
   // Determine if we're still loading
   const isLoading: boolean = !!(user && !profileInitialized);
 
@@ -507,16 +592,28 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ProfileContext.Provider
-      value={{
-        userProfile,
-        loading: isLoading,
-        error,
-        onboardingCompleted,
-        setOnboardingCompleted,
-        createUserProfile,
-        refreshProfile,
-        updateProfile,
-      }}
+      value={useMemo(
+        () => ({
+          userProfile,
+          loading: isLoading,
+          error,
+          onboardingCompleted,
+          setOnboardingCompleted,
+          createUserProfile,
+          refreshProfile,
+          updateProfile,
+        }),
+        [
+          userProfile,
+          isLoading,
+          error,
+          onboardingCompleted,
+          setOnboardingCompleted,
+          createUserProfile,
+          refreshProfile,
+          updateProfile,
+        ],
+      )}
     >
       {renderContent()}
     </ProfileContext.Provider>

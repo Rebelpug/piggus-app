@@ -1,37 +1,38 @@
-import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-  View,
-  Image,
-  Switch,
-  Linking,
-} from "react-native";
-import Constants from "expo-constants";
-import {
-  Text,
-  Input,
-  Select,
-  SelectItem,
-  IndexPath,
-  TopNavigation,
-  Modal,
-  Spinner,
-} from "@ui-kitten/components";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/context/AuthContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useTheme } from "@/context/ThemeContext";
-import { useLocalization } from "@/context/LocalizationContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
+import { apiDeleteProfile } from "@/services/profileService";
 import { CURRENCIES } from "@/types/expense";
+import { getPrivacyPolicyUrl, getTocUrl } from "@/utils/tocUtils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
-import { apiDeleteProfile } from "@/services/profileService";
+import {
+  IndexPath,
+  Input,
+  Modal,
+  Select,
+  SelectItem,
+  Spinner,
+  Text,
+  TopNavigation,
+} from "@ui-kitten/components";
+import Constants from "expo-constants";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -196,19 +197,50 @@ export default function ProfileScreen() {
     </TouchableOpacity>
   );
 
-  const ProfileAvatar = () => (
-    <View style={styles.avatarContainer}>
-      <View style={[styles.avatarBorder, { borderColor: colors.primary }]}>
-        <Image
-          source={{ uri: userProfile?.profile?.avatar_url || "" }}
-          style={styles.avatar}
-        />
+  const ProfileAvatar = useMemo(() => {
+    const avatarBorderStyle = [
+      styles.avatarBorder,
+      { borderColor: colors.primary },
+    ];
+    const placeholderStyle = [
+      styles.avatar,
+      {
+        backgroundColor: colors.border,
+        justifyContent: "center",
+        alignItems: "center",
+      },
+    ];
+    const placeholderTextStyle = {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: "bold" as const,
+    };
+
+    return (
+      <View style={styles.avatarContainer}>
+        <View style={avatarBorderStyle}>
+          {userProfile?.profile?.avatar_url ? (
+            <Image
+              source={{ uri: userProfile.profile.avatar_url }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={placeholderStyle}>
+              <Text style={placeholderTextStyle}>
+                {userProfile?.username?.charAt(0)?.toUpperCase() || "?"}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
-      {/*<TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
-                <Ionicons name="camera-outline" size={20} color="white" />
-            </TouchableOpacity>*/}
-    </View>
-  );
+    );
+  }, [
+    userProfile?.profile?.avatar_url,
+    userProfile?.username,
+    colors.primary,
+    colors.border,
+    colors.text,
+  ]);
 
   return (
     <SafeAreaView
@@ -224,7 +256,7 @@ export default function ProfileScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <ProfileAvatar />
+          {ProfileAvatar}
           <Text style={[styles.username, { color: colors.text }]}>
             {userProfile?.username || t("common.unknownUser")}
           </Text>
@@ -757,11 +789,9 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.legalLink}
             onPress={() =>
-              Linking.openURL("https://piggus.finance/toc-app").catch(
-                (error) => {
-                  console.error("Failed to open Terms of Service:", error);
-                },
-              )
+              Linking.openURL(getTocUrl(currentLanguage)).catch((error) => {
+                console.error("Failed to open Terms of Service:", error);
+              })
             }
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
@@ -771,7 +801,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.legalLink}
             onPress={() =>
-              Linking.openURL("https://piggus.finance/privacy-app").catch(
+              Linking.openURL(getPrivacyPolicyUrl(currentLanguage)).catch(
                 (error) => {
                   console.error("Failed to open Privacy Policy:", error);
                 },
