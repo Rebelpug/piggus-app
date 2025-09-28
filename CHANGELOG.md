@@ -4,12 +4,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.9.0](https://github.com/Rebelpug/piggus-app/compare/v1.8.1...v1.9.0) (2025-09-28)
 
-
 ### Features
 
-* Added localization in other languages and enabled switch ([30ca2ce](https://github.com/Rebelpug/piggus-app/commit/30ca2ce0bb64d303df0dd1804b0e5943d665ba50))
-* Added localization in other languages and enabled switch ([456149c](https://github.com/Rebelpug/piggus-app/commit/456149cc64cd7ef76f33f5982e5e2fcc57575e88))
-* Added localization in other languages and enabled switch ([591c83e](https://github.com/Rebelpug/piggus-app/commit/591c83efd979b4a86b79416759a810d094067e55))
+- Added localization in other languages and enabled switch ([30ca2ce](https://github.com/Rebelpug/piggus-app/commit/30ca2ce0bb64d303df0dd1804b0e5943d665ba50))
+- Added localization in other languages and enabled switch ([456149c](https://github.com/Rebelpug/piggus-app/commit/456149cc64cd7ef76f33f5982e5e2fcc57575e88))
+- Added localization in other languages and enabled switch ([591c83e](https://github.com/Rebelpug/piggus-app/commit/591c83efd979b4a86b79416759a810d094067e55))
 
 ### [1.8.1](https://github.com/Rebelpug/piggus-app/compare/v1.8.0...v1.8.1) (2025-09-05)
 
