@@ -93,7 +93,7 @@ export const apiFetchPortfolios = async (
               );
               failedInvestments.push({
                 id: investment.id,
-                error: error.message || "Decryption failed",
+                error: (error as Error)?.message || "Decryption failed",
               });
             }
           }
