@@ -1,3 +1,15 @@
+import { Guide } from "@/client/piggusApi";
+import { Colors } from "@/constants/Colors";
+import { useGuides } from "@/context/GuideContext";
+import { useLocalization } from "@/context/LocalizationContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  Text,
+  TopNavigation,
+  TopNavigationAction,
+} from "@ui-kitten/components";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -7,15 +19,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Text, TopNavigation } from "@ui-kitten/components";
-import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { useGuides } from "@/context/GuideContext";
-import { useLocalization } from "@/context/LocalizationContext";
-import { Guide } from "@/client/piggusApi";
-import ProfileHeader from "@/components/ProfileHeader";
 
 export default function GuidesScreen() {
   const router = useRouter();
@@ -23,6 +26,15 @@ export default function GuidesScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
   const { guides, loading, error } = useGuides();
+
+  const renderBackAction = () => (
+    <TopNavigationAction
+      icon={(props) => (
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      )}
+      onPress={() => router.back()}
+    />
+  );
 
   const handleGuidePress = (guide: Guide) => {
     router.push({
@@ -95,8 +107,6 @@ export default function GuidesScreen() {
     );
   };
 
-  const renderLeftActions = () => <ProfileHeader />;
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -104,7 +114,7 @@ export default function GuidesScreen() {
       <TopNavigation
         title={t("guides.title")}
         alignment="center"
-        accessoryLeft={renderLeftActions}
+        accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
       />
 

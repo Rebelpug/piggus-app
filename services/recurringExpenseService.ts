@@ -1,12 +1,12 @@
-import "react-native-get-random-values";
-import { v4 as uuidv4 } from "uuid";
 import { piggusApi } from "@/client/piggusApi";
 import {
+  ExpenseWithDecryptedData,
   RecurringExpenseData,
   RecurringExpenseWithDecryptedData,
-  ExpenseWithDecryptedData,
 } from "@/types/expense";
 import { User } from "@supabase/supabase-js";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
 
 // Recurring expense service functions that bridge the old client API with piggusApi
 
@@ -20,6 +20,10 @@ export const apiFetchRecurringExpenses = async (
 ): Promise<{
   success: boolean;
   data?: RecurringExpenseWithDecryptedData[];
+  failedRecurringExpenses?: Array<{
+    id: string;
+    error: string;
+  }>;
   error?: string;
 }> => {
   try {
@@ -40,42 +44,61 @@ export const apiFetchRecurringExpenses = async (
       };
     }
 
-    const decryptedRecurringExpenses = await Promise.all(
-      recurringExpenses.map(async (recurringExpense) => {
-        try {
-          // Decrypt the group key from the membership data
-          const decryptedGroupKey = await decryptWithPrivateKey(
-            recurringExpense.group_membership.encrypted_group_key,
-          );
-          // Ensure the decrypted key is a string (base64)
-          const groupKeyString =
-            typeof decryptedGroupKey === "string"
-              ? decryptedGroupKey
-              : JSON.stringify(decryptedGroupKey);
+    // Decrypt recurring expenses individually to handle failures gracefully
+    const decryptedRecurringExpenses = [];
+    const failedRecurringExpenses = [];
 
-          // Decrypt the recurring expense data
-          const decryptedData = await decryptWithExternalEncryptionKey(
-            groupKeyString,
-            recurringExpense.encrypted_data,
-          );
+    for (const recurringExpense of recurringExpenses) {
+      try {
+        // Decrypt the group key from the membership data
+        const decryptedGroupKey = await decryptWithPrivateKey(
+          recurringExpense.group_membership.encrypted_group_key,
+        );
+        // Ensure the decrypted key is a string (base64)
+        const groupKeyString =
+          typeof decryptedGroupKey === "string"
+            ? decryptedGroupKey
+            : JSON.stringify(decryptedGroupKey);
 
-          return {
-            id: recurringExpense.id,
-            group_id: recurringExpense.group_id,
-            data: decryptedData,
-            created_at: recurringExpense.created_at,
-            updated_at: recurringExpense.updated_at,
-          } as RecurringExpenseWithDecryptedData;
-        } catch (error: any) {
-          console.error("Error decrypting recurring expense:", error);
-          throw error;
-        }
-      }),
-    );
+        // Decrypt the recurring expense data
+        const decryptedData = await decryptWithExternalEncryptionKey(
+          groupKeyString,
+          recurringExpense.encrypted_data,
+        );
+
+        decryptedRecurringExpenses.push({
+          id: recurringExpense.id,
+          group_id: recurringExpense.group_id,
+          data: decryptedData,
+          created_at: recurringExpense.created_at,
+          updated_at: recurringExpense.updated_at,
+        } as RecurringExpenseWithDecryptedData);
+      } catch (error: any) {
+        console.error(
+          `Failed to decrypt recurring expense ${recurringExpense.id}:`,
+          error,
+        );
+        failedRecurringExpenses.push({
+          id: recurringExpense.id,
+          error: error.message || "Decryption failed",
+        });
+      }
+    }
+
+    // Log failed recurring expenses for debugging
+    if (failedRecurringExpenses.length > 0) {
+      console.warn(
+        `${failedRecurringExpenses.length} recurring expenses failed to decrypt and were skipped`,
+      );
+    }
 
     return {
       success: true,
       data: decryptedRecurringExpenses,
+      failedRecurringExpenses:
+        failedRecurringExpenses.length > 0
+          ? failedRecurringExpenses
+          : undefined,
     };
   } catch (error: any) {
     console.error("Error fetching recurring expenses:", error);
@@ -247,9 +270,6 @@ export const apiProcessRecurringExpenses = async (
     for (const recurringExpense of recurringExpenses) {
       try {
         const now = new Date();
-        const lastGenerated = recurringExpense.data.last_generated_date
-          ? new Date(recurringExpense.data.last_generated_date)
-          : null;
         const nextDue = recurringExpense.data.next_due_date
           ? new Date(recurringExpense.data.next_due_date)
           : null;

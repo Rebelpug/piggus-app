@@ -64,6 +64,10 @@ export type PortfolioWithDecryptedData = {
   encrypted_key: string;
   investments: InvestmentWithDecryptedData[];
   members: PortfolioMemberWithProfile[];
+  failedInvestments?: Array<{
+    id: string;
+    error: string;
+  }>;
 };
 
 export type PortfolioMembership = {

@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Hem",
+    "expenses": "Utgifter",
+    "investments": "Investeringar",
+    "shares": "Aktier",
+    "more": "Mer",
+    "guides": "Guider",
+    "profile": "Profil",
+    "settings": "Inställningar"
+  },
+  "more": {
+    "selectOption": "Välj ett alternativ från menyn",
+    "showMenu": "Visa Meny"
+  },
   "profile": {
     "title": "Profil",
+    "loadingProfile": "Laddar profil...",
     "accountInformation": "Kontoinformation",
     "username": "Användarnamn",
     "email": "E-post",
@@ -218,7 +233,7 @@
     "expenseGroupCaption": "Genom att välja en grupp ställs dess standardvaluta in",
     "currencyLabel": "Valuta",
     "currencyPlaceholder": "Välj valuta",
-    "currencyDefault": "Standard: {{valuta}}",
+    "currencyDefault": "Standard: {{currency}}",
     "currencySelectGroupFirst": "Välj en grupp först för att använda dess standardvaluta",
     "dateLabel": "Datum",
     "categoryLabel": "Kategori",

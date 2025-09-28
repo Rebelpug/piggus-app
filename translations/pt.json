@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Início",
+    "expenses": "Despesas",
+    "investments": "Investimentos",
+    "shares": "Partilhas",
+    "more": "Mais",
+    "guides": "Guias",
+    "profile": "Perfil",
+    "settings": "Definições"
+  },
+  "more": {
+    "selectOption": "Selecione uma opção do menu",
+    "showMenu": "Mostrar Menu"
+  },
   "profile": {
     "title": "Perfil",
+    "loadingProfile": "Carregando perfil...",
     "accountInformation": "Informações sobre a conta",
     "username": "Nome de utilizador",
     "email": "Correio eletrónico",

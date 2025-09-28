@@ -197,51 +197,6 @@ export default function ProfileScreen() {
     </TouchableOpacity>
   );
 
-  const ProfileAvatar = useMemo(() => {
-    const avatarBorderStyle = [
-      styles.avatarBorder,
-      { borderColor: colors.primary },
-    ];
-    const placeholderStyle = [
-      styles.avatar,
-      {
-        backgroundColor: colors.border,
-        justifyContent: "center" as const,
-        alignItems: "center" as const,
-      },
-    ];
-    const placeholderTextStyle = {
-      color: colors.text,
-      fontSize: 24,
-      fontWeight: "bold" as const,
-    };
-
-    return (
-      <View style={styles.avatarContainer}>
-        <View style={avatarBorderStyle}>
-          {userProfile?.profile?.avatar_url ? (
-            <Image
-              source={{ uri: userProfile.profile.avatar_url }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={placeholderStyle}>
-              <Text style={placeholderTextStyle}>
-                {userProfile?.username?.charAt(0)?.toUpperCase() || "?"}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  }, [
-    userProfile?.profile?.avatar_url,
-    userProfile?.username,
-    colors.primary,
-    colors.border,
-    colors.text,
-  ]);
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -254,17 +209,6 @@ export default function ProfileScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          {ProfileAvatar}
-          <Text style={[styles.username, { color: colors.text }]}>
-            {userProfile?.username || t("common.unknownUser")}
-          </Text>
-          <Text style={[styles.email, { color: colors.icon }]}>
-            {user?.email || ""}
-          </Text>
-        </View>
-
         {/* Account Information */}
         <View
           style={[

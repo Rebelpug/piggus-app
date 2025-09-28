@@ -1,47 +1,40 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  RefreshControl,
-  Alert,
-  TouchableOpacity,
-  View,
-  FlatList,
-  ScrollView,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
-import {
-  Layout,
-  Text,
-  Button,
-  TopNavigation,
-  Tab,
-  TabView,
-} from "@ui-kitten/components";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { useExpense } from "@/context/ExpenseContext";
+import { piggusApi } from "@/client/piggusApi";
+
+import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import BankConnectionWizard from "@/components/banking/BankConnectionWizard";
+import BudgetCard from "@/components/budget/BudgetCard";
+import ExpenseItem from "@/components/expenses/ExpenseItem";
+import RecurringExpenseItem from "@/components/expenses/RecurringExpenseItem";
+import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/context/AuthContext";
-import { useProfile } from "@/context/ProfileContext";
+import { useExpense } from "@/context/ExpenseContext";
 import { useLocalization } from "@/context/LocalizationContext";
+import { useProfile } from "@/context/ProfileContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import {
   ExpenseWithDecryptedData,
   RecurringExpenseWithDecryptedData,
   calculateUserShare,
 } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
-import ProfileHeader from "@/components/ProfileHeader";
-import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
-import ExpenseItem from "@/components/expenses/ExpenseItem";
-import RecurringExpenseItem from "@/components/expenses/RecurringExpenseItem";
-import BudgetCard from "@/components/budget/BudgetCard";
-import BankConnectionWizard from "@/components/banking/BankConnectionWizard";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { piggusApi } from "@/client/piggusApi";
+import { Button, Layout, Tab, TabView, Text } from "@ui-kitten/components";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export default function ExpensesScreen() {
   const router = useRouter();
@@ -52,6 +45,7 @@ export default function ExpensesScreen() {
   const {
     expensesGroups,
     recurringExpenses,
+    failedRecurringExpenses,
     syncBankTransactions,
     isLoading,
     error,
@@ -140,6 +134,15 @@ export default function ExpensesScreen() {
         return [];
       }
     }, [expensesGroups, user?.id]);
+
+  // Check for failed expenses and recurring expenses
+  const failedExpensesCount = React.useMemo(() => {
+    const failedExpenses = expensesGroups.reduce((total, group) => {
+      return total + (group.failedExpenses?.length || 0);
+    }, 0);
+    const failedRecurring = failedRecurringExpenses?.length || 0;
+    return failedExpenses + failedRecurring;
+  }, [expensesGroups, failedRecurringExpenses]);
 
   // Filter expenses based on selected month
   const filteredExpenses = React.useMemo(() => {
@@ -602,16 +605,9 @@ export default function ExpensesScreen() {
     </Layout>
   );
 
-  const renderLeftActions = () => <ProfileHeader />;
-
   if (isLoading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("expenses.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <AuthSetupLoader />
       </SafeAreaView>
     );
@@ -620,11 +616,6 @@ export default function ExpensesScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("expenses.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <Layout style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
@@ -719,13 +710,6 @@ export default function ExpensesScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <TopNavigation
-        title={t("expenses.title")}
-        alignment="center"
-        accessoryLeft={renderLeftActions}
-        style={{ backgroundColor: colors.background }}
-      />
-
       {renderMonthSelector()}
       {renderBankConnectionBanner()}
 
@@ -742,6 +726,23 @@ export default function ExpensesScreen() {
           <Ionicons name="sync" size={16} color={colors.primary} />
           <Text style={[styles.syncAlertText, { color: colors.primary }]}>
             {t("expenses.syncingBankTransactions")}
+          </Text>
+        </View>
+      )}
+
+      {failedExpensesCount > 0 && (
+        <View
+          style={[
+            styles.syncAlert,
+            {
+              backgroundColor: "#FF6B6B15",
+              borderColor: "#FF6B6B30",
+            },
+          ]}
+        >
+          <Ionicons name="warning" size={16} color="#FF6B6B" />
+          <Text style={[styles.syncAlertText, { color: "#FF6B6B" }]}>
+            {t("expenses.failedToLoadExpenses", { count: failedExpensesCount })}
           </Text>
         </View>
       )}

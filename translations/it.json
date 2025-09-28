@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Home",
+    "expenses": "Spese",
+    "investments": "Investimenti",
+    "shares": "Condivisioni",
+    "more": "Altro",
+    "guides": "Guide",
+    "profile": "Profilo",
+    "settings": "Impostazioni"
+  },
+  "more": {
+    "selectOption": "Seleziona un'opzione dal menu",
+    "showMenu": "Mostra Menu"
+  },
   "profile": {
     "title": "Profilo",
+    "loadingProfile": "Caricamento profilo...",
     "accountInformation": "Informazioni sul conto",
     "username": "Nome utente",
     "email": "Email",
@@ -218,7 +233,7 @@
     "expenseGroupCaption": "Selezionando un gruppo si imposta la sua valuta predefinita",
     "currencyLabel": "Valuta",
     "currencyPlaceholder": "Selezionare la valuta",
-    "currencyDefault": "Predefinito: {{valuta}}",
+    "currencyDefault": "Predefinito: {{currency}}",
     "currencySelectGroupFirst": "Selezionare prima un gruppo per utilizzare la sua valuta predefinita",
     "dateLabel": "Data",
     "categoryLabel": "Categoria",

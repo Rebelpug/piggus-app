@@ -1,8 +1,4 @@
-import "react-native-get-random-values";
-import { v4 as uuidv4 } from "uuid";
-import { Buffer } from "buffer";
 import { piggusApi } from "@/client/piggusApi";
-import { createExpenseTimestamp } from "@/utils/dateUtils";
 import {
   ExpenseData,
   ExpenseGroupData,
@@ -10,7 +6,11 @@ import {
   ExpenseWithDecryptedData,
   GroupRefund,
 } from "@/types/expense";
+import { createExpenseTimestamp } from "@/utils/dateUtils";
 import { User } from "@supabase/supabase-js";
+import { Buffer } from "buffer";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
 
 export const apiFetchExpensesPaginated = async (
   user: User,
@@ -59,15 +59,35 @@ export const apiFetchExpensesPaginated = async (
       };
     }
 
-    const decryptedExpenses = await Promise.all(
-      paginatedResult.expenses.map(async (expense) => ({
-        ...expense,
-        data: await decryptWithExternalEncryptionKey(
+    // Decrypt expenses individually to handle failures gracefully
+    const decryptedExpenses = [];
+    const failedExpenses = [];
+
+    for (const expense of paginatedResult.expenses) {
+      try {
+        const decryptedData = await decryptWithExternalEncryptionKey(
           groupKey,
           expense.encrypted_data,
-        ),
-      })),
-    );
+        );
+        decryptedExpenses.push({
+          ...expense,
+          data: decryptedData,
+        });
+      } catch (error) {
+        console.error(`Failed to decrypt expense ${expense.id}:`, error);
+        failedExpenses.push({
+          id: expense.id,
+          error: error.message || "Decryption failed",
+        });
+      }
+    }
+
+    // Log failed expenses for debugging
+    if (failedExpenses.length > 0) {
+      console.warn(
+        `${failedExpenses.length} expenses failed to decrypt in paginated fetch`,
+      );
+    }
 
     return {
       success: true,
@@ -236,15 +256,28 @@ export const apiFetchExpenses = async (
           // Get full group data including expenses and members
           const fullGroupData = await piggusApi.getExpenseGroup(group.id);
 
-          const decryptedExpenses = await Promise.all(
-            fullGroupData.expenses.map(async (expense) => ({
-              ...expense,
-              data: await decryptWithExternalEncryptionKey(
+          // Decrypt expenses individually to handle failures gracefully
+          const decryptedExpenses = [];
+          const failedExpenses = [];
+
+          for (const expense of fullGroupData.expenses) {
+            try {
+              const decryptedData = await decryptWithExternalEncryptionKey(
                 groupKeyString,
                 expense.encrypted_data,
-              ),
-            })),
-          );
+              );
+              decryptedExpenses.push({
+                ...expense,
+                data: decryptedData,
+              });
+            } catch (error) {
+              console.error(`Failed to decrypt expense ${expense.id}:`, error);
+              failedExpenses.push({
+                id: expense.id,
+                error: error.message || "Decryption failed",
+              });
+            }
+          }
 
           // Map members with their usernames (would need to be fetched from profiles if needed)
           const membersWithProfiles = fullGroupData.members.map((member) => ({
@@ -261,6 +294,8 @@ export const apiFetchExpenses = async (
             encrypted_key: groupKeyString,
             created_at: group.created_at,
             updated_at: group.updated_at,
+            failedExpenses:
+              failedExpenses.length > 0 ? failedExpenses : undefined,
           } as ExpenseGroupWithDecryptedData;
         } catch (error: any) {
           console.error("Error decrypting group:", error);
@@ -1018,15 +1053,35 @@ export const apiFetchAllExpensesForGroup = async (
       };
     }
 
-    const decryptedExpenses = await Promise.all(
-      expenses.map(async (expense) => ({
-        ...expense,
-        data: await decryptWithExternalEncryptionKey(
+    // Decrypt expenses individually to handle failures gracefully
+    const decryptedExpenses = [];
+    const failedExpenses = [];
+
+    for (const expense of expenses) {
+      try {
+        const decryptedData = await decryptWithExternalEncryptionKey(
           groupKey,
           expense.encrypted_data,
-        ),
-      })),
-    );
+        );
+        decryptedExpenses.push({
+          ...expense,
+          data: decryptedData,
+        });
+      } catch (error) {
+        console.error(`Failed to decrypt expense ${expense.id}:`, error);
+        failedExpenses.push({
+          id: expense.id,
+          error: error.message || "Decryption failed",
+        });
+      }
+    }
+
+    // Log failed expenses for debugging
+    if (failedExpenses.length > 0) {
+      console.warn(
+        `${failedExpenses.length} expenses failed to decrypt in group ${groupId}`,
+      );
+    }
 
     return {
       success: true,

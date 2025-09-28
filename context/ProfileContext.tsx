@@ -10,14 +10,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Platform, StyleSheet, View } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { LocalizationImperative } from "@/context/LocalizationContext";
@@ -42,6 +35,7 @@ import Purchases from "react-native-purchases";
 // Import the form component normally since we fixed the circular dependency
 import ProfileCreationForm from "@/components/account/ProfileCreationForm";
 import RecoveryKeyForm from "@/components/auth/RecoveryKeyForm";
+import ProfileLoader from "@/components/profile/ProfileLoader";
 
 type ProfileContextType = {
   userProfile: Profile | null;
@@ -518,18 +512,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     // If we have a user but profile is not initialized yet, show loading
     if (user && !profileInitialized) {
-      return (
-        <View
-          style={[styles.container, { backgroundColor: colors.background }]}
-        >
-          <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text style={[styles.loadingText, { color: colors.text }]}>
-              Loading profile...
-            </Text>
-          </View>
-        </View>
-      );
+      return <ProfileLoader />;
     }
 
     // If we have a user, encryption is initialized, and they need a recovery key, show recovery key form
@@ -635,14 +618,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  centerContent: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
   },
   formContainer: {
     width: "100%",

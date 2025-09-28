@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Home",
+    "expenses": "Uitgaven",
+    "investments": "Investeringen",
+    "shares": "Aandelen",
+    "more": "Meer",
+    "guides": "Gidsen",
+    "profile": "Profiel",
+    "settings": "Instellingen"
+  },
+  "more": {
+    "selectOption": "Selecteer een optie uit het menu",
+    "showMenu": "Menu Tonen"
+  },
   "profile": {
     "title": "Profiel",
+    "loadingProfile": "Profiel laden...",
     "accountInformation": "Accountgegevens",
     "username": "Gebruikersnaam",
     "email": "Email",
@@ -218,7 +233,7 @@
     "expenseGroupCaption": "Als je een groep selecteert, wordt de standaardvaluta ingesteld",
     "currencyLabel": "Valuta",
     "currencyPlaceholder": "Selecteer valuta",
-    "currencyDefault": "Standaard: {{valuta}}",
+    "currencyDefault": "Standaard: {{currency}}",
     "currencySelectGroupFirst": "Selecteer eerst een groep om de standaardvaluta te gebruiken",
     "dateLabel": "Datum",
     "categoryLabel": "Categorie",

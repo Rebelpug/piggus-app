@@ -542,6 +542,21 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
 
       if (result.data) {
         setPortfolios(result.data);
+
+        // Log any failed investments for debugging
+        const totalFailedInvestments = result.data.reduce(
+          (total, portfolio) => {
+            return total + (portfolio.failedInvestments?.length || 0);
+          },
+          0,
+        );
+
+        if (totalFailedInvestments > 0) {
+          console.warn(
+            `${totalFailedInvestments} investments failed to decrypt and were skipped`,
+          );
+        }
+
         storeHistoricalAssetsValues(result.data).catch((e) =>
           console.error("Failed to store historical assets values", e),
         );
@@ -776,7 +791,7 @@ export function InvestmentProvider({ children }: { children: ReactNode }) {
         console.error("Failed to fetch portfolios:", error),
       );
     }
-  }, [user, userProfile?.id, isEncryptionInitialized, fetchPortfolios]);
+  }, [user?.id, userProfile?.id, isEncryptionInitialized]);
 
   return (
     <InvestmentContext.Provider

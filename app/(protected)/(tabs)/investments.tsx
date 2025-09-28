@@ -1,41 +1,39 @@
-import React, { useState } from "react";
+import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
+import InvestmentItem from "@/components/investments/InvestmentItem";
+import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/context/AuthContext";
+import { useInvestment } from "@/context/InvestmentContext";
+import { useLocalization } from "@/context/LocalizationContext";
+import { useProfile } from "@/context/ProfileContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { InvestmentWithDecryptedData } from "@/types/investment";
+import { formatCurrency } from "@/utils/currencyUtils";
+import { calculateInvestmentStatistics } from "@/utils/financeUtils";
+import { formatPercentage } from "@/utils/stringUtils";
+import { Ionicons } from "@expo/vector-icons";
 import {
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-  View,
-  FlatList,
-  ScrollView,
-  Platform,
-} from "react-native";
-import {
-  Layout,
-  Text,
   Button,
-  TopNavigation,
+  IndexPath,
+  Layout,
   Select,
   SelectItem,
-  IndexPath,
+  Text,
 } from "@ui-kitten/components";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  FlatList,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { useInvestment } from "@/context/InvestmentContext";
-import { useAuth } from "@/context/AuthContext";
-import { useProfile } from "@/context/ProfileContext";
-import { useLocalization } from "@/context/LocalizationContext";
-import { InvestmentWithDecryptedData } from "@/types/investment";
-import { Ionicons } from "@expo/vector-icons";
-import ProfileHeader from "@/components/ProfileHeader";
-import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
-import InvestmentItem from "@/components/investments/InvestmentItem";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { formatCurrency } from "@/utils/currencyUtils";
-import { formatPercentage } from "@/utils/stringUtils";
-import { calculateInvestmentStatistics } from "@/utils/financeUtils";
 
 export default function InvestmentsScreen() {
   const router = useRouter();
@@ -139,6 +137,16 @@ export default function InvestmentsScreen() {
   const portfolioStats = React.useMemo(() => {
     return calculateInvestmentStatistics(filteredInvestments);
   }, [filteredInvestments]);
+
+  // Check for failed investments
+  const failedInvestmentsCount = React.useMemo(() => {
+    const portfoliosToCheck = selectedPortfolio
+      ? [selectedPortfolio]
+      : portfolios;
+    return portfoliosToCheck.reduce((total, portfolio) => {
+      return total + (portfolio.failedInvestments?.length || 0);
+    }, 0);
+  }, [portfolios, selectedPortfolio]);
 
   const totalPortfolioValue = portfolioStats.totalValue;
   const totalGainLoss = portfolioStats.totalGainLoss;
@@ -300,16 +308,9 @@ export default function InvestmentsScreen() {
     </Layout>
   );
 
-  const renderLeftActions = () => <ProfileHeader />;
-
   if (isLoading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("investments.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <AuthSetupLoader />
       </SafeAreaView>
     );
@@ -318,11 +319,6 @@ export default function InvestmentsScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("investments.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <Layout style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
@@ -352,13 +348,6 @@ export default function InvestmentsScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <TopNavigation
-        title={t("investments.title")}
-        alignment="center"
-        accessoryLeft={renderLeftActions}
-        style={{ backgroundColor: colors.background }}
-      />
-
       {isSyncing && (
         <View
           style={[
@@ -372,6 +361,25 @@ export default function InvestmentsScreen() {
           <Ionicons name="sync" size={16} color={colors.primary} />
           <Text style={[styles.syncAlertText, { color: colors.primary }]}>
             {t("investments.syncingInvestments")}
+          </Text>
+        </View>
+      )}
+
+      {failedInvestmentsCount > 0 && (
+        <View
+          style={[
+            styles.syncAlert,
+            {
+              backgroundColor: "#FF6B6B15",
+              borderColor: "#FF6B6B30",
+            },
+          ]}
+        >
+          <Ionicons name="warning" size={16} color="#FF6B6B" />
+          <Text style={[styles.syncAlertText, { color: "#FF6B6B" }]}>
+            {t("investments.failedToLoadInvestments", {
+              count: failedInvestmentsCount,
+            })}
           </Text>
         </View>
       )}

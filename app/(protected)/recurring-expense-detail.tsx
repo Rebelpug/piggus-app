@@ -60,8 +60,6 @@ export default function RecurringExpenseDetailScreen() {
       setGroupMembers(group.members || []);
     }
   }, [recurringExpenseId, groupId, recurringExpenses, expensesGroups]);
-  // ESLint disabled: 't' is stable from useLocalization context
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const navigateBack = () => {
     router.back();

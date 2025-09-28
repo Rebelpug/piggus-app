@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Home",
+    "expenses": "Expenses",
+    "investments": "Investments",
+    "shares": "Shares",
+    "more": "More",
+    "guides": "Guides",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "more": {
+    "selectOption": "Select an option from the menu",
+    "showMenu": "Show Menu"
+  },
   "profile": {
     "title": "Profile",
+    "loadingProfile": "Loading profile...",
     "accountInformation": "Account Information",
     "username": "Username",
     "email": "Email",
@@ -276,6 +291,8 @@
     "recurringCount": "Recurring ({{count}})",
     "loadingExpenses": "Loading expenses...",
     "syncingBankTransactions": "Syncing bank transactions...",
+    "failedToLoadExpenses": "{{count}} expense item failed to load due to encryption issues",
+    "failedToLoadExpenses_plural": "{{count}} expense items failed to load due to encryption issues",
     "lastSync": "Last Sync: "
   },
   "guides": {
@@ -306,6 +323,8 @@
     "portfolioNumber": "Portfolio {{number}}",
     "seeMoreStats": "See more stats",
     "syncingInvestments": "Syncing investments...",
+    "failedToLoadInvestments": "{{count}} investment failed to load due to encryption issues",
+    "failedToLoadInvestments_plural": "{{count}} investments failed to load due to encryption issues",
     "lastUpdated": "Last updated {{date}}",
     "lastFailedUpdate": "Last failed update {{date}}",
     "netInterest": "{{rate}}% net interest",

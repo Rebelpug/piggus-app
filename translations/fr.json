@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Accueil",
+    "expenses": "Dépenses",
+    "investments": "Investissements",
+    "shares": "Partages",
+    "more": "Plus",
+    "guides": "Guides",
+    "profile": "Profil",
+    "settings": "Paramètres"
+  },
+  "more": {
+    "selectOption": "Sélectionnez une option dans le menu",
+    "showMenu": "Afficher le Menu"
+  },
   "profile": {
     "title": "Profil",
+    "loadingProfile": "Chargement du profil...",
     "accountInformation": "Informations sur le compte",
     "username": "Nom d'utilisateur",
     "email": "Courriel",
@@ -218,7 +233,7 @@
     "expenseGroupCaption": "La sélection d'un groupe permet de définir sa devise par défaut",
     "currencyLabel": "Monnaie",
     "currencyPlaceholder": "Sélectionner une devise",
-    "currencyDefault": "Valeur par défaut : {{devise}}",
+    "currencyDefault": "Valeur par défaut : {{currency}}",
     "currencySelectGroupFirst": "Sélectionnez d'abord un groupe pour utiliser sa devise par défaut",
     "dateLabel": "Date",
     "categoryLabel": "Catégorie",

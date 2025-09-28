@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Inicio",
+    "expenses": "Gastos",
+    "investments": "Inversiones",
+    "shares": "Compartir",
+    "more": "Más",
+    "guides": "Guías",
+    "profile": "Perfil",
+    "settings": "Configuración"
+  },
+  "more": {
+    "selectOption": "Selecciona una opción del menú",
+    "showMenu": "Mostrar Menú"
+  },
   "profile": {
     "title": "Perfil",
+    "loadingProfile": "Cargando perfil...",
     "accountInformation": "Información sobre la cuenta",
     "username": "Nombre de usuario",
     "email": "Correo electrónico",
@@ -275,6 +290,8 @@
     "recurringCount": "Recurrente ({{count}})",
     "loadingExpenses": "Cargando gastos...",
     "syncingBankTransactions": "Sincronizar transacciones bancarias...",
+    "failedToLoadExpenses": "{{count}} elemento de gasto falló al cargar debido a problemas de encriptación",
+    "failedToLoadExpenses_plural": "{{count}} elementos de gasto fallaron al cargar debido a problemas de encriptación",
     "lastSync": "Última sincronización:",
     "unnamedExpense": "Gastos sin nombre",
     "yourShare": "Su parte",
@@ -321,6 +338,8 @@
     "portfolioNumber": "Cartera {{número}}",
     "seeMoreStats": "Ver más estadísticas",
     "syncingInvestments": "Sincronizar inversiones...",
+    "failedToLoadInvestments": "{{count}} inversión falló al cargar debido a problemas de encriptación",
+    "failedToLoadInvestments_plural": "{{count}} inversiones fallaron al cargar debido a problemas de encriptación",
     "lastUpdated": "Última actualización {{date}}",
     "lastFailedUpdate": "Última actualización fallida {{date}}",
     "netInterest": "{{tipo}}% de interés neto",

@@ -1,6 +1,21 @@
 {
+  "navigation": {
+    "home": "Strona główna",
+    "expenses": "Wydatki",
+    "investments": "Inwestycje",
+    "shares": "Udziały",
+    "more": "Więcej",
+    "guides": "Przewodniki",
+    "profile": "Profil",
+    "settings": "Ustawienia"
+  },
+  "more": {
+    "selectOption": "Wybierz opcję z menu",
+    "showMenu": "Pokaż Menu"
+  },
   "profile": {
     "title": "Profil",
+    "loadingProfile": "Ładowanie profilu...",
     "accountInformation": "Informacje o koncie",
     "username": "Nazwa użytkownika",
     "email": "E-mail",

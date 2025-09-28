@@ -1,19 +1,14 @@
-import "react-native-get-random-values";
-import { v4 as uuidv4 } from "uuid";
-import { Buffer } from "buffer";
 import { piggusApi } from "@/client/piggusApi";
 import {
-  PortfolioData,
-  PortfolioWithDecryptedData,
-  SymbolSearchWithQuoteResult,
-} from "@/types/portfolio";
-import {
   InvestmentData,
-  InvestmentWithDecryptedData,
-  LookupSearchResult,
   InvestmentLookupResultV2,
+  InvestmentWithDecryptedData,
 } from "@/types/investment";
+import { PortfolioData, PortfolioWithDecryptedData } from "@/types/portfolio";
 import { User } from "@supabase/supabase-js";
+import { Buffer } from "buffer";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
 
 // Investment service functions that bridge the old client API with piggusApi
 
@@ -77,15 +72,31 @@ export const apiFetchPortfolios = async (
           // Get full portfolio data including investments and members
           const fullPortfolioData = await piggusApi.getPortfolio(portfolio.id);
 
-          const decryptedInvestments = await Promise.all(
-            fullPortfolioData.investments.map(async (investment) => ({
-              ...investment,
-              data: await decryptWithExternalEncryptionKey(
+          // Decrypt investments individually to handle failures gracefully
+          const decryptedInvestments = [];
+          const failedInvestments = [];
+
+          for (const investment of fullPortfolioData.investments) {
+            try {
+              const decryptedData = await decryptWithExternalEncryptionKey(
                 portfolioKeyString,
                 investment.encrypted_data,
-              ),
-            })),
-          );
+              );
+              decryptedInvestments.push({
+                ...investment,
+                data: decryptedData,
+              });
+            } catch (error) {
+              console.error(
+                `Failed to decrypt investment ${investment.id}:`,
+                error,
+              );
+              failedInvestments.push({
+                id: investment.id,
+                error: error.message || "Decryption failed",
+              });
+            }
+          }
 
           // Map members with their usernames (would need to be fetched from profiles if needed)
           const membersWithProfiles = fullPortfolioData.members.map(
@@ -104,6 +115,8 @@ export const apiFetchPortfolios = async (
             encrypted_key: portfolioKeyString,
             created_at: portfolio.created_at,
             updated_at: portfolio.updated_at,
+            failedInvestments:
+              failedInvestments.length > 0 ? failedInvestments : undefined,
           } as unknown as PortfolioWithDecryptedData;
         } catch (error: any) {
           console.error("Error decrypting portfolio:", error);
