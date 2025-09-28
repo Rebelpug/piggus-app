@@ -1,22 +1,22 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Text, TopNavigation } from "@ui-kitten/components";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { useExpense } from "@/context/ExpenseContext";
 import { useLocalization } from "@/context/LocalizationContext";
 import { Ionicons } from "@expo/vector-icons";
-import ProfileHeader from "@/components/ProfileHeader";
-import BudgetCard from "@/components/budget/BudgetCard";
+import { Text } from "@ui-kitten/components";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import BudgetCard from "@/components/budget/BudgetCard";
 import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,16 +32,9 @@ export default function HomeScreen() {
     setTimeout(() => setRefreshing(false), 2000);
   }, []);
 
-  const renderLeftActions = () => <ProfileHeader />;
-
   if (isLoading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("home.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <AuthSetupLoader />
       </SafeAreaView>
     );
@@ -51,13 +44,6 @@ export default function HomeScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <TopNavigation
-        title={t("home.title")}
-        alignment="center"
-        accessoryLeft={renderLeftActions}
-        style={{ backgroundColor: colors.background }}
-      />
-
       <ScrollView
         style={styles.content}
         refreshControl={
@@ -108,7 +94,7 @@ export default function HomeScreen() {
                 styles.guidesCtaButton,
                 { backgroundColor: colors.accent },
               ]}
-              onPress={() => router.push("/(protected)/(tabs)/guides")}
+              onPress={() => router.push("/(protected)/guides")}
             >
               <Text style={styles.guidesCtaButtonText}>{t("home.learn")}</Text>
               <Ionicons name="chevron-forward" size={16} color="white" />

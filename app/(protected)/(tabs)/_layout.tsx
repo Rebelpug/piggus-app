@@ -6,12 +6,14 @@ import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { t } = useLocalization();
 
   return (
     <Tabs
@@ -37,7 +39,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("navigation.home"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -46,7 +48,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="expenses"
         options={{
-          title: "Expenses",
+          title: t("navigation.expenses"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="creditcard.fill" color={color} />
           ),
@@ -55,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="investments"
         options={{
-          title: "Investments",
+          title: t("navigation.investments"),
           tabBarIcon: ({ color }) => (
             <IconSymbol
               size={28}
@@ -68,18 +70,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="shares"
         options={{
-          title: "Shares",
+          title: t("navigation.shares"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.2.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="guides"
+        name="more"
         options={{
-          title: "Guides",
+          title: t("navigation.more"),
           tabBarIcon: ({ color }) => (
-            <Ionicons name="book-outline" size={24} color={color} />
+            <Ionicons name="ellipsis-horizontal" size={24} color={color} />
           ),
         }}
       />

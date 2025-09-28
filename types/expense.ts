@@ -36,6 +36,14 @@ export type ExpenseGroupWithDecryptedData = {
   encrypted_key: string;
   expenses: ExpenseWithDecryptedData[];
   members: ExpenseGroupMember[];
+  failedExpenses?: Array<{
+    id: string;
+    error: string;
+  }>;
+  failedRecurringExpenses?: Array<{
+    id: string;
+    error: string;
+  }>;
 };
 
 export type Expense = {

@@ -51,6 +51,7 @@ export default function RecoveryKeyForm({
 
   useEffect(() => {
     generateRecoveryData().catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- generateRecoveryData is stable and contains all needed dependencies
   }, []);
 
   const generateRecoveryData = async () => {
@@ -297,8 +298,7 @@ export default function RecoveryKeyForm({
                 "Keep multiple copies in different secure locations"}
             </Text>
             <Text style={[styles.instructionItem, { color: colors.icon }]}>
-              • This uses the BIP39 standard compatible with major security
-              systems
+              • {t("auth.bip39Compatible")}
             </Text>
           </View>
         </View>

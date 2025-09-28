@@ -1,16 +1,16 @@
-import React from "react";
-import { TouchableOpacity, Image, StyleSheet, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ProfileHeaderProps {
   style?: any;
 }
 
-export default function ProfileHeader({ style }: ProfileHeaderProps) {
+function ProfileHeader({ style }: ProfileHeaderProps) {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -46,10 +46,24 @@ export default function ProfileHeader({ style }: ProfileHeaderProps) {
       activeOpacity={0.7}
     >
       <View style={[styles.avatarContainer, { borderColor: colors.border }]}>
-        <Image
-          source={{ uri: getGravatarUrl(user.email || "") }}
-          style={styles.avatar}
-        />
+        {user.email ? (
+          <Image
+            source={{ uri: getGravatarUrl(user.email) }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View
+            style={[
+              styles.avatar,
+              styles.avatarPlaceholder,
+              { backgroundColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.avatarText, { color: colors.text }]}>
+              {user.user_metadata?.username?.charAt(0)?.toUpperCase() || "?"}
+            </Text>
+          </View>
+        )}
       </View>
       {/*<View style={styles.userInfo}>
         <Text style={[styles.greeting, { color: colors.icon }]}>Hello,</Text>
@@ -60,6 +74,8 @@ export default function ProfileHeader({ style }: ProfileHeaderProps) {
     </TouchableOpacity>
   );
 }
+
+export default React.memo(ProfileHeader);
 
 const styles = StyleSheet.create({
   container: {
@@ -81,6 +97,14 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 18,
     backgroundColor: "#F0F0F0",
+  },
+  avatarPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: "bold",
   },
   userInfo: {
     justifyContent: "center",

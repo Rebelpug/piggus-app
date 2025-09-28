@@ -466,7 +466,7 @@ export default function AddInvestmentScreen() {
             <Input
               style={styles.input}
               label={t("addInvestment.symbolOrIsin", "Symbol or ISIN")}
-              placeholder="e.g., AAPL or US0378331005"
+              placeholder={t("addInvestment.symbolPlaceholder")}
               value={searchQuery}
               onChangeText={(text) => {
                 setSearchQuery(text);
@@ -498,7 +498,7 @@ export default function AddInvestmentScreen() {
               {isSearching
                 ? t("addInvestment.searching")
                 : userProfile?.subscription?.subscription_tier !== "premium"
-                  ? `${t("addInvestment.findInvestment")} (Premium Feature)`
+                  ? `${t("addInvestment.findInvestment")} ${t("addInvestment.premiumFeature")}`
                   : t("addInvestment.findInvestment")}
             </Button>
 
@@ -618,7 +618,7 @@ export default function AddInvestmentScreen() {
             <Input
               style={styles.input}
               label={t("addInvestment.symbol")}
-              placeholder="e.g., AAPL"
+              placeholder={t("addInvestment.symbolPlaceholderShort")}
               value={formData.symbol}
               onChangeText={(text) => {
                 setFormData((prev) => ({
@@ -641,7 +641,7 @@ export default function AddInvestmentScreen() {
             <Input
               style={styles.input}
               label={t("addInvestment.exchangeMarket")}
-              placeholder="e.g., NASDAQ, LSE, XETRA"
+              placeholder={t("addInvestment.exchangePlaceholder")}
               value={formData.exchange_market}
               onChangeText={(text) => {
                 setFormData((prev) => ({ ...prev, exchange_market: text }));
@@ -735,7 +735,7 @@ export default function AddInvestmentScreen() {
             <Input
               style={styles.input}
               label={t("addInvestment.purchasePrice")}
-              placeholder="0.00"
+              placeholder={t("addInvestment.pricePlaceholder")}
               value={formData.purchase_price}
               onChangeText={(text) => {
                 setFormData((prev) => ({
@@ -758,7 +758,7 @@ export default function AddInvestmentScreen() {
             <Input
               style={styles.input}
               label={t("addInvestment.currentPrice")}
-              placeholder="0.00"
+              placeholder={t("addInvestment.pricePlaceholder")}
               value={formData.current_price}
               onChangeText={(text) =>
                 setFormData((prev) => ({ ...prev, current_price: text }))
@@ -773,7 +773,7 @@ export default function AddInvestmentScreen() {
               <Input
                 style={styles.taxationInput}
                 label={t("addInvestment.taxation")}
-                placeholder="0"
+                placeholder={t("addInvestment.taxationPlaceholder")}
                 value={formData.taxation}
                 onChangeText={(text) =>
                   setFormData((prev) => ({ ...prev, taxation: text }))
@@ -794,7 +794,7 @@ export default function AddInvestmentScreen() {
             <Input
               style={styles.input}
               label={t("addInvestment.interestRate")}
-              placeholder="e.g., 3.5"
+              placeholder={t("addInvestment.interestRatePlaceholder")}
               value={formData.interest_rate}
               onChangeText={(text) =>
                 setFormData((prev) => ({ ...prev, interest_rate: text }))

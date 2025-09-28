@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 
 interface Props {
   children: ReactNode;
@@ -55,15 +56,15 @@ interface FallbackProps {
 const VersionErrorFallback: React.FC<FallbackProps> = ({ onRetry }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const { t } = useLocalization();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>
-        Version Check Error
+        {t("version.versionCheckError")}
       </Text>
       <Text style={[styles.message, { color: colors.text }]}>
-        The version checking system encountered an error, but the app will
-        continue to function normally.
+        {t("version.versionCheckErrorMessage")}
       </Text>
       <Button
         style={styles.button}
@@ -71,7 +72,7 @@ const VersionErrorFallback: React.FC<FallbackProps> = ({ onRetry }) => {
         appearance="outline"
         size="small"
       >
-        Retry
+        {t("version.retry")}
       </Button>
     </View>
   );

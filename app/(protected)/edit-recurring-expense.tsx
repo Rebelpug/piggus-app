@@ -26,6 +26,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useExpense } from "@/context/ExpenseContext";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import {
@@ -45,11 +46,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
 
-const RECURRING_INTERVALS = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
+const getRecurringIntervals = (t: any) => [
+  { value: "daily", label: t("editRecurringExpense.daily") },
+  { value: "weekly", label: t("editRecurringExpense.weekly") },
+  { value: "monthly", label: t("editRecurringExpense.monthly") },
+  { value: "yearly", label: t("editRecurringExpense.yearly") },
 ];
 
 export default function EditRecurringExpenseScreen() {
@@ -64,6 +65,7 @@ export default function EditRecurringExpenseScreen() {
   const { expensesGroups, recurringExpenses, updateRecurringExpense } =
     useExpense();
   const { userProfile } = useProfile();
+  const { t } = useLocalization();
 
   // Compute categories with user's customizations
   const allCategories = React.useMemo(
@@ -227,7 +229,8 @@ export default function EditRecurringExpenseScreen() {
     );
 
     // Set interval index
-    const intervalIndex = RECURRING_INTERVALS.findIndex(
+    const recurringIntervals = getRecurringIntervals(t);
+    const intervalIndex = recurringIntervals.findIndex(
       (int) => int.value === foundRecurringExpense.data.interval,
     );
     setSelectedIntervalIndex(
@@ -282,22 +285,34 @@ export default function EditRecurringExpenseScreen() {
 
     // Validation
     if (!name.trim()) {
-      Alert.alert("Error", "Please enter a name for the recurring expense");
+      Alert.alert(
+        t("editRecurringExpense.error"),
+        t("editRecurringExpense.enterRecurringExpenseName"),
+      );
       return;
     }
 
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert("Error", "Please enter a valid amount");
+      Alert.alert(
+        t("editRecurringExpense.error"),
+        t("editRecurringExpense.enterValidAmount"),
+      );
       return;
     }
 
     if (!selectedPayerIndex) {
-      Alert.alert("Error", "Please select a payer");
+      Alert.alert(
+        t("editRecurringExpense.error"),
+        t("editRecurringExpense.selectPayer"),
+      );
       return;
     }
 
     if (participants.length === 0) {
-      Alert.alert("Error", "Please select at least one participant");
+      Alert.alert(
+        t("editRecurringExpense.error"),
+        t("editRecurringExpense.selectAtLeastOneParticipant"),
+      );
       return;
     }
 
@@ -310,7 +325,10 @@ export default function EditRecurringExpenseScreen() {
       }, 0);
 
       if (Math.abs(totalCustomAmount - parseFloat(amount)) > 0.01) {
-        Alert.alert("Error", "Custom amounts must add up to the total amount");
+        Alert.alert(
+          t("editRecurringExpense.error"),
+          t("editRecurringExpense.customAmountsMustMatch"),
+        );
         return;
       }
     }
@@ -329,7 +347,8 @@ export default function EditRecurringExpenseScreen() {
         selectedCategory = { id: "other" };
       }
       const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
-      const selectedInterval = RECURRING_INTERVALS[selectedIntervalIndex.row];
+      const recurringIntervals = getRecurringIntervals(t);
+      const selectedInterval = recurringIntervals[selectedIntervalIndex.row];
       const selectedPayer = groupMembers[selectedPayerIndex.row];
       const selectedSplitMethod = SPLIT_METHODS[selectedSplitMethodIndex.row];
       const selectedPaymentMethod =
@@ -392,13 +411,16 @@ export default function EditRecurringExpenseScreen() {
       if (result?.data) {
         router.back();
       } else {
-        Alert.alert("Error", "Failed to update recurring expense");
+        Alert.alert(
+          t("editRecurringExpense.error"),
+          t("editRecurringExpense.updateRecurringExpenseFailed"),
+        );
       }
     } catch (error: any) {
       console.error("Failed to update recurring expense:", error);
       Alert.alert(
-        "Error",
-        error.message || "Failed to update recurring expense",
+        t("editRecurringExpense.error"),
+        error.message || t("editRecurringExpense.updateRecurringExpenseFailed"),
       );
     } finally {
       setLoading(false);
@@ -482,7 +504,7 @@ export default function EditRecurringExpenseScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
       >
         <TopNavigation
-          title="Edit Recurring Expense"
+          title={t("editRecurringExpense.title")}
           alignment="center"
           accessoryLeft={() => (
             <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
@@ -492,7 +514,9 @@ export default function EditRecurringExpenseScreen() {
           style={{ backgroundColor: colors.background }}
         />
         <Layout style={styles.loadingContainer}>
-          <Text category="h6">Recurring expense not found</Text>
+          <Text category="h6">
+            {t("editRecurringExpense.recurringExpenseNotFound")}
+          </Text>
         </Layout>
       </SafeAreaView>
     );
@@ -506,7 +530,7 @@ export default function EditRecurringExpenseScreen() {
         barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
       />
       <TopNavigation
-        title="Edit Recurring Expense"
+        title={t("editRecurringExpense.title")}
         alignment="center"
         accessoryLeft={() => (
           <TouchableOpacity onPress={navigateBack} style={styles.backButton}>
@@ -523,7 +547,7 @@ export default function EditRecurringExpenseScreen() {
               <Spinner size="small" />
             ) : (
               <Text style={[styles.saveButtonText, { color: colors.primary }]}>
-                Save
+                {t("editRecurringExpense.save")}
               </Text>
             )}
           </TouchableOpacity>
@@ -544,20 +568,20 @@ export default function EditRecurringExpenseScreen() {
           {/* Basic Information */}
           <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Basic Information
+              {t("editRecurringExpense.basicInformation")}
             </Text>
 
             <Input
-              label="Name"
-              placeholder="Enter recurring expense name"
+              label={t("editRecurringExpense.name")}
+              placeholder={t("editRecurringExpense.enterRecurringExpenseName")}
               value={name}
               onChangeText={setName}
               style={styles.input}
             />
 
             <Input
-              label="Description (Optional)"
-              placeholder="Enter description"
+              label={t("editRecurringExpense.description")}
+              placeholder={t("editRecurringExpense.enterDescription")}
               value={description}
               onChangeText={setDescription}
               multiline={true}
@@ -566,8 +590,8 @@ export default function EditRecurringExpenseScreen() {
             />
 
             <Input
-              label="Amount"
-              placeholder="0.00"
+              label={t("editRecurringExpense.amount")}
+              placeholder={t("editRecurringExpense.amountPlaceholder")}
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
@@ -575,8 +599,8 @@ export default function EditRecurringExpenseScreen() {
             />
 
             <Select
-              label="Category"
-              placeholder="Select category"
+              label={t("editRecurringExpense.category")}
+              placeholder={t("editRecurringExpense.selectCategory")}
               selectedIndex={selectedCategoryIndex}
               onSelect={(index) => setSelectedCategoryIndex(index as IndexPath)}
               value={
@@ -592,8 +616,8 @@ export default function EditRecurringExpenseScreen() {
             </Select>
 
             <Select
-              label="Payment Method"
-              placeholder="Select payment method"
+              label={t("editRecurringExpense.paymentMethod")}
+              placeholder={t("editRecurringExpense.selectPaymentMethod")}
               selectedIndex={selectedPaymentMethodIndex}
               onSelect={(index) =>
                 setSelectedPaymentMethodIndex(index as IndexPath)
@@ -614,7 +638,7 @@ export default function EditRecurringExpenseScreen() {
             </Select>
 
             <Select
-              label="Currency"
+              label={t("editRecurringExpense.currency")}
               selectedIndex={selectedCurrencyIndex}
               onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
               value={CURRENCIES[selectedCurrencyIndex.row]?.label}
@@ -629,23 +653,23 @@ export default function EditRecurringExpenseScreen() {
           {/* Schedule */}
           <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Schedule
+              {t("editRecurringExpense.schedule")}
             </Text>
 
             <Select
-              label="Frequency"
+              label={t("editRecurringExpense.frequency")}
               selectedIndex={selectedIntervalIndex}
               onSelect={(index) => setSelectedIntervalIndex(index as IndexPath)}
-              value={RECURRING_INTERVALS[selectedIntervalIndex.row]?.label}
+              value={getRecurringIntervals(t)[selectedIntervalIndex.row]?.label}
               style={styles.input}
             >
-              {RECURRING_INTERVALS.map((interval, index) => (
+              {getRecurringIntervals(t).map((interval, index) => (
                 <SelectItem key={index} title={interval.label} />
               ))}
             </Select>
 
             <Datepicker
-              label="Start Date"
+              label={t("editRecurringExpense.startDate")}
               date={startDate}
               onSelect={setStartDate}
               style={styles.input}
@@ -653,14 +677,14 @@ export default function EditRecurringExpenseScreen() {
 
             <View style={styles.toggleRow}>
               <Text style={[styles.toggleLabel, { color: colors.text }]}>
-                Set End Date
+                {t("editRecurringExpense.setEndDate")}
               </Text>
               <Toggle checked={hasEndDate} onChange={setHasEndDate} />
             </View>
 
             {hasEndDate && (
               <Datepicker
-                label="End Date"
+                label={t("editRecurringExpense.endDate")}
                 date={endDate}
                 onSelect={setEndDate}
                 style={styles.input}
@@ -669,7 +693,7 @@ export default function EditRecurringExpenseScreen() {
 
             <View style={styles.toggleRow}>
               <Text style={[styles.toggleLabel, { color: colors.text }]}>
-                Active
+                {t("editRecurringExpense.active")}
               </Text>
               <Toggle checked={isActive} onChange={setIsActive} />
             </View>
@@ -677,7 +701,7 @@ export default function EditRecurringExpenseScreen() {
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabelContainer}>
                 <Text style={[styles.toggleLabel, { color: colors.text }]}>
-                  Generate Expenses
+                  {t("editRecurringExpense.generateExpenses")}
                 </Text>
                 <Text
                   category="c1"
@@ -685,8 +709,8 @@ export default function EditRecurringExpenseScreen() {
                   style={styles.toggleDescription}
                 >
                   {userProfile?.bank_accounts?.some((account) => account.active)
-                    ? "Not recommended if bank account is connected to avoid adding expenses twice"
-                    : "Automatically create expenses for this recurring schedule"}
+                    ? t("editRecurringExpense.notRecommendedBankConnected")
+                    : t("editRecurringExpense.automaticallyCreateExpenses")}
                 </Text>
               </View>
               <Toggle
@@ -700,12 +724,12 @@ export default function EditRecurringExpenseScreen() {
           {groupMembers.length > 1 && (
             <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Payment Details
+                {t("editRecurringExpense.paymentDetails")}
               </Text>
 
               <Select
-                label="Paid by"
-                placeholder="Select who pays"
+                label={t("editRecurringExpense.paidBy")}
+                placeholder={t("editRecurringExpense.selectWhoPays")}
                 selectedIndex={selectedPayerIndex}
                 onSelect={(index) => setSelectedPayerIndex(index as IndexPath)}
                 value={
@@ -724,7 +748,7 @@ export default function EditRecurringExpenseScreen() {
               </Select>
 
               <Select
-                label="Split Method"
+                label={t("editRecurringExpense.splitMethod")}
                 selectedIndex={selectedSplitMethodIndex}
                 onSelect={(index) =>
                   setSelectedSplitMethodIndex(index as IndexPath)
@@ -743,7 +767,7 @@ export default function EditRecurringExpenseScreen() {
           {groupMembers.length > 1 && (
             <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Participants
+                {t("editRecurringExpense.participants")}
               </Text>
 
               {groupMembers.map((member, index) => {
@@ -770,7 +794,9 @@ export default function EditRecurringExpenseScreen() {
 
                     {isActive && selectedSplitMethodIndex.row === 1 && (
                       <Input
-                        placeholder="0.00"
+                        placeholder={t(
+                          "editRecurringExpense.amountPlaceholder",
+                        )}
                         value={customAmounts[member.user_id] || ""}
                         onChangeText={(value) =>
                           handleCustomAmountChange(member.user_id, value)

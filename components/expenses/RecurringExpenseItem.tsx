@@ -10,6 +10,7 @@ import {
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { Ionicons } from "@expo/vector-icons";
 
 interface RecurringExpenseItemProps {
@@ -24,6 +25,7 @@ export default function RecurringExpenseItem({
   const colors = Colors[colorScheme ?? "light"];
   const { user } = useAuth();
   const { userProfile } = useProfile();
+  const { t } = useLocalization();
 
   if (!item || !item.data) {
     return null;
@@ -49,10 +51,10 @@ export default function RecurringExpenseItem({
 
   const getIntervalDisplay = (interval: string) => {
     const intervalMap = {
-      daily: "Daily",
-      weekly: "Weekly",
-      monthly: "Monthly",
-      yearly: "Yearly",
+      daily: t("expenses.daily"),
+      weekly: t("expenses.weekly"),
+      monthly: t("expenses.monthly"),
+      yearly: t("expenses.yearly"),
     };
     return intervalMap[interval as keyof typeof intervalMap] || interval;
   };
@@ -65,13 +67,13 @@ export default function RecurringExpenseItem({
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays < 0) {
-        return "Overdue";
+        return t("expenses.overdue");
       } else if (diffDays === 0) {
-        return "Due today";
+        return t("expenses.dueToday");
       } else if (diffDays === 1) {
-        return "Due tomorrow";
+        return t("expenses.dueTomorrow");
       } else if (diffDays <= 7) {
-        return `Due in ${diffDays} days`;
+        return t("expenses.dueInDays", { days: diffDays });
       } else {
         return date.toLocaleDateString("en-US", {
           month: "short",
@@ -152,10 +154,10 @@ export default function RecurringExpenseItem({
             </View>
             <View style={styles.expenseDetails}>
               <Text style={[styles.expenseTitle, { color: colors.text }]}>
-                {item.data.name || "Unnamed Recurring Expense"}
+                {item.data.name || t("expenses.unnamedRecurringExpense")}
               </Text>
               <Text style={[styles.expenseSubtitle, { color: colors.icon }]}>
-                {item.groupName || "Unknown Group"} •{" "}
+                {item.groupName || t("expenses.unknownGroup")} •{" "}
                 {getIntervalDisplay(item.data.interval)}
               </Text>
               <Text
@@ -166,7 +168,7 @@ export default function RecurringExpenseItem({
               >
                 {item.data.is_active
                   ? formatNextDueDate(item.data.next_due_date)
-                  : "Inactive"}
+                  : t("expenses.inactive")}
               </Text>
             </View>
           </View>
@@ -176,7 +178,8 @@ export default function RecurringExpenseItem({
             </Text>
             {isSharedExpense && (
               <Text style={[styles.totalAmountText, { color: colors.icon }]}>
-                of {formatCurrency(totalAmount, item.data.currency)}
+                {t("expenses.of")}{" "}
+                {formatCurrency(totalAmount, item.data.currency)}
               </Text>
             )}
           </View>
@@ -189,7 +192,7 @@ export default function RecurringExpenseItem({
                 const categoryInfo = getCategoryInfo(
                   item.data.category || "other",
                 );
-                return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? " (Deleted)" : ""}`;
+                return `${categoryInfo.icon} ${categoryInfo.name}${categoryInfo.isDeleted ? ` (${t("expenses.deleted")})` : ""}`;
               })()}
             </Text>
           </View>
@@ -201,7 +204,7 @@ export default function RecurringExpenseItem({
               ]}
             >
               <Text style={[styles.payerText, { color: colors.primary }]}>
-                You pay
+                {t("expenses.youPay")}
               </Text>
             </View>
           )}

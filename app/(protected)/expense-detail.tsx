@@ -348,7 +348,7 @@ export default function ExpenseDetailScreen() {
                 </Text>
                 {expense.data.participants.length > 1 && (
                   <Text style={[styles.totalAmount, { color: colors.icon }]}>
-                    of{" "}
+                    {t("expenseDetail.of")}{" "}
                     {formatCurrency(expense.data.amount, expense.data.currency)}
                   </Text>
                 )}

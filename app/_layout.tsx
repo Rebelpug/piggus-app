@@ -1,18 +1,16 @@
-import "react-native-gesture-handler"; // MUST be at the very top
+import { AuthProvider } from "@/context/AuthContext";
+import { LocalizationProvider } from "@/context/LocalizationContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import * as eva from "@eva-design/eva";
+import * as Sentry from "@sentry/react-native";
+import { ApplicationProvider } from "@ui-kitten/components";
 import { Buffer } from "buffer";
 import { useFonts } from "expo-font";
-import "react-native-reanimated";
-import { AuthProvider } from "@/context/AuthContext";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { LocalizationProvider } from "@/context/LocalizationContext";
-import { AppVersionProvider } from "@/context/AppVersionContext";
-import { VersionGuard } from "@/components/version/VersionGuard";
 import { Stack } from "expo-router";
 import React from "react";
-import * as eva from "@eva-design/eva";
-import { ApplicationProvider } from "@ui-kitten/components";
 import { LogBox } from "react-native";
-import * as Sentry from "@sentry/react-native";
+import "react-native-gesture-handler"; // MUST be at the very top
+import "react-native-reanimated";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "",
@@ -43,16 +41,13 @@ function ThemedApp() {
 
   return (
     <ApplicationProvider {...eva} theme={theme}>
-      <AppVersionProvider>
-        <AuthProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          />
-          <VersionGuard />
-        </AuthProvider>
-      </AppVersionProvider>
+      <AuthProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        />
+      </AuthProvider>
     </ApplicationProvider>
   );
 }

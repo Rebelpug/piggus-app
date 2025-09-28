@@ -1,20 +1,17 @@
+import { APP_VERSION } from "@/config/version";
+import { versionService, VersionService } from "@/services/versionService";
+import { AppVersionContextType, AppVersionState } from "@/types/version";
+import { StoreUtils } from "@/utils/storeUtils";
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
   ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 import { AppState, AppStateStatus } from "react-native";
-import {
-  AppVersionContextType,
-  AppVersionState,
-  VersionInfo,
-} from "@/types/version";
-import { versionService, VersionService } from "@/services/versionService";
-import { StoreUtils } from "@/utils/storeUtils";
-import { APP_VERSION } from "@/config/version";
 
 interface AppVersionProviderProps {
   children: ReactNode;
@@ -119,13 +116,22 @@ export const AppVersionProvider: React.FC<AppVersionProviderProps> = ({
     }
   }, [checkVersion, state.checkingEnabled]);
 
-  const contextValue: AppVersionContextType = {
-    ...state,
-    checkVersion,
-    dismissSuggestedModal,
-    openAppStore,
-    retryVersionCheck,
-  };
+  const contextValue: AppVersionContextType = useMemo(
+    () => ({
+      ...state,
+      checkVersion,
+      dismissSuggestedModal,
+      openAppStore,
+      retryVersionCheck,
+    }),
+    [
+      state,
+      checkVersion,
+      dismissSuggestedModal,
+      openAppStore,
+      retryVersionCheck,
+    ],
+  );
 
   return (
     <AppVersionContext.Provider value={contextValue}>

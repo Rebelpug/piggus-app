@@ -1,37 +1,38 @@
-import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-  View,
-  Image,
-  Switch,
-  Linking,
-} from "react-native";
-import Constants from "expo-constants";
-import {
-  Text,
-  Input,
-  Select,
-  SelectItem,
-  IndexPath,
-  TopNavigation,
-  Modal,
-  Spinner,
-} from "@ui-kitten/components";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/context/AuthContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useTheme } from "@/context/ThemeContext";
-import { useLocalization } from "@/context/LocalizationContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
+import { apiDeleteProfile } from "@/services/profileService";
 import { CURRENCIES } from "@/types/expense";
+import { getPrivacyPolicyUrl, getTocUrl } from "@/utils/tocUtils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
-import { apiDeleteProfile } from "@/services/profileService";
+import {
+  IndexPath,
+  Input,
+  Modal,
+  Select,
+  SelectItem,
+  Spinner,
+  Text,
+  TopNavigation,
+} from "@ui-kitten/components";
+import Constants from "expo-constants";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -103,38 +104,34 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await apiDeleteProfile();
-              router.replace("/login");
-            } catch (error) {
-              console.error(
-                "Failed to delete account: ",
-                (error as Error).message,
-              );
-              Alert.alert("Error", "Failed to delete account");
-            }
-            try {
-              await signOut();
-            } catch (e) {
-              // This is needed but at the same time it fails so we don't want to show errors here.
-              console.error("Failed to sign out: ", (e as Error).message);
-            } finally {
-              setLoading(false);
-            }
-          },
+    Alert.alert(t("profile.deleteAccount"), t("profile.deleteAccountConfirm"), [
+      { text: t("modals.cancel"), style: "cancel" },
+      {
+        text: t("modals.delete"),
+        style: "destructive",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await apiDeleteProfile();
+            router.replace("/login");
+          } catch (error) {
+            console.error(
+              "Failed to delete account: ",
+              (error as Error).message,
+            );
+            Alert.alert(t("alerts.error"), t("profile.deleteAccountFailed"));
+          }
+          try {
+            await signOut();
+          } catch (e) {
+            // This is needed but at the same time it fails so we don't want to show errors here.
+            console.error("Failed to sign out: ", (e as Error).message);
+          } finally {
+            setLoading(false);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const handleUpdateCurrency = async () => {
@@ -200,20 +197,6 @@ export default function ProfileScreen() {
     </TouchableOpacity>
   );
 
-  const ProfileAvatar = () => (
-    <View style={styles.avatarContainer}>
-      <View style={[styles.avatarBorder, { borderColor: colors.primary }]}>
-        <Image
-          source={{ uri: userProfile?.profile?.avatar_url || "" }}
-          style={styles.avatar}
-        />
-      </View>
-      {/*<TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
-                <Ionicons name="camera-outline" size={20} color="white" />
-            </TouchableOpacity>*/}
-    </View>
-  );
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -226,17 +209,6 @@ export default function ProfileScreen() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <ProfileAvatar />
-          <Text style={[styles.username, { color: colors.text }]}>
-            {userProfile?.username || t("common.unknownUser")}
-          </Text>
-          <Text style={[styles.email, { color: colors.icon }]}>
-            {user?.email || ""}
-          </Text>
-        </View>
-
         {/* Account Information */}
         <View
           style={[
@@ -418,7 +390,6 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.preferenceRow}
             onPress={() => setLanguageModalVisible(true)}
-            disabled={true}
           >
             <View style={styles.infoLabel}>
               <View
@@ -434,13 +405,13 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                {t("profile.language")} (Coming soon)
+                {t("profile.language")}
               </Text>
             </View>
             <View style={styles.preferenceValue}>
               <Text style={[styles.currentValue, { color: colors.icon }]}>
                 {availableLanguages?.find((l) => l.code === currentLanguage)
-                  ?.nativeName || "English"}
+                  ?.nativeName || t("language.english")}
               </Text>
               <Ionicons name="chevron-forward" size={20} color={colors.icon} />
             </View>
@@ -556,7 +527,7 @@ export default function ProfileScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Security
+            {t("profile.security")}
           </Text>
 
           <TouchableOpacity
@@ -578,7 +549,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Change Password (Coming soon)
+                {t("profile.changePasswordComingSoon")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -638,7 +609,7 @@ export default function ProfileScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            About
+            {t("profile.about")}
           </Text>
 
           <TouchableOpacity
@@ -659,7 +630,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Support us
+                {t("profile.supportUs")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -685,7 +656,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Roadmap
+                {t("profile.roadmap")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -711,7 +682,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Text style={[styles.labelText, { color: colors.text }]}>
-                Feedback
+                {t("profile.feedback")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
@@ -733,7 +704,7 @@ export default function ProfileScreen() {
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </View>
               <Text style={[styles.labelText, { color: colors.error }]}>
-                Delete Account
+                {t("profile.deleteAccount")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.error} />
@@ -762,11 +733,9 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.legalLink}
             onPress={() =>
-              Linking.openURL("https://piggus.finance/toc-app").catch(
-                (error) => {
-                  console.error("Failed to open Terms of Service:", error);
-                },
-              )
+              Linking.openURL(getTocUrl(currentLanguage)).catch((error) => {
+                console.error("Failed to open Terms of Service:", error);
+              })
             }
           >
             <Text style={[styles.legalLinkText, { color: colors.primary }]}>
@@ -776,7 +745,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.legalLink}
             onPress={() =>
-              Linking.openURL("https://piggus.finance/privacy-app").catch(
+              Linking.openURL(getPrivacyPolicyUrl(currentLanguage)).catch(
                 (error) => {
                   console.error("Failed to open Privacy Policy:", error);
                 },

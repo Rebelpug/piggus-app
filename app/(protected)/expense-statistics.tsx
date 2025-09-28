@@ -30,6 +30,7 @@ import {
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import Svg, { Path, Circle } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
@@ -218,6 +219,7 @@ export default function ExpenseStatisticsScreen() {
   const { user } = useAuth();
   const { expensesGroups, fetchExpensesForMonth } = useExpense();
   const { userProfile } = useProfile();
+  const { t } = useLocalization();
 
   // Ensure current month data is loaded when component mounts
   React.useEffect(() => {
@@ -263,19 +265,19 @@ export default function ExpenseStatisticsScreen() {
     return Array.from(years).sort((a, b) => b - a);
   }, [expensesGroups]);
 
-  const months = [
-    { value: 0, label: "January" },
-    { value: 1, label: "February" },
-    { value: 2, label: "March" },
-    { value: 3, label: "April" },
-    { value: 4, label: "May" },
-    { value: 5, label: "June" },
-    { value: 6, label: "July" },
-    { value: 7, label: "August" },
-    { value: 8, label: "September" },
-    { value: 9, label: "October" },
-    { value: 10, label: "November" },
-    { value: 11, label: "December" },
+  const getMonths = (t: any) => [
+    { value: 0, label: t("expenseStatistics.january") },
+    { value: 1, label: t("expenseStatistics.february") },
+    { value: 2, label: t("expenseStatistics.march") },
+    { value: 3, label: t("expenseStatistics.april") },
+    { value: 4, label: t("expenseStatistics.may") },
+    { value: 5, label: t("expenseStatistics.june") },
+    { value: 6, label: t("expenseStatistics.july") },
+    { value: 7, label: t("expenseStatistics.august") },
+    { value: 8, label: t("expenseStatistics.september") },
+    { value: 9, label: t("expenseStatistics.october") },
+    { value: 10, label: t("expenseStatistics.november") },
+    { value: 11, label: t("expenseStatistics.december") },
   ];
 
   const renderBackAction = () => (
@@ -409,7 +411,7 @@ export default function ExpenseStatisticsScreen() {
             } else {
               // Generic "Other" for expenses without payment method
               paymentMethodInfo = {
-                name: "Other",
+                name: t("expenseStatistics.other"),
                 icon: "📄",
               };
             }
@@ -579,7 +581,7 @@ export default function ExpenseStatisticsScreen() {
       const otherPercentage =
         totalSpent > 0 ? (otherTotal / totalSpent) * 100 : 0;
       pieData.push({
-        label: "📊 Others",
+        label: `📊 ${t("expenseStatistics.others")}`,
         value: otherPercentage,
         color: "#95A5A6",
       });
@@ -628,6 +630,8 @@ export default function ExpenseStatisticsScreen() {
     periodFilter,
     userProfile?.profile?.budgeting?.categoryOverrides,
   ]);
+  // ESLint disabled: 't' and 'paymentMethodOverrides' are stable or properly handled
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Calculate budget comparison for monthly and yearly periods - separate from main stats
   const budgetComparison: BudgetComparison | null = useMemo(() => {
@@ -713,47 +717,47 @@ export default function ExpenseStatisticsScreen() {
   const getPeriodLabel = () => {
     switch (periodFilter.type) {
       case "year":
-        return `Year ${periodFilter.year}`;
+        return `${t("expenseStatistics.year")} ${periodFilter.year}`;
       case "month":
-        const monthName = months.find(
+        const monthName = getMonths(t).find(
           (m) => m.value === periodFilter.month,
         )?.label;
         return `${monthName} ${periodFilter.year}`;
       default:
-        return "Unknown Period";
+        return t("common.unknown");
     }
   };
 
   const getPeriodTrendLabel = () => {
     switch (periodFilter.type) {
       case "year":
-        return "Monthly Trend";
+        return t("expenseStatistics.monthlyTrend");
       case "month":
-        return "Daily Trend";
+        return t("expenseStatistics.dailyTrend");
       default:
-        return "Monthly Trend";
+        return t("expenseStatistics.monthlyTrend");
     }
   };
 
   const getAverageLabel = () => {
     switch (periodFilter.type) {
       case "year":
-        return "Avg Monthly";
+        return t("expenseStatistics.avgMonthly");
       case "month":
-        return "Avg Daily";
+        return t("expenseStatistics.avgDaily");
       default:
-        return "Avg Monthly";
+        return t("expenseStatistics.avgMonthly");
     }
   };
 
   const getBudgetSectionTitle = () => {
     switch (periodFilter.type) {
       case "year":
-        return "Annual Budget vs Actual";
+        return t("expenseStatistics.annualBudgetVsActual");
       case "month":
-        return "Monthly Budget vs Actual";
+        return t("expenseStatistics.monthlyBudgetVsActual");
       default:
-        return "Budget vs Actual";
+        return t("expenseStatistics.budgetVsActual");
     }
   };
 
@@ -762,7 +766,7 @@ export default function ExpenseStatisticsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TopNavigation
-        title="Expense Statistics"
+        title={t("expenseStatistics.title")}
         alignment="center"
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
@@ -781,7 +785,7 @@ export default function ExpenseStatisticsScreen() {
           >
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.primary }]}>
-              Loading expenses...
+              {t("expenseStatistics.loadingExpenses")}
             </Text>
           </View>
         )}
@@ -802,7 +806,7 @@ export default function ExpenseStatisticsScreen() {
         </View>
         <View style={styles.summarySection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Overview
+            {t("expenseStatistics.overview")}
           </Text>
 
           <View style={styles.statsGrid}>
@@ -811,7 +815,7 @@ export default function ExpenseStatisticsScreen() {
                 {formatCurrency(expenseStats.totalSpent)}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Total Spent
+                {t("expenseStatistics.totalSpent")}
               </Text>
             </View>
 
@@ -820,7 +824,7 @@ export default function ExpenseStatisticsScreen() {
                 {expenseStats.totalTransactions}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Transactions
+                {t("expenseStatistics.transactions")}
               </Text>
             </View>
 
@@ -829,7 +833,7 @@ export default function ExpenseStatisticsScreen() {
                 {formatCurrency(expenseStats.averagePerTransaction)}
               </Text>
               <Text style={[styles.statLabel, { color: colors.icon }]}>
-                Avg per Transaction
+                {t("expenseStatistics.avgPerTransaction")}
               </Text>
             </View>
 
@@ -852,7 +856,7 @@ export default function ExpenseStatisticsScreen() {
             </Text>
             {periodFilter.type === "year" && (
               <Text style={[styles.budgetSubtitle, { color: colors.icon }]}>
-                Based on monthly budget × 12 months
+                {t("expenseStatistics.basedOnMonthlyBudget")}
               </Text>
             )}
             <View
@@ -864,7 +868,7 @@ export default function ExpenseStatisticsScreen() {
               <View style={styles.budgetComparisonHeader}>
                 <View style={styles.budgetItem}>
                   <Text style={[styles.budgetLabel, { color: colors.icon }]}>
-                    Budget
+                    {t("expenseStatistics.budget")}
                   </Text>
                   <Text style={[styles.budgetValue, { color: colors.text }]}>
                     {formatCurrency(budgetComparison.budgetAmount)}
@@ -872,7 +876,7 @@ export default function ExpenseStatisticsScreen() {
                 </View>
                 <View style={styles.budgetItem}>
                   <Text style={[styles.budgetLabel, { color: colors.icon }]}>
-                    Spent
+                    {t("expenseStatistics.spent")}
                   </Text>
                   <Text style={[styles.budgetValue, { color: colors.text }]}>
                     {formatCurrency(budgetComparison.actualSpending)}
@@ -880,7 +884,9 @@ export default function ExpenseStatisticsScreen() {
                 </View>
                 <View style={styles.budgetItem}>
                   <Text style={[styles.budgetLabel, { color: colors.icon }]}>
-                    {budgetComparison.isOverBudget ? "Over Budget" : "Saved"}
+                    {budgetComparison.isOverBudget
+                      ? t("expenseStatistics.overBudget")
+                      : t("expenseStatistics.saved")}
                   </Text>
                   <Text
                     style={[
@@ -941,7 +947,7 @@ export default function ExpenseStatisticsScreen() {
                         100
                       ).toFixed(1)
                     : "0.0"}
-                  % of budget used
+                  % {t("expenseStatistics.ofBudgetUsed")}
                 </Text>
               </View>
             </View>
@@ -951,7 +957,7 @@ export default function ExpenseStatisticsScreen() {
         {/* Category Distribution */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Category Distribution
+            {t("expenseStatistics.categoryDistribution")}
           </Text>
 
           {/* Custom SVG Pie Chart */}
@@ -987,7 +993,7 @@ export default function ExpenseStatisticsScreen() {
         {/* Hierarchical Category Table */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Category Breakdown
+            {t("expenseStatistics.categoryBreakdown")}
           </Text>
           <View
             style={[
@@ -1051,7 +1057,8 @@ export default function ExpenseStatisticsScreen() {
                     />
                   </View>
                   <Text style={[styles.categoryCount, { color: colors.icon }]}>
-                    {category.transactionCount} transactions
+                    {category.transactionCount}{" "}
+                    {t("expenseStatistics.transactionsCount")}
                   </Text>
                 </View>
 
@@ -1118,7 +1125,7 @@ export default function ExpenseStatisticsScreen() {
         {expenseStats.paymentMethods.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Payment Methods Distribution
+              {t("expenseStatistics.paymentMethodsDistribution")}
             </Text>
 
             {/* Payment Methods Pie Chart */}
@@ -1214,7 +1221,8 @@ export default function ExpenseStatisticsScreen() {
                     <Text
                       style={[styles.categoryCount, { color: colors.icon }]}
                     >
-                      {method.transactionCount} transactions
+                      {method.transactionCount}{" "}
+                      {t("expenseStatistics.transactionsCount")}
                     </Text>
                   </View>
                 </View>
@@ -1262,7 +1270,8 @@ export default function ExpenseStatisticsScreen() {
                     />
                   </View>
                   <Text style={[styles.monthlyCount, { color: colors.icon }]}>
-                    {month.transactionCount} transactions
+                    {month.transactionCount}{" "}
+                    {t("expenseStatistics.transactionsCount")}
                   </Text>
                 </View>
               </View>
@@ -1305,9 +1314,10 @@ export default function ExpenseStatisticsScreen() {
               </TouchableOpacity>
             )}
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {filterStep === "type" && "Filter by Period"}
-              {filterStep === "year" && "Select Year"}
-              {filterStep === "month" && `Select Month (${selectedYear})`}
+              {filterStep === "type" && t("expenseStatistics.filterByPeriod")}
+              {filterStep === "year" && t("expenseStatistics.selectYear")}
+              {filterStep === "month" &&
+                `${t("expenseStatistics.selectMonth")} (${selectedYear})`}
             </Text>
           </View>
 
@@ -1329,7 +1339,7 @@ export default function ExpenseStatisticsScreen() {
                 }}
               >
                 <Text style={[styles.filterOptionText, { color: colors.text }]}>
-                  By Year
+                  {t("expenseStatistics.byYear")}
                 </Text>
                 <Ionicons
                   name="chevron-forward"
@@ -1352,7 +1362,7 @@ export default function ExpenseStatisticsScreen() {
                 }}
               >
                 <Text style={[styles.filterOptionText, { color: colors.text }]}>
-                  By Month
+                  {t("expenseStatistics.byMonth")}
                 </Text>
                 <Ionicons
                   name="chevron-forward"
@@ -1419,7 +1429,7 @@ export default function ExpenseStatisticsScreen() {
 
           {filterStep === "month" && selectedYear && (
             <View style={styles.monthGrid}>
-              {months.map((month) => (
+              {getMonths(t).map((month) => (
                 <TouchableOpacity
                   key={month.value}
                   style={[
@@ -1478,7 +1488,7 @@ export default function ExpenseStatisticsScreen() {
                 setSelectedYear(null);
               }}
             >
-              Cancel
+              {t("expenseStatistics.cancel")}
             </Button>
           </Layout>
         </Card>

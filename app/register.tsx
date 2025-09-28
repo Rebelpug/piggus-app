@@ -2,34 +2,35 @@
  * LoginScreen.tsx
  * A complete login screen with username/password authentication
  */
+import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/context/AuthContext";
+import { useLocalization } from "@/context/LocalizationContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { getPrivacyPolicyUrl, getTocUrl } from "@/utils/tocUtils";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  Alert,
-  StatusBar,
-  Image,
-  Linking,
-  ScrollView,
+  View,
 } from "react-native";
-import { useAuth } from "@/context/AuthContext";
-import { useLocalization } from "@/context/LocalizationContext";
-import { useRouter } from "expo-router";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
-import { Ionicons } from "@expo/vector-icons";
 
 const RegisterScreen = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { t } = useLocalization();
+  const { t, currentLanguage } = useLocalization();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -262,7 +263,7 @@ const RegisterScreen = () => {
                 <Text
                   style={[styles.requirementsTitle, { color: colors.text }]}
                 >
-                  Password Requirements
+                  {t("auth.passwordRequirements")}
                 </Text>
                 <View
                   style={[
@@ -282,7 +283,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Lowercase letter
+                    {t("auth.lowercaseLetter")}
                   </Text>
                 </View>
                 <View
@@ -303,7 +304,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Uppercase letter
+                    {t("auth.uppercaseLetter")}
                   </Text>
                 </View>
                 <View
@@ -324,7 +325,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Number
+                    {t("auth.number")}
                   </Text>
                 </View>
                 <View
@@ -353,7 +354,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Special character
+                    {t("auth.specialCharacter")}
                   </Text>
                 </View>
                 <View
@@ -372,7 +373,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    At least 8 characters
+                    {t("auth.atLeastEightCharacters")}
                   </Text>
                 </View>
                 <View
@@ -402,7 +403,7 @@ const RegisterScreen = () => {
                   <Text
                     style={[styles.requirementText, { color: colors.text }]}
                   >
-                    Passwords match
+                    {t("auth.passwordsMatch")}
                   </Text>
                 </View>
               </View>
@@ -432,7 +433,7 @@ const RegisterScreen = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
-                    Linking.openURL("https://piggus.finance/toc-app").catch(
+                    Linking.openURL(getTocUrl(currentLanguage)).catch(
                       (error) => {
                         console.error(
                           "Failed to open Terms of Service:",
@@ -459,7 +460,7 @@ const RegisterScreen = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
-                    Linking.openURL("https://piggus.finance/privacy-app").catch(
+                    Linking.openURL(getPrivacyPolicyUrl(currentLanguage)).catch(
                       (error) => {
                         console.error("Failed to open Privacy Policy:", error);
                       },

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { useProfile } from "@/context/ProfileContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import { formatCurrency } from "@/utils/currencyUtils";
 
 interface OnboardingFormProps {
@@ -29,6 +30,7 @@ export default function OnboardingForm({
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const { updateProfile, userProfile } = useProfile();
+  const { t } = useLocalization();
 
   const [salary, setSalary] = useState("");
   const [bankAmount, setBankAmount] = useState("");
@@ -70,7 +72,9 @@ export default function OnboardingForm({
       onComplete();
     } catch (err) {
       setError(
-        `An error occurred: ${err instanceof Error ? err.message : String(err)}`,
+        t("onboarding.anErrorOccurred", {
+          error: err instanceof Error ? err.message : String(err),
+        }),
       );
       console.error("Onboarding error:", err);
     } finally {
@@ -93,12 +97,10 @@ export default function OnboardingForm({
       >
         <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>
-            {"Let's Get You Started"}
+            {t("onboarding.letsGetYouStarted")}
           </Text>
           <Text style={[styles.cardDescription, { color: colors.icon }]}>
-            {
-              "Help us personalize your financial journey by sharing a few details."
-            }
+            {t("onboarding.personalizeJourneyDescription")}
           </Text>
         </View>
 
@@ -121,7 +123,7 @@ export default function OnboardingForm({
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>
-              What is your current monthly salary?
+              {t("onboarding.monthlyBudgetQuestion")}
             </Text>
             <TextInput
               style={[
@@ -139,14 +141,13 @@ export default function OnboardingForm({
               keyboardType="numeric"
             />
             <Text style={[styles.helperText, { color: colors.icon }]}>
-              This will be used as your monthly budget to track your spending
+              {t("onboarding.monthlyBudgetHelper")}
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>
-              How much money do you currently have in your bank account (not
-              invested)?
+              {t("onboarding.bankAmountQuestion")}
             </Text>
             <TextInput
               style={[
@@ -164,8 +165,7 @@ export default function OnboardingForm({
               keyboardType="numeric"
             />
             <Text style={[styles.helperText, { color: colors.icon }]}>
-              This will be added as a checking account investment to track your
-              cash
+              {t("onboarding.bankAmountHelper")}
             </Text>
           </View>
 
@@ -180,16 +180,18 @@ export default function OnboardingForm({
               ]}
             >
               <Text style={[styles.summaryTitle, { color: colors.text }]}>
-                Summary
+                {t("onboarding.summary")}
               </Text>
               {salary && (
                 <Text style={[styles.summaryItem, { color: colors.icon }]}>
-                  Monthly Budget: {formatCurrency(Number(salary), currency)}
+                  {t("onboarding.monthlyBudget")}:{" "}
+                  {formatCurrency(Number(salary), currency)}
                 </Text>
               )}
               {bankAmount && (
                 <Text style={[styles.summaryItem, { color: colors.icon }]}>
-                  Initial Cash: {formatCurrency(Number(bankAmount), currency)}
+                  {t("onboarding.initialCash")}:{" "}
+                  {formatCurrency(Number(bankAmount), currency)}
                 </Text>
               )}
             </View>
@@ -216,10 +218,14 @@ export default function OnboardingForm({
                     color="white"
                     style={styles.spinner}
                   />
-                  <Text style={styles.buttonText}>Setting up...</Text>
+                  <Text style={styles.buttonText}>
+                    {t("onboarding.settingUp")}
+                  </Text>
                 </View>
               ) : (
-                <Text style={styles.buttonText}>Look into tutorial</Text>
+                <Text style={styles.buttonText}>
+                  {t("onboarding.lookIntoTutorial")}
+                </Text>
               )}
             </TouchableOpacity>
 
@@ -240,7 +246,7 @@ export default function OnboardingForm({
               disabled={isSubmitting}
             >
               <Text style={[styles.skipButtonText, { color: colors.text }]}>
-                Skip and manage on my own
+                {t("onboarding.skipAndManage")}
               </Text>
             </TouchableOpacity>
           </View>

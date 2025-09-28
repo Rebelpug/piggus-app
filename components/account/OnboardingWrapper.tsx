@@ -1,5 +1,6 @@
 import React from "react";
 import { useInvestment } from "@/context/InvestmentContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import OnboardingForm from "./OnboardingForm";
 import { InvestmentData } from "@/types/investment";
 
@@ -13,15 +14,16 @@ export default function OnboardingWrapper({
   currency,
 }: OnboardingWrapperProps) {
   const { addInvestment, portfolios } = useInvestment();
+  const { t } = useLocalization();
 
   const createCheckingAccount = async (amount: number) => {
     if (amount > 0 && portfolios.length > 0) {
       const personalPortfolio = portfolios.find(
-        (p) => p.data.name === "Personal Investments",
+        (p) => p.data.name === t("onboarding.personalInvestments"),
       );
       if (personalPortfolio) {
         const checkingAccountInvestment: InvestmentData = {
-          name: "Checking Account",
+          name: t("onboarding.checkingAccount"),
           symbol: null,
           isin: null,
           exchange_market: null,
@@ -33,7 +35,7 @@ export default function OnboardingWrapper({
           current_price: amount,
           last_updated: new Date().toISOString(),
           last_tentative_update: new Date().toISOString(),
-          notes: "Initial bank account balance added during onboarding",
+          notes: t("onboarding.initialBankAccountBalance"),
           interest_rate: null,
           maturity_date: null,
           dividend_yield: null,

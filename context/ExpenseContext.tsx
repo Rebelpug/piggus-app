@@ -1,53 +1,57 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-  useCallback,
-} from "react";
+import { piggusApi } from "@/client/piggusApi";
+import { useAuth } from "@/context/AuthContext";
+import { useEncryption } from "@/context/EncryptionContext";
+import { useProfile } from "@/context/ProfileContext";
+import {
+  apiAddExpense,
+  apiAddRefund,
+  apiBulkInsertAndUpdateExpenses,
+  apiCreateExpensesGroup,
+  apiDeleteExpense,
+  apiDeleteRefund,
+  apiFetchAllExpensesForGroup,
+  apiFetchExpenseGroupsOnly,
+  apiFetchExpensesPaginated,
+  apiHandleGroupInvitation,
+  apiInviteUserToGroup,
+  apiMoveExpense,
+  apiRemoveUserFromGroup,
+  apiUpdateExpense,
+  apiUpdateExpenseGroup,
+  apiUpdateRefund,
+} from "@/services/expenseService";
+import {
+  apiCreateRecurringExpense,
+  apiDeleteRecurringExpense,
+  apiFetchRecurringExpenses,
+  apiProcessRecurringExpenses,
+  apiUpdateRecurringExpense,
+} from "@/services/recurringExpenseService";
 import {
   ExpenseData,
   ExpenseGroupData,
   ExpenseGroupWithDecryptedData,
   ExpenseWithDecryptedData,
+  GroupRefund,
   RecurringExpenseData,
   RecurringExpenseWithDecryptedData,
-  GroupRefund,
 } from "@/types/expense";
-import { useAuth } from "@/context/AuthContext";
-import { useProfile } from "@/context/ProfileContext";
-import {
-  apiCreateExpensesGroup,
-  apiFetchExpenseGroupsOnly,
-  apiFetchExpensesPaginated,
-  apiFetchAllExpensesForGroup,
-  apiAddExpense,
-  apiUpdateExpense,
-  apiDeleteExpense,
-  apiInviteUserToGroup,
-  apiHandleGroupInvitation,
-  apiUpdateExpenseGroup,
-  apiRemoveUserFromGroup,
-  apiAddRefund,
-  apiUpdateRefund,
-  apiDeleteRefund,
-  apiBulkInsertAndUpdateExpenses,
-  apiMoveExpense,
-} from "@/services/expenseService";
-import {
-  apiFetchRecurringExpenses,
-  apiCreateRecurringExpense,
-  apiUpdateRecurringExpense,
-  apiDeleteRecurringExpense,
-  apiProcessRecurringExpenses,
-} from "@/services/recurringExpenseService";
-import { useEncryption } from "@/context/EncryptionContext";
-import { piggusApi } from "@/client/piggusApi";
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface ExpenseContextType {
   expensesGroups: ExpenseGroupWithDecryptedData[];
   recurringExpenses: RecurringExpenseWithDecryptedData[];
+  failedRecurringExpenses: Array<{
+    id: string;
+    error: string;
+  }>;
   isLoading: boolean;
   error: string | null;
   fetchExpensesForMonth: (
@@ -169,22 +173,18 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const [recurringExpenses, setRecurringExpenses] = useState<
     RecurringExpenseWithDecryptedData[]
   >([]);
+  const [failedRecurringExpenses, setFailedRecurringExpenses] = useState<
+    Array<{
+      id: string;
+      error: string;
+    }>
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedMonths, setCachedMonths] = useState<Set<string>>(new Set());
   const [fetchedGroupsCache, setFetchedGroupsCache] = useState<
     Record<string, number>
   >({}); // groupId -> timestamp
-
-  // Helper function to invalidate cache for a specific group
-  const invalidateGroupCache = useCallback((groupId: string) => {
-    setFetchedGroupsCache((prev) => {
-      const newCache = { ...prev };
-      delete newCache[groupId];
-      console.log(`🗑️ Invalidated cache for group ${groupId}`);
-      return newCache;
-    });
-  }, []);
 
   const fetchExpensesForCurrentMonth = useCallback(async () => {
     try {
@@ -268,6 +268,20 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         setExpensesGroups(groupsWithCurrentMonthExpenses);
         setCachedMonths((prev) => new Set(prev).add(monthKey));
 
+        // Log any failed expenses for debugging
+        const totalFailedExpenses = groupsWithCurrentMonthExpenses.reduce(
+          (total, group) => {
+            return total + (group.failedExpenses?.length || 0);
+          },
+          0,
+        );
+
+        if (totalFailedExpenses > 0) {
+          console.warn(
+            `${totalFailedExpenses} expenses failed to decrypt and were skipped`,
+          );
+        }
+
         // Fetch recurring expenses
         const recurringResult = await apiFetchRecurringExpenses(
           user,
@@ -277,6 +291,19 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
         if (recurringResult.success && recurringResult.data) {
           setRecurringExpenses(recurringResult.data);
+          setFailedRecurringExpenses(
+            recurringResult.failedRecurringExpenses || [],
+          );
+
+          // Log any failed recurring expenses for debugging
+          if (
+            recurringResult.failedRecurringExpenses &&
+            recurringResult.failedRecurringExpenses.length > 0
+          ) {
+            console.warn(
+              `${recurringResult.failedRecurringExpenses.length} recurring expenses failed to decrypt and were skipped`,
+            );
+          }
 
           // Process recurring expenses to generate any due expenses
           const groupMemberships = result.data.map((group) => ({
@@ -1659,6 +1686,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       value={{
         expensesGroups,
         recurringExpenses,
+        failedRecurringExpenses,
         isLoading,
         error,
         addExpense,

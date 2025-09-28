@@ -1,37 +1,30 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  Platform,
-} from "react-native";
-import {
-  Layout,
-  Text,
-  Button,
-  TopNavigation,
-  Tab,
-  TabView,
-} from "@ui-kitten/components";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { useExpense } from "@/context/ExpenseContext";
 import { useInvestment } from "@/context/InvestmentContext";
 import { useLocalization } from "@/context/LocalizationContext";
 import { ExpenseGroupWithDecryptedData } from "@/types/expense";
 import { PortfolioWithDecryptedData } from "@/types/portfolio";
 import { Ionicons } from "@expo/vector-icons";
-import ProfileHeader from "@/components/ProfileHeader";
+import { Button, Layout, Tab, TabView, Text } from "@ui-kitten/components";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import { formatCurrency } from "@/utils/currencyUtils";
 import { useProfile } from "@/context/ProfileContext";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 export default function SharesScreen() {
   const router = useRouter();
@@ -401,16 +394,9 @@ export default function SharesScreen() {
     </View>
   );
 
-  const renderLeftActions = () => <ProfileHeader />;
-
   if ((isLoading || portfoliosLoading) && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("shares.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <AuthSetupLoader />
       </SafeAreaView>
     );
@@ -419,11 +405,6 @@ export default function SharesScreen() {
   if (error || portfoliosError) {
     return (
       <SafeAreaView style={styles.container}>
-        <TopNavigation
-          title={t("shares.title")}
-          alignment="center"
-          accessoryLeft={renderLeftActions}
-        />
         <Layout style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
@@ -453,13 +434,6 @@ export default function SharesScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <TopNavigation
-        title={t("shares.title")}
-        alignment="center"
-        accessoryLeft={renderLeftActions}
-        style={{ backgroundColor: colors.background }}
-      />
-
       <TabView
         selectedIndex={selectedIndex}
         onSelect={(index) => setSelectedIndex(index)}

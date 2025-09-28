@@ -1,27 +1,27 @@
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useCallback,
-  ReactNode,
-  useMemo,
-} from "react";
 import {
-  deriveKeyFromPassword,
-  generateKeyPair,
-  encryptPrivateKey,
-  decryptPrivateKey,
+  base64ToArrayBuffer,
+  decryptCompressedData,
   decryptFromSender,
+  decryptPrivateKey,
+  decryptWithRSA,
+  deriveKeyFromPassword,
+  encryptDataWithCompression,
+  encryptPrivateKey,
   encryptWithPublicKey,
+  generateEncryptionKey,
+  generateKeyPair,
   signData,
   verifySignature,
-  decryptWithRSA,
-  base64ToArrayBuffer,
-  generateEncryptionKey,
-  encryptDataWithCompression,
-  decryptCompressedData,
 } from "@/lib/encryption";
 import { SecureKeyManager } from "@/lib/secureKeyManager";
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 // Types
 interface EncryptionContextType {
@@ -289,7 +289,7 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
     [],
   );
 
-  const resetEncryption = useCallback(async (userId?: string) => {
+  const resetEncryption = useCallback(async () => {
     setPublicKey(null);
     setPrivateKey(null);
     setEncryptionKey(null);
@@ -423,6 +423,23 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
         return await decryptWithRSA(privateKey, encryptedData);
       } catch (error) {
         console.error("Error decrypting with private key:", error);
+
+        // Check if this is a key corruption issue
+        const errorMsg = (error as Error).message;
+        if (
+          errorMsg?.includes("key/data length mismatch") ||
+          errorMsg?.includes("DATA_LEN_NOT_EQUAL_TO_MOD_LEN")
+        ) {
+          console.warn(
+            "Encryption keys appear to be corrupted. Consider clearing and reinitializing.",
+          );
+          // You could add automatic recovery here by clearing keys and forcing re-login
+          await SecureKeyManager.clearAllData();
+          throw new Error(
+            "Encryption keys are corrupted. Please sign out and sign back in to reinitialize your keys.",
+          );
+        }
+
         throw error;
       }
     },
@@ -495,27 +512,50 @@ export const EncryptionProvider: React.FC<{ children: ReactNode }> = ({
   }, [privateKey]);
 
   // Context value
-  const value: EncryptionContextType = {
-    encryptionKey,
-    getPublicKey,
-    getPrivateKey,
-    isEncryptionInitialized,
-    initializeFromSecureStorage,
-    initializeFromPassword,
-    importExistingKeys,
-    resetEncryption,
-    createEncryptionKey,
-    encrypt,
-    decryptWithEncryptionKey,
-    encryptWithExternalEncryptionKey,
-    decryptWithExternalEncryptionKey,
-    encryptWithExternalPublicKey,
-    decryptFromSender: decryptFromSenderFn,
-    decryptWithPrivateKey,
-    exportEncryptedPrivateKey,
-    sign,
-    verify,
-  };
+  const value: EncryptionContextType = useMemo(
+    () => ({
+      encryptionKey,
+      getPublicKey,
+      getPrivateKey,
+      isEncryptionInitialized,
+      initializeFromSecureStorage,
+      initializeFromPassword,
+      importExistingKeys,
+      resetEncryption,
+      createEncryptionKey,
+      encrypt,
+      decryptWithEncryptionKey,
+      encryptWithExternalEncryptionKey,
+      decryptWithExternalEncryptionKey,
+      encryptWithExternalPublicKey,
+      decryptFromSender: decryptFromSenderFn,
+      decryptWithPrivateKey,
+      exportEncryptedPrivateKey,
+      sign,
+      verify,
+    }),
+    [
+      encryptionKey,
+      getPublicKey,
+      getPrivateKey,
+      isEncryptionInitialized,
+      initializeFromSecureStorage,
+      initializeFromPassword,
+      importExistingKeys,
+      resetEncryption,
+      createEncryptionKey,
+      encrypt,
+      decryptWithEncryptionKey,
+      encryptWithExternalEncryptionKey,
+      decryptWithExternalEncryptionKey,
+      encryptWithExternalPublicKey,
+      decryptFromSenderFn,
+      decryptWithPrivateKey,
+      exportEncryptedPrivateKey,
+      sign,
+      verify,
+    ],
+  );
 
   return (
     <EncryptionContext.Provider value={value}>

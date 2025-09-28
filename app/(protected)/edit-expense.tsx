@@ -226,6 +226,8 @@ export default function EditExpenseScreen() {
       }
     }
   }, [expenseId, groupId, expensesGroups]);
+  // ESLint disabled: 't', 'availableCategories', 'availablePaymentMethods', and 'userProfile' are stable or not used in this effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const navigateBack = () => {
     router.back();
@@ -529,7 +531,7 @@ export default function EditExpenseScreen() {
 
             <Input
               label={t("editExpense.amount")}
-              placeholder="0.00"
+              placeholder={t("editExpense.amountPlaceholder")}
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
@@ -664,7 +666,7 @@ export default function EditExpenseScreen() {
 
                     {isActive && selectedSplitMethodIndex.row === 1 && (
                       <Input
-                        placeholder="0.00"
+                        placeholder={t("editExpense.amountPlaceholder")}
                         value={customAmounts[member.user_id] || ""}
                         onChangeText={(value) =>
                           handleCustomAmountChange(member.user_id, value)

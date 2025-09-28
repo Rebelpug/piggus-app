@@ -18,6 +18,7 @@ import { useRouter } from "expo-router";
 import { useProfile } from "@/context/ProfileContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { useLocalization } from "@/context/LocalizationContext";
 import { Ionicons } from "@expo/vector-icons";
 import { BASE_PAYMENT_METHODS, computePaymentMethods } from "@/types/expense";
 
@@ -49,6 +50,7 @@ export default function PaymentMethodsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { userProfile, updateProfile } = useProfile();
+  const { t } = useLocalization();
   const [loading, setLoading] = useState(false);
   const [editingMethod, setEditingMethod] = useState<string | null>(null);
   const [addingMethod, setAddingMethod] = useState(false);
@@ -126,7 +128,10 @@ export default function PaymentMethodsScreen() {
       setMethodIcon("💳");
     } catch (error) {
       console.error("Error saving payment method:", error);
-      Alert.alert("Error", "Failed to save changes. Please try again.");
+      Alert.alert(
+        t("paymentMethods.error"),
+        t("paymentMethods.failedToSaveChanges"),
+      );
     } finally {
       setLoading(false);
     }
@@ -140,7 +145,10 @@ export default function PaymentMethodsScreen() {
 
   const handleAddMethod = async () => {
     if (!methodName.trim()) {
-      Alert.alert("Error", "Please enter a payment method name");
+      Alert.alert(
+        t("paymentMethods.error"),
+        t("paymentMethods.pleaseEnterPaymentMethodName"),
+      );
       return;
     }
 
@@ -155,7 +163,10 @@ export default function PaymentMethodsScreen() {
     );
 
     if (existsInBase || existsInAdded) {
-      Alert.alert("Error", "A payment method with this name already exists");
+      Alert.alert(
+        t("paymentMethods.error"),
+        t("paymentMethods.paymentMethodAlreadyExists"),
+      );
       return;
     }
 
@@ -183,7 +194,10 @@ export default function PaymentMethodsScreen() {
       setMethodIcon("💳");
     } catch (error) {
       console.error("Error adding payment method:", error);
-      Alert.alert("Error", "Failed to add payment method. Please try again.");
+      Alert.alert(
+        t("paymentMethods.error"),
+        t("paymentMethods.failedToAddPaymentMethod"),
+      );
     } finally {
       setLoading(false);
     }
@@ -202,12 +216,12 @@ export default function PaymentMethodsScreen() {
     const isCustom = !BASE_PAYMENT_METHODS.some((base) => base.id === methodId);
 
     Alert.alert(
-      "Delete Payment Method",
-      `Are you sure you want to delete "${method.name}"?`,
+      t("paymentMethods.deletePaymentMethod"),
+      t("paymentMethods.deleteConfirmation"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("paymentMethods.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("paymentMethods.delete"),
           style: "destructive",
           onPress: async () => {
             setLoading(true);
@@ -239,8 +253,8 @@ export default function PaymentMethodsScreen() {
             } catch (error) {
               console.error("Error deleting payment method:", error);
               Alert.alert(
-                "Error",
-                "Failed to delete payment method. Please try again.",
+                t("paymentMethods.error"),
+                t("paymentMethods.failedToDeletePaymentMethod"),
               );
             } finally {
               setLoading(false);
@@ -270,8 +284,8 @@ export default function PaymentMethodsScreen() {
     } catch (error) {
       console.error("Error restoring payment method:", error);
       Alert.alert(
-        "Error",
-        "Failed to restore payment method. Please try again.",
+        t("paymentMethods.error"),
+        t("paymentMethods.failedToRestorePaymentMethod"),
       );
     } finally {
       setLoading(false);
@@ -290,7 +304,7 @@ export default function PaymentMethodsScreen() {
   const renderEmojiPicker = () => (
     <View style={styles.emojiContainer}>
       <Text style={[styles.emojiLabel, { color: colors.text }]}>
-        Choose Icon:
+        {t("paymentMethods.chooseIcon")}
       </Text>
       <ScrollView
         horizontal
@@ -324,7 +338,7 @@ export default function PaymentMethodsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TopNavigation
-        title="Manage Payment Methods"
+        title={t("paymentMethods.title")}
         alignment="center"
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
@@ -340,7 +354,7 @@ export default function PaymentMethodsScreen() {
         >
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Active Payment Methods
+              {t("paymentMethods.activePaymentMethods")}
             </Text>
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: colors.primary }]}
@@ -366,7 +380,7 @@ export default function PaymentMethodsScreen() {
                     <View style={styles.editInputRow}>
                       <Input
                         style={styles.nameInput}
-                        placeholder="Method name"
+                        placeholder={t("paymentMethods.methodNamePlaceholder")}
                         value={methodName}
                         onChangeText={setMethodName}
                         disabled={loading}
@@ -388,14 +402,14 @@ export default function PaymentMethodsScreen() {
                         onPress={handleCancelEdit}
                         disabled={loading}
                       >
-                        Cancel
+                        {t("paymentMethods.cancel")}
                       </Button>
                       <Button
                         style={styles.actionButton}
                         onPress={handleSaveEdit}
                         disabled={loading || !methodName.trim()}
                       >
-                        Save
+                        {t("paymentMethods.save")}
                       </Button>
                     </View>
                   </View>
@@ -418,7 +432,7 @@ export default function PaymentMethodsScreen() {
                             { color: colors.warning },
                           ]}
                         >
-                          Modified
+                          {t("paymentMethods.modified")}
                         </Text>
                       </View>
                     )}
@@ -432,7 +446,7 @@ export default function PaymentMethodsScreen() {
                         <Text
                           style={[styles.customText, { color: colors.success }]}
                         >
-                          Custom
+                          {t("paymentMethods.custom")}
                         </Text>
                       </View>
                     )}
@@ -477,7 +491,7 @@ export default function PaymentMethodsScreen() {
                 <View style={styles.editInputRow}>
                   <Input
                     style={styles.nameInput}
-                    placeholder="New method name"
+                    placeholder={t("paymentMethods.newMethodNamePlaceholder")}
                     value={methodName}
                     onChangeText={setMethodName}
                     disabled={loading}
@@ -499,14 +513,14 @@ export default function PaymentMethodsScreen() {
                     onPress={handleCancelAdd}
                     disabled={loading}
                   >
-                    Cancel
+                    {t("paymentMethods.cancel")}
                   </Button>
                   <Button
                     style={styles.actionButton}
                     onPress={handleAddMethod}
                     disabled={loading || !methodName.trim()}
                   >
-                    Add
+                    {t("paymentMethods.add")}
                   </Button>
                 </View>
               </View>
@@ -523,10 +537,10 @@ export default function PaymentMethodsScreen() {
             ]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Deleted Payment Methods
+              {t("paymentMethods.deletedPaymentMethods")}
             </Text>
             <Text style={[styles.sectionSubtitle, { color: colors.icon }]}>
-              These methods are hidden but can be restored.
+              {t("paymentMethods.deletedMethodsDescription")}
             </Text>
 
             {currentOverrides.deleted.map((methodId) => {
