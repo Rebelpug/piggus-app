@@ -77,7 +77,7 @@ export const apiFetchExpensesPaginated = async (
         console.error(`Failed to decrypt expense ${expense.id}:`, error);
         failedExpenses.push({
           id: expense.id,
-          error: error.message || "Decryption failed",
+          error: (error as Error)?.message || "Decryption failed",
         });
       }
     }
@@ -274,7 +274,7 @@ export const apiFetchExpenses = async (
               console.error(`Failed to decrypt expense ${expense.id}:`, error);
               failedExpenses.push({
                 id: expense.id,
-                error: error.message || "Decryption failed",
+                error: (error as Error)?.message || "Decryption failed",
               });
             }
           }
@@ -1071,7 +1071,7 @@ export const apiFetchAllExpensesForGroup = async (
         console.error(`Failed to decrypt expense ${expense.id}:`, error);
         failedExpenses.push({
           id: expense.id,
-          error: error.message || "Decryption failed",
+          error: (error as Error)?.message || "Decryption failed",
         });
       }
     }
