@@ -292,6 +292,7 @@
     "recurringCount": "Recurring ({{count}})",
     "loadingExpenses": "Loading expenses...",
     "syncingBankTransactions": "Syncing bank transactions...",
+    "autoSyncingBankTransactions": "Auto-syncing bank transactions...",
     "failedToLoadExpenses": "{{count}} expense item failed to load due to encryption issues",
     "failedToLoadExpenses_plural": "{{count}} expense items failed to load due to encryption issues",
     "lastSync": "Last Sync: "

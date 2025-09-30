@@ -292,6 +292,7 @@
     "recurringCount": "Terugkerend ({{count}})",
     "loadingExpenses": "Kosten laden...",
     "syncingBankTransactions": "Banktransacties synchroniseren...",
+    "autoSyncingBankTransactions": "Automatisch synchroniseren van banktransacties...",
     "lastSync": "Laatste synchronisatie:",
     "unnamedExpense": "Naamloze uitgave",
     "yourShare": "Uw aandeel",

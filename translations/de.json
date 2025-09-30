@@ -293,6 +293,7 @@
     "recurringCount": "Wiederkehrend ({{Zahl}})",
     "loadingExpenses": "Ladekosten...",
     "syncingBankTransactions": "Synchronisierung von Banktransaktionen...",
+    "autoSyncingBankTransactions": "Automatische Synchronisierung von Banktransaktionen...",
     "failedToLoadExpenses": "{{count}} Ausgabenelement konnte aufgrund von Verschlüsselungsproblemen nicht geladen werden",
     "failedToLoadExpenses_plural": "{{count}} Ausgabenelemente konnten aufgrund von Verschlüsselungsproblemen nicht geladen werden",
     "lastSync": "Letzte Synchronisation:",

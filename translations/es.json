@@ -292,6 +292,7 @@
     "recurringCount": "Recurrente ({{count}})",
     "loadingExpenses": "Cargando gastos...",
     "syncingBankTransactions": "Sincronizar transacciones bancarias...",
+    "autoSyncingBankTransactions": "Auto-sincronización de transacciones bancarias...",
     "failedToLoadExpenses": "{{count}} elemento de gasto falló al cargar debido a problemas de encriptación",
     "failedToLoadExpenses_plural": "{{count}} elementos de gasto fallaron al cargar debido a problemas de encriptación",
     "lastSync": "Última sincronización:",

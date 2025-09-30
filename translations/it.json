@@ -292,6 +292,7 @@
     "recurringCount": "Ricorrente ({{count}})",
     "loadingExpenses": "Caricamento spese...",
     "syncingBankTransactions": "Sincronizzazione delle transazioni bancarie...",
+    "autoSyncingBankTransactions": "Sincronizzazione automatica delle transazioni bancarie...",
     "lastSync": "Ultima sincronizzazione:",
     "unnamedExpense": "Spese senza nome",
     "yourShare": "La vostra quota",

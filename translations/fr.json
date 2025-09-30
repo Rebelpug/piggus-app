@@ -292,6 +292,7 @@
     "recurringCount": "Récurrent ({{count}})",
     "loadingExpenses": "Chargement des dépenses...",
     "syncingBankTransactions": "Synchronisation des transactions bancaires...",
+    "autoSyncingBankTransactions": "Synchronisation automatique des transactions bancaires...",
     "lastSync": "Dernière synchro :",
     "unnamedExpense": "Dépenses sans nom",
     "yourShare": "Votre part",

@@ -292,6 +292,7 @@
     "recurringCount": "Powtarzające się ({{count}})",
     "loadingExpenses": "Ładowanie wydatków...",
     "syncingBankTransactions": "Synchronizacja transakcji bankowych...",
+    "autoSyncingBankTransactions": "Automatyczna synchronizacja transakcji bankowych...",
     "lastSync": "Ostatnia synchronizacja:",
     "unnamedExpense": "Nienazwany wydatek",
     "yourShare": "Twój udział",

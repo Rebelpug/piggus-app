@@ -292,6 +292,7 @@
     "recurringCount": "Återkommande ({{antal}})",
     "loadingExpenses": "Ladda kostnader...",
     "syncingBankTransactions": "Synkronisering av banktransaktioner...",
+    "autoSyncingBankTransactions": "Automatisk synkronisering av banktransaktioner...",
     "lastSync": "Senaste synkronisering:",
     "unnamedExpense": "Icke namngiven kostnad",
     "yourShare": "Din andel",
