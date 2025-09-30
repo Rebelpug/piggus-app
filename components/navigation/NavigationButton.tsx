@@ -8,6 +8,7 @@ interface NavigationButtonProps {
   icon: React.ComponentType<{ color: string; size: number }>;
   onPress: () => void;
   disabled?: boolean;
+  badge?: string;
 }
 
 export function NavigationButton({
@@ -15,6 +16,7 @@ export function NavigationButton({
   icon: Icon,
   onPress,
   disabled = false,
+  badge,
 }: NavigationButtonProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -43,16 +45,30 @@ export function NavigationButton({
             size={24}
           />
         </View>
-        <Text
-          style={[
-            styles.title,
-            {
-              color: disabled ? colors.tabIconDefault : colors.text,
-            },
-          ]}
-        >
-          {title}
-        </Text>
+        <View style={styles.titleContainer}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: disabled ? colors.tabIconDefault : colors.text,
+              },
+            ]}
+          >
+            {title}
+          </Text>
+          {badge && (
+            <Text
+              style={[
+                styles.badge,
+                {
+                  color: colors.icon,
+                },
+              ]}
+            >
+              {badge}
+            </Text>
+          )}
+        </View>
         <View style={styles.chevron}>
           <Text
             style={[
@@ -88,10 +104,19 @@ const styles = StyleSheet.create({
     width: 24,
     alignItems: "center",
   },
-  title: {
+  titleContainer: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  title: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  badge: {
+    fontSize: 14,
+    fontWeight: "400",
   },
   chevron: {
     marginLeft: 8,

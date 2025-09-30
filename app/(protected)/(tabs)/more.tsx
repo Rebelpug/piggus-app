@@ -22,6 +22,7 @@ interface NavigationButtonConfig {
   title: string;
   icon: React.ComponentType<{ color: string; size: number }>;
   onPress: () => void;
+  badge?: string;
 }
 
 export default function MoreScreen() {
@@ -32,6 +33,13 @@ export default function MoreScreen() {
   const { user } = useAuth();
   const { userProfile } = useProfile();
 
+  const subscriptionTier =
+    userProfile?.subscription?.subscription_tier || "free";
+  const subscriptionLabel =
+    subscriptionTier === "premium"
+      ? t("subscription.premium")
+      : t("subscription.free.title");
+
   const navigationButtons: NavigationButtonConfig[] = [
     {
       key: "guides",
@@ -41,6 +49,27 @@ export default function MoreScreen() {
       ),
       onPress: () => {
         router.push("/(protected)/guides");
+      },
+    },
+    {
+      key: "expenses-preferences",
+      title: t("profile.expensePreferences"),
+      icon: ({ color, size }) => (
+        <Ionicons name="card-outline" color={color} size={size} />
+      ),
+      onPress: () => {
+        router.push("/(protected)/expenses-preferences");
+      },
+    },
+    {
+      key: "subscription",
+      title: t("subscription.title"),
+      badge: `(${subscriptionLabel})`,
+      icon: ({ color, size }) => (
+        <Ionicons name="star-outline" color={color} size={size} />
+      ),
+      onPress: () => {
+        router.push("/(protected)/subscription");
       },
     },
     {
@@ -131,6 +160,7 @@ export default function MoreScreen() {
               title={button.title}
               icon={button.icon}
               onPress={button.onPress}
+              badge={button.badge}
             />
           ))}
         </View>

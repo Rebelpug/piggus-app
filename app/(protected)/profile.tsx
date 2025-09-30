@@ -5,7 +5,6 @@ import { useProfile } from "@/context/ProfileContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { apiDeleteProfile } from "@/services/profileService";
-import { CURRENCIES } from "@/types/expense";
 import { getPrivacyPolicyUrl, getTocUrl } from "@/utils/tocUtils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
@@ -21,10 +20,9 @@ import {
 } from "@ui-kitten/components";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -49,20 +47,12 @@ export default function ProfileScreen() {
   const { currentLanguage, changeLanguage, t, availableLanguages } =
     useLocalization();
   const [loading, setLoading] = useState(false);
-  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
   const [roadmapModalVisible, setRoadmapModalVisible] = useState(false);
   const [supportModalVisible, setSupportModalVisible] = useState(false);
-  const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(
-    () => {
-      const currentCurrency = userProfile?.profile?.defaultCurrency || "EUR";
-      const index = CURRENCIES.findIndex((c) => c.value === currentCurrency);
-      return new IndexPath(index >= 0 ? index : 0);
-    },
-  );
   const [selectedLanguageIndex, setSelectedLanguageIndex] = useState<IndexPath>(
     new IndexPath(0),
   );
@@ -134,22 +124,6 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleUpdateCurrency = async () => {
-    setLoading(true);
-    try {
-      const selectedCurrency = CURRENCIES[selectedCurrencyIndex.row];
-      await updateProfile({
-        defaultCurrency: selectedCurrency.value,
-      });
-      setCurrencyModalVisible(false);
-    } catch (error) {
-      console.error("Failed to update currency: ", (error as Error).message);
-      Alert.alert(t("alerts.error"), t("alerts.currencyUpdateError"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleUpdateLanguage = async () => {
     setLoading(true);
     try {
@@ -202,7 +176,7 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <TopNavigation
-        title={t("profile.title")}
+        title={t("navigation.settings")}
         alignment="center"
         accessoryLeft={renderBackAction}
         style={{ backgroundColor: colors.background }}
@@ -296,6 +270,33 @@ export default function ProfileScreen() {
                     year: "numeric",
                   })
                 : t("common.unknown")}
+            </Text>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabel}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: colors.warning + "20" },
+                ]}
+              >
+                <Ionicons
+                  name="star-outline"
+                  size={20}
+                  color={colors.warning}
+                />
+              </View>
+              <Text style={[styles.labelText, { color: colors.text }]}>
+                {t("subscription.title")}
+              </Text>
+            </View>
+            <Text style={[styles.valueText, { color: colors.icon }]}>
+              {userProfile?.subscription?.subscription_tier === "premium"
+                ? t("subscription.premium")
+                : t("subscription.free.title")}
             </Text>
           </View>
         </View>
@@ -418,107 +419,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Preferences */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, shadowColor: colors.text },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("profile.expensePreferences")}
-          </Text>
-
-          <TouchableOpacity
-            style={styles.preferenceRow}
-            onPress={() => setCurrencyModalVisible(true)}
-          >
-            <View style={styles.infoLabel}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.success + "20" },
-                ]}
-              >
-                <Ionicons
-                  name="card-outline"
-                  size={20}
-                  color={colors.success}
-                />
-              </View>
-              <Text style={[styles.labelText, { color: colors.text }]}>
-                {t("profile.preferredCurrency")}
-              </Text>
-            </View>
-            <View style={styles.preferenceValue}>
-              <Text style={[styles.currentValue, { color: colors.icon }]}>
-                {CURRENCIES.find(
-                  (c) => c.value === userProfile?.profile?.defaultCurrency,
-                )?.label || "EUR (€)"}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-            </View>
-          </TouchableOpacity>
-
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-          <TouchableOpacity
-            style={styles.preferenceRow}
-            onPress={() => router.push("/(protected)/budgeting-categories")}
-          >
-            <View style={styles.infoLabel}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.accent + "20" },
-                ]}
-              >
-                <Ionicons name="grid-outline" size={20} color={colors.accent} />
-              </View>
-              <Text style={[styles.labelText, { color: colors.text }]}>
-                {t("profile.categories")}
-              </Text>
-            </View>
-            <View style={styles.preferenceValue}>
-              <Text style={[styles.currentValue, { color: colors.icon }]}>
-                {t("profile.customize")}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-            </View>
-          </TouchableOpacity>
-
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-          <TouchableOpacity
-            style={styles.preferenceRow}
-            onPress={() => router.push("/(protected)/payment-methods")}
-          >
-            <View style={styles.infoLabel}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.primary + "20" },
-                ]}
-              >
-                <Ionicons
-                  name="card-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.labelText, { color: colors.text }]}>
-                {t("profile.paymentMethods")}
-              </Text>
-            </View>
-            <View style={styles.preferenceValue}>
-              <Text style={[styles.currentValue, { color: colors.icon }]}>
-                {t("profile.customize")}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
         {/* Security */}
         <View
           style={[
@@ -553,51 +453,6 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Subscription */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, shadowColor: colors.text },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("subscription.title")}
-          </Text>
-
-          <TouchableOpacity
-            style={styles.preferenceRow}
-            onPress={() => router.push("/(protected)/subscription")}
-          >
-            <View style={styles.infoLabel}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.primary + "20" },
-                ]}
-              >
-                <Ionicons
-                  name="star-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.labelText, { color: colors.text }]}>
-                {userProfile?.subscription?.subscription_tier === "premium"
-                  ? t("subscription.managePlan")
-                  : t("subscription.upgrade")}
-              </Text>
-            </View>
-            <View style={styles.preferenceValue}>
-              <Text style={[styles.currentValue, { color: colors.icon }]}>
-                {userProfile?.subscription?.subscription_tier === "premium"
-                  ? t("subscription.premium.title")
-                  : t("subscription.free.title")}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-            </View>
           </TouchableOpacity>
         </View>
 
@@ -764,69 +619,6 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
-
-      {/* Currency Selection Modal */}
-      <Modal
-        visible={currencyModalVisible}
-        backdropStyle={styles.backdrop}
-        onBackdropPress={() => setCurrencyModalVisible(false)}
-      >
-        <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            {t("modals.selectDefaultCurrency")}
-          </Text>
-          <Text style={[styles.modalDescription, { color: colors.icon }]}>
-            {t("modals.currencyDescription")}
-          </Text>
-
-          <Select
-            style={styles.modalSelect}
-            placeholder={t("modals.selectDefaultCurrency")}
-            value={
-              selectedCurrencyIndex
-                ? CURRENCIES[selectedCurrencyIndex.row]?.label
-                : ""
-            }
-            selectedIndex={selectedCurrencyIndex}
-            onSelect={(index) => setSelectedCurrencyIndex(index as IndexPath)}
-          >
-            {CURRENCIES.map((currency) => (
-              <SelectItem key={currency.value} title={currency.label} />
-            ))}
-          </Select>
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[
-                styles.modalButton,
-                styles.modalCancelButton,
-                { borderColor: colors.border },
-              ]}
-              onPress={() => setCurrencyModalVisible(false)}
-            >
-              <Text style={[styles.modalButtonText, { color: colors.text }]}>
-                {t("modals.cancel")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modalButton,
-                styles.modalPrimaryButton,
-                { backgroundColor: colors.primary },
-              ]}
-              onPress={handleUpdateCurrency}
-              disabled={loading}
-            >
-              <View style={styles.modalButtonContent}>
-                {loading && <Spinner size="small" status="control" />}
-                <Text style={[styles.modalButtonText, { color: "white" }]}>
-                  {loading ? t("modals.updating") : t("modals.update")}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* Language Selection Modal */}
       <Modal
