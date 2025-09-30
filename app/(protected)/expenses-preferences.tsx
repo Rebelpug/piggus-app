@@ -1,10 +1,13 @@
+import BankConnectionWizard from "@/components/banking/BankConnectionWizard";
 import { Colors } from "@/constants/Colors";
 import { useLocalization } from "@/context/LocalizationContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { piggusApi } from "@/client/piggusApi";
 import { CURRENCIES } from "@/types/expense";
 import { Ionicons } from "@expo/vector-icons";
 import {
+  Button,
   IndexPath,
   Modal,
   Select,
@@ -29,9 +32,11 @@ export default function ExpensesPreferencesScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
-  const { userProfile, updateProfile } = useProfile();
+  const { userProfile, updateProfile, refreshProfile } = useProfile();
   const [loading, setLoading] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [showBankWizard, setShowBankWizard] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [selectedCurrencyIndex, setSelectedCurrencyIndex] = useState<IndexPath>(
     () => {
       const currentCurrency = userProfile?.profile?.defaultCurrency || "EUR";
@@ -58,6 +63,89 @@ export default function ExpensesPreferencesScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const isPremium = userProfile?.subscription?.subscription_tier === "premium";
+  const hasBankConnection = userProfile?.bank_accounts?.some(
+    (bankAccount) => bankAccount.active,
+  );
+
+  // Calculate cooldown time
+  const getTimeUntilNextSync = () => {
+    if (!userProfile?.bank_accounts?.[0]?.last_fetched) return null;
+
+    const lastSync = new Date(userProfile.bank_accounts[0].last_fetched);
+    const now = new Date();
+    const hoursSinceSync =
+      (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceSync >= 8) return null;
+
+    const hoursRemaining = 8 - hoursSinceSync;
+    const hours = Math.floor(hoursRemaining);
+    const minutes = Math.ceil((hoursRemaining - hours) * 60);
+
+    return { hours, minutes };
+  };
+
+  const timeUntilSync = getTimeUntilNextSync();
+  const canSync = !timeUntilSync;
+
+  const handleSyncBankTransactions = async () => {
+    if (!isPremium) {
+      Alert.alert(
+        t("subscription.premiumRequired"),
+        t("banking.syncRequiresPremium"),
+      );
+      return;
+    }
+
+    if (!canSync) {
+      Alert.alert(
+        t("alerts.warning"),
+        t("banking.syncCooldown", {
+          hours: timeUntilSync!.hours,
+          minutes: timeUntilSync!.minutes,
+        }),
+      );
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      await piggusApi.getBankTransactions();
+      Alert.alert(t("alerts.success"), t("banking.syncSuccess"));
+      await refreshProfile();
+    } catch (error) {
+      console.error("Sync error:", error);
+      Alert.alert(t("alerts.error"), t("banking.syncError"));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleDisconnectBank = async () => {
+    Alert.alert(
+      t("banking.disconnectConfirm"),
+      t("banking.disconnectWarning"),
+      [
+        { text: t("modals.cancel"), style: "cancel" },
+        {
+          text: t("banking.disconnect"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await piggusApi.disconnectBank();
+              Alert.alert(t("alerts.success"), t("banking.disconnectSuccess"));
+              await refreshProfile();
+            } catch (error) {
+              console.error("Disconnect error:", error);
+              Alert.alert(t("alerts.error"), t("banking.disconnectError"));
+            }
+          },
+        },
+      ],
+    );
   };
 
   const renderBackAction = () => (
@@ -178,7 +266,198 @@ export default function ExpensesPreferencesScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Bank Connection */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, shadowColor: colors.text },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {t("banking.bankConnection")}
+          </Text>
+
+          {!isPremium ? (
+            <View style={styles.preferenceRow}>
+              <View style={styles.infoLabel}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: colors.warning + "20" },
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={colors.warning}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.labelText, { color: colors.text }]}>
+                    {t("banking.upgradeForBankConnection")}
+                  </Text>
+                </View>
+              </View>
+              <Button
+                size="small"
+                status="primary"
+                onPress={() => router.push("/(protected)/subscription")}
+              >
+                {t("subscription.upgrade")}
+              </Button>
+            </View>
+          ) : hasBankConnection ? (
+            <>
+              <View style={styles.preferenceRow}>
+                <View style={styles.infoLabel}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: colors.success + "20" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={20}
+                      color={colors.success}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.labelText, { color: colors.text }]}>
+                      {t("banking.bankAccountConnected")}
+                    </Text>
+                    {userProfile?.bank_accounts?.[0]?.last_fetched && (
+                      <Text
+                        style={[styles.lastSyncText, { color: colors.icon }]}
+                      >
+                        {t("expenses.lastSync")}
+                        {new Date(
+                          userProfile.bank_accounts[0].last_fetched,
+                        ).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <View
+                style={[styles.divider, { backgroundColor: colors.border }]}
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.preferenceRow,
+                  (!canSync || syncing) && { opacity: 0.5 },
+                ]}
+                onPress={handleSyncBankTransactions}
+                disabled={syncing || !canSync}
+              >
+                <View style={styles.infoLabel}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      {
+                        backgroundColor:
+                          !canSync || syncing
+                            ? colors.icon + "20"
+                            : colors.primary + "20",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="sync-outline"
+                      size={20}
+                      color={!canSync || syncing ? colors.icon : colors.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.labelText, { color: colors.text }]}>
+                      {syncing ? t("banking.syncing") : t("banking.sync")}
+                    </Text>
+                    {!canSync && timeUntilSync && (
+                      <Text
+                        style={[styles.cooldownText, { color: colors.icon }]}
+                      >
+                        {t("banking.syncCooldown", {
+                          hours: timeUntilSync.hours,
+                          minutes: timeUntilSync.minutes,
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.icon}
+                />
+              </TouchableOpacity>
+
+              <View
+                style={[styles.divider, { backgroundColor: colors.border }]}
+              />
+
+              <TouchableOpacity
+                style={styles.preferenceRow}
+                onPress={handleDisconnectBank}
+              >
+                <View style={styles.infoLabel}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: colors.error + "20" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={20}
+                      color={colors.error}
+                    />
+                  </View>
+                  <Text style={[styles.labelText, { color: colors.error }]}>
+                    {t("banking.disconnect")}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.error}
+                />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.preferenceRow}
+              onPress={() => setShowBankWizard(true)}
+            >
+              <View style={styles.infoLabel}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text style={[styles.labelText, { color: colors.text }]}>
+                  {t("banking.connectBankAccount")}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
+
+      <BankConnectionWizard
+        visible={showBankWizard}
+        onClose={() => setShowBankWizard(false)}
+      />
 
       {/* Currency Selection Modal */}
       <Modal
@@ -284,6 +563,14 @@ const styles = StyleSheet.create({
   labelText: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  lastSyncText: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  cooldownText: {
+    fontSize: 12,
+    marginTop: 4,
   },
   divider: {
     height: 1,

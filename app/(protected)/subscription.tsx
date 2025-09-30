@@ -843,6 +843,15 @@ export default function SubscriptionScreen() {
           </Layout>
 
           <Layout style={styles.tiersContainer}>
+            {/* Premium tiers with dynamic pricing */}
+            {pricingTiers.map((pricingTier) =>
+              renderPricingTierCard(
+                pricingTier,
+                pricingTier === recommendedPackage,
+                isPremium || !!customerInfo?.entitlements.active.premium,
+              ),
+            )}
+
             {/* Free tier */}
             <Card
               style={[
@@ -898,15 +907,6 @@ export default function SubscriptionScreen() {
                 ) : null}
               </Layout>
             </Card>
-
-            {/* Premium tiers with dynamic pricing */}
-            {pricingTiers.map((pricingTier) =>
-              renderPricingTierCard(
-                pricingTier,
-                pricingTier === recommendedPackage,
-                isPremium || !!customerInfo?.entitlements.active.premium,
-              ),
-            )}
           </Layout>
 
           <Layout style={styles.footerContainer}>

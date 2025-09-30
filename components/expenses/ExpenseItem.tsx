@@ -5,8 +5,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
 import {
-  ExpenseWithDecryptedData,
   calculateUserShare,
+  ExpenseWithDecryptedData,
   getCategoryDisplayInfo,
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -25,7 +25,7 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
   const { userProfile } = useProfile();
   const { t } = useLocalization();
 
-  if (!item || !item.data) {
+  if (!item || !item.data || !item.data.participants) {
     return null;
   }
 
@@ -75,11 +75,10 @@ export default function ExpenseItem({ item }: ExpenseItemProps) {
   };
 
   const getCategoryInfo = (categoryId: string) => {
-    const categoryInfo = getCategoryDisplayInfo(
+    return getCategoryDisplayInfo(
       categoryId,
       userProfile?.profile?.budgeting?.categoryOverrides,
     );
-    return categoryInfo;
   };
 
   return (

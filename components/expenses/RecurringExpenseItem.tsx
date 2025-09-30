@@ -5,8 +5,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/context/ProfileContext";
 import {
-  RecurringExpenseWithDecryptedData,
   getCategoryDisplayInfo,
+  RecurringExpenseWithDecryptedData,
 } from "@/types/expense";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -27,7 +27,7 @@ export default function RecurringExpenseItem({
   const { userProfile } = useProfile();
   const { t } = useLocalization();
 
-  if (!item || !item.data) {
+  if (!item || !item.data || !item.data.participants) {
     return null;
   }
 
@@ -104,11 +104,10 @@ export default function RecurringExpenseItem({
   };
 
   const getCategoryInfo = (categoryId: string) => {
-    const categoryInfo = getCategoryDisplayInfo(
+    return getCategoryDisplayInfo(
       categoryId,
       userProfile?.profile?.budgeting?.categoryOverrides,
     );
-    return categoryInfo;
   };
 
   const handlePress = () => {

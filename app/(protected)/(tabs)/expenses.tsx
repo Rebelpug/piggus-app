@@ -16,6 +16,7 @@ import {
   RecurringExpenseWithDecryptedData,
   calculateUserShare,
 } from "@/types/expense";
+import { formatCurrency } from "@/utils/currencyUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Layout, Tab, TabView, Text } from "@ui-kitten/components";
 import { useRouter } from "expo-router";
@@ -183,6 +184,9 @@ export default function ExpensesScreen() {
       return recurringExpenses
         .filter((recurringExpense) => {
           // Only include recurring expenses where the user is a participant
+          if (!recurringExpense.data || !recurringExpense.data.participants) {
+            return false;
+          }
           const userShare =
             recurringExpense.data.participants.find(
               (p) => p.user_id === user?.id,
@@ -385,164 +389,79 @@ export default function ExpensesScreen() {
     </View>
   );
 
-  const handleSyncBankTransactions = async () => {
-    try {
-      // Show loading indicator
-      setRefreshing(true);
-
-      // Use the new context function
-      const result = await syncBankTransactions();
-
-      if (result.success) {
-        Alert.alert(
-          t("banking.syncComplete"),
-          t("banking.syncCompleteMessage", {
-            addedCount: result.addedCount,
-            updatedCount: result.updatedCount,
-          }),
-        );
-        // Refresh the UI
-        onRefresh();
-      } else {
-        Alert.alert(t("alerts.error"), result.error || t("banking.syncError"));
-      }
-    } catch (error) {
-      console.error("Error syncing bank transactions:", error);
-      Alert.alert(t("alerts.error"), t("banking.syncErrorMessage"));
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const handleDisconnectBank = async () => {
-    try {
-      await piggusApi.disconnectBank();
-      Alert.alert(t("alerts.thankYou"), t("banking.disconnectSuccess"));
-      // Refresh the profile to update the bank connection status
-      onRefresh();
-    } catch (error) {
-      console.error("Error disconnecting bank:", error);
-      Alert.alert(t("alerts.error"), t("banking.disconnectError"));
-    }
-  };
-
-  const isPremium = userProfile?.subscription?.subscription_tier === "premium";
-  const hasBankConnection = userProfile?.bank_accounts?.some(
-    (bankAccount) => bankAccount.active,
-  );
-
-  const renderBankConnectionBanner = () => {
-    // Show upgrade banner for non-premium users without bank connection
-    if (!isPremium && !hasBankConnection) {
-      return (
-        <View
-          style={[
-            styles.bankBanner,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <View style={styles.bankBannerContent}>
-            <Ionicons
-              name="card"
-              size={24}
-              color={colors.primary}
-              style={styles.bankBannerIcon}
-            />
-            <View style={styles.bankBannerText}>
-              <Text
-                category="s1"
-                style={[styles.bannerTitle, { color: colors.text }]}
-              >
-                {t("banking.upgradeForBankConnection")}
-              </Text>
-            </View>
-            <Button
-              size="small"
-              status="primary"
-              style={styles.bankButton}
-              onPress={() => {
-                router.push("/(protected)/subscription");
-              }}
-            >
-              {t("banking.upgrade")}
-            </Button>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View
-        style={[
-          styles.bankBanner,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
-        <View style={styles.bankBannerContent}>
-          <Ionicons
-            name="card"
-            size={24}
-            color={colors.primary}
-            style={styles.bankBannerIcon}
-          />
-          <View style={styles.bankBannerText}>
-            <Text
-              category="s1"
-              style={[styles.bannerTitle, { color: colors.text }]}
-            >
-              {hasBankConnection
-                ? t("banking.bankAccountConnected")
-                : t("banking.connectBankAccount")}
-            </Text>
-            {hasBankConnection &&
-              userProfile?.bank_accounts?.[0]?.last_fetched && (
-                <Text category="c1" appearance="hint">
-                  {t("expenses.lastSync")}
-                  {new Date(
-                    userProfile.bank_accounts[0].last_fetched,
-                  ).toLocaleDateString()}
-                </Text>
-              )}
-          </View>
-          {hasBankConnection ? (
-            <View style={styles.bankButtonsContainer}>
-              <Button
-                size="small"
-                style={[styles.bankButton, { marginRight: 8 }]}
-                onPress={handleSyncBankTransactions}
-                disabled={!isPremium}
-              >
-                {t("banking.sync")}
-              </Button>
-              <Button
-                size="small"
-                status="danger"
-                style={styles.bankButton}
-                onPress={handleDisconnectBank}
-              >
-                {t("banking.disconnect")}
-              </Button>
-            </View>
-          ) : (
-            <Button
-              size="small"
-              style={styles.connectButton}
-              onPress={() => setShowBankWizard(true)}
-            >
-              {t("banking.connect")}
-            </Button>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   const renderExpensesHeader = () => {
     return <BudgetCard selectedMonth={selectedMonth} variant="list" />;
   };
 
+  const calculateMonthlyTotal = () => {
+    return allRecurringExpenses.reduce((total, expense) => {
+      if (!expense.data || !expense.data.participants) {
+        return total;
+      }
+
+      const participant = expense.data.participants.find(
+        (p) => p.user_id === user?.id,
+      );
+      const userShare = participant?.share_amount || 0;
+
+      // Convert to monthly amount based on interval
+      let monthlyAmount = userShare;
+      switch (expense.data.interval) {
+        case "daily":
+          monthlyAmount = userShare * 30;
+          break;
+        case "weekly":
+          monthlyAmount = userShare * 4.33; // Average weeks per month
+          break;
+        case "monthly":
+          monthlyAmount = userShare;
+          break;
+        case "yearly":
+          monthlyAmount = userShare / 12;
+          break;
+      }
+
+      return total + monthlyAmount;
+    }, 0);
+  };
+
   const renderRecurringHeader = () => {
-    return <View></View>;
+    if (allRecurringExpenses.length === 0) return null;
+
+    const monthlyTotal = calculateMonthlyTotal();
+    const currency = userProfile?.profile?.defaultCurrency || "EUR";
+
+    return (
+      <View
+        style={[
+          styles.monthlyTotalCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.monthlyTotalContent}>
+          <View
+            style={[
+              styles.monthlyTotalIcon,
+              { backgroundColor: colors.primary + "20" },
+            ]}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={24}
+              color={colors.primary}
+            />
+          </View>
+          <View style={styles.monthlyTotalText}>
+            <Text style={[styles.monthlyTotalLabel, { color: colors.icon }]}>
+              {t("expenses.monthlyRecurringTotal")}
+            </Text>
+            <Text style={[styles.monthlyTotalAmount, { color: colors.text }]}>
+              {formatCurrency(monthlyTotal, currency)}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
   };
 
   const renderExpensesEmptyState = () => (
@@ -713,7 +632,6 @@ export default function ExpensesScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       {renderMonthSelector()}
-      {renderBankConnectionBanner()}
 
       {refreshing && (
         <View
@@ -924,39 +842,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-  bankBanner: {
-    marginHorizontal: 4,
-    marginVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 4,
-  },
-  bankBannerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  bankBannerIcon: {
-    marginRight: 12,
-  },
-  bankBannerText: {
-    flex: 1,
-    gap: 4,
-  },
-  bannerTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  connectButton: {
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  bankButtonsContainer: {
-    flexDirection: "row",
-  },
-  bankButton: {
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
   syncAlert: {
     flexDirection: "row",
     alignItems: "center",
@@ -971,5 +856,40 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginLeft: 8,
     flex: 1,
+  },
+  monthlyTotalCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  monthlyTotalContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  monthlyTotalIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  monthlyTotalText: {
+    flex: 1,
+  },
+  monthlyTotalLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  monthlyTotalAmount: {
+    fontSize: 24,
+    fontWeight: "700",
   },
 });
