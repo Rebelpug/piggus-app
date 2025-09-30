@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.10.0](https://github.com/Rebelpug/piggus-app/compare/v1.9.1...v1.10.0) (2025-09-30)
+
+
+### Features
+
+* Added automatic syncing of bank transactions ([8305d35](https://github.com/Rebelpug/piggus-app/commit/8305d354ac1b49fa94251b85f2305ff9ffe94db8))
+
+
+### Bug Fixes
+
+* Fixed crashes caused by premium subscription localization ([acffab2](https://github.com/Rebelpug/piggus-app/commit/acffab28c0bdb727faaab82a0005d26748a454dc))
+* Moved bank connection banner into settings ([785bcc0](https://github.com/Rebelpug/piggus-app/commit/785bcc05801a4c412e6e2679f028a295a96177fa))
+
 ### [1.9.1](https://github.com/Rebelpug/piggus-app/compare/v1.9.0...v1.9.1) (2025-09-30)
 
 ### Bug Fixes
