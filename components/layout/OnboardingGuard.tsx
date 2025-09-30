@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useProfile } from "@/context/ProfileContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -18,14 +19,16 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
   // If user has a profile but hasn't completed onboarding, show onboarding form
   if (userProfile && !onboardingCompleted) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <View style={styles.formContainer}>
           <OnboardingWrapper
             onComplete={() => setOnboardingCompleted(true)}
             currency={userProfile.profile.defaultCurrency || "EUR"}
           />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 

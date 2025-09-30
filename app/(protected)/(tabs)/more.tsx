@@ -37,7 +37,7 @@ export default function MoreScreen() {
     userProfile?.subscription?.subscription_tier || "free";
   const subscriptionLabel =
     subscriptionTier === "premium"
-      ? t("subscription.premium")
+      ? t("subscription.premium.title")
       : t("subscription.free.title");
 
   const navigationButtons: NavigationButtonConfig[] = [

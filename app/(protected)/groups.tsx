@@ -222,7 +222,9 @@ export default function GroupsScreen() {
   if (isLoading && !refreshing) {
     return (
       <ThemedView style={styles.container}>
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView
+          style={[styles.safeArea, { backgroundColor: colors.background }]}
+        >
           <TopNavigation
             title={t("groups.title")}
             alignment="center"

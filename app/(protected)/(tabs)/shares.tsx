@@ -396,7 +396,9 @@ export default function SharesScreen() {
 
   if ((isLoading || portfoliosLoading) && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <AuthSetupLoader />
       </SafeAreaView>
     );

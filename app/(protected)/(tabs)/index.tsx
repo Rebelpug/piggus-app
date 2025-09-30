@@ -34,7 +34,9 @@ export default function HomeScreen() {
 
   if (isLoading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <AuthSetupLoader />
       </SafeAreaView>
     );

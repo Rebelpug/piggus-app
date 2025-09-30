@@ -1308,16 +1308,16 @@
       "description": "Perfetto per iniziare a monitorare le spese"
     },
     "premium": {
-      "title": "Premio",
+      "title": "Premium",
       "description": "Sbloccate tutte le funzioni e sostenete il nostro sviluppo"
     },
     "monthly": {
-      "title": "Premio mensile",
+      "title": "Premium mensile",
       "perMonth": "Al mese",
       "description": "Accesso completo a tutte le funzioni con fatturazione mensile"
     },
     "annual": {
-      "title": "Premio annuale",
+      "title": "Premium annuale",
       "description": "Miglior valore: risparmiate con la fatturazione annuale"
     },
     "perMonth": "al mese",

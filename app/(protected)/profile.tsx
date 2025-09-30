@@ -295,7 +295,7 @@ export default function ProfileScreen() {
             </View>
             <Text style={[styles.valueText, { color: colors.icon }]}>
               {userProfile?.subscription?.subscription_tier === "premium"
-                ? t("subscription.premium")
+                ? t("subscription.premium.title")
                 : t("subscription.free.title")}
             </Text>
           </View>

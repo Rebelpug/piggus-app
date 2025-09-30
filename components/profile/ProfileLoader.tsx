@@ -3,6 +3,7 @@ import { useLocalization } from "@/context/LocalizationContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileLoader() {
   const colorScheme = useColorScheme();
@@ -10,14 +11,16 @@ export default function ProfileLoader() {
   const { t } = useLocalization();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <View style={styles.centerContent}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.text }]}>
           {t("profile.loadingProfile")}
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
