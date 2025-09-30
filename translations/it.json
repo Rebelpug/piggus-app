@@ -341,7 +341,7 @@
     "syncingInvestments": "Sincronizzazione degli investimenti...",
     "lastUpdated": "Ultimo aggiornamento {{date}}",
     "lastFailedUpdate": "Ultimo aggiornamento fallito {{date}}",
-    "netInterest": "{{tasso}}% di interesse netto",
+    "netInterest": "{{rate}}% di interesse netto",
     "priceUpdateFailed": "Aggiornamento dei prezzi fallito oggi"
   },
   "home": {

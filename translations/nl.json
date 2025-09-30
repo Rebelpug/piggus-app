@@ -341,7 +341,7 @@
     "syncingInvestments": "Investeringen synchroniseren...",
     "lastUpdated": "Laatst bijgewerkt {{datum}}",
     "lastFailedUpdate": "Laatste mislukte update {{datum}}",
-    "netInterest": "{Nettorente",
+    "netInterest": "{{rate}}% nettorente",
     "priceUpdateFailed": "Prijsupdate mislukt vandaag"
   },
   "home": {

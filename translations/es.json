@@ -345,7 +345,7 @@
     "failedToLoadInvestments_plural": "{{count}} inversiones fallaron al cargar debido a problemas de encriptación",
     "lastUpdated": "Última actualización {{date}}",
     "lastFailedUpdate": "Última actualización fallida {{date}}",
-    "netInterest": "{{tipo}}% de interés neto",
+    "netInterest": "{{rate}}% de interés neto",
     "priceUpdateFailed": "La actualización de precios ha fallado hoy"
   },
   "home": {

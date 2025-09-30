@@ -346,7 +346,7 @@
     "failedToLoadInvestments_plural": "{{count}} Investitionen konnten aufgrund von Verschlüsselungsproblemen nicht geladen werden",
     "lastUpdated": "Zuletzt aktualisiert {{date}}",
     "lastFailedUpdate": "Letzte fehlgeschlagene Aktualisierung {{date}}",
-    "netInterest": "{{Rate}}% Nettozins",
+    "netInterest": "{{rate}}% Nettozins",
     "priceUpdateFailed": "Preisaktualisierung heute fehlgeschlagen"
   },
   "home": {

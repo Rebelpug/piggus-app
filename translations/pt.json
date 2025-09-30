@@ -341,7 +341,7 @@
     "syncingInvestments": "Sincronização de investimentos...",
     "lastUpdated": "Última atualização {{data}}",
     "lastFailedUpdate": "Última atualização falhada {{data}}",
-    "netInterest": "{% de juros líquidos",
+    "netInterest": "{{rate}}% de juros líquidos",
     "priceUpdateFailed": "A atualização de preços falhou hoje"
   },
   "home": {

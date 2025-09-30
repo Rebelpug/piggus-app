@@ -341,7 +341,7 @@
     "syncingInvestments": "Synkronisering av investeringar...",
     "lastUpdated": "Senast uppdaterad {{datum}}",
     "lastFailedUpdate": "Senaste misslyckade uppdateringen {{datum}}",
-    "netInterest": "{{ränta}}% nettoränta",
+    "netInterest": "{{rate}}% nettoränta",
     "priceUpdateFailed": "Prisuppdateringen misslyckades idag"
   },
   "home": {
