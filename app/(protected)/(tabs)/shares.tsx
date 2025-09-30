@@ -486,6 +486,7 @@ export default function SharesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 16,
   },
   errorContainer: {
     flex: 1,
