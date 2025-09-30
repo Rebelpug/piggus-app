@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.9.1](https://github.com/Rebelpug/piggus-app/compare/v1.9.0...v1.9.1) (2025-09-30)
 
-
 ### Bug Fixes
 
-* Added missing padding in tabs screens ([65bcac1](https://github.com/Rebelpug/piggus-app/commit/65bcac160593c16498ea0d5b6db848ea6a57c5d5))
+- Added missing padding in tabs screens ([65bcac1](https://github.com/Rebelpug/piggus-app/commit/65bcac160593c16498ea0d5b6db848ea6a57c5d5))
 
 ## [1.9.0](https://github.com/Rebelpug/piggus-app/compare/v1.8.1...v1.9.0) (2025-09-28)
 
