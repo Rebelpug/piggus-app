@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.2](https://github.com/Rebelpug/piggus-app/compare/v1.10.1...v1.10.2) (2025-10-01)
+
+
+### Bug Fixes
+
+* Transactions not being pulled on app launch ([76fd976](https://github.com/Rebelpug/piggus-app/commit/76fd976c558f7a32385a032d44e83cf335976af2))
+
 ### [1.10.1](https://github.com/Rebelpug/piggus-app/compare/v1.10.0...v1.10.1) (2025-10-01)
 
 ### Bug Fixes
