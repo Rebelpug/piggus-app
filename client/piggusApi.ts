@@ -5,11 +5,7 @@ import {
   VersionCheckResponse,
   VersionCheckRequest,
 } from "@/types/version";
-import {
-  LookupSearchResult,
-  InvestmentLookupResultV2,
-} from "@/types/investment";
-import { SymbolSearchWithQuoteResult } from "@/types/portfolio";
+import { InvestmentLookupResultV2 } from "@/types/investment";
 import { IconProps } from "@ui-kitten/components";
 
 const BASE_URL = process.env.EXPO_PUBLIC_PIGGUS_API_URL || "";
@@ -411,7 +407,7 @@ export const piggusApi: PiggusApi = {
   healthCheck: async (): Promise<HealthCheckResponse> => {
     try {
       const httpClient = getHttpClient();
-      const response = await httpClient.get(`${BASE_URL}/health`);
+      await httpClient.get(`${BASE_URL}/health`);
 
       return { success: true, status: "healthy" };
     } catch (error: any) {
@@ -845,14 +841,22 @@ export const piggusApi: PiggusApi = {
       created_at?: string;
     }[],
   ) => {
-    const httpClient = getHttpClient();
-    const response = await httpClient.post(
-      `${BASE_URL}/api/v1/expense-groups/bulk-expenses`,
-      {
-        expenses,
-      },
-    );
-    return response.data.data;
+    try {
+      const httpClient = getHttpClient();
+      // Use longer timeout for bulk operations (60 seconds)
+      const response = await httpClient.post(
+        `${BASE_URL}/api/v1/expense-groups/bulk-expenses`,
+        {
+          expenses,
+        },
+        {
+          timeout: 60000,
+        },
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw error;
+    }
   },
 
   // Subscription Methods

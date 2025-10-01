@@ -48,10 +48,10 @@ import React, {
 interface ExpenseContextType {
   expensesGroups: ExpenseGroupWithDecryptedData[];
   recurringExpenses: RecurringExpenseWithDecryptedData[];
-  failedRecurringExpenses: Array<{
+  failedRecurringExpenses: {
     id: string;
     error: string;
-  }>;
+  }[];
   isLoading: boolean;
   error: string | null;
   fetchExpensesForMonth: (
@@ -174,10 +174,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     RecurringExpenseWithDecryptedData[]
   >([]);
   const [failedRecurringExpenses, setFailedRecurringExpenses] = useState<
-    Array<{
+    {
       id: string;
       error: string;
-    }>
+    }[]
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -258,7 +258,17 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error("Failed to bulk update expenses:", error);
-      const errorMessage = error.message || "Failed to bulk update expenses";
+
+      // Check if this is a network timeout - data might still be saved
+      const isNetworkError =
+        error.code === "ECONNABORTED" ||
+        error.message === "Network Error" ||
+        error.message?.includes("timeout");
+
+      const errorMessage = isNetworkError
+        ? "Request timed out. Changes may have been saved - please refresh to verify."
+        : error.message || "Failed to bulk update expenses";
+
       setError(errorMessage);
       return {
         success: false,
@@ -267,7 +277,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const syncBankTransactions = useCallback(async (): Promise<{
+  const syncBankTransactions = async (
+    groupsToUse?: ExpenseGroupWithDecryptedData[],
+  ): Promise<{
     success: boolean;
     addedCount: number;
     updatedCount: number;
@@ -362,17 +374,39 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         accountId: transaction.accountId,
       }));
 
-      if (!allTransactions || allTransactions.length === 0) {
+      // Filter to only include transactions from the current and previous month
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      // Calculate previous month
+      const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);
+      const prevYear = prevMonthDate.getFullYear();
+      const prevMonth = prevMonthDate.getMonth() + 1;
+
+      const recentTransactions = allTransactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+        const transactionYear = transactionDate.getFullYear();
+        const transactionMonth = transactionDate.getMonth() + 1;
+
+        return (
+          (transactionYear === currentYear &&
+            transactionMonth === currentMonth) ||
+          (transactionYear === prevYear && transactionMonth === prevMonth)
+        );
+      });
+
+      if (!recentTransactions || recentTransactions.length === 0) {
         return {
-          success: false,
+          success: true,
           addedCount: 0,
           updatedCount: 0,
-          error: "No bank transactions found",
         };
       }
 
-      // Get the personal group
-      const personalGroup = expensesGroups.find((g) => g.data.private);
+      // Get the personal group - use passed groups or fall back to current state
+      const currentGroups = groupsToUse || expensesGroups;
+      const personalGroup = currentGroups.find((g) => g.data.private);
       if (!personalGroup) {
         return {
           success: false,
@@ -383,10 +417,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       }
 
       // Get all expenses from all groups for duplicate checking
-      const allExpenses = expensesGroups.flatMap((group) => group.expenses);
+      const allExpenses = currentGroups.flatMap((group) => group.expenses);
 
       // Prepare bulk operations
-      const groupKeyMap = expensesGroups.reduce(
+      const groupKeyMap = currentGroups.reduce(
         (acc, group) => {
           acc[group.id] = group.encrypted_key;
           return acc;
@@ -401,7 +435,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         group_key: string;
       }[] = [];
 
-      for (const transaction of allTransactions) {
+      for (const transaction of recentTransactions) {
         // Skip positive transactions, we only want expenses
         if (transaction.amount > 0) continue;
 
@@ -528,15 +562,11 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         error: error.message || "Failed to sync bank transactions",
       };
     }
-  }, [
-    user,
-    isEncryptionInitialized,
-    userProfile,
-    expensesGroups,
-    bulkUpdateExpenses,
-  ]);
+  };
 
-  const performAutoSyncIfNeeded = useCallback(async () => {
+  const performAutoSyncIfNeeded = async (
+    groupsToUse?: ExpenseGroupWithDecryptedData[],
+  ) => {
     if (!user || !userProfile) {
       return;
     }
@@ -572,21 +602,14 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
 
     // Perform auto-sync
-    console.log("🔄 Auto-syncing bank transactions...");
-
     try {
-      const result = await syncBankTransactions();
-      if (result.success) {
-        console.log(
-          `✅ Auto-sync complete: ${result.addedCount} added, ${result.updatedCount} updated`,
-        );
-      }
+      await syncBankTransactions(groupsToUse);
     } catch (error) {
-      console.error("❌ Auto-sync failed:", error);
+      console.error("Auto-sync failed:", error);
     }
-  }, [user, userProfile, syncBankTransactions]);
+  };
 
-  const fetchExpensesForCurrentMonth = useCallback(async () => {
+  const fetchExpensesForCurrentMonth = async () => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
         console.error(
@@ -609,20 +632,27 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         decryptWithExternalEncryptionKey,
       );
       if (result.success && result.data) {
-        // Fetch current month expenses for each group
+        // Fetch current and previous month expenses for each group
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
-        const monthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
 
-        // Calculate start and end dates for current month
-        const startDate = new Date(currentYear, currentMonth - 1, 1);
+        // Calculate previous month
+        const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);
+        const prevYear = prevMonthDate.getFullYear();
+        const prevMonth = prevMonthDate.getMonth() + 1;
+
+        // Calculate start date (first day of previous month) and end date (last day of current month)
+        const startDate = new Date(prevYear, prevMonth - 1, 1);
         const endDate = new Date(currentYear, currentMonth, 0);
         const startDateString = startDate.toISOString().split("T")[0];
         const endDateString = endDate.toISOString().split("T")[0];
 
-        // Fetch current month expenses for each group
-        const groupsWithCurrentMonthExpenses = await Promise.all(
+        const currentMonthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+        const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
+
+        // Fetch current and previous month expenses for each group
+        const groupsWithRecentExpenses = await Promise.all(
           result.data.map(async (group) => {
             try {
               const paginatedResult = await apiFetchExpensesPaginated(
@@ -654,7 +684,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               };
             } catch (error) {
               console.error(
-                `Error fetching current month expenses for group ${group.id}:`,
+                `Error fetching recent expenses for group ${group.id}:`,
                 error,
               );
               return {
@@ -665,11 +695,19 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           }),
         );
 
-        setExpensesGroups(groupsWithCurrentMonthExpenses);
-        setCachedMonths((prev) => new Set(prev).add(monthKey));
+        setExpensesGroups(groupsWithRecentExpenses);
+        setCachedMonths((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(currentMonthKey);
+          newSet.add(prevMonthKey);
+          return newSet;
+        });
+
+        // Pass fresh groups to auto-sync to avoid stale closure
+        await performAutoSyncIfNeeded(groupsWithRecentExpenses);
 
         // Log any failed expenses for debugging
-        const totalFailedExpenses = groupsWithCurrentMonthExpenses.reduce(
+        const totalFailedExpenses = groupsWithRecentExpenses.reduce(
           (total, group) => {
             return total + (group.failedExpenses?.length || 0);
           },
@@ -765,8 +803,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         setError(result.error || "Failed to load expense groups");
       }
 
-      await performAutoSyncIfNeeded();
-
       setIsLoading(false);
     } catch (e: any) {
       console.error("Failed to fetch expenses", e);
@@ -774,16 +810,9 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       setError(`Failed to fetch expenses ${e.message || e?.toString()}`);
       return;
     }
-  }, [
-    user,
-    isEncryptionInitialized,
-    userProfile,
-    decryptWithPrivateKey,
-    decryptWithExternalEncryptionKey,
-    performAutoSyncIfNeeded,
-  ]);
+  };
 
-  const clearMonthCache = useCallback((year?: number, month?: number) => {
+  const clearMonthCache = (year?: number, month?: number) => {
     setCachedMonths((prev) => {
       const newSet = new Set(prev);
       if (year && month) {
@@ -794,7 +823,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       }
       return newSet;
     });
-  }, []);
+  };
 
   const fetchExpensesForMonth = useCallback(
     async (year: number, month: number, forceRefresh = false) => {
