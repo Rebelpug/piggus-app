@@ -52,9 +52,15 @@ interface LineChartProps {
   data: { year: number; value: number }[];
   size: { width: number; height: number };
   colors: any;
+  showYearLabels?: boolean;
 }
 
-const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
+const CustomLineChart: React.FC<LineChartProps> = ({
+  data,
+  size,
+  colors,
+  showYearLabels = true,
+}) => {
   const padding = 40;
   const chartWidth = size.width - padding * 2;
   const chartHeight = size.height - padding * 2;
@@ -175,31 +181,32 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data, size, colors }) => {
       })}
 
       {/* Year labels */}
-      {validData.map((point, index) => {
-        if (index % 2 === 0 || index === validData.length - 1) {
-          // Show every other year + last year
-          const x = padding + (index / (validData.length - 1)) * chartWidth;
+      {showYearLabels &&
+        validData.map((point, index) => {
+          if (index % 2 === 0 || index === validData.length - 1) {
+            // Show every other year + last year
+            const x = padding + (index / (validData.length - 1)) * chartWidth;
 
-          // Validate coordinate and year value
-          if (!isFinite(x) || !point.year) {
-            return null;
+            // Validate coordinate and year value
+            if (!isFinite(x) || !point.year) {
+              return null;
+            }
+
+            return (
+              <SvgText
+                key={`year-${index}`}
+                x={x}
+                y={size.height - 10}
+                fontSize="12"
+                fill={colors.icon}
+                textAnchor="middle"
+              >
+                {point.year}
+              </SvgText>
+            );
           }
-
-          return (
-            <SvgText
-              key={`year-${index}`}
-              x={x}
-              y={size.height - 10}
-              fontSize="12"
-              fill={colors.icon}
-              textAnchor="middle"
-            >
-              {point.year}
-            </SvgText>
-          );
-        }
-        return null;
-      })}
+          return null;
+        })}
     </Svg>
   );
 };
@@ -1112,6 +1119,7 @@ export default function InvestmentStatisticsScreen() {
                   data={financialAssetsLineData}
                   size={{ width: width - 80, height: 200 }}
                   colors={colors}
+                  showYearLabels={false}
                 />
 
                 <View style={styles.projectionStats}>

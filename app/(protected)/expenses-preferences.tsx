@@ -2,6 +2,7 @@ import BankConnectionWizard from "@/components/banking/BankConnectionWizard";
 import { Colors } from "@/constants/Colors";
 import { useLocalization } from "@/context/LocalizationContext";
 import { useProfile } from "@/context/ProfileContext";
+import { useExpense } from "@/context/ExpenseContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { piggusApi } from "@/client/piggusApi";
 import { CURRENCIES } from "@/types/expense";
@@ -33,6 +34,7 @@ export default function ExpensesPreferencesScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const { t } = useLocalization();
   const { userProfile, updateProfile, refreshProfile } = useProfile();
+  const { syncBankTransactions } = useExpense();
   const [loading, setLoading] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [showBankWizard, setShowBankWizard] = useState(false);
@@ -113,8 +115,16 @@ export default function ExpensesPreferencesScreen() {
 
     setSyncing(true);
     try {
-      await piggusApi.getBankTransactions();
-      Alert.alert(t("alerts.success"), t("banking.syncSuccess"));
+      const result = await syncBankTransactions();
+      if (result.success) {
+        Alert.alert(
+          t("alerts.success"),
+          t("banking.syncSuccess") +
+            ` (${result.addedCount} added, ${result.updatedCount} updated)`,
+        );
+      } else {
+        Alert.alert(t("alerts.error"), result.error || t("banking.syncError"));
+      }
       await refreshProfile();
     } catch (error) {
       console.error("Sync error:", error);

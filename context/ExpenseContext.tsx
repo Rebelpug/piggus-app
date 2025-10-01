@@ -186,56 +186,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     Record<string, number>
   >({}); // groupId -> timestamp
 
-  const performAutoSyncIfNeeded = async () => {
-    if (!user || !userProfile) {
-      return;
-    }
-
-    // Check if user is premium
-    const isPremium = userProfile.subscription?.subscription_tier === "premium";
-    if (!isPremium) {
-      return;
-    }
-
-    // Check if bank is connected
-    const activeBankAccounts =
-      userProfile.bank_accounts?.filter((acc) => acc.active) || [];
-    if (activeBankAccounts.length === 0) {
-      return;
-    }
-
-    // Check if we synced in the last 8 hours
-    // Find the most recent last_fetched timestamp from all active bank accounts
-    const lastFetchedTimes = activeBankAccounts
-      .map((acc) =>
-        acc.last_fetched ? new Date(acc.last_fetched).getTime() : 0,
-      )
-      .filter((time) => time > 0);
-
-    const mostRecentFetch =
-      lastFetchedTimes.length > 0 ? Math.max(...lastFetchedTimes) : 0;
-    const eightHoursAgo = Date.now() - 8 * 60 * 60 * 1000;
-
-    if (mostRecentFetch > eightHoursAgo) {
-      console.log("⏭️ Skipping auto-sync: Last sync was less than 8 hours ago");
-      return;
-    }
-
-    // Perform auto-sync
-    console.log("🔄 Auto-syncing bank transactions...");
-
-    try {
-      const result = await syncBankTransactions();
-      if (result.success) {
-        console.log(
-          `✅ Auto-sync complete: ${result.addedCount} added, ${result.updatedCount} updated`,
-        );
-      }
-    } catch (error) {
-      console.error("❌ Auto-sync failed:", error);
-    }
-  };
-
   const fetchExpensesForCurrentMonth = useCallback(async () => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
@@ -430,6 +380,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     userProfile,
     decryptWithPrivateKey,
     decryptWithExternalEncryptionKey,
+    performAutoSyncIfNeeded,
   ]);
 
   const clearMonthCache = useCallback((year?: number, month?: number) => {
@@ -1462,7 +1413,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const syncBankTransactions = async (): Promise<{
+  const syncBankTransactions = useCallback(async (): Promise<{
     success: boolean;
     addedCount: number;
     updatedCount: number;
@@ -1723,7 +1674,63 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         error: error.message || "Failed to sync bank transactions",
       };
     }
-  };
+  }, [
+    user,
+    isEncryptionInitialized,
+    userProfile,
+    expensesGroups,
+    bulkUpdateExpenses,
+  ]);
+
+  const performAutoSyncIfNeeded = useCallback(async () => {
+    if (!user || !userProfile) {
+      return;
+    }
+
+    // Check if user is premium
+    const isPremium = userProfile.subscription?.subscription_tier === "premium";
+    if (!isPremium) {
+      return;
+    }
+
+    // Check if bank is connected
+    const activeBankAccounts =
+      userProfile.bank_accounts?.filter((acc) => acc.active) || [];
+    if (activeBankAccounts.length === 0) {
+      return;
+    }
+
+    // Check if we synced in the last 8 hours
+    // Find the most recent last_fetched timestamp from all active bank accounts
+    const lastFetchedTimes = activeBankAccounts
+      .map((acc) =>
+        acc.last_fetched ? new Date(acc.last_fetched).getTime() : 0,
+      )
+      .filter((time) => time > 0);
+
+    const mostRecentFetch =
+      lastFetchedTimes.length > 0 ? Math.max(...lastFetchedTimes) : 0;
+    const eightHoursAgo = Date.now() - 8 * 60 * 60 * 1000;
+
+    if (mostRecentFetch > eightHoursAgo) {
+      console.log("⏭️ Skipping auto-sync: Last sync was less than 8 hours ago");
+      return;
+    }
+
+    // Perform auto-sync
+    console.log("🔄 Auto-syncing bank transactions...");
+
+    try {
+      const result = await syncBankTransactions();
+      if (result.success) {
+        console.log(
+          `✅ Auto-sync complete: ${result.addedCount} added, ${result.updatedCount} updated`,
+        );
+      }
+    } catch (error) {
+      console.error("❌ Auto-sync failed:", error);
+    }
+  }, [user, userProfile, syncBankTransactions]);
 
   useEffect(() => {
     if (isEncryptionInitialized && user && userProfile) {
