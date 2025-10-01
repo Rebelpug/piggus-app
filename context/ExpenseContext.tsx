@@ -186,6 +186,406 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     Record<string, number>
   >({}); // groupId -> timestamp
 
+  const bulkUpdateExpenses = async (
+    expenses: {
+      id?: string;
+      data: ExpenseData;
+      group_id: string;
+      group_key: string;
+    }[],
+  ): Promise<{
+    success: boolean;
+    data?: ExpenseWithDecryptedData[];
+    error?: string;
+  }> => {
+    try {
+      if (!user || !isEncryptionInitialized) {
+        return {
+          success: false,
+          error: "You must be logged in to bulk update expenses",
+        };
+      }
+
+      const result = await apiBulkInsertAndUpdateExpenses(
+        user,
+        expenses,
+        encryptWithExternalEncryptionKey,
+      );
+
+      if (result.success && result.data) {
+        // Update local state
+        setExpensesGroups((prev) =>
+          prev.map((group) => {
+            const groupExpenses =
+              result.data?.filter((exp) => exp.group_id === group.id) || [];
+            if (groupExpenses.length === 0) return group;
+
+            const existingExpenses = [...group.expenses];
+            const newExpenses: ExpenseWithDecryptedData[] = [];
+
+            // Process the bulk update results
+            groupExpenses.forEach((updatedExpense) => {
+              if (updatedExpense.id) {
+                const existingIndex = existingExpenses.findIndex(
+                  (exp) => exp.id === updatedExpense.id,
+                );
+                if (existingIndex >= 0) {
+                  // Update existing expense
+                  existingExpenses[existingIndex] = updatedExpense;
+                } else {
+                  // Add new expense
+                  newExpenses.push(updatedExpense);
+                }
+              } else {
+                // Add new expense without ID
+                newExpenses.push(updatedExpense);
+              }
+            });
+
+            return {
+              ...group,
+              expenses: [...newExpenses, ...existingExpenses],
+            };
+          }),
+        );
+        return { success: true, data: result.data };
+      } else {
+        setError(result.error || "Failed to bulk update expenses");
+        return {
+          success: false,
+          error: result.error || "Failed to bulk update expenses",
+        };
+      }
+    } catch (error: any) {
+      console.error("Failed to bulk update expenses:", error);
+      const errorMessage = error.message || "Failed to bulk update expenses";
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  };
+
+  const syncBankTransactions = useCallback(async (): Promise<{
+    success: boolean;
+    addedCount: number;
+    updatedCount: number;
+    error?: string;
+  }> => {
+    try {
+      if (!user || !isEncryptionInitialized || !userProfile) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: "User authentication or encryption not available",
+        };
+      }
+
+      // Fetch bank transactions
+      const accountsTransactions = await piggusApi.getBankTransactions();
+
+      // Check if we have any accounts
+      if (!accountsTransactions || accountsTransactions.length === 0) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: "No bank accounts found",
+        };
+      }
+
+      // Initialize arrays for booked transactions
+      let bookedTransactions: any[] = [];
+      let allSkipped = true;
+
+      // Process each account's transactions
+      for (const accountData of accountsTransactions) {
+        // Skip accounts that were skipped during fetching
+        if (accountData.skipped) {
+          continue;
+        }
+        allSkipped = false;
+
+        // Extract transactions if available
+        if (accountData.transactions && accountData.transactions.transactions) {
+          const accountBooked =
+            accountData.transactions.transactions.booked || [];
+          for (const transaction of accountBooked) {
+            bookedTransactions.push({
+              ...transaction,
+              accountId: accountData.accountId,
+            });
+          }
+          const accountPending =
+            accountData.transactions.transactions.pending || [];
+          for (const transaction of accountPending) {
+            bookedTransactions.push({
+              ...transaction,
+              accountId: accountData.accountId,
+            });
+          }
+        }
+      }
+
+      // Check if all accounts were skipped
+      if (allSkipped) {
+        const reasons = accountsTransactions
+          .filter((account) => account.skipped && account.reason)
+          .map((account) => account.reason)
+          .join(", ");
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: `All accounts were skipped: ${reasons || "No specific reasons provided"}`,
+        };
+      }
+
+      // Convert Transaction objects to a format compatible with our app
+      const allTransactions = [...bookedTransactions].map((transaction) => ({
+        id:
+          transaction.transactionId || transaction.internalTransactionId || "",
+        amount: parseFloat(transaction.transactionAmount.amount),
+        currency: transaction.transactionAmount.currency,
+        description:
+          transaction.additionalInformation ||
+          transaction.remittanceInformationUnstructured ||
+          transaction.remittanceInformationStructured ||
+          transaction.creditorName ||
+          transaction.debtorName ||
+          "Unknown",
+        name: transaction.creditorName || transaction.debtorName || "Unknown",
+        date: transaction.bookingDate,
+        category: transaction.merchantCategoryCode || "other",
+        accountId: transaction.accountId,
+      }));
+
+      if (!allTransactions || allTransactions.length === 0) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: "No bank transactions found",
+        };
+      }
+
+      // Get the personal group
+      const personalGroup = expensesGroups.find((g) => g.data.private);
+      if (!personalGroup) {
+        return {
+          success: false,
+          addedCount: 0,
+          updatedCount: 0,
+          error: "No personal group found",
+        };
+      }
+
+      // Get all expenses from all groups for duplicate checking
+      const allExpenses = expensesGroups.flatMap((group) => group.expenses);
+
+      // Prepare bulk operations
+      const groupKeyMap = expensesGroups.reduce(
+        (acc, group) => {
+          acc[group.id] = group.encrypted_key;
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
+
+      const bulkOperations: {
+        id?: string;
+        data: ExpenseData;
+        group_id: string;
+        group_key: string;
+      }[] = [];
+
+      for (const transaction of allTransactions) {
+        // Skip positive transactions, we only want expenses
+        if (transaction.amount > 0) continue;
+
+        // Use absolute value for negative amounts
+        const expenseAmount = Math.abs(transaction.amount);
+
+        // Check if this transaction already exists as an expense
+        const existingExpense = allExpenses.find(
+          (expense) => expense.data.external_transaction_id === transaction.id,
+        );
+
+        if (existingExpense) {
+          // Skip updating expenses that are marked as deleted
+          if (existingExpense.data.status === "deleted") {
+            continue;
+          }
+
+          // Update existing expense - preserve split ratios when amount changes
+          let totalAllocated = 0;
+          const updatedParticipants = existingExpense.data.participants.map(
+            (participant, index, array) => {
+              let newShareAmount;
+
+              // For the last participant, give them the remainder to avoid rounding errors
+              if (index === array.length - 1) {
+                newShareAmount =
+                  Math.round((expenseAmount - totalAllocated) * 100) / 100;
+              } else {
+                // Calculate proportional share and round
+                const shareRatio =
+                  participant.share_amount / existingExpense.data.amount;
+                newShareAmount =
+                  Math.round(expenseAmount * shareRatio * 100) / 100;
+                totalAllocated += newShareAmount;
+              }
+
+              return {
+                ...participant,
+                share_amount: newShareAmount,
+              };
+            },
+          );
+
+          bulkOperations.push({
+            id: existingExpense.id,
+            data: {
+              ...existingExpense.data,
+              amount: expenseAmount,
+              name: existingExpense.data.name || transaction.name,
+              description:
+                existingExpense.data.description || transaction.description,
+              date: transaction.date,
+              category: existingExpense.data.category || transaction.category,
+              currency: existingExpense.data.currency || transaction.currency,
+              participants: updatedParticipants,
+              // Preserve the status field to maintain any existing status like 'deleted'
+              status: existingExpense.data.status,
+            },
+            group_id: existingExpense.group_id,
+            group_key: groupKeyMap[existingExpense.group_id],
+          });
+        } else {
+          // Create new expense from transaction
+          bulkOperations.push({
+            data: {
+              name: transaction.name,
+              description: transaction.description,
+              amount: expenseAmount,
+              date: transaction.date,
+              category: transaction.category || "other",
+              is_recurring: false,
+              currency: transaction.currency,
+              payer_user_id: user.id,
+              payer_username: userProfile.username,
+              participants: [
+                {
+                  user_id: user.id,
+                  username: userProfile.username,
+                  share_amount: expenseAmount,
+                },
+              ],
+              split_method: "equal" as const,
+              external_account_id: transaction.accountId,
+              external_transaction_id: transaction.id,
+            },
+            group_id: personalGroup.id,
+            group_key: groupKeyMap[personalGroup.id],
+          });
+        }
+      }
+
+      // Process bulk operations
+      let addedCount = 0;
+      let updatedCount = 0;
+
+      if (bulkOperations.length > 0) {
+        const result = await bulkUpdateExpenses(bulkOperations);
+
+        if (result.success) {
+          // Count added and updated expenses
+          addedCount = bulkOperations.filter((op) => !op.id).length;
+          updatedCount = bulkOperations.filter((op) => op.id).length;
+        } else {
+          return {
+            success: false,
+            addedCount: 0,
+            updatedCount: 0,
+            error: result.error || "Failed to process expenses in bulk",
+          };
+        }
+      }
+
+      return {
+        success: true,
+        addedCount,
+        updatedCount,
+      };
+    } catch (error: any) {
+      console.error("Error syncing bank transactions:", error);
+      return {
+        success: false,
+        addedCount: 0,
+        updatedCount: 0,
+        error: error.message || "Failed to sync bank transactions",
+      };
+    }
+  }, [
+    user,
+    isEncryptionInitialized,
+    userProfile,
+    expensesGroups,
+    bulkUpdateExpenses,
+  ]);
+
+  const performAutoSyncIfNeeded = useCallback(async () => {
+    if (!user || !userProfile) {
+      return;
+    }
+
+    // Check if user is premium
+    const isPremium = userProfile.subscription?.subscription_tier === "premium";
+    if (!isPremium) {
+      return;
+    }
+
+    // Check if bank is connected
+    const activeBankAccounts =
+      userProfile.bank_accounts?.filter((acc) => acc.active) || [];
+    if (activeBankAccounts.length === 0) {
+      return;
+    }
+
+    // Check if we synced in the last 8 hours
+    // Find the most recent last_fetched timestamp from all active bank accounts
+    const lastFetchedTimes = activeBankAccounts
+      .map((acc) =>
+        acc.last_fetched ? new Date(acc.last_fetched).getTime() : 0,
+      )
+      .filter((time) => time > 0);
+
+    const mostRecentFetch =
+      lastFetchedTimes.length > 0 ? Math.max(...lastFetchedTimes) : 0;
+    const eightHoursAgo = Date.now() - 8 * 60 * 60 * 1000;
+
+    if (mostRecentFetch > eightHoursAgo) {
+      console.log("⏭️ Skipping auto-sync: Last sync was less than 8 hours ago");
+      return;
+    }
+
+    // Perform auto-sync
+    console.log("🔄 Auto-syncing bank transactions...");
+
+    try {
+      const result = await syncBankTransactions();
+      if (result.success) {
+        console.log(
+          `✅ Auto-sync complete: ${result.addedCount} added, ${result.updatedCount} updated`,
+        );
+      }
+    } catch (error) {
+      console.error("❌ Auto-sync failed:", error);
+    }
+  }, [user, userProfile, syncBankTransactions]);
+
   const fetchExpensesForCurrentMonth = useCallback(async () => {
     try {
       if (!user || !isEncryptionInitialized || !userProfile) {
@@ -1157,87 +1557,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const bulkUpdateExpenses = async (
-    expenses: {
-      id?: string;
-      data: ExpenseData;
-      group_id: string;
-      group_key: string;
-    }[],
-  ): Promise<{
-    success: boolean;
-    data?: ExpenseWithDecryptedData[];
-    error?: string;
-  }> => {
-    try {
-      if (!user || !isEncryptionInitialized) {
-        return {
-          success: false,
-          error: "You must be logged in to bulk update expenses",
-        };
-      }
-
-      const result = await apiBulkInsertAndUpdateExpenses(
-        user,
-        expenses,
-        encryptWithExternalEncryptionKey,
-      );
-
-      if (result.success && result.data) {
-        // Update local state
-        setExpensesGroups((prev) =>
-          prev.map((group) => {
-            const groupExpenses =
-              result.data?.filter((exp) => exp.group_id === group.id) || [];
-            if (groupExpenses.length === 0) return group;
-
-            const existingExpenses = [...group.expenses];
-            const newExpenses: ExpenseWithDecryptedData[] = [];
-
-            // Process the bulk update results
-            groupExpenses.forEach((updatedExpense) => {
-              if (updatedExpense.id) {
-                const existingIndex = existingExpenses.findIndex(
-                  (exp) => exp.id === updatedExpense.id,
-                );
-                if (existingIndex >= 0) {
-                  // Update existing expense
-                  existingExpenses[existingIndex] = updatedExpense;
-                } else {
-                  // Add new expense
-                  newExpenses.push(updatedExpense);
-                }
-              } else {
-                // Add new expense without ID
-                newExpenses.push(updatedExpense);
-              }
-            });
-
-            return {
-              ...group,
-              expenses: [...newExpenses, ...existingExpenses],
-            };
-          }),
-        );
-        return { success: true, data: result.data };
-      } else {
-        setError(result.error || "Failed to bulk update expenses");
-        return {
-          success: false,
-          error: result.error || "Failed to bulk update expenses",
-        };
-      }
-    } catch (error: any) {
-      console.error("Failed to bulk update expenses:", error);
-      const errorMessage = error.message || "Failed to bulk update expenses";
-      setError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
-  };
-
   const moveExpense = async (
     expenseId: string,
     fromGroupId: string,
@@ -1412,325 +1731,6 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       };
     }
   };
-
-  const syncBankTransactions = useCallback(async (): Promise<{
-    success: boolean;
-    addedCount: number;
-    updatedCount: number;
-    error?: string;
-  }> => {
-    try {
-      if (!user || !isEncryptionInitialized || !userProfile) {
-        return {
-          success: false,
-          addedCount: 0,
-          updatedCount: 0,
-          error: "User authentication or encryption not available",
-        };
-      }
-
-      // Fetch bank transactions
-      const accountsTransactions = await piggusApi.getBankTransactions();
-
-      // Check if we have any accounts
-      if (!accountsTransactions || accountsTransactions.length === 0) {
-        return {
-          success: false,
-          addedCount: 0,
-          updatedCount: 0,
-          error: "No bank accounts found",
-        };
-      }
-
-      // Initialize arrays for booked transactions
-      let bookedTransactions: any[] = [];
-      let allSkipped = true;
-
-      // Process each account's transactions
-      for (const accountData of accountsTransactions) {
-        // Skip accounts that were skipped during fetching
-        if (accountData.skipped) {
-          continue;
-        }
-        allSkipped = false;
-
-        // Extract transactions if available
-        if (accountData.transactions && accountData.transactions.transactions) {
-          const accountBooked =
-            accountData.transactions.transactions.booked || [];
-          for (const transaction of accountBooked) {
-            bookedTransactions.push({
-              ...transaction,
-              accountId: accountData.accountId,
-            });
-          }
-          const accountPending =
-            accountData.transactions.transactions.pending || [];
-          for (const transaction of accountPending) {
-            bookedTransactions.push({
-              ...transaction,
-              accountId: accountData.accountId,
-            });
-          }
-        }
-      }
-
-      // Check if all accounts were skipped
-      if (allSkipped) {
-        const reasons = accountsTransactions
-          .filter((account) => account.skipped && account.reason)
-          .map((account) => account.reason)
-          .join(", ");
-        return {
-          success: false,
-          addedCount: 0,
-          updatedCount: 0,
-          error: `All accounts were skipped: ${reasons || "No specific reasons provided"}`,
-        };
-      }
-
-      // Convert Transaction objects to a format compatible with our app
-      const allTransactions = [...bookedTransactions].map((transaction) => ({
-        id:
-          transaction.transactionId || transaction.internalTransactionId || "",
-        amount: parseFloat(transaction.transactionAmount.amount),
-        currency: transaction.transactionAmount.currency,
-        description:
-          transaction.additionalInformation ||
-          transaction.remittanceInformationUnstructured ||
-          transaction.remittanceInformationStructured ||
-          transaction.creditorName ||
-          transaction.debtorName ||
-          "Unknown",
-        name: transaction.creditorName || transaction.debtorName || "Unknown",
-        date: transaction.bookingDate,
-        category: transaction.merchantCategoryCode || "other",
-        accountId: transaction.accountId,
-      }));
-
-      if (!allTransactions || allTransactions.length === 0) {
-        return {
-          success: false,
-          addedCount: 0,
-          updatedCount: 0,
-          error: "No bank transactions found",
-        };
-      }
-
-      // Get the personal group
-      const personalGroup = expensesGroups.find((g) => g.data.private);
-      if (!personalGroup) {
-        return {
-          success: false,
-          addedCount: 0,
-          updatedCount: 0,
-          error: "No personal group found",
-        };
-      }
-
-      // Get all expenses from all groups for duplicate checking
-      const allExpenses = expensesGroups.flatMap((group) => group.expenses);
-
-      // Prepare bulk operations
-      const groupKeyMap = expensesGroups.reduce(
-        (acc, group) => {
-          acc[group.id] = group.encrypted_key;
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
-
-      const bulkOperations: {
-        id?: string;
-        data: ExpenseData;
-        group_id: string;
-        group_key: string;
-      }[] = [];
-
-      for (const transaction of allTransactions) {
-        // Skip positive transactions, we only want expenses
-        if (transaction.amount > 0) continue;
-
-        // Use absolute value for negative amounts
-        const expenseAmount = Math.abs(transaction.amount);
-
-        // Check if this transaction already exists as an expense
-        const existingExpense = allExpenses.find(
-          (expense) => expense.data.external_transaction_id === transaction.id,
-        );
-
-        if (existingExpense) {
-          // Skip updating expenses that are marked as deleted
-          if (existingExpense.data.status === "deleted") {
-            continue;
-          }
-
-          // Update existing expense - preserve split ratios when amount changes
-          let totalAllocated = 0;
-          const updatedParticipants = existingExpense.data.participants.map(
-            (participant, index, array) => {
-              let newShareAmount;
-
-              // For the last participant, give them the remainder to avoid rounding errors
-              if (index === array.length - 1) {
-                newShareAmount =
-                  Math.round((expenseAmount - totalAllocated) * 100) / 100;
-              } else {
-                // Calculate proportional share and round
-                const shareRatio =
-                  participant.share_amount / existingExpense.data.amount;
-                newShareAmount =
-                  Math.round(expenseAmount * shareRatio * 100) / 100;
-                totalAllocated += newShareAmount;
-              }
-
-              return {
-                ...participant,
-                share_amount: newShareAmount,
-              };
-            },
-          );
-
-          bulkOperations.push({
-            id: existingExpense.id,
-            data: {
-              ...existingExpense.data,
-              amount: expenseAmount,
-              name: existingExpense.data.name || transaction.name,
-              description:
-                existingExpense.data.description || transaction.description,
-              date: transaction.date,
-              category: existingExpense.data.category || transaction.category,
-              currency: existingExpense.data.currency || transaction.currency,
-              participants: updatedParticipants,
-              // Preserve the status field to maintain any existing status like 'deleted'
-              status: existingExpense.data.status,
-            },
-            group_id: existingExpense.group_id,
-            group_key: groupKeyMap[existingExpense.group_id],
-          });
-        } else {
-          // Create new expense from transaction
-          bulkOperations.push({
-            data: {
-              name: transaction.name,
-              description: transaction.description,
-              amount: expenseAmount,
-              date: transaction.date,
-              category: transaction.category || "other",
-              is_recurring: false,
-              currency: transaction.currency,
-              payer_user_id: user.id,
-              payer_username: userProfile.username,
-              participants: [
-                {
-                  user_id: user.id,
-                  username: userProfile.username,
-                  share_amount: expenseAmount,
-                },
-              ],
-              split_method: "equal" as const,
-              external_account_id: transaction.accountId,
-              external_transaction_id: transaction.id,
-            },
-            group_id: personalGroup.id,
-            group_key: groupKeyMap[personalGroup.id],
-          });
-        }
-      }
-
-      // Process bulk operations
-      let addedCount = 0;
-      let updatedCount = 0;
-
-      if (bulkOperations.length > 0) {
-        const result = await bulkUpdateExpenses(bulkOperations);
-
-        if (result.success) {
-          // Count added and updated expenses
-          addedCount = bulkOperations.filter((op) => !op.id).length;
-          updatedCount = bulkOperations.filter((op) => op.id).length;
-        } else {
-          return {
-            success: false,
-            addedCount: 0,
-            updatedCount: 0,
-            error: result.error || "Failed to process expenses in bulk",
-          };
-        }
-      }
-
-      return {
-        success: true,
-        addedCount,
-        updatedCount,
-      };
-    } catch (error: any) {
-      console.error("Error syncing bank transactions:", error);
-      return {
-        success: false,
-        addedCount: 0,
-        updatedCount: 0,
-        error: error.message || "Failed to sync bank transactions",
-      };
-    }
-  }, [
-    user,
-    isEncryptionInitialized,
-    userProfile,
-    expensesGroups,
-    bulkUpdateExpenses,
-  ]);
-
-  const performAutoSyncIfNeeded = useCallback(async () => {
-    if (!user || !userProfile) {
-      return;
-    }
-
-    // Check if user is premium
-    const isPremium = userProfile.subscription?.subscription_tier === "premium";
-    if (!isPremium) {
-      return;
-    }
-
-    // Check if bank is connected
-    const activeBankAccounts =
-      userProfile.bank_accounts?.filter((acc) => acc.active) || [];
-    if (activeBankAccounts.length === 0) {
-      return;
-    }
-
-    // Check if we synced in the last 8 hours
-    // Find the most recent last_fetched timestamp from all active bank accounts
-    const lastFetchedTimes = activeBankAccounts
-      .map((acc) =>
-        acc.last_fetched ? new Date(acc.last_fetched).getTime() : 0,
-      )
-      .filter((time) => time > 0);
-
-    const mostRecentFetch =
-      lastFetchedTimes.length > 0 ? Math.max(...lastFetchedTimes) : 0;
-    const eightHoursAgo = Date.now() - 8 * 60 * 60 * 1000;
-
-    if (mostRecentFetch > eightHoursAgo) {
-      console.log("⏭️ Skipping auto-sync: Last sync was less than 8 hours ago");
-      return;
-    }
-
-    // Perform auto-sync
-    console.log("🔄 Auto-syncing bank transactions...");
-
-    try {
-      const result = await syncBankTransactions();
-      if (result.success) {
-        console.log(
-          `✅ Auto-sync complete: ${result.addedCount} added, ${result.updatedCount} updated`,
-        );
-      }
-    } catch (error) {
-      console.error("❌ Auto-sync failed:", error);
-    }
-  }, [user, userProfile, syncBankTransactions]);
 
   useEffect(() => {
     if (isEncryptionInitialized && user && userProfile) {
