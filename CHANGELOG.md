@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.1](https://github.com/Rebelpug/piggus-app/compare/v1.10.0...v1.10.1) (2025-10-01)
+
+
+### Bug Fixes
+
+* Fixed bank connection not pulling properly on app load ([6e7382b](https://github.com/Rebelpug/piggus-app/commit/6e7382be4febbd62a9acdddf06336ca57424b0e8))
+* Fixed ordering of functions in expenses context ([cb4bd9f](https://github.com/Rebelpug/piggus-app/commit/cb4bd9f6b2dbe3bf1ee4c0af4da113732bc506fe))
+
 ## [1.10.0](https://github.com/Rebelpug/piggus-app/compare/v1.9.1...v1.10.0) (2025-09-30)
 
 ### Features
