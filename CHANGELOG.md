@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.3](https://github.com/Rebelpug/piggus-app/compare/v1.10.2...v1.10.3) (2025-10-13)
+
+
+### Bug Fixes
+
+* localization errors in the IT version ([1cef211](https://github.com/Rebelpug/piggus-app/commit/1cef2115ecdef6cd69c4030df1a404353db2f565))
+* missing save button in edit expenses and investments ([4ec18a2](https://github.com/Rebelpug/piggus-app/commit/4ec18a2063df41f8da2c7adbd13d6f2afbffb0c3))
+
 ### [1.10.2](https://github.com/Rebelpug/piggus-app/compare/v1.10.1...v1.10.2) (2025-10-01)
 
 ### Bug Fixes
