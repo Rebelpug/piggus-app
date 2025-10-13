@@ -19,6 +19,7 @@ import {
   Card,
   Spinner,
   CheckBox,
+  Button,
 } from "@ui-kitten/components";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -55,7 +56,7 @@ export default function EditExpenseScreen() {
     expenseId: string;
     groupId: string;
   }>();
-  const { expensesGroups, updateExpense } = useExpense();
+  const { expensesGroups, updateExpense, deleteExpense } = useExpense();
   const { userProfile } = useProfile();
   const { t } = useLocalization();
 
@@ -107,6 +108,7 @@ export default function EditExpenseScreen() {
   }, [allPaymentMethods]);
 
   const [loading, setLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [expense, setExpense] = useState<ExpenseWithDecryptedData | null>(null);
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
 
@@ -367,6 +369,61 @@ export default function EditExpenseScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = () => {
+    if (!expense) return;
+
+    const hasExternalTransaction = Boolean(
+      expense.data.external_transaction_id,
+    );
+
+    const alertTitle = t("expenseDetail.delete");
+    const alertMessage = hasExternalTransaction
+      ? t("expenseDetail.markDeletedConfirm")
+      : t("expenseDetail.deleteExpenseConfirm");
+
+    Alert.alert(alertTitle, alertMessage, [
+      { text: t("expenseDetail.cancel"), style: "cancel" },
+      {
+        text: hasExternalTransaction
+          ? t("expenseDetail.markDeleted")
+          : t("expenseDetail.delete"),
+        style: "destructive",
+        onPress: async () => {
+          setIsDeleting(true);
+          try {
+            if (!groupId || !expenseId || !expense) return;
+
+            if (hasExternalTransaction) {
+              // Soft delete: mark as deleted
+              const updatedExpense = {
+                ...expense,
+                data: {
+                  ...expense.data,
+                  status: "deleted",
+                },
+              };
+              await updateExpense(groupId, updatedExpense);
+            } else {
+              // Hard delete: remove completely
+              await deleteExpense(groupId, expenseId);
+            }
+
+            // Navigate to expenses list instead of back
+            router.replace("/(protected)/(tabs)/expenses");
+          } catch (error) {
+            console.error("Failed to delete expense:", error);
+            Alert.alert(
+              t("expenseDetail.error"),
+              t("expenseDetail.deleteExpenseFailed"),
+            );
+          } finally {
+            setIsDeleting(false);
+          }
+        },
+      },
+    ]);
   };
 
   const handleParticipantToggle = (member: any) => {
@@ -689,6 +746,34 @@ export default function EditExpenseScreen() {
             </Card>
           )}
 
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <Button
+              style={[styles.actionButton, styles.saveButtonStyle]}
+              appearance="filled"
+              status="primary"
+              accessoryLeft={() => (
+                <Ionicons name="checkmark-outline" size={20} color="#FFFFFF" />
+              )}
+              onPress={handleSave}
+              disabled={loading || isDeleting}
+            >
+              {loading ? t("common.saving") : t("editExpense.save")}
+            </Button>
+            <Button
+              style={[styles.actionButton, styles.deleteButton]}
+              appearance="outline"
+              status="danger"
+              accessoryLeft={() => (
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
+              )}
+              onPress={handleDelete}
+              disabled={loading || isDeleting}
+            >
+              {isDeleting ? t("common.deleting") : t("expenseDetail.delete")}
+            </Button>
+          </View>
+
           <View style={styles.bottomPadding} />
         </ThemedView>
       </ScrollView>
@@ -762,6 +847,18 @@ const styles = StyleSheet.create({
     minWidth: 60,
     textAlign: "right",
   },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  saveButtonStyle: {},
+  deleteButton: {},
   bottomPadding: {
     height: 32,
   },

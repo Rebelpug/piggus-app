@@ -20,6 +20,7 @@ import {
   Card,
   Spinner,
   CheckBox,
+  Button,
 } from "@ui-kitten/components";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -62,8 +63,12 @@ export default function EditRecurringExpenseScreen() {
     recurringExpenseId: string;
     groupId: string;
   }>();
-  const { expensesGroups, recurringExpenses, updateRecurringExpense } =
-    useExpense();
+  const {
+    expensesGroups,
+    recurringExpenses,
+    updateRecurringExpense,
+    deleteRecurringExpense,
+  } = useExpense();
   const { userProfile } = useProfile();
   const { t } = useLocalization();
 
@@ -110,6 +115,7 @@ export default function EditRecurringExpenseScreen() {
     return result;
   }, [allCategories]);
   const [loading, setLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [recurringExpense, setRecurringExpense] =
     useState<RecurringExpenseWithDecryptedData | null>(null);
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
@@ -425,6 +431,38 @@ export default function EditRecurringExpenseScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      t("recurringExpenseDetail.delete"),
+      t("recurringExpenseDetail.deleteRecurringExpenseConfirm"),
+      [
+        { text: t("recurringExpenseDetail.cancel"), style: "cancel" },
+        {
+          text: t("recurringExpenseDetail.deleteButton"),
+          style: "destructive",
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              if (!groupId || !recurringExpenseId) return;
+
+              await deleteRecurringExpense(groupId, recurringExpenseId);
+              // Navigate to expenses list instead of back
+              router.replace("/(protected)/(tabs)/expenses");
+            } catch (error) {
+              console.error("Failed to delete recurring expense:", error);
+              Alert.alert(
+                t("recurringExpenseDetail.error"),
+                t("recurringExpenseDetail.deleteRecurringExpenseFailed"),
+              );
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleParticipantToggle = (member: any) => {
@@ -819,6 +857,36 @@ export default function EditRecurringExpenseScreen() {
             </Card>
           )}
 
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <Button
+              style={[styles.actionButton, styles.saveButtonStyle]}
+              appearance="filled"
+              status="primary"
+              accessoryLeft={() => (
+                <Ionicons name="checkmark-outline" size={20} color="#FFFFFF" />
+              )}
+              onPress={handleSave}
+              disabled={loading || isDeleting}
+            >
+              {loading ? t("common.saving") : t("editRecurringExpense.save")}
+            </Button>
+            <Button
+              style={[styles.actionButton, styles.deleteButton]}
+              appearance="outline"
+              status="danger"
+              accessoryLeft={() => (
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
+              )}
+              onPress={handleDelete}
+              disabled={loading || isDeleting}
+            >
+              {isDeleting
+                ? t("common.deleting")
+                : t("recurringExpenseDetail.deleteButton")}
+            </Button>
+          </View>
+
           <View style={styles.bottomPadding} />
         </ThemedView>
       </ScrollView>
@@ -910,6 +978,18 @@ const styles = StyleSheet.create({
     minWidth: 60,
     textAlign: "right",
   },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  saveButtonStyle: {},
+  deleteButton: {},
   bottomPadding: {
     height: 32,
   },

@@ -203,7 +203,9 @@
     "cancel": "Cancel",
     "tryAgain": "Try Again",
     "goBack": "Go Back",
-    "you": "You"
+    "you": "You",
+    "saving": "Saving...",
+    "deleting": "Deleting..."
   },
   "notFound": {
     "title": "Oops!",

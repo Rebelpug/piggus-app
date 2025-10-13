@@ -7,7 +7,6 @@
     "more": "Mehr",
     "guides": "Leitfäden",
     "profile": "Profil",
-    "settings": "Einstellungen",
     "settings": "Einstellungen"
   },
   "more": {
@@ -203,7 +202,9 @@
     "cancel": "Abbrechen",
     "tryAgain": "Erneut versuchen",
     "goBack": "Zurückgehen",
-    "you": "Sie"
+    "you": "Sie",
+    "saving": "Speichern...",
+    "deleting": "Löschen..."
   },
   "notFound": {
     "title": "Huch!",

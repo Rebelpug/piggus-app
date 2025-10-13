@@ -43,7 +43,7 @@ export default function ProfileScreen() {
     setIsSystemTheme,
   } = useTheme();
   const { user, signOut } = useAuth();
-  const { userProfile, updateProfile } = useProfile();
+  const { userProfile } = useProfile();
   const { currentLanguage, changeLanguage, t, availableLanguages } =
     useLocalization();
   const [loading, setLoading] = useState(false);

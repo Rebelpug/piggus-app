@@ -453,7 +453,7 @@ export default function EditInvestmentScreen() {
         selectedPortfolio.id,
         params.investmentId as string,
       );
-      router.back();
+      router.replace("/(protected)/(tabs)/investments");
     } catch (error) {
       console.error("Error deleting investment:", error);
       Alert.alert(
@@ -1166,21 +1166,31 @@ export default function EditInvestmentScreen() {
             </Card>
           )}
 
-          {/* Delete Button */}
-          <View style={styles.deleteButtonContainer}>
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
             <Button
-              style={styles.deleteButton}
+              style={[styles.actionButton, styles.saveButtonStyle]}
+              appearance="filled"
+              status="primary"
+              accessoryLeft={() => (
+                <Ionicons name="checkmark-outline" size={20} color="#FFFFFF" />
+              )}
+              onPress={handleSubmit}
+              disabled={isSubmitting || isDeleting}
+            >
+              {isSubmitting ? t("common.saving") : t("editExpense.save")}
+            </Button>
+            <Button
+              style={[styles.actionButton, styles.deleteButton]}
               appearance="outline"
               status="danger"
               accessoryLeft={() => (
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               )}
               onPress={handleDelete}
-              disabled={isDeleting}
+              disabled={isSubmitting || isDeleting}
             >
-              {isDeleting
-                ? t("editInvestment.deleting")
-                : t("editInvestment.deleteInvestment")}
+              {isDeleting ? t("common.deleting") : t("expenseDetail.delete")}
             </Button>
           </View>
 
@@ -1262,12 +1272,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
   },
-  deleteButtonContainer: {
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
     marginTop: 16,
+    marginBottom: 16,
   },
-  deleteButton: {
+  actionButton: {
+    flex: 1,
     borderRadius: 12,
   },
+  saveButtonStyle: {},
+  deleteButton: {},
   bottomPadding: {
     height: 32,
   },

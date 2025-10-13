@@ -202,7 +202,9 @@
     "cancel": "Avbryt",
     "tryAgain": "Försök igen",
     "goBack": "Gå tillbaka",
-    "you": "Du"
+    "you": "Du",
+    "saving": "Sparar...",
+    "deleting": "Raderar..."
   },
   "notFound": {
     "title": "Oops!",

@@ -1,5 +1,3 @@
-import { piggusApi } from "@/client/piggusApi";
-
 import AuthSetupLoader from "@/components/auth/AuthSetupLoader";
 import BankConnectionWizard from "@/components/banking/BankConnectionWizard";
 import BudgetCard from "@/components/budget/BudgetCard";
@@ -23,7 +21,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   RefreshControl,
@@ -47,7 +44,6 @@ export default function ExpensesScreen() {
     expensesGroups,
     recurringExpenses,
     failedRecurringExpenses,
-    syncBankTransactions,
     isLoading,
     error,
     fetchExpensesForMonth,

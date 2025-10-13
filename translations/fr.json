@@ -202,7 +202,9 @@
     "cancel": "Annuler",
     "tryAgain": "Réessayer",
     "goBack": "Retour",
-    "you": "Vous"
+    "you": "Vous",
+    "saving": "Enregistrement...",
+    "deleting": "Suppression..."
   },
   "notFound": {
     "title": "Oups !",

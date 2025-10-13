@@ -202,7 +202,9 @@
     "cancel": "Annuleren",
     "tryAgain": "Probeer het opnieuw",
     "goBack": "Ga terug",
-    "you": "U"
+    "you": "U",
+    "saving": "Opslaan...",
+    "deleting": "Verwijderen..."
   },
   "notFound": {
     "title": "Oeps!",
